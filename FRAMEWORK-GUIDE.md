@@ -1,4 +1,4 @@
-# 🚀 Framework QA Common - Guía Completa
+# 🚀 Framework QA Automation - Guía Completa
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.14-blue.svg)](https://gradle.org/)
