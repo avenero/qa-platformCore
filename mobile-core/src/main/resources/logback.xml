@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Variables específicas para Mobile Framework -->
+    <property name="LOG_HOME" value="logs/mobile" />
+    <property name="FRAMEWORK_NAME" value="MOBILE" />
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [MOBILE][%X{feature}][%X{scenario}] %logger{36} - %msg%n" />
+    <property name="CONSOLE_PATTERN" value="%d{HH:mm:ss.SSS} %-5level [MOBILE][%X{scenario}] %logger{20} - %msg%n" />
+
+    <!-- Appender para consola -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Appender para archivo general de Mobile -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/mobile-tests.log</file>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/mobile-tests.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Appender específico para evidencias Mobile (screenshots, app logs, device info) -->
+    <appender name="MOBILE_EVIDENCE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/mobile-evidences.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [MOBILE-EVIDENCE] [%X{feature}][%X{scenario}] - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/mobile-evidences.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>150MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Appender específico para errores de Mobile -->
+    <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/mobile-errors.log</file>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/mobile-errors.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>60</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <!-- Logger específico para componentes comunes -->
+    <logger name="com.scotia.qa.common" level="INFO">
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- Logger específico para Mobile core -->
+    <logger name="com.scotia.qa.mobilecore" level="INFO">
+        <appender-ref ref="FILE" />
+        <appender-ref ref="MOBILE_EVIDENCE" />
+    </logger>
+
+    <!-- Logger específico para evidencias de Mobile -->
+    <logger name="com.scotia.qa.common.logging.EvidenceManager" level="INFO">
+        <appender-ref ref="MOBILE_EVIDENCE" />
+    </logger>
+
+    <!-- Logger específico para hooks de Cucumber -->
+    <logger name="com.scotia.qa.common.cucumber" level="INFO">
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- Loggers específicos para Mobile testing -->
+    <logger name="io.appium" level="INFO">
+        <appender-ref ref="MOBILE_EVIDENCE" />
+    </logger>
+    <logger name="org.openqa.selenium" level="INFO">
+        <appender-ref ref="MOBILE_EVIDENCE" />
+    </logger>
+    <logger name="io.github.bonigarcia.wdm" level="WARN" />
+
+    <!-- Loggers de terceros con nivel más alto -->
+    <logger name="org.springframework" level="WARN" />
+    <logger name="io.cucumber" level="INFO" />
+    <logger name="org.apache.commons" level="WARN" />
+    <logger name="org.apache.http" level="WARN" />
+    <logger name="okhttp3" level="WARN" />
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+        <appender-ref ref="ERROR" />
+    </root>
+
+</configuration>
+

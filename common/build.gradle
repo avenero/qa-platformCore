@@ -1,0 +1,73 @@
+// Configuración específica del módulo common - JAVA PURO + SPRING OPCIONAL
+
+dependencies {
+
+    // === CONFIGURACIÓN Y PROCESAMIENTO DE ARCHIVOS ===
+    // JSON processing (para DataUtilities y ConfigurationService)
+    api 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    api 'com.fasterxml.jackson.core:jackson-annotations:2.15.2'
+    api 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2'
+
+    // JSON library (para DataUtilities)
+    api 'org.json:json:20231013'
+
+    // === JSON SCHEMA VALIDATION (para todos los frameworks) ===
+    api 'com.networknt:json-schema-validator:1.0.87'
+
+    // YAML processing (para ConfigurationService)
+    api 'org.yaml:snakeyaml:2.2'
+
+    // === BASE DE DATOS ===
+    // Database connection pooling
+    api 'com.zaxxer:HikariCP:5.0.1'
+
+    // Database drivers (para DatabaseManager)
+    api 'mysql:mysql-connector-java:8.0.33'
+    api 'org.postgresql:postgresql:42.7.7'
+    api 'com.microsoft.sqlserver:mssql-jdbc:12.4.1.jre11'
+    api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
+
+    // === LOGGING ===
+    api 'org.slf4j:slf4j-api:2.0.9'
+    api 'ch.qos.logback:logback-classic:1.5.13'
+
+    // === HTTP CLIENT (necesario para clases comunes) ===
+    api 'com.konghq:unirest-java:3.14.5'
+
+    // === CUCUMBER (para hooks y steps comunes) ===
+    api 'io.cucumber:cucumber-java:7.18.0'
+
+    // === UTILIDADES GENERALES ===
+    api 'org.apache.commons:commons-lang3:3.18.0'
+    api 'com.google.guava:guava:32.1.2-jre'
+
+    // === TESTING FRAMEWORKS (base común) ===
+    api 'org.junit.jupiter:junit-jupiter:5.10.0'
+    api 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    api 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+
+    // === ASSERTION LIBRARIES (para ValidationService) ===
+    api 'org.assertj:assertj-core:3.24.2'
+    api 'org.hamcrest:hamcrest:2.2'
+
+    // === SEGURIDAD Y ENCRIPTACIÓN ===
+    // Para futuras implementaciones de manejo de credenciales
+    api 'org.bouncycastle:bcprov-jdk18on:1.78'
+    api 'org.bouncycastle:bcpkix-jdk18on:1.76'
+
+    // === UTILIDADES DE ARCHIVO E I/O ===
+    api 'commons-io:commons-io:2.14.0'
+
+    // === HTTP (para HttpResponse y futuras utilidades) ===
+    api 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+
+    // === JSON PATH & JSON COMPARISON (nuevas funcionalidades) ===
+    api 'com.jayway.jsonpath:json-path:2.8.0'
+    api 'org.skyscreamer:jsonassert:1.5.1'
+    // Faker opcional (comentado por ahora para minimizar huella)
+    // api 'com.github.javafaker:javafaker:1.0.2'
+}
+
+// NOTA: La configuración de publicación está en el build.gradle raíz
+// Para publicar: ./gradlew :common:publishToMavenLocal

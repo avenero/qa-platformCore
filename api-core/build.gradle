@@ -1,0 +1,188 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.diffplug.spotless' version '6.19.0'
+    id 'jacoco'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// Sin configuraciones especiales - usamos logging de common
+dependencies {
+    // ===== DEPENDENCIA DEL FRAMEWORK COMMON =====
+    // Exponer `common` como API para que sea transitivamente visible a los consumidores
+    api project(':common')
+
+    // ===== CUCUMBER PARA BDD (versiones específicas para API testing) =====
+    api 'io.cucumber:cucumber-java:7.18.0'
+    api 'io.cucumber:cucumber-junit-platform-engine:7.18.0'
+    api 'org.junit.platform:junit-platform-suite:1.10.0'
+
+    // ===== TESTING DEPENDENCIES =====
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testImplementation 'org.junit.platform:junit-platform-suite:1.10.0'
+
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
+
+// Spotless configuration para formateo de código
+spotless {
+    java {
+        googleJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+// Test configuration
+test {
+    useJUnitPlatform()
+
+    // Control de logging para tests
+    systemProperties = [
+        // Log4j2 Control
+        'log4j2.configurationFile': 'classpath:log4j2.xml',
+        'log4j2.level': 'INFO',
+        'log4j2.rootLogger.level': 'INFO',
+        'log4j2.statusLoggerLevel': 'WARN',
+
+        // SLF4J Control
+        'org.slf4j.simpleLogger.defaultLogLevel': 'INFO',
+
+        // Apache HTTP Client
+        'org.apache.commons.logging.Log': 'org.apache.commons.logging.impl.SimpleLog',
+        'httpclient.wire.header': 'INFO',
+        'httpclient.wire.content': 'INFO'
+    ]
+
+    // JVM Arguments para control de logging
+    jvmArgs = [
+        '-Dlog4j2.configurationFile=classpath:log4j2.xml',
+        '-Dlog4j2.level=INFO'
+    ]
+
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = false
+        showExceptions = true
+        showCauses = true
+        showStackTraces = false
+        exceptionFormat = 'SHORT'
+    }
+}
+
+// Configuración de Javadoc
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.encoding = 'UTF-8'
+}
+
+// Configuración adicional para compilación
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ['-Xlint:-unchecked', '-Xlint:-deprecation']
+}
+
+// =================================================================================
+// CONFIGURACIÓN DE PUBLICACIÓN MAVEN LOCAL
+// =================================================================================
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            groupId = 'com.scotia.qa'
+            artifactId = 'api-core'
+            version = project.version  // Usa la versión del build.gradle raíz
+
+            pom {
+                name = 'Scotia QA Framework - API Core'
+                description = 'Framework de automatización QA para Scotia Bank - Módulo API Core con Cucumber Steps para testing de APIs REST'
+                url = 'https://github.com/scotia-qa/qa-scotia-frameworks'
+
+                licenses {
+                    license {
+                        name = 'Proprietary'
+                        url = 'https://www.scotiabank.com'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'scotia-qa'
+                        name = 'Scotia QA Team'
+                        email = 'qa-team@scotiabank.com'
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        mavenLocal()
+    }
+}
+
+// Tarea para ver información de publicación
+tasks.register('publishInfo') {
+    doLast {
+        println """
+        ╔════════════════════════════════════════════════════════════╗
+        ║  INFORMACIÓN DE PUBLICACIÓN - api-core
+        ╠════════════════════════════════════════════════════════════╣
+        ║  Group ID:    com.scotia.qa
+        ║  Artifact ID: api-core
+        ║  Version:     ${project.version}
+        ║  
+        ║  Maven Coordinates:
+        ║  com.scotia.qa:api-core:${project.version}
+        ║
+        ║  Para usar en tu proyecto de automatización:
+        ║  
+        ║  dependencies {
+        ║      implementation 'com.scotia.qa:api-core:${project.version}'
+        ║  }
+        ║
+        ║  NOTA: Este JAR incluye transitivamente el módulo 'common'
+        ║        con todas sus dependencias (Unirest, Jackson, etc.)
+        ╚════════════════════════════════════════════════════════════╝
+        """.stripIndent()
+    }
+}
+
+// Jacoco configuration para cobertura de código
+jacoco {
+    toolVersion = "0.8.8"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// Task para ejecutar pruebas Cucumber por tags
+tasks.register('cucumberTags', Test) {
+    description = 'Ejecuta pruebas Cucumber filtradas por tags'
+    group = 'verification'
+    useJUnitPlatform()
+
+    if (project.hasProperty('tags')) {
+        systemProperty 'cucumber.filter.tags', project.property('tags')
+    }
+
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+    }
+}
+
+// Aplicar formateo antes de compilar
+tasks.named('compileJava').configure {
+    dependsOn tasks.named('spotlessApply')
+}
+

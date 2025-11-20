@@ -1,0 +1,46 @@
+// Configuración del proyecto raíz qa-framework
+group = "com.scotia.qa"
+version = "1.0.2"  // Incrementado para forzar actualización con logback con colores
+
+// Configuración para todos los submódulos
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+
+    group = "com.scotia.qa"
+    version = "1.0.2"
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    tasks.withType(JavaCompile) {
+        sourceCompatibility = '21'
+        targetCompatibility = '21'
+    }
+
+    tasks.withType(Test) {
+        useJUnitPlatform()
+    }
+
+    // Configuración de publicación Maven para submódulos sin configuración propia
+    afterEvaluate {
+        // Solo aplicar si el módulo no tiene su propia configuración de publicación
+        if (!project.name.equals('api-core')) {
+            publishing {
+                publications {
+                    mavenJava(MavenPublication) {
+                        from components.java
+                        groupId = project.group
+                        artifactId = project.name
+                        version = project.version
+                    }
+                }
+                repositories {
+                    mavenLocal()
+                }
+            }
+        }
+    }
+}

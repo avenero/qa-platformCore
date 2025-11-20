@@ -1,0 +1,6 @@
+rootProject.name = 'qa-scotia-frameworks'
+
+include 'common'
+include 'api-core'
+include 'web-core'
+include 'mobile-core'

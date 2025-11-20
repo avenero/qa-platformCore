@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+
+    <!-- Suprimir mensajes internos de logback/SLF4J -->
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+
+    <!-- Variables específicas para API Framework -->
+    <property name="LOG_HOME" value="logs/api" />
+    <property name="FRAMEWORK_NAME" value="API" />
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [API][%X{feature}][%X{scenario}] %logger{36} - %msg%n" />
+    <!-- Pattern con colores ANSI para consola -->
+    <property name="CONSOLE_PATTERN" value="%d{HH:mm:ss.SSS} %highlight(%-5level) [API][%X{scenario}] %cyan(%logger{20}) - %msg%n" />
+
+    <!-- Appender para consola con colores -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <withJansi>true</withJansi>
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Appender para archivo general de API -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/api-tests.log</file>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/api-tests.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Appender específico para requests/responses de API -->
+    <appender name="API_EVIDENCE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/api-evidences.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [API-EVIDENCE] [%X{feature}][%X{scenario}] - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/api-evidences.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Appender específico para errores de API -->
+    <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/api-errors.log</file>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/api-errors.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>60</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <!-- Logger específico para componentes comunes -->
+    <logger name="com.scotia.qa.common" level="INFO">
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- Logger específico para API core -->
+    <logger name="com.scotia.qa.apicore" level="INFO">
+        <appender-ref ref="FILE" />
+        <appender-ref ref="API_EVIDENCE" />
+    </logger>
+
+    <!-- Logger específico para evidencias de API -->
+    <logger name="com.scotia.qa.common.logging.EvidenceManager" level="INFO">
+        <appender-ref ref="API_EVIDENCE" />
+    </logger>
+
+    <!-- Logger específico para hooks de Cucumber -->
+    <logger name="com.scotia.qa.common.cucumber" level="INFO">
+        <appender-ref ref="FILE" />
+    </logger>
+
+    <!-- Loggers específicos para API testing -->
+    <logger name="io.restassured" level="INFO">
+        <appender-ref ref="API_EVIDENCE" />
+    </logger>
+    <logger name="org.apache.http" level="INFO">
+        <appender-ref ref="API_EVIDENCE" />
+    </logger>
+
+    <!-- Loggers de terceros con nivel más alto -->
+    <logger name="org.springframework" level="WARN" />
+    <logger name="io.cucumber" level="INFO" />
+    <logger name="com.fasterxml.jackson" level="WARN" />
+    <logger name="org.apache.commons" level="WARN" />
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+        <appender-ref ref="ERROR" />
+    </root>
+
+</configuration>
+

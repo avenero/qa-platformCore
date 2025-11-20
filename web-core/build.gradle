@@ -1,0 +1,46 @@
+// Configuración específica del módulo web-core
+
+dependencies {
+    // Dependencia del módulo común
+    api project(':common')
+
+    // Selenium WebDriver
+    api 'org.seleniumhq.selenium:selenium-java:4.15.0'
+    api 'org.seleniumhq.selenium:selenium-support:4.15.0'
+    api 'org.seleniumhq.selenium:selenium-chrome-driver:4.15.0'
+    api 'org.seleniumhq.selenium:selenium-firefox-driver:4.15.0'
+    api 'org.seleniumhq.selenium:selenium-edge-driver:4.15.0'
+    api 'org.seleniumhq.selenium:selenium-safari-driver:4.15.0'
+
+    // WebDriverManager for automatic driver management
+    api 'io.github.bonigarcia:webdrivermanager:5.5.3'
+
+    // TestNG como alternativa a JUnit para web testing
+    api 'org.testng:testng:7.8.0'
+
+    // ExtentReports for reporting
+    api 'com.aventstack:extentreports:5.1.1'
+
+    // Screenshot utilities
+    api 'ru.yandex.qatools.ashot:ashot:1.5.4'
+
+    // Page Object Model support
+    api 'org.seleniumhq.selenium:selenium-support:4.15.0'
+
+    // JSON processing para datos de prueba
+    api 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+
+    // Utilities
+    api 'org.apache.commons:commons-lang3:3.13.0'
+}
+
+// Configuración de publicación del JAR
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            artifactId = 'web-core'
+        }
+    }
+}

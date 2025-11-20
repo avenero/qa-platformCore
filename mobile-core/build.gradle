@@ -1,0 +1,44 @@
+// Configuración específica del módulo mobile-core
+
+dependencies {
+    // Dependencia del módulo común
+    api project(':common')
+
+    // Appium for mobile testing
+    api 'io.appium:java-client:8.6.0'
+
+    // Selenium WebDriver (compatible con Appium) - usando versión 4.13.0 para compatibilidad
+    api 'org.seleniumhq.selenium:selenium-java:4.13.0'
+    api 'org.seleniumhq.selenium:selenium-support:4.13.0'
+
+    // TestNG para mobile testing
+    api 'org.testng:testng:7.8.0'
+
+    // JSON processing para configuraciones de dispositivos
+    api 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+
+    // ExtentReports for mobile test reporting
+    api 'com.aventstack:extentreports:5.1.1'
+
+    // Screenshot utilities for mobile
+    api 'commons-io:commons-io:2.11.0'
+
+    // Device capabilities management
+    api 'org.apache.commons:commons-lang3:3.13.0'
+
+    // Image comparison for mobile testing (excluyendo conflictos)
+    api('ru.yandex.qatools.ashot:ashot:1.5.4') {
+        exclude group: 'org.seleniumhq.selenium', module: 'selenium-remote-driver'
+    }
+}
+
+// Configuración de publicación del JAR
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            artifactId = 'mobile-core'
+        }
+    }
+}
