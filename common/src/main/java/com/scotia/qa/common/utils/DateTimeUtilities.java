@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Utilidades especializadas para manejo de fechas y tiempos sin dependencias de Spring.
  * Clase estática que proporciona funcionalidades comunes para todos los frameworks.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class DateTimeUtilities {

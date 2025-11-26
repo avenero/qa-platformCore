@@ -3,6 +3,7 @@ package com.scotia.qa.common.logging;
 import com.scotia.qa.common.http.exceptions.FrameworkTechnicalException;
 import com.scotia.qa.common.utils.DataUtilities;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
@@ -12,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Configurador centralizado de logging para todos los frameworks.
  * Maneja la configuración de appenders, niveles y formateadores.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class LoggingConfiguration {
@@ -256,11 +257,16 @@ public class LoggingConfiguration {
         String baseDir = config.getBaseLogDirectory();
         String dateDir = baseDir + "/" + config.getDatePattern();
 
-        DataUtilities.createDirectoryIfNotExists(baseDir);
-        DataUtilities.createDirectoryIfNotExists(dateDir);
+        try {
+            DataUtilities.createDirectoryIfNotExists(baseDir);
+            DataUtilities.createDirectoryIfNotExists(dateDir);
 
-        TestLogger.logDebug("LOGGING_CONFIG",
-                           String.format("Created log directories: %s", dateDir), null);
+            TestLogger.logDebug("LOGGING_CONFIG",
+                               String.format("Created log directories: %s", dateDir), null);
+        } catch (IOException e) {
+            throw new FrameworkTechnicalException(
+                "Error creating log directories: " + e.getMessage(), e);
+        }
     }
 
     /**

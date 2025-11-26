@@ -2,19 +2,28 @@ package com.scotia.qa.common.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+import com.scotia.qa.common.cucumber.ScenarioContext;
 import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
 import com.scotia.qa.common.logging.TestLogger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.skyscreamer.jsonassert.JSONCompare;
+import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.skyscreamer.jsonassert.JSONCompareResult;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /** Clase de utilidades para manipulación de datos.
  * Utilidades consolidadas para manipulación de datos - IMPLEMENTACIÓN UNIFICADA.
@@ -26,7 +35,7 @@ import java.util.regex.Pattern;
  * - Validación de tamaño y profundidad JSON (DoS/OOM prevention)
  * - Sanitización automática de datos sensibles en logs (GDPR/PCI-DSS)
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  * @version 1.2.1
  */
@@ -51,6 +60,9 @@ public class DataUtilities {
         "creditcard", "credit_card", "ssn", "pin", "otp", "privatekey",
         "private_key", "bearer", "refresh_token", "access_token", "session"
     );
+
+    /** Generador de números aleatorios para métodos de generación */
+    private static final Random RANDOM = new Random();
 
     /**
      * ObjectMapper seguro configurado según OWASP best practices.
@@ -77,8 +89,16 @@ public class DataUtilities {
         mapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
         mapper.configure(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY, true);
 
-        // SEGURIDAD: Prevenir inyección mediante getters maliciosos (CVE-2019-12384)
-        mapper.configure(MapperFeature.OVERRIDE_PUBLIC_ACCESS_MODIFIERS, false);
+        // SEGURIDAD: Configuración de visibilidad (reemplaza OVERRIDE_PUBLIC_ACCESS_MODIFIERS deprecado)
+        // La configuración por defecto ya es segura en versiones modernas de Jackson
+        mapper.setVisibility(
+            mapper.getSerializationConfig()
+                .getDefaultVisibilityChecker()
+                .withFieldVisibility(com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY)
+                .withGetterVisibility(com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE)
+                .withSetterVisibility(com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE)
+                .withCreatorVisibility(com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE)
+        );
 
         // PERFORMANCE: Configuración de serialización
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
@@ -493,6 +513,414 @@ public class DataUtilities {
             return getJsonParameter(jsonBody, fieldPath) != null;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    // =================================================================================
+    // BÚSQUEDA RECURSIVA EN RESPUESTAS (API ↔ WEB INTEGRATION)
+    // =================================================================================
+
+    /**
+     * Busca un valor en una respuesta (Map, List, o JSON String) de forma recursiva.
+     *
+     * <p>Este método es la pieza clave para la integración entre capas (API ↔ Web).
+     * Permite extraer valores de respuestas API complejas sin necesidad de conocer
+     * la estructura exacta, facilitando la comparación con elementos Web.
+     *
+     * <p><b>Estrategia de búsqueda:</b>
+     * <ul>
+     *   <li>1. Si la respuesta es un String JSON, lo parsea automáticamente</li>
+     *   <li>2. Busca recursivamente en Maps anidados</li>
+     *   <li>3. Busca recursivamente en Lists/Arrays</li>
+     *   <li>4. Retorna el primer valor encontrado con la clave especificada</li>
+     * </ul>
+     *
+     * <p><b>Casos de uso típicos:</b>
+     * <pre>
+     * // Extraer un campo de respuesta API para comparar con texto Web
+     * Object userName = DataUtilities.findValue(apiResponse, "user_full_name");
+     * String webText = WebHelper.getElementText(locator);
+     * Assert.assertEquals(userName.toString(), webText);
+     *
+     * // Extraer un ID de respuesta para usarlo en otra petición
+     * Object userId = DataUtilities.findValue(loginResponse, "user_id");
+     * ScenarioContext.set("user_id", userId.toString());
+     * </pre>
+     *
+     * @param response Puede ser Map&lt;String,Object&gt;, List&lt;Object&gt; o String (JSON)
+     * @param targetKey Clave a buscar (ej: "user_full_name", "access_token", "id")
+     * @return Valor encontrado (puede ser String, Number, Boolean, Map, List), o null si no existe
+     * @throws RuntimeException si hay error parseando JSON
+     *
+     * @since 1.3.0
+     * @see #findValueInMap(Map, String)
+     * @see #findValueInList(List, String)
+     */
+    public static Object findValue(Object response, String targetKey) {
+        if (response == null || targetKey == null) {
+            TestLogger.logDebug("DATA_UTILITIES",
+                "findValue: response o targetKey es null", null);
+            return null;
+        }
+
+        // Si es String, intentar parsear como JSON
+        if (response instanceof String) {
+            try {
+                String jsonStr = (String) response;
+                response = objectMapper.readValue(jsonStr, Object.class);
+                TestLogger.logDebug("DATA_UTILITIES",
+                    String.format("findValue: JSON String parseado exitosamente (buscando: %s)", targetKey),
+                    null);
+            } catch (JsonProcessingException e) {
+                TestLogger.logError("DATA_UTILITIES",
+                    String.format("findValue: Error parseando JSON string: %s", e.getMessage()),
+                    null);
+                throw new RuntimeException("Error al parsear JSON response", e);
+            }
+        }
+
+        // Buscar según el tipo
+        if (response instanceof Map) {
+            return findValueInMap((Map<String, Object>) response, targetKey);
+        } else if (response instanceof List) {
+            return findValueInList((List<Object>) response, targetKey);
+        }
+
+        TestLogger.logDebug("DATA_UTILITIES",
+            String.format("findValue: tipo no soportado: %s",
+                response.getClass().getSimpleName()),
+            null);
+        return null;
+    }
+
+    /**
+     * Busca recursivamente un valor en un Map.
+     *
+     * <p>Navega por todos los niveles del Map, incluyendo Maps y Lists anidados,
+     * hasta encontrar la primera ocurrencia de la clave especificada.
+     *
+     * @param map Map donde buscar
+     * @param targetKey clave a buscar
+     * @return valor encontrado, o null si no existe
+     *
+     * @since 1.3.0
+     */
+    private static Object findValueInMap(Map<String, Object> map, String targetKey) {
+        if (map == null || targetKey == null) {
+            return null;
+        }
+
+        // Buscar directamente la clave
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            // ¿Es la clave que buscamos?
+            if (key.equals(targetKey)) {
+                TestLogger.logDebug("DATA_UTILITIES",
+                    String.format("findValue: Clave '%s' encontrada (valor tipo: %s)",
+                        targetKey,
+                        value != null ? value.getClass().getSimpleName() : "null"),
+                    null);
+                return value;
+            }
+
+            // Si el valor es un Map anidado, buscar recursivamente
+            if (value instanceof Map) {
+                Object nested = findValueInMap((Map<String, Object>) value, targetKey);
+                if (nested != null) {
+                    return nested;
+                }
+            }
+            // Si el valor es una List, buscar recursivamente
+            else if (value instanceof List) {
+                Object nested = findValueInList((List<Object>) value, targetKey);
+                if (nested != null) {
+                    return nested;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Busca recursivamente un valor en una List.
+     *
+     * <p>Navega por todos los elementos de la lista. Si encuentra Maps,
+     * busca dentro de ellos. Si encuentra Lists anidadas, también las procesa.
+     *
+     * @param list List donde buscar
+     * @param targetKey clave a buscar
+     * @return valor encontrado, o null si no existe
+     *
+     * @since 1.3.0
+     */
+    private static Object findValueInList(List<Object> list, String targetKey) {
+        if (list == null || targetKey == null) {
+            return null;
+        }
+
+        for (Object item : list) {
+            // Si el item es un Map, buscar dentro
+            if (item instanceof Map) {
+                Object nested = findValueInMap((Map<String, Object>) item, targetKey);
+                if (nested != null) {
+                    return nested;
+                }
+            }
+            // Si el item es una List anidada, buscar recursivamente
+            else if (item instanceof List) {
+                Object nested = findValueInList((List<Object>) item, targetKey);
+                if (nested != null) {
+                    return nested;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // =================================================================================
+    // COMPARACIÓN Y NORMALIZACIÓN DE TEXTO (API ↔ WEB INTEGRATION)
+    // =================================================================================
+
+    /**
+     * Compara dos textos de forma flexible para integración API ↔ Web.
+     *
+     * <p>Este método facilita la comparación entre valores obtenidos de APIs
+     * y texto extraído de elementos Web, manejando diferencias comunes como:
+     * <ul>
+     *   <li>Espacios en blanco extras</li>
+     *   <li>Saltos de línea</li>
+     *   <li>Diferencias de mayúsculas/minúsculas (opcional)</li>
+     *   <li>Caracteres especiales HTML (&amp;nbsp;, etc.)</li>
+     * </ul>
+     *
+     * <p><b>Casos de uso:</b>
+     * <pre>
+     * // Comparar nombre de usuario de API con texto en página Web
+     * Object apiName = DataUtilities.findValue(response, "user_full_name");
+     * String webName = webHelper.getElementText(userNameLocator);
+     * boolean match = DataUtilities.compareTextFlexible(apiName.toString(), webName, false);
+     * </pre>
+     *
+     * @param text1 primer texto a comparar (ej: valor de API)
+     * @param text2 segundo texto a comparar (ej: texto de elemento Web)
+     * @param ignoreCase true para ignorar mayúsculas/minúsculas
+     * @return true si los textos coinciden después de normalización, false en caso contrario
+     *
+     * @since 1.3.0
+     * @see #normalizeText(String)
+     */
+    public static boolean compareTextFlexible(String text1, String text2, boolean ignoreCase) {
+        if (text1 == null && text2 == null) {
+            return true;
+        }
+        if (text1 == null || text2 == null) {
+            TestLogger.logDebug("DATA_UTILITIES",
+                "compareTextFlexible: uno de los textos es null", null);
+            return false;
+        }
+
+        String normalized1 = normalizeText(text1);
+        String normalized2 = normalizeText(text2);
+
+        if (ignoreCase) {
+            normalized1 = normalized1.toLowerCase();
+            normalized2 = normalized2.toLowerCase();
+        }
+
+        boolean matches = normalized1.equals(normalized2);
+
+        TestLogger.logDebug("DATA_UTILITIES",
+            String.format("compareTextFlexible: '%s' vs '%s' = %s (ignoreCase: %s)",
+                normalized1.substring(0, Math.min(50, normalized1.length())),
+                normalized2.substring(0, Math.min(50, normalized2.length())),
+                matches,
+                ignoreCase),
+            null);
+
+        return matches;
+    }
+
+    /**
+     * Normaliza un texto para comparaciones, eliminando espacios extras y caracteres especiales.
+     *
+     * <p>Operaciones de normalización aplicadas:
+     * <ul>
+     *   <li>Elimina espacios en blanco al inicio y final (trim)</li>
+     *   <li>Reemplaza múltiples espacios por uno solo</li>
+     *   <li>Reemplaza tabs y saltos de línea por espacios</li>
+     *   <li>Elimina &amp;nbsp; y otros espacios HTML</li>
+     *   <li>Normaliza caracteres Unicode (NFD)</li>
+     * </ul>
+     *
+     * @param text texto a normalizar
+     * @return texto normalizado, o string vacío si el input es null
+     *
+     * @since 1.3.0
+     */
+    public static String normalizeText(String text) {
+        if (text == null) {
+            return "";
+        }
+
+        // Eliminar &nbsp; y entidades HTML
+        String normalized = text
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"");
+
+        // Reemplazar tabs y saltos de línea por espacios
+        normalized = normalized
+            .replace("\t", " ")
+            .replace("\n", " ")
+            .replace("\r", " ");
+
+        // Reemplazar múltiples espacios por uno solo
+        normalized = normalized.replaceAll("\\s+", " ");
+
+        // Trim
+        normalized = normalized.trim();
+
+        return normalized;
+    }
+
+    /**
+     * Compara dos textos de forma exacta (case-sensitive).
+     *
+     * <p>Wrapper de conveniencia para compareTextFlexible con ignoreCase=false.
+     *
+     * @param text1 primer texto
+     * @param text2 segundo texto
+     * @return true si coinciden exactamente después de normalización
+     *
+     * @since 1.3.0
+     */
+    public static boolean compareText(String text1, String text2) {
+        return compareTextFlexible(text1, text2, false);
+    }
+
+    /**
+     * Compara dos textos ignorando mayúsculas/minúsculas.
+     *
+     * <p>Wrapper de conveniencia para compareTextFlexible con ignoreCase=true.
+     *
+     * @param text1 primer texto
+     * @param text2 segundo texto
+     * @return true si coinciden ignorando case después de normalización
+     *
+     * @since 1.3.0
+     */
+    public static boolean compareTextIgnoreCase(String text1, String text2) {
+        return compareTextFlexible(text1, text2, true);
+    }
+
+    /**
+     * Verifica si un texto contiene otro texto (case-insensitive).
+     *
+     * <p>Útil para validaciones parciales entre datos API y Web.
+     *
+     * @param text texto donde buscar
+     * @param substring texto a buscar
+     * @return true si text contiene substring (ignorando case y después de normalizar)
+     *
+     * @since 1.3.0
+     */
+    public static boolean containsText(String text, String substring) {
+        if (text == null || substring == null) {
+            return false;
+        }
+
+        String normalizedText = normalizeText(text).toLowerCase();
+        String normalizedSubstring = normalizeText(substring).toLowerCase();
+
+        return normalizedText.contains(normalizedSubstring);
+    }
+
+    /**
+     * Extrae números de un texto (útil para comparaciones numéricas API ↔ Web).
+     *
+     * <p>Ejemplos:
+     * <pre>
+     * extractNumber("$1,234.56") → "1234.56"
+     * extractNumber("Total: 100 items") → "100"
+     * extractNumber("Price: $25.00") → "25.00"
+     * </pre>
+     *
+     * @param text texto que contiene números
+     * @return string con solo números y punto decimal, o null si no hay números
+     *
+     * @since 1.3.0
+     */
+    public static String extractNumber(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return null;
+        }
+
+        // Eliminar todo excepto números, punto y coma
+        String numbers = text.replaceAll("[^0-9.,]", "");
+
+        // Si hay coma como separador decimal (formato europeo), convertir a punto
+        if (numbers.contains(",") && !numbers.contains(".")) {
+            numbers = numbers.replace(",", ".");
+        }
+        // Si hay tanto punto como coma, asumir que coma es separador de miles
+        else if (numbers.contains(",") && numbers.contains(".")) {
+            numbers = numbers.replace(",", "");
+        }
+
+        return numbers.isEmpty() ? null : numbers;
+    }
+
+    /**
+     * Extrae y convierte un número de un texto a Double.
+     *
+     * @param text texto que contiene un número
+     * @return número como Double, o null si no se puede extraer/parsear
+     *
+     * @since 1.3.0
+     */
+    public static Double extractNumberAsDouble(String text) {
+        String numberStr = extractNumber(text);
+        if (numberStr == null) {
+            return null;
+        }
+
+        try {
+            return Double.parseDouble(numberStr);
+        } catch (NumberFormatException e) {
+            TestLogger.logWarning("DATA_UTILITIES",
+                String.format("No se pudo parsear número: '%s'", numberStr),
+                null);
+            return null;
+        }
+    }
+
+    /**
+     * Extrae y convierte un número de un texto a Integer.
+     *
+     * @param text texto que contiene un número entero
+     * @return número como Integer, o null si no se puede extraer/parsear
+     *
+     * @since 1.3.0
+     */
+    public static Integer extractNumberAsInteger(String text) {
+        Double doubleValue = extractNumberAsDouble(text);
+        if (doubleValue == null) {
+            return null;
+        }
+
+        try {
+            return doubleValue.intValue();
+        } catch (Exception e) {
+            TestLogger.logWarning("DATA_UTILITIES",
+                String.format("No se pudo convertir a entero: '%s'", doubleValue),
+                null);
+            return null;
         }
     }
 
@@ -1304,270 +1732,537 @@ public class DataUtilities {
     }
 
     // =================================================================================
-    // UTILIDADES DE ARCHIVOS Y SISTEMA
+    // BÚSQUEDA RECURSIVA EN JSON/MAPS/LISTS (MEJORADO v1.3.0)
     // =================================================================================
+
+    /**
+     * Busca un valor en un response (Map, List o JSON String) de forma recursiva.
+     *
+     * <p>Este método es capaz de buscar claves anidadas en estructuras JSON complejas,
+     * sin importar la profundidad del anidamiento.
+     *
+     * <p>Ejemplos de uso:
+     * <pre>
+     * // JSON: {"response": {"data": {"user_full_name": "Juan Pérez"}}}
+     * Object name = DataUtilities.findValue(jsonResponse, "user_full_name");
+     * // Retorna: "Juan Pérez"
+     *
+     * // También funciona con Maps y Lists
+     * Map<String, Object> map = ...;
+     * Object value = DataUtilities.findValue(map, "targetKey");
+     * </pre>
+     *
+     * @param response Puede ser Map<String,Object>, List<Object> o String (JSON)
+     * @param targetKey Clave a buscar (ej: "user_full_name")
+     * @return Valor encontrado o null si no existe
+     * @throws FrameworkBusinessException si hay error parseando JSON
+     *
+     * @since 1.3.0
+     */
+
+
+    // =========================================================================
+    // UTILIDADES DE ARCHIVOS Y DIRECTORIOS
+    // =========================================================================
+
+    /**
+     * Escribe un string a un archivo.
+     *
+     * @param content Contenido a escribir
+     * @param filepath Ruta del archivo
+     * @throws IOException si hay error escribiendo
+     */
+    public static void writeStringToFile(String content, String filepath) throws IOException {
+        if (content == null || filepath == null) {
+            throw new IllegalArgumentException("content y filepath no pueden ser null");
+        }
+        Files.writeString(Path.of(filepath), content);
+        TestLogger.logDebug("DATA_UTILITIES",
+            String.format("Contenido escrito a archivo: %s", filepath), null);
+    }
 
     /**
      * Crea un directorio si no existe.
      *
-     * @param directoryPath ruta del directorio a crear
-     * @throws RuntimeException si no se puede crear el directorio
+     * @param dirPath Ruta del directorio a crear
+     * @throws IOException si hay error creando el directorio
      */
-    public static void createDirectoryIfNotExists(String directoryPath) {
-        if (directoryPath == null || directoryPath.trim().isEmpty()) {
-            throw new IllegalArgumentException("La ruta del directorio no puede estar vacía");
+    public static void createDirectoryIfNotExists(String dirPath) throws IOException {
+        if (dirPath == null || dirPath.trim().isEmpty()) {
+            throw new IllegalArgumentException("dirPath no puede ser null o vacío");
         }
 
-        java.io.File directory = new java.io.File(directoryPath);
-        if (!directory.exists()) {
-            boolean created = directory.mkdirs();
-            if (!created) {
-                throw new RuntimeException("No se pudo crear el directorio: " + directoryPath);
-            }
+        Path path = Path.of(dirPath);
+        if (!Files.exists(path)) {
+            Files.createDirectories(path);
             TestLogger.logDebug("DATA_UTILITIES",
-                String.format("Directorio creado: %s", directoryPath),
-                null);
+                String.format("Directorio creado: %s", dirPath), null);
+        }
+    }
+
+    // =========================================================================
+    // COMPARACIÓN Y VALIDACIÓN CROSS-LAYER (API ↔ WEB ↔ MOBILE)
+    // =========================================================================
+
+    /**
+     * Compara dos valores obtenidos de diferentes capas (API vs Web, por ejemplo).
+     * Soporta comparación exacta, ignoreCase, y normalización de espacios.
+     *
+     * <p><b>Ejemplos de uso:</b></p>
+     * <pre>
+     * // Comparar texto de API con texto de elemento Web
+     * boolean equals = DataUtilities.compareValues(apiValue, webValue, ComparisonMode.EXACT);
+     *
+     * // Comparar ignorando mayúsculas/minúsculas
+     * boolean equals = DataUtilities.compareValues(apiValue, webValue, ComparisonMode.IGNORE_CASE);
+     *
+     * // Comparar normalizando espacios
+     * boolean equals = DataUtilities.compareValues(apiValue, webValue, ComparisonMode.TRIM_AND_NORMALIZE);
+     * </pre>
+     *
+     * @param value1 Primer valor a comparar
+     * @param value2 Segundo valor a comparar
+     * @param mode Modo de comparación
+     * @return true si los valores son equivalentes según el modo, false en caso contrario
+     */
+    public static boolean compareValues(Object value1, Object value2, ComparisonMode mode) {
+        if (value1 == null && value2 == null) return true;
+        if (value1 == null || value2 == null) return false;
+
+        String str1 = String.valueOf(value1);
+        String str2 = String.valueOf(value2);
+
+        switch (mode) {
+            case EXACT:
+                return str1.equals(str2);
+
+            case IGNORE_CASE:
+                return str1.equalsIgnoreCase(str2);
+
+            case TRIM:
+                return str1.trim().equals(str2.trim());
+
+            case TRIM_AND_NORMALIZE:
+                // Normaliza espacios múltiples a uno solo y hace trim
+                String normalized1 = str1.trim().replaceAll("\\s+", " ");
+                String normalized2 = str2.trim().replaceAll("\\s+", " ");
+                return normalized1.equals(normalized2);
+
+            case IGNORE_CASE_AND_TRIM:
+                return str1.trim().equalsIgnoreCase(str2.trim());
+
+            case CONTAINS:
+                return str1.contains(str2) || str2.contains(str1);
+
+            default:
+                return str1.equals(str2);
         }
     }
 
     /**
-     * Escribe un String a un archivo.
+     * Compara dos valores usando modo de comparación exacta.
      *
-     * @param content contenido a escribir
-     * @param filepath ruta del archivo destino
-     * @throws RuntimeException si hay error escribiendo el archivo
+     * @param value1 Primer valor
+     * @param value2 Segundo valor
+     * @return true si son exactamente iguales
      */
-    public static void writeStringToFile(String content, String filepath) {
-        if (content == null || filepath == null) {
-            throw new IllegalArgumentException("El contenido y filepath no pueden ser nulos");
+    public static boolean compareValues(Object value1, Object value2) {
+        return compareValues(value1, value2, ComparisonMode.EXACT);
+    }
+
+    /**
+     * Compara un valor obtenido de API con un valor esperado del contexto.
+     *
+     * @param apiKey Nombre de la variable que contiene el valor de API
+     * @param expectedKey Nombre de la variable que contiene el valor esperado
+     * @param mode Modo de comparación
+     * @return true si los valores coinciden
+     * @throws RuntimeException Si alguna de las variables no existe
+     */
+    public static boolean compareApiWithContext(String apiKey, String expectedKey, ComparisonMode mode) {
+        Object apiValue = ScenarioContext.getFromAnyLayer(apiKey);
+        Object expectedValue = ScenarioContext.getFromAnyLayer(expectedKey);
+
+        if (apiValue == null) {
+            throw new RuntimeException("Variable de API no encontrada en contexto: " + apiKey);
+        }
+        if (expectedValue == null) {
+            throw new RuntimeException("Variable esperada no encontrada en contexto: " + expectedKey);
         }
 
-        try {
-            java.nio.file.Path path = java.nio.file.Paths.get(filepath);
-            java.nio.file.Files.createDirectories(path.getParent());
-            java.nio.file.Files.write(path, content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        boolean result = compareValues(apiValue, expectedValue, mode);
 
-            TestLogger.logDebug("DATA_UTILITIES",
-                String.format("Archivo escrito: %s (%d bytes)", filepath, content.length()),
-                null);
-        } catch (java.io.IOException e) {
-            throw new RuntimeException("Error escribiendo archivo: " + filepath, e);
+        TestLogger.logInfo("DATA_UTILITIES",
+            String.format("Comparación API vs Contexto [%s] - API: '%s' vs Esperado: '%s' = %s",
+                mode, apiValue, expectedValue, result ? "✅ MATCH" : "❌ NO MATCH"), null);
+
+        return result;
+    }
+
+    /**
+     * Valida que un valor de API coincida con un valor esperado (comparación exacta).
+     *
+     * @param apiKey Nombre de la variable de API
+     * @param expectedKey Nombre de la variable esperada
+     * @throws AssertionError Si los valores no coinciden
+     */
+    public static void assertApiMatchesExpected(String apiKey, String expectedKey) {
+        if (!compareApiWithContext(apiKey, expectedKey, ComparisonMode.EXACT)) {
+            Object apiValue = ScenarioContext.getFromAnyLayer(apiKey);
+            Object expectedValue = ScenarioContext.getFromAnyLayer(expectedKey);
+            throw new AssertionError(
+                String.format("Los valores no coinciden: API['%s']='%s' != Esperado['%s']='%s'",
+                    apiKey, apiValue,
+                    expectedKey, expectedValue)
+            );
         }
     }
 
     /**
-     * Convierte un JSON String a un Map.
+     * Valida que un valor de API coincida con un valor esperado usando un modo específico.
      *
-     * @param jsonString JSON como String
-     * @return Map representando el JSON
-     * @throws FrameworkBusinessException si el JSON es inválido
+     * @param apiKey Nombre de la variable de API
+     * @param expectedKey Nombre de la variable esperada
+     * @param mode Modo de comparación
+     * @throws AssertionError Si los valores no coinciden
      */
-    @SuppressWarnings("unchecked")
-    public static Map<String, Object> jsonToMap(String jsonString) throws FrameworkBusinessException {
-        try {
-            if (jsonString == null || jsonString.trim().isEmpty()) {
-                return new HashMap<>();
-            }
-
-            return objectMapper.readValue(jsonString, Map.class);
-        } catch (JsonProcessingException e) {
-            throw new FrameworkBusinessException("jsonToMap",
-                "Error convirtiendo JSON a Map: " + e.getMessage());
+    public static void assertApiMatchesExpected(String apiKey, String expectedKey, ComparisonMode mode) {
+        if (!compareApiWithContext(apiKey, expectedKey, mode)) {
+            Object apiValue = ScenarioContext.getFromAnyLayer(apiKey);
+            Object expectedValue = ScenarioContext.getFromAnyLayer(expectedKey);
+            throw new AssertionError(
+                String.format("Los valores no coinciden [%s]: API['%s']='%s' != Esperado['%s']='%s'",
+                    mode, apiKey, apiValue,
+                    expectedKey, expectedValue)
+            );
         }
     }
 
-    // =================================================================================
-    // GENERACIÓN DE DATOS AVANZADA (NUEVO)
-    // =================================================================================
+    /**
+     * Modos de comparación disponibles para validar valores entre capas.
+     */
+    public enum ComparisonMode {
+        /** Comparación exacta (case-sensitive, sin modificaciones) */
+        EXACT,
+
+        /** Ignora mayúsculas/minúsculas */
+        IGNORE_CASE,
+
+        /** Elimina espacios al inicio y final */
+        TRIM,
+
+        /** Elimina espacios y normaliza múltiples espacios a uno solo */
+        TRIM_AND_NORMALIZE,
+
+        /** Ignora mayúsculas/minúsculas y elimina espacios */
+        IGNORE_CASE_AND_TRIM,
+
+        /** Verifica si un valor contiene al otro */
+        CONTAINS
+    }
+
+    // =========================================================================
+    // GENERACIÓN ALEATORIA AVANZADA
+    // =========================================================================
 
     /**
      * Genera un boolean aleatorio.
-     * @since 1.2.0
+     *
+     * @return true o false aleatoriamente
      */
     public static boolean generateRandomBoolean() {
-        return SecurityUtilities.getSecureRandomInstance().nextBoolean();
+        return RANDOM.nextBoolean();
     }
 
     /**
-     * Genera un número dentro de un rango (alias semántico para generateRandomNumber).
-     * @since 1.2.0
+     * Genera un número entero dentro de un rango.
+     *
+     * @param min Valor mínimo (inclusivo)
+     * @param max Valor máximo (inclusivo)
+     * @return Número aleatorio entre min y max
      */
     public static int generateNumberInRange(int min, int max) {
-        return generateRandomNumber(min, max);
-    }
-
-    /**
-     * Genera un texto pseudo-largo (simple) de longitud aproximada.
-     * @since 1.2.0
-     */
-    public static String generateLoremIpsum(int approxLength) {
-        if (approxLength <= 0) return "";
-        String base = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ";
-        StringBuilder sb = new StringBuilder();
-        while (sb.length() < approxLength) {
-            sb.append(base);
+        if (min > max) {
+            throw new IllegalArgumentException("min no puede ser mayor que max");
         }
-        return sb.substring(0, Math.min(approxLength, sb.length()));
+        return RANDOM.nextInt((max - min) + 1) + min;
     }
 
     /**
-     * Genera una edad aleatoria dentro de un rango (útil para test data rápido).
-     * @since 1.2.0
-     */
-    public static int generateAgeInRange(int minAge, int maxAge) {
-        return generateRandomNumber(minAge, maxAge);
-    }
-
-    /**
-     * Genera un valor monetario aleatorio dentro de un rango.
-     * @since 1.2.0
-     */
-    public static double generateRandomAmount(double min, double max, int scale) {
-        if (min > max) throw new IllegalArgumentException("min no puede ser > max");
-        double raw = min + (SecurityUtilities.getSecureRandomInstance().nextDouble() * (max - min));
-        return Math.round(raw * Math.pow(10, scale)) / Math.pow(10, scale);
-    }
-
-    /**
-     * Genera un string aleatorio que parece un código (prefijo + alfanumérico).
-     * @since 1.2.0
-     */
-    public static String generateCode(String prefix, int randomLength) {
-        return (prefix != null ? prefix : "") + generateRandomAlphanumeric(randomLength).toUpperCase();
-    }
-
-    // =================================================================================
-    // JSONPATH AVANZADO (NUEVO) - WRAPPER
-    // =================================================================================
-
-    /**
-     * Obtiene un valor usando una expresión JSONPath avanzada. Soporta:
-     *  - Indices: $.data.users[0].name
-     *  - Wildcards: $.data.users[*].id
-     *  - Filtros simples: $.data.users[?(@.active == true)].email
-     * Si la expresión no comienza por '$', se añade automáticamente.
+     * Genera texto Lorem Ipsum con longitud específica.
      *
-     * @param jsonBody cuerpo JSON
-     * @param jsonPath expresión JSONPath (ej: data.users[0].name)
-     * @return Object resultado (List, Map, String, Number, Boolean o null)
-     * @since 1.2.0
+     * @param length Longitud del texto deseado
+     * @return Texto Lorem Ipsum
      */
-    public static Object getByJsonPath(String jsonBody, String jsonPath) {
-        if (!isValidString(jsonBody) || !isValidString(jsonPath)) {
+    public static String generateLoremIpsum(int length) {
+        String lorem = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ";
+        StringBuilder sb = new StringBuilder();
+        while (sb.length() < length) {
+            sb.append(lorem);
+        }
+        return sb.substring(0, length);
+    }
+
+    /**
+     * Genera una edad dentro de un rango.
+     *
+     * @param min Edad mínima
+     * @param max Edad máxima
+     * @return Edad aleatoria
+     */
+    public static int generateAgeInRange(int min, int max) {
+        return generateNumberInRange(min, max);
+    }
+
+    /**
+     * Genera un monto monetario aleatorio con decimales.
+     *
+     * @param min Monto mínimo
+     * @param max Monto máximo
+     * @param decimals Número de decimales
+     * @return Monto aleatorio
+     */
+    public static double generateRandomAmount(double min, double max, int decimals) {
+        if (min > max) {
+            throw new IllegalArgumentException("min no puede ser mayor que max");
+        }
+        double amount = min + (max - min) * RANDOM.nextDouble();
+        double multiplier = Math.pow(10, decimals);
+        return Math.round(amount * multiplier) / multiplier;
+    }
+
+    /**
+     * Genera un código con prefijo y longitud específica.
+     *
+     * @param prefix Prefijo del código
+     * @param suffixLength Longitud del sufijo numérico
+     * @return Código generado
+     */
+    public static String generateCode(String prefix, int suffixLength) {
+        StringBuilder code = new StringBuilder(prefix);
+        for (int i = 0; i < suffixLength; i++) {
+            code.append(RANDOM.nextInt(10));
+        }
+        return code.toString();
+    }
+
+    // =========================================================================
+    // MÉTODOS JSONPATH
+    // =========================================================================
+
+    /**
+     * Obtiene un valor de un JSON usando JSONPath.
+     *
+     * @param json String JSON
+     * @param jsonPath Expresión JSONPath
+     * @return Valor encontrado o null
+     */
+    public static Object getByJsonPath(String json, String jsonPath) {
+        if (json == null || json.trim().isEmpty()) {
             return null;
         }
+
         try {
-            String path = jsonPath.startsWith("$") ? jsonPath : "$." + jsonPath;
-            com.jayway.jsonpath.Configuration conf = com.jayway.jsonpath.Configuration.defaultConfiguration();
-            return com.jayway.jsonpath.JsonPath.using(conf).parse(jsonBody).read(path);
+            return JsonPath.read(json, jsonPath);
+        } catch (PathNotFoundException e) {
+            TestLogger.logDebug("DATA_UTILITIES",
+                String.format("JSONPath no encontrado: %s", jsonPath), null);
+            return null;
         } catch (Exception e) {
-            TestLogger.logDebug("DATA_UTILITIES", "JSONPath error: " + e.getMessage(), null);
+            TestLogger.logError("DATA_UTILITIES",
+                String.format("Error evaluando JSONPath: %s", e.getMessage()), null);
             return null;
         }
     }
 
     /**
-     * Verifica si un JSONPath retorna algún valor no nulo.
-     * @since 1.2.0
+     * Verifica si existe un JSONPath en el JSON.
+     *
+     * @param json String JSON
+     * @param jsonPath Expresión JSONPath
+     * @return true si existe, false en caso contrario
      */
-    public static boolean hasJsonPath(String jsonBody, String jsonPath) {
-        return getByJsonPath(jsonBody, jsonPath) != null;
+    public static boolean hasJsonPath(String json, String jsonPath) {
+        try {
+            Object result = getByJsonPath(json, jsonPath);
+            return result != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
-     * Obtiene una lista tipada desde JSONPath (convierte si es necesario).
-     * @since 1.2.0
+     * Obtiene una lista tipada de valores usando JSONPath.
+     *
+     * @param <T> Tipo de los elementos
+     * @param json String JSON
+     * @param jsonPath Expresión JSONPath
+     * @param elementType Clase del tipo de elemento
+     * @return Lista de elementos del tipo especificado
      */
     @SuppressWarnings("unchecked")
-    public static <T> List<T> getListByJsonPath(String jsonBody, String jsonPath, Class<T> elementType) {
-        Object result = getByJsonPath(jsonBody, jsonPath);
-        if (result == null) return Collections.emptyList();
+    public static <T> List<T> getListByJsonPath(String json, String jsonPath, Class<T> elementType) {
+        Object result = getByJsonPath(json, jsonPath);
+
+        if (result == null) {
+            return new ArrayList<>();
+        }
+
         if (result instanceof List) {
-            List<?> raw = (List<?>) result;
-            List<T> converted = new ArrayList<>();
-            for (Object o : raw) {
-                try {
-                    if (elementType.isInstance(o)) {
-                        converted.add((T) o);
-                    } else {
-                        converted.add(objectMapper.convertValue(o, elementType));
+            List<?> list = (List<?>) result;
+            return list.stream()
+                .map(item -> {
+                    if (elementType.isInstance(item)) {
+                        return elementType.cast(item);
                     }
-                } catch (Exception ex) {
-                    TestLogger.logDebug("DATA_UTILITIES", "Conversión fallida de elemento JSONPath: " + ex.getMessage(), null);
-                }
-            }
-            return converted;
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         }
-        // Si es un único elemento intentando envolverlo
-        try {
-            T single = elementType.isInstance(result) ? (T) result : objectMapper.convertValue(result, elementType);
-            return Collections.singletonList(single);
-        } catch (Exception e) {
-            return Collections.emptyList();
-        }
+
+        return new ArrayList<>();
     }
 
-    // =================================================================================
-    // COMPARACIÓN DE JSON (NUEVO)
-    // =================================================================================
+    // =========================================================================
+    // COMPARACIÓN Y DIFERENCIAS JSON
+    // =========================================================================
 
     /**
-     * Compara dos JSON y retorna true si son equivalentes ignorando el orden de arrays y espacios.
-     * @since 1.2.0
+     * Compara dos JSON para verificar si son equivalentes (ignora orden de campos).
+     *
+     * @param json1 Primer JSON
+     * @param json2 Segundo JSON
+     * @return true si son equivalentes, false en caso contrario
      */
     public static boolean areJsonEqual(String json1, String json2) {
-        if (!isValidString(json1) || !isValidString(json2)) return false;
+        if (json1 == null && json2 == null) return true;
+        if (json1 == null || json2 == null) return false;
+
         try {
-            org.skyscreamer.jsonassert.JSONAssert.assertEquals(json1, json2, false);
-            return true;
-        } catch (AssertionError | Exception e) {
+            JSONCompareResult result = JSONCompare.compareJSON(json1, json2, JSONCompareMode.NON_EXTENSIBLE);
+            return result.passed();
+        } catch (Exception e) {
+            TestLogger.logError("DATA_UTILITIES",
+                String.format("Error comparando JSON: %s", e.getMessage()), null);
             return false;
         }
     }
 
     /**
-     * Compara dos JSON y devuelve un diff textual simple (campos que difieren).
-     * No es exhaustivo pero ayuda en debugging.
-     * @since 1.2.0
+     * Genera un reporte de diferencias entre dos JSON.
+     *
+     * @param expected JSON esperado
+     * @param actual JSON actual
+     * @return String con las diferencias encontradas
      */
-    public static String diffJson(String expectedJson, String actualJson) {
-        if (!isValidString(expectedJson) || !isValidString(actualJson)) {
-            return "<EMPTY_OR_INVALID_INPUT>";
+    public static String diffJson(String expected, String actual) {
+        if (expected == null || actual == null) {
+            return "Uno de los JSON es null";
         }
+
         try {
-            Map<String, Object> expected = jsonToMap(expectedJson);
-            Map<String, Object> actual = jsonToMap(actualJson);
-            Set<String> allKeys = new HashSet<>();
-            allKeys.addAll(expected.keySet());
-            allKeys.addAll(actual.keySet());
-            StringBuilder diff = new StringBuilder();
-            for (String key : allKeys) {
-                Object ev = expected.get(key);
-                Object av = actual.get(key);
-                if (!Objects.equals(ev, av)) {
-                    diff.append(key).append(" => expected: ").append(ev).append(", actual: ").append(av).append("\n");
-                }
+            JSONCompareResult result = JSONCompare.compareJSON(expected, actual, JSONCompareMode.NON_EXTENSIBLE);
+
+            if (result.passed()) {
+                return "Los JSON son idénticos";
             }
-            return diff.length() == 0 ? "<NO_DIFF>" : diff.toString();
+
+            StringBuilder diff = new StringBuilder("Diferencias encontradas:\n");
+
+            result.getFieldMissing().forEach(missing ->
+                diff.append(missing).append(" => actual: <missing>\n"));
+
+            result.getFieldUnexpected().forEach(unexpected ->
+                diff.append(unexpected).append(" => expected:\n"));
+
+            result.getFieldFailures().forEach(failure -> {
+                String field = failure.getField();
+                Object expectedValue = failure.getExpected();
+                Object actualValue = failure.getActual();
+                diff.append(field).append(" => expected: ").append(expectedValue)
+                    .append(", actual: ").append(actualValue).append("\n");
+            });
+
+            return diff.toString();
         } catch (Exception e) {
-            return "<DIFF_ERROR: " + e.getMessage() + ">";
+            return "Error comparando JSON: " + e.getMessage();
         }
     }
 
     /**
-     * Verifica que el JSON actual contenga todos los campos del esperado (shallow level).
-     * @since 1.2.0
+     * Verifica si el JSON actual contiene todos los campos del JSON esperado.
+     *
+     * @param expected JSON con campos esperados
+     * @param actual JSON actual a verificar
+     * @return true si contiene todos los campos, false en caso contrario
      */
-    public static boolean jsonContainsAllFields(String expectedJson, String actualJson) {
-        try {
-            Map<String, Object> expected = jsonToMap(expectedJson);
-            Map<String, Object> actual = jsonToMap(actualJson);
-            for (String key : expected.keySet()) {
-                if (!actual.containsKey(key)) return false;
-            }
-            return true;
-        } catch (Exception e) {
+    public static boolean jsonContainsAllFields(String expected, String actual) {
+        if (expected == null || actual == null) {
             return false;
+        }
+
+        try {
+            JSONCompareResult result = JSONCompare.compareJSON(expected, actual, JSONCompareMode.LENIENT);
+            return result.passed();
+        } catch (Exception e) {
+            TestLogger.logError("DATA_UTILITIES",
+                String.format("Error verificando campos JSON: %s", e.getMessage()), null);
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // MÉTODOS DE CONVERSIÓN Y CONTEXTO
+    // =========================================================================
+
+    /**
+     * Convierte un String JSON a un Map.
+     *
+     * @param json String JSON a convertir
+     * @return Map con los datos del JSON
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> jsonToMap(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return new HashMap<>();
+        }
+
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (JsonProcessingException e) {
+            TestLogger.logError("DATA_UTILITIES",
+                String.format("Error convirtiendo JSON a Map: %s", e.getMessage()), null);
+            return new HashMap<>();
+        }
+    }
+
+    /**
+     * Guarda un valor en el contexto del escenario.
+     *
+     * @param layer Capa del framework (api, web, mobile)
+     * @param key Clave para almacenar el valor
+     * @param value Valor a almacenar
+     */
+    public static void saveToContext(String layer, String key, Object value) {
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("La clave no puede ser null o vacía");
+        }
+
+        String fullKey = layer != null && !layer.trim().isEmpty()
+            ? layer + "." + key
+            : key;
+
+        try {
+            ScenarioContext.setByLayer(layer, key, value);
+
+            TestLogger.logDebug("DATA_UTILITIES",
+                String.format("Valor guardado en contexto [%s]: %s = %s",
+                    fullKey, key, sanitizeForLog(String.valueOf(value))), null);
+        } catch (FrameworkBusinessException e) {
+            TestLogger.logError("DATA_UTILITIES",
+                String.format("Error guardando valor en contexto: %s", e.getMessage()), null);
+            throw new IllegalStateException("Error guardando en contexto", e);
         }
     }
 }

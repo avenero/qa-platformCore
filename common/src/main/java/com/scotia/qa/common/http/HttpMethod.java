@@ -25,7 +25,7 @@ package com.scotia.qa.common.http;
  * HttpResponse response = client.executeRequest(HttpMethod.GET, "/users");
  * </pre>
  *
- * @author Scotia QA Framework
+ * @author Abel Venero
  * @since 1.0.0
  */
 public enum HttpMethod {

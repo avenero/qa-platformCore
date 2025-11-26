@@ -89,7 +89,7 @@ import java.util.Properties;
  * funcionar. Mantiene la separación de responsabilidades proporcionando funciones
  * puras sin estado, mientras que ConfigurationProvider añade servicios de alto nivel.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @version 1.0.0
  * @since 1.0.0
  * @see com.scotia.qa.common.interfaces.ConfigurationProvider

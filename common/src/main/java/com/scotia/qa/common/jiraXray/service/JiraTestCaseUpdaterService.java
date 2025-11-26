@@ -17,7 +17,7 @@ import java.util.List;
  * Usa adaptadores para diferentes formatos y envía en batches.
  * Integrado con el sistema de logging del framework Scotia QA.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class JiraTestCaseUpdaterService {

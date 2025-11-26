@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
  * Ejemplo: @QAAUY-582 → testKey="QAAUY-582", projectKey="QAAUY"
  * Integrado con el sistema de logging del framework Scotia QA.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class TagBasedExtractor {

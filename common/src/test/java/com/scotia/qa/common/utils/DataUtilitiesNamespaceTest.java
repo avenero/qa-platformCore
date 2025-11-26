@@ -8,7 +8,7 @@ import java.util.Set;
 /**
  * Tests unitarios para DataUtilities - Funcionalidad de Namespace
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.2.0
  */
 @DisplayName("DataUtilities - Namespace Tests")

@@ -16,7 +16,7 @@ import java.util.*;
  * Integrado con el sistema de logging del framework Scotia QA.
  * Por ahora es un stub que se puede implementar cuando se necesite.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class JUnitResultAdapter implements ResultAdapter {

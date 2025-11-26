@@ -7,7 +7,7 @@ import java.util.HashMap;
  * Clase común para representar respuestas HTTP entre todos los frameworks.
  * Proporciona una interfaz unificada para manejar respuestas de diferentes clientes HTTP.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class HttpResponse {

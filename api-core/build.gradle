@@ -11,11 +11,41 @@ java {
     }
 }
 
-// Sin configuraciones especiales - usamos logging de common
+// Configuración específica del módulo api-core (v1.1.0)
+// Dependencias específicas para testing de APIs REST/SOAP/GraphQL
 dependencies {
     // ===== DEPENDENCIA DEL FRAMEWORK COMMON =====
     // Exponer `common` como API para que sea transitivamente visible a los consumidores
     api project(':common')
+
+    // ===== HTTP CLIENT AVANZADO =====
+    // Unirest para peticiones HTTP/HTTPS con soporte SSL
+    api 'com.konghq:unirest-java:3.14.5'
+    api 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+
+    // ===== BASE DE DATOS (para API tests que validan BD) =====
+    // Connection pooling
+    api 'com.zaxxer:HikariCP:5.0.1'
+
+    // Database drivers
+    api 'mysql:mysql-connector-java:8.0.33'
+    api 'org.postgresql:postgresql:42.7.7'
+    api 'com.microsoft.sqlserver:mssql-jdbc:12.4.1.jre11'
+    api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
+
+    // ===== VALIDACIONES API REST =====
+    // JSON Schema validation
+    api 'com.networknt:json-schema-validator:1.0.87'
+
+    // JSON Path para consultas avanzadas
+    api 'com.jayway.jsonpath:json-path:2.8.0'
+
+    // JSON comparison para assertions
+    api 'org.skyscreamer:jsonassert:1.5.1'
+
+    // ===== ASSERTION LIBRARIES (para validaciones API) =====
+    api 'org.assertj:assertj-core:3.24.2'
+    api 'org.hamcrest:hamcrest:2.2'
 
     // ===== CUCUMBER PARA BDD (versiones específicas para API testing) =====
     api 'io.cucumber:cucumber-java:7.18.0'
@@ -51,8 +81,10 @@ test {
         'log4j2.rootLogger.level': 'INFO',
         'log4j2.statusLoggerLevel': 'WARN',
 
+
         // SLF4J Control
         'org.slf4j.simpleLogger.defaultLogLevel': 'INFO',
+        'slf4j.internal.verbosity': 'ERROR',
 
         // Apache HTTP Client
         'org.apache.commons.logging.Log': 'org.apache.commons.logging.impl.SimpleLog',
@@ -63,7 +95,8 @@ test {
     // JVM Arguments para control de logging
     jvmArgs = [
         '-Dlog4j2.configurationFile=classpath:log4j2.xml',
-        '-Dlog4j2.level=INFO'
+        '-Dlog4j2.level=INFO',
+        '-Dorg.slf4j.simpleLogger.defaultLogLevel=error'
     ]
 
     testLogging {

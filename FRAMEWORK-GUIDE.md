@@ -150,6 +150,47 @@ MÓDULOS CONSUMIDORES (Ejemplos específicos)
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Arquitectura de Validación de Elementos (Web)
+
+**Flujo de ejecución de steps de validación:**
+
+```
+┌─────────────────────────────────────────┐
+│ Feature (Gherkin)                       │
+│ And verifico si existe el elemento      │
+│     "userButton"                        │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│ WebSteps.verificoSiExisteElElemento()  │
+│ - Define contrato Cucumber              │
+│ - NO conoce negocio ni módulo           │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│ WebHelper.waitForVisibleElement()      │
+│ - Lee timeout desde configuración       │
+│ - Usa WebDriverWait (espera explícita) │
+│ - Retorna boolean (no lanza excepción) │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│ WebDriverWait + ExpectedConditions      │
+│ - Polling cada 500ms hasta timeout      │
+│ - visibilityOfElementLocated()         │
+└─────────────────────────────────────────┘
+```
+
+**Principios arquitectónicos:**
+- ✅ **Configuración sobre hardcode**: Timeouts desde `web-config.properties`
+- ✅ **Espera inteligente**: Polling automático hasta que elemento aparezca
+- ✅ **Separación de responsabilidades**: Steps → Helper → WebDriver
+- ✅ **Reutilizable**: Mismo patrón para todos los módulos
+- ✅ **Sin lógica de negocio**: Genérico para cualquier aplicación
+
 ### Matriz de Uso por Proyecto
 
 Tabla que muestra qué proyectos usan qué frameworks:

@@ -87,7 +87,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * }
  * </pre>
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @version 1.0.0
  * @since 2.0.0
  * @see ConfigurationProvider

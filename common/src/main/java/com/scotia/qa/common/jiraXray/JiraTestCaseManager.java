@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  * Permite integración sencilla con diferentes frameworks de testing.
  * Integrado con el sistema de logging del framework Scotia QA.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class JiraTestCaseManager {

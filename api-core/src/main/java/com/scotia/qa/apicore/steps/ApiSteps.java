@@ -1,27 +1,44 @@
 package com.scotia.qa.apicore.steps;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scotia.qa.apicore.implementations.BaseAuthenticationManager;
+import com.scotia.qa.apicore.implementations.BaseHttpClient;
+import com.scotia.qa.apicore.interfaces.AuthenticationService;
+import com.scotia.qa.apicore.interfaces.HttpClient;
+import com.scotia.qa.apicore.utils.ValidationUtilities;
 import com.scotia.qa.common.factories.ConfigurationProviderFactory;
 import com.scotia.qa.common.http.HttpResponse;
 import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
 import com.scotia.qa.common.http.exceptions.FrameworkTechnicalException;
-import com.scotia.qa.common.implementations.BaseAuthenticationManager;
-import com.scotia.qa.common.implementations.BaseHttpClient;
-import com.scotia.qa.common.interfaces.AuthenticationService;
 import com.scotia.qa.common.interfaces.ConfigurationProvider;
-import com.scotia.qa.common.interfaces.HttpClient;
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.common.utils.DataUtilities;
-import com.scotia.qa.common.utils.ValidationUtilities;
+import io.cucumber.java.Before;
+import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ApiSteps {
 
   // =================================================================================
-  // ARQUITECTURA CONSOLIDADA - COMPOSICIÓN EN LUGAR DE HERENCIA
+  // HOOKS
+  // =================================================================================
+
+  @Before
+  public void beforeScenario(Scenario scenario) {
+    // Establecer el framework como API para logging correcto
+    TestLogger.setFramework("API");
+  }
+
+  // =================================================================================
+  // CONFIGURACIÓN - COMPOSICIÓN EN LUGAR DE HERENCIA
   // =================================================================================
 
   private final ConfigurationProvider config = ConfigurationProviderFactory.getCachedInstance();
@@ -113,7 +130,7 @@ public class ApiSteps {
     String processedPassword = DataUtilities.replaceVariables(password);
 
     String credentials =
-        java.util.Base64.getEncoder()
+        Base64.getEncoder()
             .encodeToString((processedUsername + ":" + processedPassword).getBytes());
     httpClient.addHeader("Authorization", "Basic " + credentials);
     TestLogger.logInfo(
@@ -166,12 +183,11 @@ public class ApiSteps {
   public void establezcoElCuerpoJSONConLosSiguientesDatos(Map<String, String> data) {
     try {
       // Procesar variables en los valores
-      Map<String, String> processedData = new java.util.HashMap<>();
+      Map<String, String> processedData = new HashMap<>();
       data.forEach((k, v) -> processedData.put(k, DataUtilities.replaceVariables(v)));
 
       // Convertir a JSON
-      com.fasterxml.jackson.databind.ObjectMapper mapper =
-          new com.fasterxml.jackson.databind.ObjectMapper();
+      ObjectMapper mapper = new ObjectMapper();
       String jsonBody = mapper.writeValueAsString(processedData);
 
       httpClient.addHeader("Content-Type", "application/json");
@@ -737,6 +753,26 @@ public class ApiSteps {
               "ejecutarPeticionHttp", "Método HTTP no soportado: " + processedMethod);
       }
 
+      // Deserializar automáticamente el response a un Map genérico para búsquedas
+      HttpResponse response = httpClient.getLastResponse();
+      if (response != null && response.getBody() != null && !response.getBody().isEmpty()) {
+        try {
+          Object deserializedResponse =
+              DataUtilities.deserializeJson(response.getBody(), Object.class);
+          DataUtilities.storeObject("__lastDeserialized", deserializedResponse);
+
+          TestLogger.logDebug(
+              "API_STEPS_EXECUTION",
+              "Response deserializado automáticamente para búsquedas de campos",
+              null);
+        } catch (Exception e) {
+          TestLogger.logWarning(
+              "API_STEPS_EXECUTION",
+              "No se pudo deserializar automáticamente el response: " + e.getMessage(),
+              null);
+        }
+      }
+
       TestLogger.logInfo(
           "API_STEPS_EXECUTION",
           String.format(
@@ -1042,32 +1078,98 @@ public class ApiSteps {
    * <p>Permite obtener valores de campos de objetos deserializados previamente, almacenándolos como
    * variables String para uso en steps de construcción de requests.
    *
+   * <p>Estrategia de búsqueda (v1.3.0):
+   *
+   * <ul>
+   *   <li>1. Busca directamente el campo en la respuesta completa (búsqueda recursiva)
+   *   <li>2. Si objectPath != fieldName, primero busca el objeto contenedor y luego el campo
+   *   <li>3. Guarda el valor tanto en DataUtilities (legacy) como en ScenarioContext (nuevo)
+   * </ul>
+   *
    * @param fieldName nombre del campo a extraer
-   * @param objectName nombre del objeto almacenado previamente
+   * @param objectPath nombre del objeto contenedor (puede ser la clave directa o un path)
    * @param variableName nombre de la variable String donde guardar el valor
    * @throws FrameworkBusinessException si el objeto no existe o el campo no se encuentra
    * @since 1.1.0
    */
   @Then("obtengo el campo {string} del objeto {string} y lo guardo como {string}")
   public void obtengoElCampoDelObjetoYLoGuardoComo(
-      String fieldName, String objectName, String variableName) throws FrameworkBusinessException {
+      String fieldName, String objectPath, String variableName) throws FrameworkBusinessException {
     try {
-      Object storedObject = DataUtilities.getObject(objectName);
+      TestLogger.logDebug(
+          "API_STEPS_SERIALIZATION",
+          String.format(
+              "🔍 Iniciando extracción de campo '%s' desde objeto '%s'", fieldName, objectPath),
+          null);
 
-      if (storedObject == null) {
+      // Obtener la última respuesta deserializada
+      Object lastResponse = DataUtilities.getObject("__lastDeserialized");
+
+      if (lastResponse == null) {
         throw new FrameworkBusinessException(
             "obtengoElCampoDelObjetoYLoGuardoComo",
-            String.format("Objeto '%s' no encontrado.", objectName));
+            "No hay respuesta deserializada disponible. Asegúrate de ejecutar primero una petición HTTP.");
       }
 
-      Object value = extractFieldValue(storedObject, fieldName);
-      DataUtilities.storeValue(variableName, value);
+      Object fieldValue = null;
+
+      // ESTRATEGIA 1: Buscar el campo directamente en toda la respuesta (más simple y robusto)
+      TestLogger.logDebug(
+          "API_STEPS_SERIALIZATION",
+          String.format("🔍 Buscando campo '%s' en toda la respuesta", fieldName),
+          null);
+
+      fieldValue = DataUtilities.findValue(lastResponse, fieldName);
+
+      // ESTRATEGIA 2: Si no se encuentra y objectPath es diferente, buscar primero el contenedor
+      if (fieldValue == null && !objectPath.equals(fieldName)) {
+        TestLogger.logDebug(
+            "API_STEPS_SERIALIZATION",
+            String.format(
+                "🔍 Campo no encontrado, buscando primero objeto contenedor '%s'", objectPath),
+            null);
+
+        Object targetObject = DataUtilities.findValue(lastResponse, objectPath);
+
+        if (targetObject != null) {
+          TestLogger.logDebug(
+              "API_STEPS_SERIALIZATION",
+              String.format(
+                  "✅ Objeto contenedor '%s' encontrado, buscando campo '%s' dentro",
+                  objectPath, fieldName),
+              null);
+
+          fieldValue = DataUtilities.findValue(targetObject, fieldName);
+        }
+      }
+
+      if (fieldValue == null) {
+        throw new FrameworkBusinessException(
+            "obtengoElCampoDelObjetoYLoGuardoComo",
+            String.format(
+                "No se encontró el campo '%s' en el response. Verifica que el campo exista.",
+                fieldName));
+      }
+
+      // Guardar el valor usando la nueva estrategia de contexto compartido
+      String valueToStore = fieldValue.toString();
+
+      // Guardar con prefijo de capa API para facilitar integración con Web/Mobile
+      DataUtilities.saveToContext("api", variableName, valueToStore);
+
+      // Legacy: También guardar en DataUtilities para compatibilidad con código existente
+      DataUtilities.storeValue(variableName, valueToStore);
 
       TestLogger.logInfo(
           "API_STEPS_SERIALIZATION",
           String.format(
-              "✅ Campo extraído: %s.%s = %s (guardado como: %s)",
-              objectName, fieldName, value, variableName),
+              "✅ Campo extraído exitosamente: campo='%s', valor=%s, guardado como='api.%s' (también disponible como '%s')",
+              fieldName,
+              fieldValue.toString().length() > 50
+                  ? fieldValue.toString().substring(0, 50) + "..."
+                  : fieldValue.toString(),
+              variableName,
+              variableName),
           null);
 
     } catch (FrameworkBusinessException e) {
@@ -1077,11 +1179,128 @@ public class ApiSteps {
     } catch (Exception e) {
       String errorMsg =
           String.format(
-              "Error extrayendo campo '%s' del objeto '%s': %s",
-              fieldName, objectName, e.getMessage());
-      TestLogger.logError("API_STEPS_SERIALIZATION", errorMsg, null);
+              "Error inesperado al obtener campo '%s' del objeto '%s': %s",
+              fieldName, objectPath, e.getMessage());
+      TestLogger.logError("API_STEPS_SERIALIZATION", "❌ " + errorMsg, null);
       throw new FrameworkBusinessException("obtengoElCampoDelObjetoYLoGuardoComo", errorMsg);
     }
+  }
+
+  /**
+   * Resuelve un path de objeto, soportando notación de punto y búsqueda automática.
+   *
+   * <p>Ejemplos:
+   *
+   * <ul>
+   *   <li>"data" → busca en DataUtilities y luego en la estructura deserializada
+   *   <li>"response.data" → navega por el path desde la raíz
+   *   <li>"response.data.usuario" → navega por múltiples niveles
+   * </ul>
+   *
+   * @param objectPath path del objeto a resolver
+   * @return el objeto encontrado o null si no existe
+   */
+  private Object resolveObjectPath(String objectPath) throws Exception {
+    if (objectPath == null || objectPath.trim().isEmpty()) {
+      return null;
+    }
+
+    // Si contiene punto, navegar por el path
+    if (objectPath.contains(".")) {
+      String[] pathParts = objectPath.split("\\.");
+
+      TestLogger.logDebug(
+          "API_STEPS_SERIALIZATION",
+          String.format("🔍 Navegando por path con %d niveles: %s", pathParts.length, objectPath),
+          null);
+
+      // Intentar resolver el primer elemento
+      Object current = resolveSimpleObject(pathParts[0]);
+
+      if (current == null) {
+        return null;
+      }
+
+      // Navegar por el resto del path
+      for (int i = 1; i < pathParts.length; i++) {
+        TestLogger.logDebug(
+            "API_STEPS_SERIALIZATION",
+            String.format("➡️ Navegando a nivel '%s'", pathParts[i]),
+            null);
+
+        current = extractFieldValue(current, pathParts[i]);
+
+        if (current == null) {
+          TestLogger.logDebug(
+              "API_STEPS_SERIALIZATION",
+              String.format("❌ Nivel '%s' no encontrado o es null", pathParts[i]),
+              null);
+          return null;
+        }
+      }
+
+      return current;
+    } else {
+      // Path simple: resolver directamente
+      return resolveSimpleObject(objectPath);
+    }
+  }
+
+  /**
+   * Resuelve un nombre de objeto simple (sin notación de punto).
+   *
+   * <p>Primero busca en DataUtilities, luego en la última respuesta deserializada.
+   *
+   * @param objectName nombre del objeto a resolver
+   * @return el objeto encontrado o null si no existe
+   */
+  private Object resolveSimpleObject(String objectName) {
+    // 1. Buscar en DataUtilities (objetos guardados explícitamente)
+    Object stored = DataUtilities.getObject(objectName);
+
+    if (stored != null) {
+      TestLogger.logDebug(
+          "API_STEPS_SERIALIZATION",
+          String.format("✅ Objeto '%s' encontrado en DataUtilities", objectName),
+          null);
+      return stored;
+    }
+
+    // 2. Buscar en la última respuesta deserializada
+    Object lastDeserialized = DataUtilities.getObject("__lastDeserialized");
+
+    if (lastDeserialized != null) {
+      TestLogger.logDebug(
+          "API_STEPS_SERIALIZATION",
+          String.format(
+              "🔍 Buscando '%s' en última respuesta deserializada (tipo: %s)",
+              objectName, lastDeserialized.getClass().getSimpleName()),
+          null);
+
+      Object found = findObjectInStructure(lastDeserialized, objectName);
+
+      if (found != null) {
+        TestLogger.logDebug(
+            "API_STEPS_SERIALIZATION",
+            String.format("✅ Objeto '%s' encontrado en estructura", objectName),
+            null);
+        return found;
+      }
+
+      // Proporcionar información útil para debug
+      if (lastDeserialized instanceof java.util.Map) {
+        java.util.Map<?, ?> map = (java.util.Map<?, ?>) lastDeserialized;
+        TestLogger.logDebug(
+            "API_STEPS_SERIALIZATION",
+            String.format("📋 Keys disponibles en raíz: %s", map.keySet()),
+            null);
+      }
+    }
+
+    TestLogger.logDebug(
+        "API_STEPS_SERIALIZATION", String.format("❌ Objeto '%s' no encontrado", objectName), null);
+
+    return null;
   }
 
   // =================================================================================
@@ -1117,6 +1336,17 @@ public class ApiSteps {
 
   /** Extrae el valor de un campo de un objeto usando getter o acceso directo. */
   private Object extractFieldValue(Object object, String fieldName) throws Exception {
+    // Si es un Map, acceder directamente por key
+    if (object instanceof java.util.Map) {
+      java.util.Map<?, ?> map = (java.util.Map<?, ?>) object;
+      if (map.containsKey(fieldName)) {
+        return map.get(fieldName);
+      }
+      throw new NoSuchFieldException(
+          String.format(
+              "Campo '%s' no encontrado en Map. Keys disponibles: %s", fieldName, map.keySet()));
+    }
+
     Class<?> clazz = object.getClass();
 
     // Intentar getter method
@@ -1125,16 +1355,16 @@ public class ApiSteps {
 
     try {
       try {
-        java.lang.reflect.Method getter = clazz.getMethod(getterName);
+        Method getter = clazz.getMethod(getterName);
         return getter.invoke(object);
       } catch (NoSuchMethodException e) {
-        java.lang.reflect.Method booleanGetter = clazz.getMethod(booleanGetterName);
+        Method booleanGetter = clazz.getMethod(booleanGetterName);
         return booleanGetter.invoke(object);
       }
     } catch (NoSuchMethodException e) {
       // Acceso directo al field
       try {
-        java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
+        Field field = clazz.getDeclaredField(fieldName);
         field.setAccessible(true);
         return field.get(object);
       } catch (NoSuchFieldException ex) {
@@ -1150,5 +1380,127 @@ public class ApiSteps {
       return str;
     }
     return str.substring(0, 1).toUpperCase() + str.substring(1);
+  }
+
+  /**
+   * Busca un objeto por nombre en la estructura de un objeto complejo. Navega recursivamente por
+   * todos los campos hasta encontrar uno que coincida con el nombre.
+   *
+   * @param root objeto raíz donde buscar
+   * @param objectName nombre del objeto a buscar
+   * @return el objeto encontrado o null si no se encuentra
+   */
+  private Object findObjectInStructure(Object root, String objectName) {
+    if (root == null) {
+      return null;
+    }
+
+    TestLogger.logDebug(
+        "API_STEPS_SERIALIZATION",
+        String.format("🔍 Buscando '%s' en tipo: %s", objectName, root.getClass().getSimpleName()),
+        null);
+
+    // Si es un Map, buscar en sus valores
+    if (root instanceof java.util.Map) {
+      java.util.Map<?, ?> map = (java.util.Map<?, ?>) root;
+
+      TestLogger.logDebug(
+          "API_STEPS_SERIALIZATION", String.format("📋 Map con keys: %s", map.keySet()), null);
+
+      // Si el Map contiene la key, retornarla directamente
+      if (map.containsKey(objectName)) {
+        TestLogger.logDebug(
+            "API_STEPS_SERIALIZATION",
+            String.format("✅ Key '%s' encontrada en Map", objectName),
+            null);
+        return map.get(objectName);
+      }
+
+      // Buscar recursivamente en los valores del Map
+      TestLogger.logDebug(
+          "API_STEPS_SERIALIZATION",
+          String.format("➡️ Campo '%s' no está en raíz, buscando recursivamente...", objectName),
+          null);
+
+      for (java.util.Map.Entry<?, ?> entry : map.entrySet()) {
+        Object value = entry.getValue();
+        if (value != null && !isPrimitiveOrWrapper(value.getClass())) {
+          TestLogger.logDebug(
+              "API_STEPS_SERIALIZATION",
+              String.format(
+                  "🔎 Explorando valor de key '%s' (tipo: %s)",
+                  entry.getKey(), value.getClass().getSimpleName()),
+              null);
+          Object found = findObjectInStructure(value, objectName);
+          if (found != null) {
+            return found;
+          }
+        }
+      }
+    } else {
+      // Si es un objeto POJO, buscar en sus campos
+      try {
+        // Intentar extraer el campo directamente del objeto raíz
+        Object result = extractFieldValue(root, objectName);
+        TestLogger.logDebug(
+            "API_STEPS_SERIALIZATION",
+            String.format("✅ Campo '%s' encontrado directamente", objectName),
+            null);
+        return result;
+      } catch (Exception e) {
+        // Si no se encuentra directamente, buscar recursivamente
+        TestLogger.logDebug(
+            "API_STEPS_SERIALIZATION",
+            String.format("➡️ Campo '%s' no está en raíz, buscando recursivamente...", objectName),
+            null);
+
+        try {
+          Field[] fields = root.getClass().getDeclaredFields();
+          for (Field field : fields) {
+            field.setAccessible(true);
+            Object fieldValue = field.get(root);
+
+            if (fieldValue != null) {
+              // Si el nombre del campo coincide, retornar su valor
+              if (field.getName().equals(objectName)) {
+                return fieldValue;
+              }
+
+              // Si el valor del campo es un objeto complejo, buscar recursivamente
+              if (!isPrimitiveOrWrapper(fieldValue.getClass())) {
+                Object found = findObjectInStructure(fieldValue, objectName);
+                if (found != null) {
+                  return found;
+                }
+              }
+            }
+          }
+        } catch (Exception ex) {
+          // Si falla la búsqueda recursiva, retornar null
+          return null;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Verifica si una clase es primitiva o wrapper.
+   *
+   * @param clazz clase a verificar
+   * @return true si es primitiva o wrapper, false en caso contrario
+   */
+  private boolean isPrimitiveOrWrapper(Class<?> clazz) {
+    return clazz.isPrimitive()
+        || clazz.equals(String.class)
+        || clazz.equals(Boolean.class)
+        || clazz.equals(Integer.class)
+        || clazz.equals(Long.class)
+        || clazz.equals(Double.class)
+        || clazz.equals(Float.class)
+        || clazz.equals(Short.class)
+        || clazz.equals(Byte.class)
+        || clazz.equals(Character.class);
   }
 }

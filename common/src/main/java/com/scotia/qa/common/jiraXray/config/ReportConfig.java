@@ -7,7 +7,7 @@ import com.scotia.qa.common.logging.TestLogger;
  * Soporta configuración mediante variables de entorno y archivos YAML.
  * Integrado con el sistema de logging del framework Scotia QA.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class ReportConfig {

@@ -1,105 +1,159 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
+<configuration scan="true" scanPeriod="30 seconds">
 
-    <!-- Variables específicas para Web Framework -->
-    <property name="LOG_HOME" value="logs/web" />
-    <property name="FRAMEWORK_NAME" value="WEB" />
-    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [WEB][%X{feature}][%X{scenario}] %logger{36} - %msg%n" />
-    <property name="CONSOLE_PATTERN" value="%d{HH:mm:ss.SSS} %-5level [WEB][%X{scenario}] %logger{20} - %msg%n" />
+    <!-- ====================================================================== -->
+    <!-- VARIABLES DE CONFIGURACIÓN - WEB CORE                                 -->
+    <!-- ====================================================================== -->
+    <property name="LOG_HOME" value="./logs/web"/>
+    <property name="MODULE_NAME" value="WEB"/>
 
-    <!-- Appender para consola -->
+    <!-- Pattern sin colores para archivos -->
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [WEB][%X{testName:-NO_TEST}] %logger{36} - %msg%n"/>
+
+    <!-- Pattern con colores para consola -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{HH:mm:ss.SSS} %green([%thread]) %highlight(%-5level) %blue([WEB]) %cyan([%X{testName:-NO_TEST}]) %yellow(%logger{25}) - %msg%n"/>
+
+    <!-- ====================================================================== -->
+    <!-- FILTROS - SILENCIAR LOGS VERBOSOS                                     -->
+    <!-- ====================================================================== -->
+
+    <!-- Apache HttpClient - Silenciar logs binarios completamente -->
+    <logger name="org.apache.hc.client5.http.wire" level="OFF" additivity="false"/>
+    <logger name="org.apache.hc.client5.http.headers" level="OFF"/>
+    <logger name="org.apache.hc.client5.http" level="WARN"/>
+    <logger name="org.apache.http.wire" level="OFF" additivity="false"/>
+    <logger name="org.apache.http.headers" level="OFF"/>
+    <logger name="org.apache.http" level="WARN"/>
+
+    <!-- SLF4J y Logback internos -->
+    <logger name="org.slf4j" level="WARN" additivity="false"/>
+    <logger name="ch.qos.logback" level="WARN" additivity="false"/>
+
+    <!-- Selenium WebDriver -->
+    <logger name="org.openqa.selenium" level="ERROR"/>
+    <logger name="org.openqa.selenium.remote" level="ERROR"/>
+    <logger name="io.github.bonigarcia.wdm" level="ERROR"/>
+    <logger name="io.github.bonigarcia" level="ERROR"/>
+
+    <!-- REST Assured -->
+    <logger name="io.restassured" level="WARN"/>
+
+    <!-- Jackson JSON -->
+    <logger name="com.fasterxml.jackson" level="WARN"/>
+
+    <!-- ====================================================================== -->
+    <!-- APPENDERS - SALIDAS DE LOGS                                           -->
+    <!-- ====================================================================== -->
+
+    <!-- Consola con filtro para solo mostrar logs del framework -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator>
+                <expression>
+                    logger.startsWith("com.scotia") ||
+                    level &gt;= WARN
+                </expression>
+            </evaluator>
+            <OnMismatch>DENY</OnMismatch>
+            <OnMatch>NEUTRAL</OnMatch>
+        </filter>
         <encoder>
-            <pattern>${CONSOLE_PATTERN}</pattern>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
-    <!-- Appender para archivo general de Web -->
+    <!-- Archivo general para WEB -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_HOME}/web-tests.log</file>
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-        </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_HOME}/archived/web-tests.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
             <maxHistory>30</maxHistory>
-            <totalSizeCap>1GB</totalSizeCap>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
         </rollingPolicy>
-    </appender>
-
-    <!-- Appender específico para evidencias Web (screenshots, page source, etc.) -->
-    <appender name="WEB_EVIDENCE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/web-evidences.log</file>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [WEB-EVIDENCE] [%X{feature}][%X{scenario}] - %msg%n</pattern>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
         </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/archived/web-evidences.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>100MB</maxFileSize>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>3GB</totalSizeCap>
-        </rollingPolicy>
     </appender>
 
-    <!-- Appender específico para errores de Web -->
+    <!-- Archivo específico para interacciones de UI -->
+    <appender name="UI_INTERACTIONS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/web-ui-interactions.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/web-ui-interactions.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxHistory>15</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>20MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [WEB-UI] [%X{testName}] - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Archivo específico para screenshots y evidencias -->
+    <appender name="SCREENSHOTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/web-screenshots.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/web-screenshots.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxHistory>15</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>50MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [WEB-SCREENSHOT] [%X{testName}] - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Archivo de errores -->
     <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_HOME}/web-errors.log</file>
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/archived/web-errors.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
-            <maxHistory>60</maxHistory>
-            <totalSizeCap>500MB</totalSizeCap>
-        </rollingPolicy>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+        <filter class="ch.qos.logback.core.filter.ThresholdFilter">
             <level>ERROR</level>
         </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/archived/web-errors.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>5MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
     </appender>
 
-    <!-- Logger específico para componentes comunes -->
-    <logger name="com.scotia.qa.common" level="INFO">
-        <appender-ref ref="FILE" />
+    <!-- ====================================================================== -->
+    <!-- LOGGERS ESPECÍFICOS DEL MÓDULO WEB                                    -->
+    <!-- ====================================================================== -->
+
+    <logger name="com.scotia.qa.webcore" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR"/>
     </logger>
 
-    <!-- Logger específico para Web core -->
-    <logger name="com.scotia.qa.webcore" level="INFO">
-        <appender-ref ref="FILE" />
-        <appender-ref ref="WEB_EVIDENCE" />
+    <logger name="com.scotia.qa.common" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
     </logger>
 
-    <!-- Logger específico para evidencias de Web -->
-    <logger name="com.scotia.qa.common.logging.EvidenceManager" level="INFO">
-        <appender-ref ref="WEB_EVIDENCE" />
-    </logger>
+    <!-- ====================================================================== -->
+    <!-- ROOT LOGGER                                                            -->
+    <!-- ====================================================================== -->
 
-    <!-- Logger específico para hooks de Cucumber -->
-    <logger name="com.scotia.qa.common.cucumber" level="INFO">
-        <appender-ref ref="FILE" />
-    </logger>
-
-    <!-- Loggers específicos para Web testing -->
-    <logger name="org.seleniumhq.selenium" level="INFO">
-        <appender-ref ref="WEB_EVIDENCE" />
-    </logger>
-    <logger name="org.openqa.selenium" level="INFO">
-        <appender-ref ref="WEB_EVIDENCE" />
-    </logger>
-    <logger name="io.github.bonigarcia.wdm" level="WARN" />
-
-    <!-- Loggers de terceros con nivel más alto -->
-    <logger name="org.springframework" level="WARN" />
-    <logger name="io.cucumber" level="INFO" />
-    <logger name="org.apache.commons" level="WARN" />
-    <logger name="org.apache.http" level="WARN" />
-
-    <!-- Root logger -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-        <appender-ref ref="FILE" />
-        <appender-ref ref="ERROR" />
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
     </root>
 
 </configuration>

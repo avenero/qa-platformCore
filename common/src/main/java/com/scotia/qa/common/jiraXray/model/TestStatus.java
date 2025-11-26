@@ -3,7 +3,7 @@ package com.scotia.qa.common.jiraXray.model;
 /**
  * Estados estándar de test compatibles con Jira.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public enum TestStatus {

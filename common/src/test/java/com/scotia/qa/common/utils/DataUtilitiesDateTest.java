@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 /**
  * Tests unitarios para DataUtilities - Utilidades de Fechas
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.2.0
  */
 @DisplayName("DataUtilities - Date Utilities Tests")

@@ -16,7 +16,7 @@ import java.util.List;
  * Maneja el envío de resultados de tests a Jira en batches.
  * Integrado con el sistema de logging del framework Scotia QA.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class JiraClient {

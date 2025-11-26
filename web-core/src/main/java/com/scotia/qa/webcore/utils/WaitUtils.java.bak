@@ -1,0 +1,516 @@
+package com.scotia.qa.webcore.utils;
+
+import com.scotia.qa.common.logging.TestLogger;
+import com.scotia.qa.webcore.driver.DriverManager;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+
+/**
+ * Utilidades de espera (waits) para Selenium WebDriver.
+ *
+ * <p>Proporciona métodos para esperar condiciones específicas antes de interactuar
+ * con elementos web, mejorando la estabilidad de los tests.</p>
+ *
+ * <p><b>Tipos de waits:</b></p>
+ * <ul>
+ *   <li>Visibility - Elemento visible en DOM y tiene altura/ancho > 0</li>
+ *   <li>Clickable - Elemento visible y habilitado para click</li>
+ *   <li>Presence - Elemento presente en DOM (puede no ser visible)</li>
+ *   <li>Text - Elemento contiene texto específico</li>
+ * </ul>
+ *
+ * @author Abel Venero
+ * @version 1.1.0
+ */
+public class WaitUtils {
+
+    private static final int DEFAULT_TIMEOUT_SECONDS = 15;
+    private static final int DEFAULT_POLLING_MILLIS = 500;
+
+    /**
+     * Constructor privado para prevenir instanciación.
+     */
+    private WaitUtils() {
+        // Utility class
+    }
+
+    /**
+     * Crea un WebDriverWait con timeout por defecto (15 segundos).
+     *
+     * @return WebDriverWait configurado
+     */
+    private static WebDriverWait getDefaultWait() {
+        return new WebDriverWait(
+            DriverManager.getDriver(),
+            Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS),
+            Duration.ofMillis(DEFAULT_POLLING_MILLIS)
+        );
+    }
+
+    /**
+     * Crea un WebDriverWait con timeout personalizado.
+     *
+     * @param timeoutSeconds Timeout en segundos
+     * @return WebDriverWait configurado
+     */
+    private static WebDriverWait getCustomWait(int timeoutSeconds) {
+        return new WebDriverWait(
+            DriverManager.getDriver(),
+            Duration.ofSeconds(timeoutSeconds),
+            Duration.ofMillis(DEFAULT_POLLING_MILLIS)
+        );
+    }
+
+    /**
+     * Espera a que un elemento sea visible en la página.
+     *
+     * @param element WebElement a esperar
+     */
+    public static void waitForElementToBeVisible(WebElement element) {
+        try {
+            WebDriverWait wait = getDefaultWait();
+            WebElement visibleElement = wait.until(ExpectedConditions.visibilityOf(element));
+            TestLogger.logDebug("WAIT_UTILS", "Elemento visible: " + element, null);
+        } catch (Exception e) {
+            TestLogger.logError("WAIT_UTILS",
+                "Timeout esperando visibilidad de elemento: " + element, null);
+            throw e;
+        }
+    }
+
+    /**
+     * Espera a que un elemento sea visible con timeout personalizado.
+     *
+     * @param element WebElement a esperar
+     * @param timeoutSeconds Timeout en segundos
+     * @return WebElement visible
+     */
+    public static WebElement waitForElementToBeVisible(WebElement element, int timeoutSeconds) {
+        try {
+            WebDriverWait wait = getCustomWait(timeoutSeconds);
+            return wait.until(ExpectedConditions.visibilityOf(element));
+        } catch (Exception e) {
+            TestLogger.logError("WAIT_UTILS",
+                "Timeout (" + timeoutSeconds + "s) esperando elemento visible", null);
+            throw e;
+        }
+    }
+
+    /**
+     * Espera a que un elemento sea clickable (visible y habilitado).
+     *
+     * @param element WebElement a esperar
+     */
+    public static void waitForElementToBeClickable(WebElement element) {
+        try {
+            WebDriverWait wait = getDefaultWait();
+            WebElement clickableElement = wait.until(ExpectedConditions.elementToBeClickable(element));
+            TestLogger.logDebug("WAIT_UTILS", "Elemento clickable: " + element, null);
+        } catch (Exception e) {
+            TestLogger.logError("WAIT_UTILS",
+                "Timeout esperando elemento clickable: " + element, null);
+            throw e;
+        }
+    }
+
+    /**
+     * Espera a que un elemento localizado por By sea visible.
+     *
+     * @param locator By locator del elemento
+     * @return WebElement visible
+     */
+    public static WebElement waitForElementToBeVisible(By locator) {
+        try {
+            WebDriverWait wait = getDefaultWait();
+            WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+            TestLogger.logDebug("WAIT_UTILS", "Elemento visible por locator: " + locator, null);
+            return element;
+        } catch (Exception e) {
+            TestLogger.logError("WAIT_UTILS",
+                "Timeout esperando elemento visible con locator: " + locator, null);
+            throw e;
+        }
+    }
+
+    /**
+     * Espera a que un elemento localizado por By sea clickable.
+     *
+     * @param locator By locator del elemento
+     * @return WebElement clickable
+     */
+    public static WebElement waitForElementToBeClickable(By locator) {
+        try {
+            WebDriverWait wait = getDefaultWait();
+            return wait.until(ExpectedConditions.elementToBeClickable(locator));
+        } catch (Exception e) {
+            TestLogger.logError("WAIT_UTILS",
+                "Timeout esperando elemento clickable con locator: " + locator, null);
+            throw e;
+        }
+    }
+
+    /**
+     * Espera a que un elemento esté presente en el DOM (puede no ser visible).
+     *
+     * @param locator By locator del elemento
+     * @return WebElement presente en DOM
+     */
+    public static WebElement waitForPresenceOfElement(By locator) {
+        try {
+            WebDriverWait wait = getDefaultWait();
+            return wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+        } catch (Exception e) {
+            TestLogger.logError("WAIT_UTILS",
+                "Timeout esperando presencia de elemento: " + locator, null);
+            throw e;
+        }
+    }
+
+    /**
+     * Espera a que un elemento contenga un texto específico.
+     *
+     * @param element WebElement a validar
+     * @param text Texto esperado
+     * @return true si el elemento contiene el texto
+     */
+    public static boolean waitForTextToBePresentInElement(WebElement element, String text) {
+        try {
+            WebDriverWait wait = getDefaultWait();
+            boolean textPresent = wait.until(
+                ExpectedConditions.textToBePresentInElement(element, text)
+            );
+            // No log en caso exitoso - reduce ruido
+            return textPresent;
+        } catch (Exception e) {
+            TestLogger.logError("WAIT_UTILS",
+                "Timeout esperando texto '" + text + "' en elemento", null);
+            throw e;
+        }
+    }
+
+    /**
+     * Espera a que un elemento sea invisible o no esté presente.
+     *
+     * @param locator By locator del elemento
+     * @return true si el elemento es invisible
+     */
+    public static boolean waitForInvisibilityOfElement(By locator) {
+        try {
+            WebDriverWait wait = getDefaultWait();
+            return wait.until(ExpectedConditions.invisibilityOfElementLocated(locator));
+        } catch (Exception e) {
+            TestLogger.logError("WAIT_UTILS",
+                "Timeout esperando invisibilidad de elemento: " + locator, null);
+            throw e;
+        }
+    }
+
+    /**
+     * Espera explícita simple (sleep).
+     *
+     * <p><b>⚠️ USAR SOLO COMO ÚLTIMO RECURSO.</b> Preferir waits explícitos.</p>
+     *
+     * @param milliseconds Milisegundos a esperar
+     */
+    public static void waitMilliseconds(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+            TestLogger.logWarning("WAIT_UTILS",
+                "⚠️ Sleep usado: " + milliseconds + "ms - Considerar usar wait explícito", null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            TestLogger.logError("WAIT_UTILS", "Sleep interrumpido", null);
+        }
+    }
+
+    /**
+     * Configura implicit wait global para el driver.
+     *
+     * <p><b>⚠️ NO MEZCLAR con explicit waits</b> puede causar comportamiento impredecible.</p>
+     *
+     * @param seconds Segundos de implicit wait
+     */
+    public static void setImplicitWait(int seconds) {
+        DriverManager.getDriver()
+            .manage()
+            .timeouts()
+            .implicitlyWait(Duration.ofSeconds(seconds));
+        TestLogger.logInfo("WAIT_UTILS",
+            "⚠️ Implicit wait configurado: " + seconds + "s", null);
+    }
+
+    /**
+     * Configura page load timeout.
+     *
+     * @param seconds Segundos de timeout para carga de página
+     */
+    public static void setPageLoadTimeout(int seconds) {
+        DriverManager.getDriver()
+            .manage()
+            .timeouts()
+            .pageLoadTimeout(Duration.ofSeconds(seconds));
+        TestLogger.logInfo("WAIT_UTILS",
+            "Page load timeout configurado: " + seconds + "s", null);
+    }
+
+    // =========================================================================
+    // ESPERAS INTELIGENTES Y ESTABILIDAD (FASE 3)
+    // =========================================================================
+
+    /**
+     * Espera a que un elemento esté completamente estable y listo para interactuar.
+     *
+     * <p>Verifica múltiples condiciones para asegurar que el elemento está realmente listo:</p>
+     * <ol>
+     *   <li>Elemento visible en DOM</li>
+     *   <li>Sin atributos bloqueantes (readonly, disabled)</li>
+     *   <li>Posición estable (no está en animación)</li>
+     *   <li>Elemento clickable (si aplicable)</li>
+     * </ol>
+     *
+     * <p>Este método es más robusto que waitForElementToBeVisible() o waitForElementToBeClickable()
+     * porque verifica que el elemento no solo esté presente, sino que realmente esté listo
+     * para recibir interacciones sin errores.</p>
+     *
+     * @param element WebElement a esperar
+     * @return true si el elemento está estable, false si timeout
+     */
+    public static boolean waitForElementToBeStable(WebElement element) {
+        return waitForElementToBeStable(element, DEFAULT_TIMEOUT_SECONDS);
+    }
+
+    /**
+     * Espera a que un elemento esté completamente estable con timeout personalizado.
+     *
+     * @param element WebElement a esperar
+     * @param timeoutSeconds Timeout en segundos
+     * @return true si el elemento está estable, false si timeout
+     */
+    public static boolean waitForElementToBeStable(WebElement element, int timeoutSeconds) {
+        try {
+            WebDriverWait wait = getCustomWait(timeoutSeconds);
+
+            // Paso 1: Esperar visibilidad básica
+            wait.until(ExpectedConditions.visibilityOf(element));
+
+            // Paso 2: Esperar que NO tenga atributos bloqueantes
+            boolean attributesReady = wait.until(driver -> {
+                try {
+                    String readonly = element.getDomAttribute("readonly");
+                    String disabled = element.getDomAttribute("disabled");
+                    return readonly == null && disabled == null;
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+
+            if (!attributesReady) {
+                // Log como DEBUG - el caller recibe false y decide cómo proceder
+                TestLogger.logDebug("WAIT_UTILS",
+                    "Elemento tiene atributos bloqueantes (readonly/disabled)", null);
+                return false;
+            }
+
+            // Paso 3: Verificar estabilidad de posición (no está en animación)
+            if (!isElementPositionStable(element)) {
+                TestLogger.logDebug("WAIT_UTILS",
+                    "Elemento en movimiento, esperando estabilización adicional", null);
+                waitMillisecondsQuiet(300); // Espera sin log de warning
+            }
+
+            // Elemento estable - no log en caso exitoso (reduce ruido)
+            return true;
+
+        } catch (Exception e) {
+            // Log como DEBUG - el caller recibe false y decide si es crítico
+            TestLogger.logDebug("WAIT_UTILS",
+                "Timeout esperando estabilidad de elemento", null);
+            return false;
+        }
+    }
+
+    /**
+     * Verifica si la posición de un elemento es estable (no está en animación).
+     *
+     * @param element WebElement a verificar
+     * @return true si la posición es estable, false si está en movimiento
+     */
+    private static boolean isElementPositionStable(WebElement element) {
+        try {
+            org.openqa.selenium.Point location1 = element.getLocation();
+            waitMillisecondsQuiet(150);
+            org.openqa.selenium.Point location2 = element.getLocation();
+
+            return location1.equals(location2);
+
+        } catch (Exception e) {
+            // Si no se puede verificar, asumir estable
+            return true;
+        }
+    }
+
+    /**
+     * Espera en milisegundos sin generar log de warning.
+     *
+     * <p>Usar este método en lugar de waitMilliseconds() cuando la espera es parte
+     * de un retry logic o polling interno y no representa una mala práctica.</p>
+     *
+     * @param milliseconds Milisegundos a esperar
+     */
+    public static void waitMillisecondsQuiet(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Espera a que un elemento esté habilitado (enabled y no readonly).
+     *
+     * @param element WebElement a verificar
+     * @param timeoutSeconds Timeout en segundos
+     * @return true si el elemento está habilitado, false si timeout
+     */
+    public static boolean waitForElementToBeEnabled(WebElement element, int timeoutSeconds) {
+        try {
+            WebDriverWait wait = getCustomWait(timeoutSeconds);
+
+            boolean enabled = wait.until(driver -> {
+                try {
+                    String readonly = element.getDomAttribute("readonly");
+                    String disabled = element.getDomAttribute("disabled");
+                    return element.isEnabled() && readonly == null && disabled == null;
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+
+            // No log en caso exitoso - reduce ruido
+            return enabled;
+
+        } catch (Exception e) {
+            TestLogger.logWarning("WAIT_UTILS",
+                "⚠️ Timeout esperando que elemento esté habilitado: " + element, null);
+            return false;
+        }
+    }
+
+    /**
+     * Espera a que la página termine de cargar completamente (document.readyState = 'complete').
+     *
+     * @return true si la página está lista, false si timeout
+     */
+    public static boolean waitForPageToLoad() {
+        return waitForPageToLoad(DEFAULT_TIMEOUT_SECONDS);
+    }
+
+    /**
+     * Espera a que la página termine de cargar completamente con timeout personalizado.
+     *
+     * @param timeoutSeconds Timeout en segundos
+     * @return true si la página está lista, false si timeout
+     */
+    public static boolean waitForPageToLoad(int timeoutSeconds) {
+        try {
+            WebDriverWait wait = getCustomWait(timeoutSeconds);
+
+            boolean pageReady = wait.until(driver -> {
+                try {
+                    org.openqa.selenium.JavascriptExecutor js =
+                        (org.openqa.selenium.JavascriptExecutor) driver;
+                    String readyState = (String) js.executeScript("return document.readyState");
+                    return "complete".equals(readyState);
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+
+            // No log en caso exitoso - reduce ruido
+            return pageReady;
+
+        } catch (Exception e) {
+            TestLogger.logWarning("WAIT_UTILS",
+                "⚠️ Timeout esperando carga de página", null);
+            return false;
+        }
+    }
+
+    /**
+     * Espera a que jQuery esté inactivo (si la página usa jQuery).
+     *
+     * @return true si jQuery está inactivo o no existe, false si timeout
+     */
+    public static boolean waitForJQueryToBeInactive() {
+        return waitForJQueryToBeInactive(5); // Timeout corto: 5 segundos
+    }
+
+    /**
+     * Espera a que jQuery esté inactivo con timeout personalizado.
+     *
+     * @param timeoutSeconds Timeout en segundos
+     * @return true si jQuery está inactivo, false si timeout
+     */
+    public static boolean waitForJQueryToBeInactive(int timeoutSeconds) {
+        try {
+            WebDriverWait wait = getCustomWait(timeoutSeconds);
+
+            boolean jQueryInactive = wait.until(driver -> {
+                try {
+                    org.openqa.selenium.JavascriptExecutor js =
+                        (org.openqa.selenium.JavascriptExecutor) driver;
+                    Object result = js.executeScript(
+                        "return typeof jQuery !== 'undefined' ? jQuery.active === 0 : true"
+                    );
+                    return Boolean.TRUE.equals(result);
+                } catch (Exception e) {
+                    // Si jQuery no existe o hay error, asumir que está "inactivo"
+                    return true;
+                }
+            });
+
+            // No log en caso exitoso - reduce ruido
+            return jQueryInactive;
+
+        } catch (Exception e) {
+            // Si timeout, asumir que jQuery está inactivo (o no existe)
+            return true;
+        }
+    }
+
+    /**
+     * Espera a que la página esté completamente lista (DOM + jQuery si existe).
+     *
+     * <p>Este método combina múltiples verificaciones:</p>
+     * <ul>
+     *   <li>document.readyState === 'complete'</li>
+     *   <li>jQuery.active === 0 (si jQuery está presente)</li>
+     * </ul>
+     *
+     * <p>Es útil para reemplazar waits hardcodeados después de navegaciones
+     * o acciones que recargan la página.</p>
+     *
+     * @return true si la página está lista, false si timeout
+     */
+    public static boolean waitForPageReady() {
+        return waitForPageReady(DEFAULT_TIMEOUT_SECONDS);
+    }
+
+    /**
+     * Espera a que la página esté completamente lista con timeout personalizado.
+     *
+     * @param timeoutSeconds Timeout en segundos
+     * @return true si la página está lista, false si timeout
+     */
+    public static boolean waitForPageReady(int timeoutSeconds) {
+        boolean pageLoaded = waitForPageToLoad(timeoutSeconds);
+        boolean jQueryInactive = waitForJQueryToBeInactive(5);
+
+        return pageLoaded && jQueryInactive;
+    }
+}
+

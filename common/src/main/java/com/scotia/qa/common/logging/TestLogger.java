@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>Soporte para testing steps y assertions</li>
  * </ul>
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class TestLogger {
@@ -35,9 +35,7 @@ public class TestLogger {
     private static final Logger log = LoggerFactory.getLogger(TestLogger.class);
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
-    // Contexto actual del test
-    private static final ThreadLocal<String> currentTestContext = new ThreadLocal<>();
-    private static final ThreadLocal<String> currentFramework = new ThreadLocal<>();
+    // Contexto global (complementario al MDC)
     private static final Map<String, Object> globalContext = new ConcurrentHashMap<>();
 
     private TestLogger() {
@@ -45,34 +43,37 @@ public class TestLogger {
     }
 
     // =================================================================================
-    // CONFIGURACIÓN DE CONTEXTO
+    // CONFIGURACIÓN DE CONTEXTO (Delegado a LoggingInitializer)
     // =================================================================================
 
     /**
      * Establece el contexto del test actual.
+     * Delega a LoggingInitializer para usar MDC.
      */
     public static void setTestContext(String testName) {
-        currentTestContext.set(testName);
+        LoggingInitializer.setTestContext(testName);
         logInfo("TEST_START", "Iniciando test: " + testName, null);
     }
 
     /**
      * Establece el framework actual (API, Web, Mobile).
+     * Delega a LoggingInitializer para usar MDC.
      */
     public static void setFramework(String framework) {
-        currentFramework.set(framework);
+        LoggingInitializer.initModuleContext(framework);
         globalContext.put("framework", framework);
     }
 
     /**
      * Limpia el contexto del test actual.
+     * Delega a LoggingInitializer para limpiar MDC.
      */
     public static void clearTestContext() {
-        String testName = currentTestContext.get();
+        String testName = LoggingInitializer.getContextValue("testName");
         if (testName != null) {
             logInfo("TEST_END", "Finalizando test: " + testName, null);
         }
-        currentTestContext.remove();
+        LoggingInitializer.clearTestContext();
     }
 
     // =================================================================================
@@ -180,7 +181,7 @@ public class TestLogger {
      * Registra un error con contexto.
      */
     public static void logError(String category, String message, Map<String, Object> context) {
-        String formattedMessage = formatMessage("ERROR", category, message);
+        String formattedMessage = formatMessage(category, message);
         log.error(formattedMessage);
 
         if (context != null && !context.isEmpty()) {
@@ -192,7 +193,7 @@ public class TestLogger {
      * Registra una excepción.
      */
     public static void logException(String category, String message, Throwable throwable) {
-        String formattedMessage = formatMessage("ERROR", category, message);
+        String formattedMessage = formatMessage(category, message);
         log.error(formattedMessage, throwable);
     }
 
@@ -200,7 +201,7 @@ public class TestLogger {
      * Registra un warning.
      */
     public static void logWarning(String category, String message, Map<String, Object> context) {
-        String formattedMessage = formatMessage("WARN", category, message);
+        String formattedMessage = formatMessage(category, message);
         log.warn(formattedMessage);
 
         if (context != null && !context.isEmpty()) {
@@ -216,7 +217,7 @@ public class TestLogger {
      * Registra información general.
      */
     public static void logInfo(String category, String message, Map<String, Object> context) {
-        String formattedMessage = formatMessage("INFO", category, message);
+        String formattedMessage = formatMessage(category, message);
         log.info(formattedMessage);
 
         if (context != null && !context.isEmpty()) {
@@ -228,7 +229,7 @@ public class TestLogger {
      * Registra debug information.
      */
     public static void logDebug(String category, String message, Map<String, Object> context) {
-        String formattedMessage = formatMessage("DEBUG", category, message);
+        String formattedMessage = formatMessage(category, message);
         log.debug(formattedMessage);
 
         if (context != null && !context.isEmpty()) {
@@ -242,14 +243,16 @@ public class TestLogger {
 
     /**
      * Formatea el mensaje de log con contexto.
+     * Usa MDC para obtener el contexto actual.
      */
-    private static String formatMessage(String level, String category, String message) {
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-        String framework = currentFramework.get() != null ? currentFramework.get() : "UNKNOWN";
-        String testContext = currentTestContext.get() != null ? currentTestContext.get() : "NO_TEST";
+    private static String formatMessage(String category, String message) {
+        String framework = LoggingInitializer.getContextValue("module");
+        String testContext = LoggingInitializer.getContextValue("testName");
 
-        return String.format("[%s][%s][%s][%s] %s",
-                           timestamp, framework, testContext, category, message);
+        framework = framework != null ? framework : "UNKNOWN";
+        testContext = testContext != null ? testContext : "NO_TEST";
+
+        return String.format("[%s][%s][%s] %s", framework, testContext, category, message);
     }
 
     /**
@@ -300,30 +303,34 @@ public class TestLogger {
      * Crea un logger específico para una clase - devuelve wrapper con API tradicional.
      */
     public static LoggerWrapper getLogger(Class<?> clazz) {
-        // Auto-inicializar el framework si no está configurado
-        if (currentFramework.get() == null) {
+        // Auto-inicializar el framework si no está configurado en MDC
+        String currentModule = LoggingInitializer.getContextValue("module");
+        if (currentModule == null) {
             autoDetectFramework(clazz);
         }
         return new LoggerWrapper(clazz.getSimpleName());
     }
 
     /**
-     * Auto-detecta el framework basado en el package de la clase.
+     * Auto-detecta el framework basado en el package de la clase y lo configura en MDC.
      */
     private static void autoDetectFramework(Class<?> clazz) {
         String packageName = clazz.getPackage().getName();
+        String moduleName;
 
         if (packageName.contains(".apicore.")) {
-            setFramework("API");
+            moduleName = LoggingInitializer.MODULE_API;
         } else if (packageName.contains(".webcore.")) {
-            setFramework("WEB");
+            moduleName = LoggingInitializer.MODULE_WEB;
         } else if (packageName.contains(".mobilecore.")) {
-            setFramework("MOBILE");
+            moduleName = LoggingInitializer.MODULE_MOBILE;
         } else if (packageName.contains(".common.")) {
-            setFramework("COMMON");
+            moduleName = LoggingInitializer.MODULE_COMMON;
         } else {
-            setFramework("UNKNOWN");
+            moduleName = "UNKNOWN";
         }
+
+        LoggingInitializer.initModuleContext(moduleName);
     }
 
     /**

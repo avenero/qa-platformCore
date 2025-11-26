@@ -22,14 +22,53 @@ dependencies {
     api 'com.aventstack:extentreports:5.1.1'
 
     // Screenshot utilities for mobile
-    api 'commons-io:commons-io:2.11.0'
+    api 'commons-io:commons-io:2.14.0'
 
     // Device capabilities management
-    api 'org.apache.commons:commons-lang3:3.13.0'
+    api 'org.apache.commons:commons-lang3:3.18.0'
 
     // Image comparison for mobile testing (excluyendo conflictos)
     api('ru.yandex.qatools.ashot:ashot:1.5.4') {
         exclude group: 'org.seleniumhq.selenium', module: 'selenium-remote-driver'
+    }
+}
+
+// Test configuration
+test {
+    useJUnitPlatform()
+
+    // Control de logging para tests
+    systemProperties = [
+        // Log4j2 Control
+        'log4j2.configurationFile': 'classpath:log4j2.xml',
+        'log4j2.level': 'INFO',
+        'log4j2.rootLogger.level': 'INFO',
+        'log4j2.statusLoggerLevel': 'WARN',
+
+        // SLF4J Control - Silencia mensaje de inicialización
+        'org.slf4j.simpleLogger.defaultLogLevel': 'INFO',
+        'slf4j.internal.verbosity': 'ERROR',
+
+        // Apache HTTP Client
+        'org.apache.commons.logging.Log': 'org.apache.commons.logging.impl.SimpleLog',
+        'httpclient.wire.header': 'INFO',
+        'httpclient.wire.content': 'INFO'
+    ]
+
+    // JVM Arguments para control de logging
+    jvmArgs = [
+        '-Dlog4j2.configurationFile=classpath:log4j2.xml',
+        '-Dlog4j2.level=INFO',
+        '-Dorg.slf4j.simpleLogger.defaultLogLevel=error'
+    ]
+
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = false
+        showExceptions = true
+        showCauses = true
+        showStackTraces = false
+        exceptionFormat = 'SHORT'
     }
 }
 

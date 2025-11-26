@@ -1,0 +1,193 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <!-- ====================================================================== -->
+    <!-- VARIABLES DE CONFIGURACIÓN                                            -->
+    <!-- ====================================================================== -->
+    <property name="LOG_HOME" value="./logs"/>
+    <property name="FILE_NAME" value="scotia-framework"/>
+
+    <!-- Pattern base sin colores para archivos -->
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{module:-COMMON}][%X{testName:-NO_TEST}] %logger{36} - %msg%n"/>
+
+    <!-- Pattern con colores para consola -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{HH:mm:ss.SSS} %green([%thread]) %highlight(%-5level) %magenta([%X{module:-COMMON}]) %cyan([%X{testName:-NO_TEST}]) %yellow(%logger{25}) - %msg%n"/>
+
+    <!-- ====================================================================== -->
+    <!-- FILTROS Y REGLAS DE SILENCIAMIENTO                                    -->
+    <!-- ====================================================================== -->
+
+    <!-- ======================================== -->
+    <!-- APACHE HTTP CLIENT - Silenciamiento total de logs binarios y wire -->
+    <!-- ======================================== -->
+    <logger name="org.apache.hc.client5.http.wire" level="OFF" additivity="false"/>
+    <logger name="org.apache.hc.client5.http.headers" level="OFF"/>
+    <logger name="org.apache.hc.client5.http" level="WARN"/>
+    <logger name="org.apache.hc.client5" level="WARN"/>
+    <logger name="org.apache.http.wire" level="OFF" additivity="false"/>
+    <logger name="org.apache.http.headers" level="OFF"/>
+    <logger name="org.apache.http" level="WARN"/>
+    <logger name="org.apache.commons.httpclient" level="WARN"/>
+
+    <!-- ======================================== -->
+    <!-- LOGGING INTERNOS - SLF4J, Logback -->
+    <!-- ======================================== -->
+    <logger name="org.slf4j" level="WARN" additivity="false"/>
+    <logger name="ch.qos.logback" level="WARN" additivity="false"/>
+    <logger name="net.logstash.logback" level="WARN"/>
+
+    <!-- ======================================== -->
+    <!-- SELENIUM & WEBDRIVER - Solo errores críticos -->
+    <!-- ======================================== -->
+    <logger name="org.openqa.selenium" level="ERROR"/>
+    <logger name="org.openqa.selenium.remote" level="ERROR"/>
+    <logger name="io.github.bonigarcia.wdm" level="ERROR"/>
+    <logger name="io.github.bonigarcia" level="ERROR"/>
+
+    <!-- ======================================== -->
+    <!-- APPIUM - Solo errores críticos -->
+    <!-- ======================================== -->
+    <logger name="io.appium" level="ERROR"/>
+    <logger name="io.appium.java_client" level="ERROR"/>
+
+    <!-- ======================================== -->
+    <!-- CUCUMBER - Info selectiva -->
+    <!-- ======================================== -->
+    <logger name="io.cucumber" level="INFO"/>
+    <logger name="io.cucumber.core.plugin" level="INFO"/>
+    <logger name="io.cucumber.core.runtime" level="WARN"/>
+
+    <!-- ======================================== -->
+    <!-- REST ASSURED - Solo warnings -->
+    <!-- ======================================== -->
+    <logger name="io.restassured" level="WARN"/>
+    <logger name="io.restassured.filter" level="WARN"/>
+    <logger name="io.restassured.internal" level="ERROR"/>
+
+    <!-- ======================================== -->
+    <!-- JACKSON JSON - Solo warnings -->
+    <!-- ======================================== -->
+    <logger name="com.fasterxml.jackson" level="WARN"/>
+    <logger name="com.fasterxml.jackson.databind" level="WARN"/>
+
+    <!-- ======================================== -->
+    <!-- OTROS COMPONENTES COMUNES -->
+    <!-- ======================================== -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="org.apache.catalina" level="WARN"/>
+
+    <!-- ====================================================================== -->
+    <!-- APPENDERS - SALIDAS DE LOGS                                           -->
+    <!-- ====================================================================== -->
+
+    <!-- Appender para consola con colores y filtrado -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- Filtro para solo mostrar logs de Scotia Framework en consola -->
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator>
+                <expression>
+                    logger.startsWith("com.scotia") ||
+                    logger.startsWith("io.cucumber.core.plugin") ||
+                    level &gt;= WARN
+                </expression>
+            </evaluator>
+            <OnMismatch>DENY</OnMismatch>
+            <OnMatch>NEUTRAL</OnMatch>
+        </filter>
+
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Appender para archivo general (todos los módulos) -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/${FILE_NAME}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/${FILE_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Appender para archivo por módulo (API, WEB, MOBILE) -->
+    <appender name="MODULE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/modules/${FILE_NAME}-${module}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/modules/${FILE_NAME}-${module}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxHistory>15</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>5MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Appender para JSON estructurado (ELK/Splunk) -->
+    <appender name="JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/json/${FILE_NAME}.json</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/json/${FILE_NAME}.%d{yyyy-MM-dd}.json</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>module</includeMdcKeyName>
+            <includeMdcKeyName>testName</includeMdcKeyName>
+            <includeMdcKeyName>framework</includeMdcKeyName>
+            <includeMdcKeyName>environment</includeMdcKeyName>
+        </encoder>
+    </appender>
+
+    <!-- ====================================================================== -->
+    <!-- LOGGERS ESPECÍFICOS DEL FRAMEWORK SCOTIA                             -->
+    <!-- ====================================================================== -->
+
+    <!-- Logger para el módulo common -->
+    <logger name="com.scotia.qa.common" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Logger para api-core -->
+    <logger name="com.scotia.qa.apicore" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Logger para web-core -->
+    <logger name="com.scotia.qa.webcore" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Logger para mobile-core -->
+    <logger name="com.scotia.qa.mobilecore" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- ====================================================================== -->
+    <!-- CONFIGURACIÓN ROOT (por defecto)                                      -->
+    <!-- ====================================================================== -->
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>

@@ -22,6 +22,46 @@ subprojects {
 
     tasks.withType(Test) {
         useJUnitPlatform()
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CONFIGURACIÓN CENTRALIZADA DE LOGGING PARA TESTS
+        // ═══════════════════════════════════════════════════════════════════
+
+        // Forzar uso del logback-test.xml centralizado
+        systemProperty 'logback.configurationFile',
+                      rootProject.file('config/logback-test.xml').absolutePath
+
+        // Habilitar colores ANSI en consola (Jansi)
+        systemProperty 'jansi.force', 'true'
+        systemProperty 'jansi.passthrough', 'false'  // false para que Gradle no interfiera
+
+        // Habilitar modo verbose de logs (opcional, por defecto false)
+        systemProperty 'qa.logs.verbose',
+                      System.getProperty('qa.logs.verbose', 'false')
+
+        // Configuración de test logging optimizada
+        testLogging {
+            // Mostrar solo eventos importantes (NO showStandardStreams para preservar colores)
+            events "passed", "failed", "skipped"
+
+            // Mostrar excepciones completas solo en fallos
+            exceptionFormat = 'full'
+            showExceptions = true
+            showCauses = true
+            showStackTraces = true
+
+            // Nivel de detalle (0=quiet, 1=lifecycle, 2=info)
+            displayGranularity = 1
+
+            // NO capturar stdout/stderr (deja que Logback maneje colores)
+            showStandardStreams = false
+        }
+
+        // Configuración JVM para mejor performance
+        jvmArgs '-Xmx2048m', '-XX:+UseG1GC'
+
+        // Forzar colores en terminal
+        outputs.upToDateWhen { false }
     }
 
     // Configuración de publicación Maven para submódulos sin configuración propia

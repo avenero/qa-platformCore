@@ -3,6 +3,7 @@ package com.scotia.qa.common.logging;
 import com.scotia.qa.common.http.exceptions.FrameworkTechnicalException;
 import com.scotia.qa.common.utils.DataUtilities;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -14,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Gestor centralizado de evidencias para todos los frameworks de testing.
  * Maneja capturas de pantalla, respuestas de API, logs de test y otros artefactos.
  *
- * @author Scotia QA Framework Team
+ * @author Abel Venero
  * @since 1.0.0
  */
 public class EvidenceManager {
@@ -232,7 +233,7 @@ public class EvidenceManager {
         try {
             DataUtilities.createDirectoryIfNotExists(testPath.toString());
             return testPath.toString();
-        } catch (RuntimeException e) {
+        } catch (IOException | RuntimeException e) {
             TestLogger.logError("EVIDENCE_ERROR",
                                String.format("Error creating test directory: %s", e.getMessage()), null);
             return baseEvidenceDir; // Fallback al directorio base

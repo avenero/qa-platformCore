@@ -59,46 +59,41 @@
         </filter>
     </appender>
 
-    <!-- Logger específico para componentes comunes -->
-    <logger name="com.scotia.qa.common" level="INFO">
-        <appender-ref ref="FILE" />
+    <!-- ====================================================================== -->
+    <!-- LOGGERS ESPECÍFICOS DEL MÓDULO MOBILE                                 -->
+    <!-- ====================================================================== -->
+
+    <logger name="com.scotia.qa.mobilecore" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="MOBILE_EVIDENCE"/>
+        <appender-ref ref="ERROR"/>
     </logger>
 
-    <!-- Logger específico para Mobile core -->
-    <logger name="com.scotia.qa.mobilecore" level="INFO">
-        <appender-ref ref="FILE" />
-        <appender-ref ref="MOBILE_EVIDENCE" />
+    <logger name="com.scotia.qa.common" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
     </logger>
 
-    <!-- Logger específico para evidencias de Mobile -->
-    <logger name="com.scotia.qa.common.logging.EvidenceManager" level="INFO">
-        <appender-ref ref="MOBILE_EVIDENCE" />
+    <!-- Logger específico para evidencias -->
+    <logger name="com.scotia.qa.common.logging.EvidenceManager" level="INFO" additivity="false">
+        <appender-ref ref="MOBILE_EVIDENCE"/>
     </logger>
 
-    <!-- Logger específico para hooks de Cucumber -->
-    <logger name="com.scotia.qa.common.cucumber" level="INFO">
-        <appender-ref ref="FILE" />
-    </logger>
+    <!-- Cucumber -->
+    <logger name="io.cucumber" level="INFO"/>
+    <logger name="io.cucumber.core.plugin" level="INFO"/>
+    <logger name="io.cucumber.core.runtime" level="WARN"/>
 
-    <!-- Loggers específicos para Mobile testing -->
-    <logger name="io.appium" level="INFO">
-        <appender-ref ref="MOBILE_EVIDENCE" />
-    </logger>
-    <logger name="org.openqa.selenium" level="INFO">
-        <appender-ref ref="MOBILE_EVIDENCE" />
-    </logger>
-    <logger name="io.github.bonigarcia.wdm" level="WARN" />
+    <!-- Spring (si se usa) -->
+    <logger name="org.springframework" level="WARN"/>
 
-    <!-- Loggers de terceros con nivel más alto -->
-    <logger name="org.springframework" level="WARN" />
-    <logger name="io.cucumber" level="INFO" />
-    <logger name="org.apache.commons" level="WARN" />
-    <logger name="org.apache.http" level="WARN" />
-    <logger name="okhttp3" level="WARN" />
+    <!-- ====================================================================== -->
+    <!-- ROOT LOGGER                                                            -->
+    <!-- ====================================================================== -->
 
-    <!-- Root logger -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE" />
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE" />
         <appender-ref ref="ERROR" />
     </root>
