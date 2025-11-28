@@ -55,7 +55,7 @@ import javax.sql.DataSource;
  * @author Abel Venero
  * @version 2.0.0
  * @since 2.0.0
- * @see com.scotia.qa.common.implementations.BaseDatabaseService
+ * @see com.scotia.qa.common.database.interfaces.DatabaseConnector
  */
 public class BaseDatabaseConfiguration {
 

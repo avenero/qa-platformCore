@@ -242,17 +242,16 @@ public class TestLogger {
     // =================================================================================
 
     /**
-     * Formatea el mensaje de log con contexto.
-     * Usa MDC para obtener el contexto actual.
+     * Formatea el mensaje con contexto actual.
+     *
+     * NOTA: No se agrega módulo ni test aquí porque logback ya los muestra en el pattern:
+     * Pattern: [%X{module}] [%X{testName}] logger - mensaje
+     *
+     * Solo agregamos la categoría para contexto adicional.
      */
     private static String formatMessage(String category, String message) {
-        String framework = LoggingInitializer.getContextValue("module");
-        String testContext = LoggingInitializer.getContextValue("testName");
-
-        framework = framework != null ? framework : "UNKNOWN";
-        testContext = testContext != null ? testContext : "NO_TEST";
-
-        return String.format("[%s][%s][%s] %s", framework, testContext, category, message);
+        // Solo agregar categoría - módulo y test ya están en el pattern de logback
+        return String.format("[%s] %s", category, message);
     }
 
     /**

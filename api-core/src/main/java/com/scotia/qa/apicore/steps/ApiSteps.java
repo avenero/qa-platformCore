@@ -6,11 +6,9 @@ import com.scotia.qa.apicore.implementations.BaseHttpClient;
 import com.scotia.qa.apicore.interfaces.AuthenticationService;
 import com.scotia.qa.apicore.interfaces.HttpClient;
 import com.scotia.qa.apicore.utils.ValidationUtilities;
-import com.scotia.qa.common.factories.ConfigurationProviderFactory;
-import com.scotia.qa.common.http.HttpResponse;
 import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
 import com.scotia.qa.common.http.exceptions.FrameworkTechnicalException;
-import com.scotia.qa.common.interfaces.ConfigurationProvider;
+import com.scotia.qa.common.http.model.HttpResponse;
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.common.utils.DataUtilities;
 import io.cucumber.java.Before;
@@ -31,58 +29,161 @@ public class ApiSteps {
   // HOOKS
   // =================================================================================
 
-  @Before
+  /**
+   * Hook que se ejecuta SOLO si el escenario tiene tags relacionados con API. Esto evita
+   * inicializar componentes HTTP innecesariamente en tests Web puros o Database puros.
+   *
+   * <p>Tags soportados: @api, @rest, @http, @service
+   */
+  @Before(value = "@api or @rest or @http or @service", order = 50)
   public void beforeScenario(Scenario scenario) {
-    // Establecer el framework como API para logging correcto
-    TestLogger.setFramework("API");
+    // Validar consistencia de tags del scenario
+    com.scotia.qa.common.cucumber.validators.HookValidator.validateApiScenario(scenario);
+
+    // Detectar nombre del módulo dinámicamente (ej: BANKING, AUTOS, etc.)
+    String moduleName = com.scotia.qa.common.logging.ModuleDetector.detectModuleName();
+    TestLogger.setFramework(moduleName);
   }
 
   // =================================================================================
   // CONFIGURACIÓN - COMPOSICIÓN EN LUGAR DE HERENCIA
   // =================================================================================
 
-  private final ConfigurationProvider config = ConfigurationProviderFactory.getCachedInstance();
-  private final HttpClient httpClient = new BaseHttpClient();
-  private final AuthenticationService authentication = new BaseAuthenticationManager(httpClient);
+  // Lazy initialization - se crean solo cuando se usan
+  private HttpClient httpClient;
+  private AuthenticationService authentication;
+
+  /**
+   * Obtiene instancia de HttpClient (lazy initialization). Se crea solo cuando se necesita, no al
+   * cargar la clase.
+   */
+  private HttpClient getHttpClient() {
+    if (httpClient == null) {
+      httpClient = new BaseHttpClient();
+    }
+    return httpClient;
+  }
+
+  /** Obtiene instancia de AuthenticationService (lazy initialization). */
+  private AuthenticationService getAuthentication() {
+    if (authentication == null) {
+      authentication = new BaseAuthenticationManager(getHttpClient());
+    }
+    return authentication;
+  }
 
   // =================================================================================
   // CONFIGURACIÓN DE ENDPOINTS
   // =================================================================================
 
-  @Given("configuro el endpoint usando {string} del archivo {string}")
-  public void configuroElEndpointUsandoDelArchivo(String propertyPath, String configFile) {
+  /**
+   * Configura el endpoint usando una propiedad del archivo config-{env}.properties.
+   *
+   * <p>Lee directamente de ConfigManager (config-qa.properties, config-dev.properties, etc.) usando
+   * la nueva estrategia de properties consolidado.
+   *
+   * <p><b>Ejemplo de uso:</b>
+   *
+   * <pre>
+   * # En config-qa.properties
+   * api.endpoint.security.sendSms=v1/security/sms
+   * api.baseurl.autos=https://car-evaluator-loan-bff.uyplaygrnd.dev.npe-k8s.uy.bns
+   *
+   * # En feature
+   * Given configuro el endpoint "api.baseurl.autos"
+   * Given configuro el endpoint completo "api.baseurl.autos" + "api.endpoint.security.sendSms"
+   * </pre>
+   *
+   * @param propertyKey Clave de la propiedad en config-{env}.properties
+   */
+  @Given("configuro el endpoint {string}")
+  public void configuroElEndpoint(String propertyKey) {
     try {
-      // Usar ConfigurationProvider consolidado con detección automática de formato
-      Map<String, Object> configuration = config.loadConfiguration(configFile);
+      // Usar ConfigManager directamente (lee de config-{env}.properties)
+      com.scotia.qa.common.config.ConfigManager configManager =
+          com.scotia.qa.common.config.ConfigManager.getInstance();
 
-      // Navegar usando la robusta API de ConfigurationProvider
-      Object endpointValue = config.getConfigurationValue(propertyPath, configuration);
+      String endpointValue = configManager.get(propertyKey);
 
-      if (endpointValue == null) {
+      if (endpointValue == null || endpointValue.trim().isEmpty()) {
         throw new RuntimeException(
             String.format(
-                "Propiedad '%s' no encontrada en archivo '%s'", propertyPath, configFile));
+                "Propiedad '%s' no encontrada o está vacía en config-{env}.properties. "
+                    + "Verifica que la propiedad exista en config-qa.properties",
+                propertyKey));
       }
 
-      String endpointUrl = String.valueOf(endpointValue);
-      if (endpointUrl.trim().isEmpty()) {
-        throw new RuntimeException(
-            String.format("Propiedad '%s' está vacía en archivo '%s'", propertyPath, configFile));
-      }
+      String processedUrl = DataUtilities.replaceVariables(endpointValue);
+      getHttpClient().setHost(processedUrl);
 
-      String processedUrl = DataUtilities.replaceVariables(endpointUrl);
-      httpClient.setHost(processedUrl);
       TestLogger.logInfo(
           "API_STEPS_CONFIG",
-          String.format(
-              "Endpoint configurado: %s = %s (desde %s)", propertyPath, processedUrl, configFile),
+          String.format("Endpoint configurado: %s = %s", propertyKey, processedUrl),
           null);
 
     } catch (Exception e) {
       throw new RuntimeException(
           String.format(
-              "Error configurando endpoint desde %s->%s: %s",
-              configFile, propertyPath, e.getMessage()),
+              "Error configurando endpoint desde propiedad '%s': %s", propertyKey, e.getMessage()),
+          e);
+    }
+  }
+
+  /**
+   * Configura el endpoint usando base URL + path desde config-{env}.properties.
+   *
+   * <p><b>Ejemplo de uso:</b>
+   *
+   * <pre>
+   * # En config-qa.properties
+   * api.baseurl.autos=https://car-evaluator-loan-bff.uyplaygrnd.dev.npe-k8s.uy.bns
+   * api.endpoint.security.sendSms=v1/security/sms
+   *
+   * # En feature
+   * Given configuro endpoint con base "api.baseurl.autos" y path "api.endpoint.security.sendSms"
+   * </pre>
+   *
+   * @param baseUrlKey Clave de la base URL en properties
+   * @param endpointKey Clave del path del endpoint en properties
+   */
+  @Given("configuro endpoint con base {string} y path {string}")
+  public void configuroEndpointConBaseYPath(String baseUrlKey, String endpointKey) {
+    try {
+      com.scotia.qa.common.config.ConfigManager configManager =
+          com.scotia.qa.common.config.ConfigManager.getInstance();
+
+      String baseUrl = configManager.get(baseUrlKey);
+      String endpointPath = configManager.get(endpointKey);
+
+      if (baseUrl == null || baseUrl.trim().isEmpty()) {
+        throw new RuntimeException(
+            String.format("Base URL '%s' no encontrada en config-{env}.properties", baseUrlKey));
+      }
+
+      if (endpointPath == null || endpointPath.trim().isEmpty()) {
+        throw new RuntimeException(
+            String.format(
+                "Endpoint path '%s' no encontrado en config-{env}.properties", endpointKey));
+      }
+
+      // Construir URL completa
+      String fullUrl =
+          baseUrl.endsWith("/") ? baseUrl + endpointPath : baseUrl + "/" + endpointPath;
+
+      String processedUrl = DataUtilities.replaceVariables(fullUrl);
+      getHttpClient().setHost(processedUrl);
+
+      TestLogger.logInfo(
+          "API_STEPS_CONFIG",
+          String.format(
+              "Endpoint configurado: %s + %s = %s", baseUrlKey, endpointKey, processedUrl),
+          null);
+
+    } catch (Exception e) {
+      throw new RuntimeException(
+          String.format(
+              "Error configurando endpoint con base '%s' y path '%s': %s",
+              baseUrlKey, endpointKey, e.getMessage()),
           e);
     }
   }
@@ -90,7 +191,7 @@ public class ApiSteps {
   @Given("establezco el host base como {word}")
   public void establezcoElHostBaseComo(String host) {
     String processedHost = DataUtilities.replaceVariables(host);
-    httpClient.setHost(processedHost);
+    getHttpClient().setHost(processedHost);
     TestLogger.logInfo(
         "API_STEPS_CONFIG", String.format("Host base establecido: %s", processedHost), null);
   }
@@ -101,16 +202,16 @@ public class ApiSteps {
 
   @Given("agrego autenticación Client Credentials")
   public void agregoAutenticacionClientCredentials() throws FrameworkBusinessException {
-    String token = authentication.getClientCredentialsToken();
-    httpClient.addHeader("Authorization", "Bearer " + token);
+    String token = getAuthentication().getClientCredentialsToken();
+    getHttpClient().addHeader("Authorization", "Bearer " + token);
     TestLogger.logInfo("API_STEPS_AUTH", "Autenticación Client Credentials configurada", null);
   }
 
   @Given("agrego autenticación Bearer para RUT {word}")
   public void agregoAutenticacionBearerParaRUT(String rut) throws FrameworkBusinessException {
     String processedRut = DataUtilities.replaceVariables(rut);
-    String token = authentication.getBearerTokenForIdentifier(processedRut);
-    httpClient.addHeader("Authorization", "Bearer " + token);
+    String token = getAuthentication().getBearerTokenForIdentifier(processedRut);
+    getHttpClient().addHeader("Authorization", "Bearer " + token);
     TestLogger.logInfo(
         "API_STEPS_AUTH",
         String.format("Autenticación Bearer configurada para RUT: %s", processedRut),
@@ -120,7 +221,7 @@ public class ApiSteps {
   @Given("agrego el token personalizado {word}")
   public void agregoElTokenPersonalizado(String token) {
     String processedToken = DataUtilities.replaceVariables(token);
-    httpClient.addHeader("Authorization", "Bearer " + processedToken);
+    getHttpClient().addHeader("Authorization", "Bearer " + processedToken);
     TestLogger.logInfo("API_STEPS_AUTH", "Token personalizado configurado", null);
   }
 
@@ -132,7 +233,7 @@ public class ApiSteps {
     String credentials =
         Base64.getEncoder()
             .encodeToString((processedUsername + ":" + processedPassword).getBytes());
-    httpClient.addHeader("Authorization", "Basic " + credentials);
+    getHttpClient().addHeader("Authorization", "Basic " + credentials);
     TestLogger.logInfo(
         "API_STEPS_AUTH",
         String.format("Autenticación básica configurada para usuario: %s", processedUsername),
@@ -146,21 +247,15 @@ public class ApiSteps {
   @And("agrego el header {word} con valor {word}")
   public void agregoElHeaderConValor(String header, String value) {
     String processedValue = DataUtilities.replaceVariables(value);
-    httpClient.addHeader(header, processedValue);
-    TestLogger.logDebug(
-        "API_STEPS_CONFIG",
-        String.format("Header agregado: %s = %s", header, processedValue),
-        null);
+    getHttpClient().addHeader(header, processedValue);
+    TestLogger.logInfo("API_STEPS_CONFIG", String.format("Header agregado: %s", header), null);
   }
 
-  @And("agrego el parámetro de consulta {word} con valor {word}")
-  public void agregoElParametroDeConsultaConValor(String param, String value) {
+  @And("agrego el query param {string} con valor {string}")
+  public void agregoElQueryParamConValor(String param, String value) {
     String processedValue = DataUtilities.replaceVariables(value);
-    httpClient.addQueryParam(param, processedValue);
-    TestLogger.logDebug(
-        "API_STEPS_CONFIG",
-        String.format("Query parameter agregado: %s = %s", param, processedValue),
-        null);
+    getHttpClient().addQueryParam(param, processedValue);
+    TestLogger.logInfo("API_STEPS_CONFIG", String.format("Query param agregado: %s", param), null);
   }
 
   // =================================================================================
@@ -170,13 +265,8 @@ public class ApiSteps {
   @Given("establezco el cuerpo de la petición como")
   public void establezcoElCuerpoDeLaPeticionComo(String body) {
     String processedBody = DataUtilities.replaceVariables(body);
-    httpClient.setBody(processedBody);
-    TestLogger.logDebug(
-        "API_STEPS_CONFIG",
-        String.format(
-            "Cuerpo de petición establecido (longitud: %d caracteres)",
-            processedBody != null ? processedBody.length() : 0),
-        null);
+    getHttpClient().setBody(processedBody);
+    TestLogger.logInfo("API_STEPS_REQUEST", "Request body agregado", null);
   }
 
   @Given("establezco el cuerpo JSON con los siguientes datos")
@@ -190,12 +280,9 @@ public class ApiSteps {
       ObjectMapper mapper = new ObjectMapper();
       String jsonBody = mapper.writeValueAsString(processedData);
 
-      httpClient.addHeader("Content-Type", "application/json");
-      httpClient.setBody(jsonBody);
-      TestLogger.logDebug(
-          "API_STEPS_CONFIG",
-          String.format("Cuerpo JSON establecido con %d campos", processedData.size()),
-          null);
+      getHttpClient().addHeader("Content-Type", "application/json");
+      getHttpClient().setBody(jsonBody);
+      TestLogger.logInfo("API_STEPS_REQUEST", "Request JSON agregado", null);
 
     } catch (Exception e) {
       throw new RuntimeException("Error creando cuerpo JSON: " + e.getMessage(), e);
@@ -215,19 +302,19 @@ public class ApiSteps {
     try {
       switch (method.toUpperCase()) {
         case "GET":
-          httpClient.get(processedEndpoint);
+          getHttpClient().get(processedEndpoint);
           break;
         case "POST":
-          httpClient.post(processedEndpoint);
+          getHttpClient().post(processedEndpoint);
           break;
         case "PUT":
-          httpClient.put(processedEndpoint);
+          getHttpClient().put(processedEndpoint);
           break;
         case "DELETE":
-          httpClient.delete(processedEndpoint);
+          getHttpClient().delete(processedEndpoint);
           break;
         case "PATCH":
-          httpClient.patch(processedEndpoint);
+          getHttpClient().patch(processedEndpoint);
           break;
         default:
           throw new FrameworkTechnicalException(
@@ -250,14 +337,14 @@ public class ApiSteps {
   // =================================================================================
 
   @Then("valido que el codigo de respuesta del servicio sea {int}")
-  public void validoQueElCodigoDeRespuestaSea(int expectedStatus)
+  public void validoQueElCodigoDeRespuestaDelServicioSea(int statusCode)
       throws FrameworkBusinessException {
     try {
-      HttpResponse lastResponse = httpClient.getLastResponse();
-      ValidationUtilities.validateStatusCode(lastResponse, expectedStatus);
+      HttpResponse lastResponse = getHttpClient().getLastResponse();
+      ValidationUtilities.validateStatusCode(lastResponse, statusCode);
       TestLogger.logInfo(
           "API_STEPS_VALIDATION",
-          String.format("Código de respuesta validado exitosamente: %d", expectedStatus),
+          String.format("Código de respuesta validado exitosamente: %d", statusCode),
           null);
     } catch (Exception e) {
       throw new FrameworkBusinessException(
@@ -270,7 +357,7 @@ public class ApiSteps {
   public void validoQueLaRespuestaContengaElTexto(String expectedText)
       throws FrameworkBusinessException {
     try {
-      HttpResponse lastResponse = httpClient.getLastResponse();
+      HttpResponse lastResponse = getHttpClient().getLastResponse();
       String responseBody = lastResponse.getBody();
 
       if (responseBody == null || !responseBody.contains(expectedText)) {
@@ -332,7 +419,7 @@ public class ApiSteps {
   public void validoQueElResponseTengaElSiguienteEsquema(String schemaOrPath)
       throws FrameworkBusinessException {
     try {
-      HttpResponse lastResponse = httpClient.getLastResponse();
+      HttpResponse lastResponse = getHttpClient().getLastResponse();
 
       if (lastResponse == null) {
         throw new FrameworkBusinessException(
@@ -379,7 +466,7 @@ public class ApiSteps {
     try {
       TestLogger.logInfo("API_STEPS_DEBUG", "=== INFORMACIÓN DE LA ÚLTIMA PETICIÓN ===", null);
 
-      HttpResponse lastResponse = httpClient.getLastResponse();
+      HttpResponse lastResponse = getHttpClient().getLastResponse();
       if (lastResponse != null) {
         TestLogger.logInfo("API_STEPS_DEBUG", "Status Code: " + lastResponse.getStatusCode(), null);
         TestLogger.logInfo("API_STEPS_DEBUG", "Headers: " + lastResponse.getHeaders(), null);
@@ -408,7 +495,7 @@ public class ApiSteps {
     String processedHost = DataUtilities.replaceVariables(host);
     String processedContexto = DataUtilities.replaceVariables(contexto);
     String fullUrl = processedHost + processedContexto;
-    httpClient.setHost(fullUrl);
+    getHttpClient().setHost(fullUrl);
     TestLogger.logInfo(
         "API_STEPS_CONFIG",
         String.format("Host configurado: %s + %s = %s", processedHost, processedContexto, fullUrl),
@@ -417,8 +504,8 @@ public class ApiSteps {
 
   @Given("agrego el token requerido del tipo Client-Credentials")
   public void agregoElTokenRequeridoDelTipoClientCredentials() throws FrameworkBusinessException {
-    String token = authentication.getClientCredentialsToken();
-    httpClient.addHeader("Authorization", "Bearer " + token);
+    String token = getAuthentication().getClientCredentialsToken();
+    getHttpClient().addHeader("Authorization", "Bearer " + token);
     TestLogger.logInfo("API_STEPS_AUTH", "Autenticación Client Credentials configurada", null);
   }
 
@@ -426,8 +513,8 @@ public class ApiSteps {
   public void agregoElTokenRequeridoDelTipoBearerTokenParaElRut(String rut)
       throws FrameworkBusinessException {
     String processedRut = DataUtilities.replaceVariables(rut);
-    String token = authentication.getBearerTokenForIdentifier(processedRut);
-    httpClient.addHeader("Authorization", "Bearer " + token);
+    String token = getAuthentication().getBearerTokenForIdentifier(processedRut);
+    getHttpClient().addHeader("Authorization", "Bearer " + token);
     TestLogger.logInfo(
         "API_STEPS_AUTH",
         String.format("Autenticación Bearer configurada para RUT: %s", processedRut),
@@ -531,45 +618,34 @@ public class ApiSteps {
   */
 
   // =================================================================================
-  // CONSOLIDACIÓN DE HEADERS - Step duplicado (delegación temporal)
-  // TODO: Migrar features que usan este step al principal y luego eliminar
+  // CONFIGURACIÓN DE FIELDS Y REQUEST BODY
   // =================================================================================
-
-  /**
-   * @deprecated Este step está duplicado. Usar: {@code @And("agrego el header {word} con valor
-   *     {word}")} Este método será eliminado después de migrar las features existentes.
-   */
-  @Deprecated
-  @Given("agrego el header {string} con el valor {string}")
-  public void agregoElHeaderKeyConElValorValue(String key, String value) {
-    agregoElHeaderConValor(key, value);
-    TestLogger.logWarning(
-        "API_STEPS_DEPRECATED",
-        "Step deprecado usado. Migrar feature a: 'agrego el header {word} con valor {word}'",
-        null);
-  }
 
   @Given("agrego el field {string} con el valor {string}")
   public void agregoElFieldKeyConElValorValue(String key, String value) {
     String processedKey = DataUtilities.replaceVariables(key);
     String processedValue = DataUtilities.replaceVariables(value);
-    httpClient.addField(processedKey, processedValue);
-    TestLogger.logDebug(
-        "API_STEPS_CONFIG",
-        String.format("Field agregado: %s = %s", processedKey, processedValue),
-        null);
+    getHttpClient().addField(processedKey, processedValue);
+    TestLogger.logInfo("API_STEPS_CONFIG", String.format("Field agregado: %s", processedKey), null);
+  }
+
+  @Given("agrego el request body {string}")
+  public void agregoElRequestBody(String body) {
+    String processedBody = DataUtilities.replaceVariables(body);
+    getHttpClient().setBody(processedBody);
+    TestLogger.logInfo("API_STEPS_REQUEST", "Request body agregado", null);
   }
 
   @Given("agrego el request")
-  public void agregoElRequest(String requestBody) {
-    String processedBody = DataUtilities.replaceVariables(requestBody);
-    httpClient.setBody(processedBody);
-    TestLogger.logDebug(
-        "API_STEPS_CONFIG",
-        String.format(
-            "Request body establecido (longitud: %d caracteres)",
-            processedBody != null ? processedBody.length() : 0),
-        null);
+  public void agregoElRequest(String jsonBody) {
+    try {
+      String processedBody = DataUtilities.replaceVariables(jsonBody);
+      getHttpClient().addHeader("Content-Type", "application/json");
+      getHttpClient().setBody(processedBody);
+      TestLogger.logInfo("API_STEPS_REQUEST", "Request JSON agregado", null);
+    } catch (Exception e) {
+      throw new RuntimeException("Error estableciendo request: " + e.getMessage(), e);
+    }
   }
 
   // =================================================================================
@@ -589,7 +665,7 @@ public class ApiSteps {
   @Given("el resultado almaceno el valor de {string}")
   public void elResultadoAlmacenoElValorDe(String jsonPath) {
     try {
-      HttpResponse lastResponse = httpClient.getLastResponse();
+      HttpResponse lastResponse = getHttpClient().getLastResponse();
       if (lastResponse == null || lastResponse.getBody() == null) {
         throw new FrameworkBusinessException(
             "elResultadoAlmacenoElValorDe", "No hay respuesta disponible para extraer datos");
@@ -635,11 +711,9 @@ public class ApiSteps {
   public void agregoElQueryparamConElValor(String param, String value) {
     String processedParam = DataUtilities.replaceVariables(param);
     String processedValue = DataUtilities.replaceVariables(value);
-    httpClient.addQueryParam(processedParam, processedValue);
-    TestLogger.logDebug(
-        "API_STEPS_CONFIG",
-        String.format("Query parameter agregado: %s = %s", processedParam, processedValue),
-        null);
+    getHttpClient().addQueryParam(processedParam, processedValue);
+    TestLogger.logInfo(
+        "API_STEPS_CONFIG", String.format("Query param agregado: %s", processedParam), null);
   }
 
   @Given("establezco la key {string} con el valor {string}")
@@ -734,19 +808,19 @@ public class ApiSteps {
       // El endpoint ya debe estar configurado previamente con setHost()
       switch (processedMethod) {
         case "GET":
-          httpClient.get("");
+          getHttpClient().get("");
           break;
         case "POST":
-          httpClient.post("");
+          getHttpClient().post("");
           break;
         case "PUT":
-          httpClient.put("");
+          getHttpClient().put("");
           break;
         case "DELETE":
-          httpClient.delete("");
+          getHttpClient().delete("");
           break;
         case "PATCH":
-          httpClient.patch("");
+          getHttpClient().patch("");
           break;
         default:
           throw new FrameworkTechnicalException(
@@ -754,7 +828,7 @@ public class ApiSteps {
       }
 
       // Deserializar automáticamente el response a un Map genérico para búsquedas
-      HttpResponse response = httpClient.getLastResponse();
+      HttpResponse response = getHttpClient().getLastResponse();
       if (response != null && response.getBody() != null && !response.getBody().isEmpty()) {
         try {
           Object deserializedResponse =
@@ -966,7 +1040,7 @@ public class ApiSteps {
   @When("modifico la variable {string} agregando en el path {string} la siguiente data")
   public void modificoElResponseAgregandoLaSiguienteEstructura(String arg0, String arg1, String arg2) {
       putVariable(arg0, arg1, arg2);
-  }*/
+  }
 
   // =================================================================================
   // DESERIALIZACIÓN DE RESPUESTAS HTTP (NUEVO - v1.1.0)
@@ -995,7 +1069,7 @@ public class ApiSteps {
   @Then("serializo la respuesta en la clase {string}")
   public void serializoLaRespuestaEnLaClase(String className) throws FrameworkBusinessException {
     try {
-      HttpResponse response = httpClient.getLastResponse();
+      HttpResponse response = getHttpClient().getLastResponse();
 
       if (response == null || response.getBody() == null) {
         throw new FrameworkBusinessException(

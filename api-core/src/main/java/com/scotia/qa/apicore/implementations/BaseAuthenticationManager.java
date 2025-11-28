@@ -2,10 +2,10 @@ package com.scotia.qa.apicore.implementations;
 
 import com.scotia.qa.apicore.interfaces.AuthenticationService;
 import com.scotia.qa.apicore.interfaces.HttpClient;
-import com.scotia.qa.common.http.HttpMethod;
-import com.scotia.qa.common.http.HttpResponse;
+import com.scotia.qa.common.http.enums.HttpMethod;
 import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
 import com.scotia.qa.common.http.exceptions.FrameworkTechnicalException;
+import com.scotia.qa.common.http.model.HttpResponse;
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.common.utils.DataUtilities;
 import java.time.Instant;

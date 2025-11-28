@@ -1,6 +1,6 @@
 // Configuración del proyecto raíz qa-framework
 group = "com.scotia.qa"
-version = "1.0.2"  // Incrementado para forzar actualización con logback con colores
+version = "1.0.0"  // Versión inicial estable con todas las mejoras implementadas
 
 // Configuración para todos los submódulos
 subprojects {
@@ -8,7 +8,7 @@ subprojects {
     apply plugin: 'maven-publish'
 
     group = "com.scotia.qa"
-    version = "1.0.2"
+    version = "1.0.0"
 
     repositories {
         mavenLocal()
@@ -64,6 +64,35 @@ subprojects {
         outputs.upToDateWhen { false }
     }
 
+    // ========================================================================
+    // GENERACIÓN DE JAVADOC Y SOURCES
+    // ========================================================================
+
+    // Generar JavaDoc JAR
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
+    // Configurar JavaDoc task
+    javadoc {
+        options.encoding = 'UTF-8'
+        options.charSet = 'UTF-8'
+        options.author = true
+        options.version = true
+        options.links = [
+            'https://docs.oracle.com/en/java/javase/21/docs/api/',
+            'https://javadoc.io/doc/io.cucumber/cucumber-java/7.18.0/',
+            'https://www.slf4j.org/apidocs/'
+        ]
+
+        // Ignorar errores en JavaDoc (para no bloquear el build)
+        failOnError = false
+
+        // Opciones adicionales
+        options.addStringOption('Xdoclint:none', '-quiet')
+    }
+
     // Configuración de publicación Maven para submódulos sin configuración propia
     afterEvaluate {
         // Solo aplicar si el módulo no tiene su propia configuración de publicación
@@ -75,6 +104,9 @@ subprojects {
                         groupId = project.group
                         artifactId = project.name
                         version = project.version
+
+                        // JavaDoc y Sources ya incluidos por withJavadocJar() y withSourcesJar()
+                        // NO agregar manualmente para evitar duplicados
                     }
                 }
                 repositories {

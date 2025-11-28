@@ -1,644 +1,513 @@
-# 📱 Mobile-Core - Framework de Testing Mobile
+# 📱 Mobile Core Layer - Testing de Aplicaciones Móviles
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Appium](https://img.shields.io/badge/Appium-8.6.0-purple.svg)](http://appium.io/)
-[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/scotia-qa/qa-scotia-frameworks)
-[![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
+[![Appium](https://img.shields.io/badge/Appium-9.1.0-purple.svg)](https://appium.io/)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)]()
 
-> Framework especializado para automatización de pruebas de aplicaciones Mobile (iOS y Android). Proporciona gestión de Appium, steps de Cucumber predefinidos, y soporte para gestos nativos.
+> Capa especializada para testing de aplicaciones móviles (Android/iOS). Proporciona steps de Cucumber, gestión de Appium y utilidades para automatizar pruebas en dispositivos y emuladores.
 
 ---
 
 ## 📑 Índice
 
-- [🎯 Visión General](#-visión-general)
-- [🏗️ Arquitectura](#️-arquitectura)
-- [📦 Componentes Principales](#-componentes-principales)
-- [📱 Configuración de Appium](#-configuración-de-appium)
-- [🥒 Steps Disponibles](#-steps-disponibles)
-- [💡 Ejemplos Completos](#-ejemplos-completos)
-- [🔗 Integración con API/Web](#-integración-con-apiweb)
-- [⚠️ Troubleshooting](#️-troubleshooting)
+- [Visión General](#visión-general)
+- [Características](#características)
+- [Arquitectura](#arquitectura)
+- [Steps Disponibles](#steps-disponibles)
+- [Plataformas Soportadas](#plataformas-soportadas)
+- [Ejemplos de Uso](#ejemplos-de-uso)
+- [Configuración](#configuración)
+- [Integración con Módulos](#integración-con-módulos)
+- [Referencia Rápida](#referencia-rápida)
 
 ---
 
-## 🎯 Visión General
+## Visión General
 
-### ¿Qué es Mobile-Core?
+**Mobile-Core** es la capa especializada del framework para **testing de aplicaciones móviles**. Se construye sobre **Common Layer** y proporciona:
 
-**Mobile-Core** es la capa especializada para **testing de aplicaciones Mobile**. Extiende **common** y proporciona:
+✅ **Steps de Cucumber** para interacciones móviles
+✅ **Gestión de Appium** (Android e iOS)
+✅ **Soporte para emuladores** y dispositivos reales
+✅ **Gestos móviles** (swipe, scroll, tap, long press)
+✅ **Manejo de permisos** y notificaciones
+✅ **Capturas de pantalla** en dispositivos
+✅ **Integración con ScenarioContext** para compartir datos
 
-- 📱 **Appium Integration** (iOS y Android)
-- 🎮 **Gestos Nativos** (swipe, tap, long-press, pinch)
-- 📲 **Device Management** (emuladores y dispositivos reales)
-- 🥒 **Steps de Cucumber** para Mobile
-- 📸 **Screenshots** automáticos
-- 🔄 **App State Management** (install, launch, terminate)
+### Dependencias
 
-### ¿Para Qué Usar Mobile-Core?
-
-- ✅ Automatizar pruebas de apps Mobile (iOS/Android)
-- ✅ Testing en emuladores y dispositivos reales
-- ✅ Gestos nativos (swipe, tap, scroll)
-- ✅ Flujos híbridos (Mobile + API validations)
-- ✅ Testing cross-platform
-
-### ⚠️ Estado Actual
-
-**Mobile-Core está en BETA**. Funcionalidades core están implementadas, pero aún en desarrollo activo.
+```
+mobile-core
+    └── common (automática)
+        ├── Logging (TestLogger)
+        ├── Config (ConfigManager)
+        ├── ScenarioContext
+        └── WaitUtils
+```
 
 ---
 
-## 🏗️ Arquitectura
+## Características
 
-### Diagrama de Flujo
+### 🎯 Steps de Cucumber
 
-```
-┌──────────────────────────────────────────────────┐
-│          Feature (Cucumber Gherkin)              │
-│  When toco el elemento "loginButton"            │
-│  And deslizo hacia arriba en "productList"      │
-└──────────────────────────────────────────────────┘
-                       ↓
-┌──────────────────────────────────────────────────┐
-│           MobileSteps (Cucumber)                 │
-│  - Define contratos Gherkin                      │
-│  - Orquesta interacciones mobile                 │
-└──────────────────────────────────────────────────┘
-                       ↓
-┌──────────────────────────────────────────────────┐
-│      MobileDriverFactory (Appium)                │
-│  - Crea AppiumDriver (iOS/Android)               │
-│  - Gestiona capabilities                         │
-└──────────────────────────────────────────────────┘
-                       ↓
-┌──────────────────────────────────────────────────┐
-│         AppiumDriver → Device/Emulator           │
-│  - Ejecuta comandos nativos                      │
-│  - Captura eventos                               │
-└──────────────────────────────────────────────────┘
-```
+Mobile-Core proporciona **+45 steps** específicos para mobile:
 
-### Estructura de Paquetes
+#### Navegación Mobile
+- `Dado que inicio la aplicación móvil`
+- `Cuando hago tap en el elemento móvil "..."`
+- `Y deslizo hacia arriba`
+
+#### Interacción Mobile
+- `Cuando ingreso el texto "..." en el campo móvil "..."`
+- `Y hago swipe en el elemento "..." hacia la dirección "..."`
+- `Y mantengo presionado el elemento "..."`
+
+#### Validaciones
+- `Entonces debo ver el elemento móvil "..."`
+- `Y el texto del elemento móvil "..." debe ser "..."`
+- `Y el elemento móvil "..." debe estar habilitado`
+
+#### Gestos
+- `Cuando hago scroll hasta el elemento "..."`
+- `Y deslizo desde "..." hasta "..."`
+
+---
+
+## Arquitectura
 
 ```
 mobile-core/
-├── driver/                 # Gestión de Appium Driver
-│   ├── MobileDriverFactory
-│   ├── MobileDriverManager
-│   └── MobileCapabilities
+├── src/main/java/com/scotia/qa/mobilecore/
+│   ├── steps/
+│   │   └── MobileSteps.java           ← Steps de Cucumber
+│   │
+│   ├── driver/
+│   │   ├── AppiumDriverManager.java   ← Gestión de drivers
+│   │   └── DriverFactory.java         ← Factory para crear drivers
+│   │
+│   ├── utils/
+│   │   ├── MobileHelper.java          ← Utilidades mobile
+│   │   ├── GestureUtils.java          ← Gestos (swipe, scroll)
+│   │   └── ScreenshotUtils.java       ← Capturas
+│   │
+│   └── capabilities/
+│       ├── AndroidCapabilities.java   ← Capabilities Android
+│       └── IOSCapabilities.java       ← Capabilities iOS
 │
-├── steps/                  # Cucumber step definitions
-│   └── MobileSteps
-│
-├── utils/                  # Utilidades Mobile
-│   ├── MobileHelper
-│   ├── GestureUtils
-│   └── MobileScreenshotUtils
-│
-└── pages/                  # Base para Page Objects
-    └── BaseMobilePage
+└── src/main/resources/
+    └── apps/                           ← APKs/IPAs de prueba
+```
+
+### Flujo de Ejecución
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  FEATURE (Gherkin)                                             │
+│  @mobile                                                       │
+│  Escenario: Login en app móvil                                │
+│    Dado que inicio la aplicación móvil                        │
+│    Cuando ingreso "user" en el campo móvil "username"         │
+│    Y hago tap en el elemento móvil "loginButton"              │
+│    Entonces debo ver el elemento móvil "homeScreen"           │
+└────────────────────────────────────────────────────────────────┘
+                             ↓
+┌────────────────────────────────────────────────────────────────┐
+│  MOBILE-CORE (MobileSteps.java)                                │
+│  • Obtiene AppiumDriver de DriverManager                      │
+│  • Localiza elementos móviles                                 │
+│  • Ejecuta acciones (tap, sendKeys, swipe)                    │
+│  • Aplica waits específicos de mobile                         │
+│  • Guarda datos en ScenarioContext                            │
+└────────────────────────────────────────────────────────────────┘
+                             ↓
+┌────────────────────────────────────────────────────────────────┐
+│  APPIUM                                                        │
+│  • Controla el dispositivo/emulador                           │
+│  • Ejecuta gestos nativos                                     │
+│  • Captura screenshots                                        │
+│  • Maneja permisos y notificaciones                           │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📦 Componentes Principales
+## Steps Disponibles
 
-### MobileDriverFactory
+### Categoría: Inicialización
 
-Crea instancias de AppiumDriver según plataforma.
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Dado que inicio la aplicación móvil` | Inicia la app | `Dado que inicio la aplicación móvil` |
+| `Y reinicio la aplicación` | Reinicia la app | `Y reinicio la aplicación` |
+| `Y cierro la aplicación` | Cierra la app | `Y cierro la aplicación` |
 
+### Categoría: Interacción
+
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Cuando hago tap en el elemento móvil {string}` | Tap en elemento | `Cuando hago tap en el elemento móvil "loginButton"` |
+| `Cuando ingreso el texto {string} en el campo móvil {string}` | Escribe texto | `Cuando ingreso el texto "usuario" en el campo móvil "username"` |
+| `Y mantengo presionado el elemento {string}` | Long press | `Y mantengo presionado el elemento "menuItem"` |
+| `Y hago doble tap en el elemento {string}` | Double tap | `Y hago doble tap en el elemento "image"` |
+
+### Categoría: Gestos
+
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Cuando deslizo hacia arriba` | Swipe up | `Cuando deslizo hacia arriba` |
+| `Y deslizo hacia abajo` | Swipe down | `Y deslizo hacia abajo` |
+| `Y deslizo hacia la izquierda` | Swipe left | `Y deslizo hacia la izquierda` |
+| `Y deslizo hacia la derecha` | Swipe right | `Y deslizo hacia la derecha` |
+| `Y hago scroll hasta el elemento {string}` | Scroll to element | `Y hago scroll hasta el elemento "submitButton"` |
+
+### Categoría: Validaciones
+
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Entonces debo ver el elemento móvil {string}` | Verifica existencia | `Entonces debo ver el elemento móvil "welcomeMessage"` |
+| `Y el texto del elemento móvil {string} debe ser {string}` | Valida texto | `Y el texto del elemento móvil "title" debe ser "Dashboard"` |
+| `Y el elemento móvil {string} debe estar habilitado` | Verifica estado | `Y el elemento móvil "submitButton" debe estar habilitado` |
+
+### Categoría: Manejo de Permisos
+
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Y acepto los permisos de la aplicación` | Acepta permisos | `Y acepto los permisos de la aplicación` |
+| `Y deniego los permisos de la aplicación` | Deniega permisos | `Y deniego los permisos de la aplicación` |
+
+---
+
+## Plataformas Soportadas
+
+### Android
+
+**Requisitos:**
+- Android SDK instalado
+- Android Studio (para emuladores)
+- Appium instalado
+
+**Capabilities típicas:**
 ```java
-// Android
-AppiumDriver driver = MobileDriverFactory.createAndroidDriver(
-    "app.apk",
-    "Android",
-    "12.0",
-    "emulator-5554"
-);
-
-// iOS
-AppiumDriver driver = MobileDriverFactory.createIOSDriver(
-    "app.app",
-    "iOS",
-    "16.0",
-    "iPhone 14 Simulator"
-);
+{
+  "platformName": "Android",
+  "platformVersion": "13.0",
+  "deviceName": "Pixel_5_API_33",
+  "app": "/path/to/app.apk",
+  "automationName": "UiAutomator2"
+}
 ```
 
-**Configuración (`mobile-config.properties`):**
-```properties
-# Plataforma: android, ios
-platform=android
+### iOS
 
-# Device
-device.name=Pixel 5 Emulator
-device.udid=emulator-5554
+**Requisitos:**
+- macOS con Xcode
+- iOS Simulator
+- Appium instalado
 
-# OS Version
-platform.version=12.0
-
-# App
-app.path=/path/to/app.apk
-
-# Appium Server
-appium.server.url=http://localhost:4723
-```
-
-### MobileDriverManager
-
-Gestión thread-safe de AppiumDriver.
-
+**Capabilities típicas:**
 ```java
-// Establecer driver
-MobileDriverManager.setDriver(driver);
-
-// Obtener driver
-AppiumDriver driver = MobileDriverManager.getDriver();
-
-// Cerrar driver
-MobileDriverManager.quitDriver();
-```
-
-### MobileHelper
-
-Helper con métodos para interacciones mobile.
-
-```java
-MobileHelper helper = new MobileHelper();
-
-// Tap
-helper.tapElement("loginButton");
-helper.tapCoordinates(100, 200);
-
-// Swipe
-helper.swipeUp();
-helper.swipeDown();
-helper.swipeLeft();
-helper.swipeRight();
-helper.swipeElement("productList", "UP");
-
-// Long Press
-helper.longPress("menuItem");
-
-// Typing
-helper.typeText("username", "john.doe");
-
-// Validaciones
-boolean exists = helper.isElementPresent("welcomeMessage");
-String text = helper.getTextOf("userName");
-```
-
-### GestureUtils
-
-Utilidades para gestos complejos.
-
-```java
-// Scroll hasta elemento
-GestureUtils.scrollToElement("targetElement");
-
-// Pinch (zoom)
-GestureUtils.pinchZoom(element);
-
-// Double tap
-GestureUtils.doubleTap(element);
-
-// Drag & Drop
-GestureUtils.dragAndDrop(sourceElement, targetElement);
+{
+  "platformName": "iOS",
+  "platformVersion": "16.0",
+  "deviceName": "iPhone 14",
+  "app": "/path/to/app.ipa",
+  "automationName": "XCUITest"
+}
 ```
 
 ---
 
-## 📱 Configuración de Appium
+## Ejemplos de Uso
+
+### Ejemplo 1: Login en App Móvil
+
+```gherkin
+@mobile @test
+Escenario: Login exitoso en app móvil
+  Dado que inicio la aplicación móvil
+  Cuando ingreso el texto "testuser" en el campo móvil "username"
+  Y ingreso el texto "Test123" en el campo móvil "password"
+  Y hago tap en el elemento móvil "loginButton"
+  Entonces debo ver el elemento móvil "homeScreen"
+  Y el texto del elemento móvil "welcomeMessage" debe contener "Bienvenido"
+```
+
+### Ejemplo 2: Navegación con Gestos
+
+```gherkin
+@mobile @test
+Escenario: Navegar por la app
+  Dado que inicio la aplicación móvil
+  Cuando hago tap en el elemento móvil "menuButton"
+  Y espero 2 segundos
+  Y deslizo hacia arriba
+  Y hago scroll hasta el elemento "settingsOption"
+  Y hago tap en el elemento móvil "settingsOption"
+  Entonces debo ver el elemento móvil "settingsScreen"
+```
+
+### Ejemplo 3: Formulario Móvil
+
+```gherkin
+@mobile @test
+Escenario: Completar formulario en app
+  Dado que inicio la aplicación móvil
+  Cuando hago tap en el elemento móvil "newFormButton"
+  Y ingreso el texto "Juan Pérez" en el campo móvil "fullName"
+  Y ingreso el texto "juan@test.com" en el campo móvil "email"
+  Y hago scroll hasta el elemento "phoneField"
+  Y ingreso el texto "1234567890" en el campo móvil "phoneField"
+  Y hago tap en el elemento móvil "submitButton"
+  Entonces debo ver el elemento móvil "successMessage"
+```
+
+### Ejemplo 4: Integración con API (Cross-Layer)
+
+```gherkin
+@api @mobile
+Escenario: Crear usuario por API y validar en App
+  # Crear usuario por API
+  Dado que tengo el endpoint "/users"
+  Y agrego el request:
+    """
+    {
+      "name": "Test User",
+      "email": "test@example.com"
+    }
+    """
+  Cuando ejecuto una petición POST
+  Entonces el código de respuesta debe ser 201
+  Y guardo el valor del campo "id" en variable "userId"
+  
+  # Validar en app móvil
+  Dado que inicio la aplicación móvil
+  Cuando hago tap en el elemento móvil "searchButton"
+  Y ingreso el texto "{userId}" en el campo móvil "searchInput"
+  Y hago tap en el elemento móvil "searchSubmit"
+  Entonces el texto del elemento móvil "userName" debe ser "Test User"
+```
+
+---
+
+## Configuración
 
 ### Prerequisitos
 
-1. **Appium Server** instalado y corriendo
-2. **Android SDK** (para Android)
-3. **Xcode** (para iOS, solo macOS)
-4. **Emuladores** o dispositivos físicos
-
-### Instalar Appium
+**1. Instalar Appium:**
 
 ```bash
-# Instalar Appium globalmente
+# Usando npm
 npm install -g appium
 
-# Instalar drivers
-appium driver install uiautomator2  # Android
-appium driver install xcuitest      # iOS
-
 # Verificar instalación
-appium doctor
+appium --version
+```
+
+**2. Instalar drivers:**
+
+```bash
+# Driver Android
+appium driver install uiautomator2
+
+# Driver iOS (solo macOS)
+appium driver install xcuitest
+```
+
+### En el Módulo
+
+**1. Agregar dependencia en `build.gradle`:**
+
+```groovy
+dependencies {
+    testImplementation 'com.scotia.qa:mobile-core:1.0.0'
+    // common se incluye automáticamente
+}
+```
+
+**2. Configurar en `config-scotia.properties`:**
+
+```properties
+# Mobile Testing
+mobile.platform=Android
+mobile.device.name=Pixel_5_API_33
+mobile.platform.version=13.0
+mobile.app.path=${{APP_PATH}}
+mobile.automation.name=UiAutomator2
+appium.server.url=http://localhost:4723
+```
+
+**3. Configurar variables en `.env.local`:**
+
+```bash
+APP_PATH=/Users/tu-usuario/apps/app-debug.apk
+PLATFORM=Android
+```
+
+**4. Agregar glue en `RunCucumberTest.java`:**
+
+```java
+@ConfigurationParameter(
+    key = "cucumber.glue",
+    value = "com.scotia.qa.mobilecore, com.scotia.qa.common, com.tu.proyecto.steps"
+)
 ```
 
 ### Iniciar Appium Server
 
 ```bash
-# Puerto default (4723)
+# Iniciar servidor Appium
 appium
 
-# Puerto custom
-appium -p 4724
-
-# Con logs
-appium --log-level debug
+# Output esperado:
+# [Appium] Welcome to Appium v2.x.x
+# [Appium] Appium REST http interface listener started on http://0.0.0.0:4723
 ```
 
-### Android Setup
+---
+
+## Integración con Módulos
+
+### Estructura Típica
+
+```
+qa-module-tu-app-mobile/
+├── src/test/
+│   ├── java/
+│   │   └── com/tu/proyecto/
+│   │       ├── RunCucumberTest.java
+│   │       ├── screens/
+│   │       │   ├── LoginScreen.java      ← Screen Objects
+│   │       │   └── HomeScreen.java
+│   │       └── steps/
+│   │           └── CustomSteps.java
+│   │
+│   └── resources/
+│       ├── features/
+│       │   └── mobile/
+│       │       ├── login.feature
+│       │       └── navigation.feature
+│       │
+│       ├── apps/
+│       │   └── app-debug.apk            ← APK de prueba
+│       │
+│       └── config-scotia.properties
+│
+├── .env.local
+└── build.gradle
+```
+
+---
+
+## Referencia Rápida
+
+### Cheat Sheet de Steps Comunes
+
+```gherkin
+# Inicialización
+Dado que inicio la aplicación móvil
+
+# Interacciones
+Cuando ingreso el texto "valor" en el campo móvil "inputId"
+Y hago tap en el elemento móvil "buttonId"
+
+# Gestos
+Y deslizo hacia arriba
+Y hago scroll hasta el elemento "elemento"
+
+# Validaciones
+Entonces debo ver el elemento móvil "successMessage"
+Y el texto del elemento móvil "title" debe ser "Dashboard"
+```
+
+### Locators Móviles
+
+**Android:**
+```xml
+<!-- resource-id -->
+<Button android:id="@+id/loginButton" />
+
+<!-- text -->
+<TextView android:text="Login" />
+
+<!-- content-desc -->
+<ImageView android:contentDescription="Logo" />
+```
+
+**iOS:**
+```xml
+<!-- accessibilityId -->
+<UIButton accessibilityIdentifier="loginButton" />
+
+<!-- label -->
+<UILabel text="Login" />
+```
+
+---
+
+## 📚 Documentación Adicional
+
+- **[../FRAMEWORK-GUIDE.md](../FRAMEWORK-GUIDE.md)** - Arquitectura del framework
+- **[../QUICK-START.md](../QUICK-START.md)** - Guía de inicio rápido
+- **[../common/README.md](../common/README.md)** - Documentación de Common Layer
+- **[Appium Docs](https://appium.io/docs/en/latest/)** - Documentación oficial de Appium
+
+---
+
+## 🐛 Troubleshooting
+
+### ❌ Appium server not running
+
+**Problema:** No se puede conectar a Appium.
+
+**Solución:** Iniciar servidor Appium:
 
 ```bash
-# 1. Instalar Android Studio
-# 2. Configurar ANDROID_HOME
-export ANDROID_HOME=$HOME/Library/Android/sdk
-export PATH=$PATH:$ANDROID_HOME/tools
-export PATH=$PATH:$ANDROID_HOME/platform-tools
-
-# 3. Verificar dispositivos
-adb devices
-
-# 4. Crear emulador (opcional)
-avdmanager create avd -n Pixel5 -k "system-images;android-31;google_apis;x86_64"
-emulator -avd Pixel5
-```
-
-### iOS Setup (macOS only)
-
-```bash
-# 1. Instalar Xcode
-# 2. Instalar Xcode Command Line Tools
-xcode-select --install
-
-# 3. Listar simuladores
-xcrun simctl list
-
-# 4. Iniciar simulador
-xcrun simctl boot "iPhone 14"
-```
-
----
-
-## 🥒 Steps Disponibles
-
-### Inicialización
-
-```gherkin
-Given inicio la aplicación mobile
-And lanzo la app "{appPackage}"
-When cierro la aplicación
-And reinstalo la aplicación
-```
-
-### Interacciones Básicas
-
-```gherkin
-# Tap
-When toco el elemento "loginButton"
-And hago tap en el elemento "submitButton"
-And toco en las coordenadas x="100" y="200"
-
-# Typing
-When ingreso el texto "john.doe" en el campo "username"
-And ingreso el texto "password123" en el campo "password"
-And limpio el campo "searchBox"
-
-# Long Press
-When presiono largo el elemento "menuItem"
-```
-
-### Gestos
-
-```gherkin
-# Swipe
-When deslizo hacia arriba
-And deslizo hacia abajo
-And deslizo hacia la izquierda
-And deslizo hacia la derecha
-And deslizo hacia arriba en el elemento "productList"
-
-# Scroll
-When hago scroll hasta el elemento "targetItem"
-And hago scroll hasta que el texto "Contact Us" sea visible
-
-# Pinch/Zoom
-When hago zoom en el elemento "mapView"
-And hago pinch en el elemento "imageView"
-
-# Double Tap
-When hago doble tap en el elemento "imagePreview"
-```
-
-### Validaciones
-
-```gherkin
-# Existencia
-Then verifico que existe el elemento "welcomeMessage"
-And verifico que no existe el elemento "errorAlert"
-
-# Texto
-Then verifico que el texto del elemento "userName" sea "John Doe"
-And verifico que el texto del elemento "title" contenga "Welcome"
-
-# Estados
-Then verifico que el elemento "checkbox" este seleccionado
-And verifico que el elemento "submitButton" este habilitado
-```
-
-### App Management
-
-```gherkin
-# Background/Foreground
-When envío la app al background por "5" segundos
-And traigo la app al foreground
-
-# Reinstalar
-When reinstalo la aplicación
-And limpio los datos de la app
-
-# Permisos
-When acepto los permisos de ubicación
-And acepto los permisos de notificaciones
-```
-
-### Dispositivo
-
-```gherkin
-# Orientación
-When cambio la orientación a "LANDSCAPE"
-And cambio la orientación a "PORTRAIT"
-
-# Teclado
-When oculto el teclado
-And verifico que el teclado esté visible
-
-# Notificaciones (Android)
-When abro el panel de notificaciones
-And cierro el panel de notificaciones
-```
-
----
-
-## 💡 Ejemplos Completos
-
-### Ejemplo 1: Login Mobile
-
-```gherkin
-Feature: Login en app Banking Mobile
-
-  Scenario: Login exitoso con credenciales válidas
-    Given inicio la aplicación mobile
-    
-    # Esperar pantalla de login
-    And espero hasta que el elemento "loginScreen" sea visible
-    
-    # Ingresar credenciales
-    When ingreso el texto "john.doe" en el campo "username"
-    And ingreso el texto "SecurePass123!" en el campo "password"
-    And toco el elemento "loginButton"
-    
-    # Validar login exitoso
-    Then espero hasta que el elemento "homeScreen" sea visible
-    And verifico que el texto del elemento "welcomeMessage" contenga "Welcome John"
-```
-
-### Ejemplo 2: Lista de Productos con Scroll
-
-```gherkin
-Feature: Búsqueda de productos
-
-  Scenario: Buscar y seleccionar producto
-    Given inicio la aplicación mobile
-    
-    # Navegar a productos
-    When toco el elemento "productsTab"
-    And espero hasta que el elemento "productList" sea visible
-    
-    # Buscar producto específico
-    When ingreso el texto "Laptop" en el campo "searchBox"
-    And toco el elemento "searchButton"
-    
-    # Scroll hasta encontrar
-    And hago scroll hasta el elemento "productLaptopPro"
-    
-    # Seleccionar
-    When toco el elemento "productLaptopPro"
-    Then espero hasta que el elemento "productDetail" sea visible
-    And verifico que el texto del elemento "productName" sea "Laptop Pro 15"
-```
-
-### Ejemplo 3: Carrito de Compras
-
-```gherkin
-Feature: Carrito de compras
-
-  Scenario: Agregar productos al carrito
-    Given inicio la aplicación mobile
-    
-    # Buscar producto
-    When toco el elemento "searchIcon"
-    And ingreso el texto "Mouse" en el campo "searchBox"
-    And toco el elemento "searchButton"
-    
-    # Agregar al carrito
-    And espero hasta que el elemento "productList" sea visible
-    And toco el elemento "addToCart-mouse-wireless"
-    Then verifico que el texto del elemento "cartBadge" sea "1"
-    
-    # Ver carrito
-    When toco el elemento "cartIcon"
-    And espero hasta que el elemento "cartScreen" sea visible
-    Then verifico que el texto del elemento "cartItem-1" contenga "Mouse"
-    
-    # Checkout
-    When deslizo hacia arriba
-    And toco el elemento "checkoutButton"
-    Then espero hasta que el elemento "checkoutScreen" sea visible
-```
-
-### Ejemplo 4: Gestos Complejos
-
-```gherkin
-Feature: Galería de imágenes
-
-  Scenario: Navegar galería con gestos
-    Given inicio la aplicación mobile
-    
-    # Ir a galería
-    When toco el elemento "galleryTab"
-    And espero hasta que el elemento "imageGallery" sea visible
-    
-    # Ver primera imagen
-    When toco el elemento "image-1"
-    And espero hasta que el elemento "imageViewer" sea visible
-    
-    # Zoom
-    When hago zoom en el elemento "imageViewer"
-    Then verifico que el elemento "zoomIndicator" sea visible
-    
-    # Swipe a siguiente imagen
-    When deslizo hacia la izquierda
-    And espero "2" segundos
-    Then verifico que el texto del elemento "imageCounter" sea "2 / 10"
-    
-    # Doble tap para reset zoom
-    When hago doble tap en el elemento "imageViewer"
-```
-
----
-
-## 🔗 Integración con API/Web
-
-### Flujo API → Mobile
-
-```gherkin
-Feature: Login con token de API
-
-  Scenario: Obtener token en API y usar en Mobile
-    # 1. API: Login y obtener token
-    Given el host "https://api.banking.com" mas el contexto "/auth/login"
-    And agrego el header "Content-Type" con valor "application/json"
-    And agrego el request
-      """
-      {"username": "john.doe", "password": "pass123"}
-      """
-    When ejecuto la consulta con el metodo "POST"
-    Then valido que el codigo de respuesta del servicio sea 200
-    And obtengo el campo "token" del objeto "data" y lo guardo como "authToken"
-    
-    # 2. Mobile: Usar token
-    Given inicio la aplicación mobile
-    When inyecto el token "{authToken}" en la app
-    And espero hasta que el elemento "homeScreen" sea visible
-    Then verifico que el texto del elemento "userName" contenga "John Doe"
-```
-
-### Flujo Mobile → API
-
-```gherkin
-Feature: Validar orden mobile en backend
-
-  Scenario: Crear orden en Mobile y validar en API
-    # 1. Mobile: Crear orden
-    Given inicio la aplicación mobile
-    When toco el elemento "productsTab"
-    And toco el elemento "product-laptop"
-    And toco el elemento "addToCartButton"
-    And toco el elemento "checkoutButton"
-    And toco el elemento "confirmOrderButton"
-    Then espero hasta que el elemento "orderConfirmation" sea visible
-    And guardo texto del elemento "orderNumber" en variable temporal llamada "orderNumber"
-    
-    # 2. API: Validar orden
-    Given el host "https://api.shop.com" mas el contexto "/orders/{orderNumber}"
-    When ejecuto la consulta con el metodo "GET"
-    Then valido que el codigo de respuesta del servicio sea 200
-    And valido que el campo "status" del response sea "pending"
-```
-
----
-
-## ⚠️ Troubleshooting
-
-### Error: "Could not start Appium session"
-
-**Causa:** Appium Server no está corriendo o configuración incorrecta.
-
-**Solución:**
-```bash
-# 1. Verificar que Appium está corriendo
-ps aux | grep appium
-
-# 2. Iniciar Appium
 appium
-
-# 3. Verificar configuración en mobile-config.properties
-appium.server.url=http://localhost:4723
 ```
 
-### Error: "App not found"
+### ❌ App no se instala
 
-**Causa:** Path del .apk/.app incorrecto.
+**Problema:** La app no se instala en el dispositivo.
 
-**Solución:**
-```properties
-# Usar path absoluto
-app.path=/Users/user/apps/myapp.apk
+**Solución:** Verificar ruta del APK/IPA:
 
-# O relativo desde proyecto
-app.path=./apps/myapp.apk
-```
-
-### Error: "Element not found"
-
-**Causa:** Selector incorrecto o elemento no visible.
-
-**Solución:**
-```gherkin
-# Usar Appium Inspector para encontrar el selector correcto
-# Esperar a que sea visible
-And espero hasta que el elemento "button" sea visible
-```
-
-### Error: "Device not found"
-
-**Causa:** Emulador/dispositivo no conectado.
-
-**Solución:**
 ```bash
-# Android
-adb devices
+# Verificar que existe
+ls -la /path/to/app.apk
 
-# iOS
-xcrun simctl list | grep Booted
+# Actualizar en config
+APP_PATH=/path/correcto/app.apk
+```
+
+### ❌ Elemento no encontrado
+
+**Problema:** `NoSuchElementException`.
+
+**Solución:**
+1. Verificar locator con Appium Inspector
+2. Agregar wait:
+   ```gherkin
+   Y espero 3 segundos
+   ```
+
+### ❌ Emulador no inicia
+
+**Problema:** El emulador Android no inicia.
+
+**Solución:**
+
+```bash
+# Listar emuladores
+emulator -list-avds
+
+# Iniciar emulador
+emulator -avd Pixel_5_API_33
 ```
 
 ---
 
-## 📚 Dependencias
-
-| Librería | Versión | Propósito |
-|----------|---------|-----------|
-| **common** | 1.0.2 | Capa base |
-| **Appium Java Client** | 8.6.0 | Appium driver |
-| **Selenium** | 4.13.0 | Base WebDriver |
-| **Cucumber** | 7.18.0 | BDD Framework |
-| **TestNG** | 7.8.0 | Testing framework |
-
----
-
-## 📱 Plataformas Soportadas
-
-| Plataforma | Versión Mínima | Driver | Estado |
-|------------|----------------|--------|--------|
-| **Android** | 8.0 (API 26) | UiAutomator2 | ✅ Soportado |
-| **iOS** | 14.0 | XCUITest | ✅ Soportado |
-
----
-
-## 🔗 Enlaces Relacionados
-
-- **[Common README](../common/README.md)** - Capa base
-- **[API Core README](../api-core/README.md)** - Testing REST
-- **[Web Core README](../web-core/README.md)** - Testing Web UI
-- **[Troubleshooting](../TROUBLESHOOTING.md)** - Solución de problemas
-
----
-
-## 📞 Soporte Mobile
-
-Mobile-Core está en **BETA**. Para soporte:
-
-- 📧 Email: qa-mobile-team@scotiabank.com
-- 💬 Slack: #qa-automation-mobile
-- 📝 Issues: [GitHub Issues](https://github.com/scotia-qa/qa-scotia-frameworks/issues)
-
----
-
-<div align="center">
-
-**[⬆ Volver arriba](#-mobile-core---framework-de-testing-mobile)**
-
-**Versión:** 1.0.2 (Beta) | **Autor:** Abel Venero | **QA Team - Scotia Bank**
-
-</div>
+**Última actualización:** 28 de Noviembre de 2025  
+**Autor:** Abel Venero  
+**Versión:** 1.0.0
 

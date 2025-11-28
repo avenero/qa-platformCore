@@ -1,9 +1,9 @@
 package com.scotia.qa.apicore.implementations;
 
 import com.scotia.qa.apicore.interfaces.HttpClient;
-import com.scotia.qa.common.http.HttpMethod;
-import com.scotia.qa.common.http.HttpResponse;
+import com.scotia.qa.common.http.enums.HttpMethod;
 import com.scotia.qa.common.http.exceptions.FrameworkTechnicalException;
+import com.scotia.qa.common.http.model.HttpResponse;
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.common.utils.DataUtilities;
 import java.util.HashMap;
@@ -255,8 +255,8 @@ public class BaseHttpClient implements HttpClient {
             sslValidationDisabled = true;
             globalSSLConfigured = true;
 
-            // Solo 1 log de confirmación
-            log.warn("⚠️  SSL: Validación de certificados DESHABILITADA (solo para testing)");
+            // Log solo la primera vez que se configura (no en cada instancia)
+            log.debug("SSL: Validación de certificados deshabilitada para testing");
 
           } catch (Exception e) {
             log.error("❌ Error configurando SSL: {}", e.getMessage());

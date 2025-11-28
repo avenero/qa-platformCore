@@ -92,9 +92,9 @@ import java.util.Properties;
  * @author Abel Venero
  * @version 1.0.0
  * @since 1.0.0
- * @see com.scotia.qa.common.interfaces.ConfigurationProvider
- * @see com.scotia.qa.common.implementations.BaseConfigurationProvider
- * @see com.scotia.qa.common.factories.ConfigurationProviderFactory
+ * @see com.scotia.qa.common.config.providers.ConfigurationProvider
+ * @see com.scotia.qa.common.config.providers.BaseConfigurationProvider
+ * @see com.scotia.qa.common.config.providers.ConfigurationProviderFactory
  */
 public final class ConfigurationUtilities {
 

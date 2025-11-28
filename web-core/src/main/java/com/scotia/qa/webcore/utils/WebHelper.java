@@ -1,6 +1,6 @@
 package com.scotia.qa.webcore.utils;
 
-import com.scotia.qa.common.cucumber.ScenarioContext;
+import com.scotia.qa.common.cucumber.context.ScenarioContext;
 import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.webcore.driver.DriverManager;
@@ -644,13 +644,6 @@ public class WebHelper {
     // WAITS / ESPERAS
     // =========================================================================
 
-    /**
-     * Espera a que un elemento sea visible en la página.
-     * Este método espera a que el elemento aparezca en el DOM y sea visible.
-     *
-     * @param locator Identificador del elemento (id, name, xpath, css)
-     * @param timeoutSeconds Tiempo máximo de espera en segundos
-     */
     /**
      * Espera a que un elemento sea visible con timeout desde configuración.
      *

@@ -4,8 +4,8 @@
     <!-- Variables específicas para Mobile Framework -->
     <property name="LOG_HOME" value="logs/mobile" />
     <property name="FRAMEWORK_NAME" value="MOBILE" />
-    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [MOBILE][%X{feature}][%X{scenario}] %logger{36} - %msg%n" />
-    <property name="CONSOLE_PATTERN" value="%d{HH:mm:ss.SSS} %-5level [MOBILE][%X{scenario}] %logger{20} - %msg%n" />
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{module:-FRAMEWORK}][%X{feature}][%X{scenario}] %logger{36} - %msg%n" />
+    <property name="CONSOLE_PATTERN" value="%d{HH:mm:ss.SSS} %-5level [%X{module:-FRAMEWORK}][%X{scenario}] %logger{36} - %msg%n" />
 
     <!-- Appender para consola -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

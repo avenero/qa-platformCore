@@ -9,11 +9,11 @@
 
     <!-- Pattern sin colores para archivos -->
     <property name="FILE_LOG_PATTERN"
-              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [API][%X{testName:-NO_TEST}] %logger{36} - %msg%n"/>
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{module:-FRAMEWORK}][%X{testName:-NO_TEST}] %logger{36} - %msg%n"/>
 
     <!-- Pattern con colores para consola -->
     <property name="CONSOLE_LOG_PATTERN"
-              value="%d{HH:mm:ss.SSS} %green([%thread]) %highlight(%-5level) %magenta([API]) %cyan([%X{testName:-NO_TEST}]) %yellow(%logger{25}) - %msg%n"/>
+              value="%d{HH:mm:ss.SSS} %highlight(%-5level) %magenta([%X{module:-FRAMEWORK}]) %cyan([%X{testName:-NO_TEST}]) %yellow(%logger{36}) - %msg%n"/>
 
     <!-- ====================================================================== -->
     <!-- FILTROS - SILENCIAR LOGS VERBOSOS                                     -->

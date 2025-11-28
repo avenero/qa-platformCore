@@ -335,23 +335,24 @@ Then verifico si existe el elemento "dashboard"
 
 ## 📚 Documentación
 
-### Documentación por Capa
+### 📘 Documentos Principales (Consolidados)
+
+| Documento | Descripción | Audiencia |
+|-----------|-------------|-----------|
+| **[FRAMEWORK-GUIDE.md](documentacion/FRAMEWORK-GUIDE.md)** | 📖 Guía completa consolidada: arquitectura, capas, stack tecnológico, troubleshooting, contribución | Todos |
+| **[QUICK-START.md](documentacion/QUICK-START.md)** | 🚀 Guía paso a paso para configurar y ejecutar tu primer test | Nuevos usuarios |
+
+### 📖 Documentación por Capa
 
 | Documento | Descripción |
 |-----------|-------------|
-| **[FRAMEWORK-GUIDE.md](./FRAMEWORK-GUIDE.md)** | 📖 Guía maestra completa del framework |
-| **[common/README.md](./common/README.md)** | 🔧 Documentación detallada de la capa base |
-| **[api-core/README.md](./api-core/README.md)** | 🌐 Documentación de API testing |
-| **[web-core/README.md](./web-core/README.md)** | 💻 Documentación de Web UI testing |
-| **[mobile-core/README.md](./mobile-core/README.md)** | 📱 Documentación de Mobile testing |
+| **[common/README.md](./common/README.md)** | 🔧 Capa base: Config, ScenarioContext, DB, HTTP, Logging, Test Data Finder |
+| **[api-core/README.md](./api-core/README.md)** | 🌐 API Testing: +40 steps de Cucumber, validaciones, auth |
+| **[web-core/README.md](./web-core/README.md)** | 💻 Web Testing: +50 steps, WebDriver, estrategia Module-First |
+| **[mobile-core/README.md](./mobile-core/README.md)** | 📱 Mobile Testing: +45 steps, Appium, Android/iOS |
+| **[scripts/README.md](./scripts/README.md)** | 📜 Scripts de automatización, CI/CD, Jenkins |
 
-### Guías Adicionales
-
-| Documento | Descripción |
-|-----------|-------------|
-| **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** | 🔧 Solución a errores comunes |
-| **[CONTRIBUTING.md](./CONTRIBUTING.md)** | 🤝 Guía para contribuidores |
-| **[web-core/LOCATORS-GUIDE.md](./web-core/LOCATORS-GUIDE.md)** | 🎯 Estrategia de localizadores Web |
+> **Nota:** Toda la documentación sobre troubleshooting, contribución y guías adicionales ha sido consolidada en **FRAMEWORK-GUIDE.md**
 
 ---
 
@@ -359,7 +360,7 @@ Then verifico si existe el elemento "dashboard"
 
 ¿Quieres contribuir al framework? ¡Excelente! 
 
-1. Lee la [Guía de Contribución](./CONTRIBUTING.md)
+1. Lee la [Guía de Contribución en FRAMEWORK-GUIDE.md](./documentacion/FRAMEWORK-GUIDE.md#-contribución)
 2. Crea un branch desde `develop`
 3. Haz tus cambios siguiendo las convenciones
 4. Crea un Pull Request

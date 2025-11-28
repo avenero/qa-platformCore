@@ -23,15 +23,9 @@ dependencies {
     api 'com.konghq:unirest-java:3.14.5'
     api 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
 
-    // ===== BASE DE DATOS (para API tests que validan BD) =====
-    // Connection pooling
-    api 'com.zaxxer:HikariCP:5.0.1'
-
-    // Database drivers
-    api 'mysql:mysql-connector-java:8.0.33'
-    api 'org.postgresql:postgresql:42.7.7'
-    api 'com.microsoft.sqlserver:mssql-jdbc:12.4.1.jre11'
-    api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
+    // ===== BASE DE DATOS =====
+    // NOTA: HikariCP y drivers JDBC ya están en COMMON
+    // api-core hereda todo desde common (no necesita duplicar)
 
     // ===== VALIDACIONES API REST =====
     // JSON Schema validation
@@ -121,6 +115,23 @@ tasks.withType(JavaCompile) {
 }
 
 // =================================================================================
+// GENERACIÓN DE JAVADOC Y SOURCES
+// =================================================================================
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+javadoc {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.author = true
+    options.version = true
+    failOnError = false
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+// =================================================================================
 // CONFIGURACIÓN DE PUBLICACIÓN MAVEN LOCAL
 // =================================================================================
 publishing {
@@ -131,6 +142,9 @@ publishing {
             groupId = 'com.scotia.qa'
             artifactId = 'api-core'
             version = project.version  // Usa la versión del build.gradle raíz
+
+            // JavaDoc y Sources ya incluidos por withJavadocJar() y withSourcesJar()
+            // NO agregar manualmente para evitar duplicados
 
             pom {
                 name = 'Scotia QA Framework - API Core'

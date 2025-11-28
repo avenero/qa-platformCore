@@ -59,7 +59,7 @@ import com.scotia.qa.common.logging.TestLogger;
  * @since 2.0.0
  * @see DatabaseService
  * @see BaseDatabaseService
- * @see com.scotia.qa.common.implementations.BaseDatabaseService
+ * @see com.scotia.qa.common.database.interfaces.DatabaseConnector
  */
 public final class DatabaseServiceFactory {
 

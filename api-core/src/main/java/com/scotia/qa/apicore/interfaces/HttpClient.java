@@ -1,8 +1,8 @@
 package com.scotia.qa.apicore.interfaces;
 
-import com.scotia.qa.common.http.HttpMethod;
-import com.scotia.qa.common.http.HttpResponse;
+import com.scotia.qa.common.http.enums.HttpMethod;
 import com.scotia.qa.common.http.exceptions.FrameworkTechnicalException;
+import com.scotia.qa.common.http.model.HttpResponse;
 import java.util.Map;
 
 /**
@@ -127,16 +127,16 @@ public interface HttpClient {
   /**
    * Configura el timeout de conexión por defecto.
    *
-   * @param timeoutMs Timeout de conexión en millisegundos (debe ser > 0)
-   * @throws IllegalArgumentException Si timeoutMs <= 0
+   * @param timeoutMs Timeout de conexión en millisegundos (debe ser mayor a 0)
+   * @throws IllegalArgumentException Si timeoutMs es menor o igual a 0
    */
   void setConnectionTimeout(int timeoutMs);
 
   /**
    * Configura el timeout de lectura por defecto.
    *
-   * @param timeoutMs Timeout de lectura en millisegundos (debe ser > 0)
-   * @throws IllegalArgumentException Si timeoutMs <= 0
+   * @param timeoutMs Timeout de lectura en millisegundos (debe ser mayor a 0)
+   * @throws IllegalArgumentException Si timeoutMs es menor o igual a 0
    */
   void setReadTimeout(int timeoutMs);
 
@@ -155,11 +155,11 @@ public interface HttpClient {
   int getReadTimeout();
 
   /**
-   * Configura la política de retry para peticiones fallidas.
+   * Configura política de reintentos en caso de fallos.
    *
-   * @param maxRetries Número máximo de reintentos (debe ser >= 0)
-   * @param retryDelayMs Delay entre reintentos en millisegundos (debe ser >= 0)
-   * @throws IllegalArgumentException Si maxRetries < 0 o retryDelayMs < 0
+   * @param maxRetries Número máximo de reintentos (debe ser mayor o igual a 0)
+   * @param retryDelayMs Delay entre reintentos en millisegundos (debe ser mayor o igual a 0)
+   * @throws IllegalArgumentException Si maxRetries o retryDelayMs son menores a 0
    */
   void setRetryPolicy(int maxRetries, int retryDelayMs);
 
@@ -222,10 +222,10 @@ public interface HttpClient {
    *
    * @param method Método HTTP usando enum type-safe
    * @param endpoint Endpoint relativo
-   * @param timeoutMs Timeout específico para esta petición en millisegundos (debe ser > 0)
+   * @param timeoutMs Timeout específico para esta petición en millisegundos (debe ser mayor a 0)
    * @return Respuesta HTTP encapsulada
    * @throws FrameworkTechnicalException Si hay problemas técnicos o timeout
-   * @throws IllegalArgumentException Si endpoint es inválido o timeout <= 0
+   * @throws IllegalArgumentException Si endpoint es inválido o timeout es menor o igual a 0
    * @throws IllegalStateException Si no hay host configurado
    */
   HttpResponse executeRequest(HttpMethod method, String endpoint, int timeoutMs)

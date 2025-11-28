@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
-import com.scotia.qa.common.cucumber.ScenarioContext;
+import com.scotia.qa.common.cucumber.context.ScenarioContext;
 import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
 import com.scotia.qa.common.logging.TestLogger;
 import org.json.JSONArray;

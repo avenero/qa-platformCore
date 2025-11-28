@@ -42,10 +42,32 @@ dependencies {
     api 'com.jayway.jsonpath:json-path:2.9.0'
     api 'org.skyscreamer:jsonassert:1.5.1'
 
+    // === DATABASE CONNECTION POOLING & DRIVERS ===
+    // HikariCP para gestión genérica de conexiones
+    api 'com.zaxxer:HikariCP:5.0.1'
+
+    // JDBC Drivers (disponibles para todos los módulos)
+    // Nota: Cada proyecto puede usar el driver que necesite
+    api 'mysql:mysql-connector-java:8.0.33'
+    api 'org.postgresql:postgresql:42.7.7'
+    api 'com.microsoft.sqlserver:mssql-jdbc:12.4.1.jre11'
+    api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
+
     // ========================================================================
-    // NOTA: Las siguientes dependencias se MOVIERON a api-core:
+    // NOTAS DE ARQUITECTURA:
+    //
+    // HikariCP está en COMMON porque:
+    // - Es infraestructura genérica de pooling
+    // - testdata/ y database/ (en common) lo necesitan
+    // - No depende de drivers específicos
+    //
+    // Drivers JDBC permanecen en API-CORE porque:
+    // - Son específicos por tipo de BD (Oracle, PostgreSQL, etc.)
+    // - No todos los módulos los necesitan
+    // - api-core ya los tiene y hereda common
+    //
+    // Otras dependencias en api-core:
     // - Unirest (HTTP client avanzado)
-    // - HikariCP + Database drivers
     // - JSON Schema Validator (solo para API REST)
     // - HTTP Components (específico API)
     // ========================================================================

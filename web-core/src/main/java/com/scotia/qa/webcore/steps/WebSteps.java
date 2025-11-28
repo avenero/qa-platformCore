@@ -52,12 +52,22 @@ public class WebSteps {
     // HOOKS - BEFORE & AFTER
     // =========================================================================
 
-    @Before
+    /**
+     * Hook que se ejecuta SOLO si el escenario tiene tags relacionados con Web.
+     * Esto evita inicializar WebDriver innecesariamente en tests API puros o Database puros.
+     *
+     * Tags soportados: @web, @ui, @selenium, @browser
+     */
+    @Before(value = "@web or @ui or @selenium or @browser", order = 100)
     public void beforeScenario(Scenario scenario) {
         this.scenario = scenario;
 
-        // Establecer el framework como WEB para logging correcto
-        TestLogger.setFramework("WEB");
+        // Validar consistencia de tags del scenario
+        com.scotia.qa.common.cucumber.validators.HookValidator.validateWebScenario(scenario);
+
+        // Detectar nombre del módulo dinámicamente (ej: BANKING, AUTOS, etc.)
+        String moduleName = com.scotia.qa.common.logging.ModuleDetector.detectModuleName();
+        TestLogger.setFramework(moduleName);
 
         // Inicializar driver si no existe
         if (!DriverManager.isDriverInitialized()) {
@@ -78,7 +88,10 @@ public class WebSteps {
             "🚀 Escenario iniciado: " + scenario.getName(), null);
     }
 
-    @After
+    /**
+     * Hook de limpieza que se ejecuta SOLO si el @Before se ejecutó.
+     */
+    @After(value = "@web or @ui or @selenium or @browser", order = 100)
     public void afterScenario(Scenario scenario) {
         TestLogger.logInfo("WEB_STEPS", "🏁 Finalizando escenario", null);
 

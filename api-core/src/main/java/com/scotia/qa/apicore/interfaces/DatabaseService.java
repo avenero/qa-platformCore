@@ -110,8 +110,8 @@ import javax.sql.DataSource;
  * @author Abel Venero
  * @version 1.0.0
  * @since 1.0.0
- * @see com.scotia.qa.common.implementations.BaseDatabaseService
- * @see com.scotia.qa.common.implementations.BaseDatabaseConfiguration
+ * @see com.scotia.qa.common.database.interfaces.DatabaseConnector
+ * @see com.scotia.qa.common.database.config.DatabaseConfig
  */
 public interface DatabaseService extends AutoCloseable {
 

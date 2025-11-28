@@ -1,520 +1,460 @@
-# 🌐 API-Core - Framework de Testing REST
+# 🌐 API Core Layer - Testing de APIs REST
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Unirest](https://img.shields.io/badge/Unirest-4.4.4-red.svg)](http://kong.github.io/unirest-java/)
-[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/scotia-qa/qa-scotia-frameworks)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)]()
 
-> Framework especializado para automatización de pruebas de APIs REST. Proporciona steps de Cucumber predefinidos, validaciones, y utilidades para testing de servicios web.
+> Capa especializada para testing de APIs REST/SOAP. Proporciona steps de Cucumber, validaciones y utilidades para automatizar pruebas de servicios web.
 
 ---
 
 ## 📑 Índice
 
-- [🎯 Visión General](#-visión-general)
-- [🏗️ Arquitectura](#️-arquitectura)
-- [📦 Componentes Principales](#-componentes-principales)
-- [🥒 Steps Disponibles](#-steps-disponibles)
-- [💡 Ejemplos Completos](#-ejemplos-completos)
-- [🔗 Integración con Web/Mobile](#-integración-con-webmobile)
-- [⚠️ Troubleshooting](#️-troubleshooting)
+- [Visión General](#visión-general)
+- [Características](#características)
+- [Arquitectura](#arquitectura)
+- [Steps Disponibles](#steps-disponibles)
+- [Ejemplos de Uso](#ejemplos-de-uso)
+- [Configuración](#configuración)
+- [Integración con Módulos](#integración-con-módulos)
+- [Referencia Rápida](#referencia-rápida)
 
 ---
 
-## 🎯 Visión General
+## Visión General
 
-### ¿Qué es API-Core?
+**API-Core** es la capa especializada del framework para **testing de APIs**. Se construye sobre **Common Layer** y proporciona:
 
-**API-Core** es la capa especializada para **testing de APIs REST**. Extiende **common** y proporciona:
+✅ **Steps de Cucumber** específicos para APIs REST
+✅ **Validaciones** de status codes, headers, body (JSON/XML)
+✅ **Manejo de autenticación** (Bearer, Basic, API Key)
+✅ **Extracción de datos** con JsonPath
+✅ **Integración con ScenarioContext** para compartir datos
+✅ **Soporte para múltiples métodos** HTTP (GET, POST, PUT, DELETE, PATCH)
 
-- 🔌 **Cliente HTTP avanzado** (Unirest)
-- ✅ **Validaciones REST** (status, headers, JSON, XML)
-- 🔐 **Autenticación** (OAuth, JWT, Basic Auth, API Keys)
-- 🥒 **Steps de Cucumber** predefinidos
-- 🗄️ **Soporte de BD** para validaciones backend
-- 📊 **JSON Path** y validaciones de schema
+### Dependencias
 
-### ¿Para Qué Usar API-Core?
-
-- ✅ Automatizar pruebas de APIs REST/SOAP
-- ✅ Validar contratos y schemas JSON
-- ✅ Testing de autenticación y autorización
-- ✅ Validaciones de datos en base de datos
-- ✅ Flujos híbridos (API + Web/Mobile)
+```
+api-core
+    └── common (automática)
+        ├── HTTP Client (BaseHttpClient)
+        ├── Logging (TestLogger)
+        ├── Config (ConfigManager)
+        └── ScenarioContext
+```
 
 ---
 
-## 🏗️ Arquitectura
+## Características
 
-### Diagrama de Flujo
+### 🎯 Steps de Cucumber
 
-```
-┌──────────────────────────────────────────────────┐
-│          Feature (Cucumber Gherkin)              │
-│  Given el host "..." mas el contexto "..."      │
-│  When ejecuto consulta con metodo "POST"        │
-│  Then valido codigo de respuesta sea 200        │
-└──────────────────────────────────────────────────┘
-                       ↓
-┌──────────────────────────────────────────────────┐
-│              ApiSteps (Cucumber)                 │
-│  - Define contratos Gherkin                      │
-│  - Orquesta llamadas                             │
-│  - Guarda en ScenarioContext                     │
-└──────────────────────────────────────────────────┘
-                       ↓
-┌──────────────────────────────────────────────────┐
-│          HTTP Client (Unirest)                   │
-│  - Construye request                             │
-│  - Maneja autenticación                          │
-│  - Ejecuta llamada HTTP                          │
-└──────────────────────────────────────────────────┘
-                       ↓
-┌──────────────────────────────────────────────────┐
-│         Validaciones & Assertions                │
-│  - Status code                                   │
-│  - Headers                                       │
-│  - JSON/XML body                                 │
-│  - JSON Schema                                   │
-└──────────────────────────────────────────────────┘
-```
+API-Core proporciona **+40 steps** listos para usar en tus features:
 
-### Estructura de Paquetes
+#### Configuración de Request
+- `Dado que tengo el endpoint "..."`
+- `Y agrego el header "..." con valor "..."`
+- `Y agrego el request: """..."""`
+- `Y agrego parámetro de query "..." con valor "..."`
+
+#### Ejecución
+- `Cuando ejecuto una petición GET`
+- `Cuando ejecuto una petición POST`
+- `Cuando ejecuto una petición PUT`
+- `Cuando ejecuto una petición DELETE`
+
+#### Validaciones
+- `Entonces el código de respuesta debe ser ...`
+- `Y el tiempo de respuesta debe ser menor a ... ms`
+- `Y el body debe contener el campo "..."`
+- `Y el campo "..." debe ser "..."`
+- `Y el campo "..." debe contener "..."`
+
+#### Manejo de Datos
+- `Y guardo el valor del campo "..." en variable "..."`
+- `Y extraigo con JsonPath "..." y guardo en "..."`
+
+**Ver lista completa:** [QUICK-REFERENCE.md](QUICK-REFERENCE.md)
+
+---
+
+## Arquitectura
 
 ```
 api-core/
-├── steps/                  # Cucumber step definitions
-│   └── ApiSteps
+├── src/main/java/com/scotia/qa/apicore/
+│   ├── steps/
+│   │   └── ApiSteps.java          ← Steps de Cucumber para API
+│   │
+│   ├── client/
+│   │   └── RestClient.java        ← Cliente REST especializado
+│   │
+│   ├── validators/
+│   │   ├── ResponseValidator.java ← Validaciones de responses
+│   │   └── SchemaValidator.java   ← Validaciones de schemas
+│   │
+│   └── utils/
+│       ├── JsonUtils.java         ← Utilidades JSON
+│       └── AuthUtils.java         ← Utilidades de auth
 │
-├── implementations/        # Clientes HTTP especializados
-│   └── RestApiClient
-│
-├── factories/              # Factories de requests
-│   └── RequestFactory
-│
-└── utils/                  # Utilidades API
-    ├── JsonValidator
-    └── SchemaValidator
+└── src/main/resources/
+    └── schemas/                    ← JSON Schemas para validación
+```
+
+### Flujo de Ejecución
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  FEATURE (Gherkin)                                             │
+│  @api                                                          │
+│  Escenario: Login en API                                      │
+│    Dado que tengo el endpoint "/auth/login"                   │
+│    Y agrego el request: """{"user":"test"}"""                 │
+│    Cuando ejecuto una petición POST                           │
+│    Entonces el código de respuesta debe ser 200               │
+└────────────────────────────────────────────────────────────────┘
+                             ↓
+┌────────────────────────────────────────────────────────────────┐
+│  API-CORE (ApiSteps.java)                                      │
+│  • Construye request con headers, body, params                │
+│  • Usa BaseHttpClient (de Common)                             │
+│  • Ejecuta petición HTTP                                      │
+│  • Valida respuesta                                           │
+│  • Guarda datos en ScenarioContext                            │
+└────────────────────────────────────────────────────────────────┘
+                             ↓
+┌────────────────────────────────────────────────────────────────┐
+│  COMMON (BaseHttpClient)                                       │
+│  • Ejecuta petición HTTP con Unirest                          │
+│  • Maneja timeouts y retries                                  │
+│  • Sanitiza logs (oculta passwords)                           │
+│  • Retorna Response wrapper                                   │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📦 Componentes Principales
+## Steps Disponibles
 
-### ApiSteps
+### Categoría: Configuración de Request
 
-**50+ steps predefinidos** para testing de APIs:
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Dado que tengo el endpoint {string}` | Define el endpoint a llamar | `Dado que tengo el endpoint "/users"` |
+| `Y el host {string} mas el contexto {string}` | Define host + path | `Y el host "https://api.com" mas el contexto "/v1/users"` |
+| `Y agrego el header {string} con valor {string}` | Agrega header HTTP | `Y agrego el header "Content-Type" con valor "application/json"` |
+| `Y agrego el request:` | Agrega body JSON/XML | Ver ejemplos abajo |
+| `Y agrego parámetro de query {string} con valor {string}` | Query parameter | `Y agrego parámetro de query "page" con valor "1"` |
+
+### Categoría: Ejecución
+
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Cuando ejecuto una petición GET` | Ejecuta GET | `Cuando ejecuto una petición GET` |
+| `Cuando ejecuto una petición POST` | Ejecuta POST | `Cuando ejecuto una petición POST` |
+| `Cuando ejecuto la consulta con el metodo {string}` | Método genérico | `Cuando ejecuto la consulta con el metodo "PATCH"` |
+
+### Categoría: Validaciones
+
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Entonces el código de respuesta debe ser {int}` | Valida status code | `Entonces el código de respuesta debe ser 200` |
+| `Y el tiempo de respuesta debe ser menor a {int} ms` | Valida performance | `Y el tiempo de respuesta debe ser menor a 2000 ms` |
+| `Y el body debe contener el campo {string}` | Verifica existencia | `Y el body debe contener el campo "data"` |
+| `Y el campo {string} debe ser {string}` | Valida igualdad | `Y el campo "status" debe ser "success"` |
+| `Y el campo {string} debe contener {string}` | Valida substring | `Y el campo "email" debe contener "@"` |
+
+### Categoría: Extracción de Datos
+
+| Step | Descripción | Ejemplo |
+|------|-------------|---------|
+| `Y guardo el valor del campo {string} en variable {string}` | Guarda en contexto | `Y guardo el valor del campo "id" en variable "userId"` |
+| `Y obtengo el campo {string} del objeto {string} y lo guardo como {string}` | Extracción anidada | Ver ejemplos |
+
+---
+
+## Ejemplos de Uso
+
+### Ejemplo 1: Login Simple
 
 ```gherkin
-# Configuración de endpoint
-Given el host "https://api.example.com" mas el contexto "/users"
+@api @test
+Escenario: Login exitoso en API
+  Dado que tengo el endpoint "/auth/login"
+  Y agrego el header "Content-Type" con valor "application/json"
+  Y agrego el request:
+    """
+    {
+      "username": "testuser",
+      "password": "Test123"
+    }
+    """
+  Cuando ejecuto una petición POST
+  Entonces el código de respuesta debe ser 200
+  Y el body debe contener el campo "token"
+  Y guardo el valor del campo "token" en variable "authToken"
+```
 
-# Headers
-And agrego el header "Content-Type" con valor "application/json"
-And agrego el header "Authorization" con valor "Bearer {token}"
+### Ejemplo 2: Consulta con Autenticación
 
-# Body
-And agrego el request
+```gherkin
+@api @test
+Escenario: Consultar perfil de usuario
+  Dado que tengo el endpoint "/users/me"
+  Y agrego el header "Authorization" con valor "Bearer {authToken}"
+  Cuando ejecuto una petición GET
+  Entonces el código de respuesta debe ser 200
+  Y el campo "email" debe contener "@"
+  Y el campo "status" debe ser "active"
+```
+
+### Ejemplo 3: CRUD Completo
+
+```gherkin
+@api @test
+Escenario: CRUD de producto
+  # CREATE
+  Dado que tengo el endpoint "/products"
+  Y agrego el request:
+    """
+    {
+      "name": "Laptop",
+      "price": 999.99,
+      "category": "Electronics"
+    }
+    """
+  Cuando ejecuto una petición POST
+  Entonces el código de respuesta debe ser 201
+  Y guardo el valor del campo "id" en variable "productId"
+  
+  # READ
+  Dado que tengo el endpoint "/products/{productId}"
+  Cuando ejecuto una petición GET
+  Entonces el código de respuesta debe ser 200
+  Y el campo "name" debe ser "Laptop"
+  
+  # UPDATE
+  Dado que tengo el endpoint "/products/{productId}"
+  Y agrego el request:
+    """
+    {
+      "price": 899.99
+    }
+    """
+  Cuando ejecuto una petición PATCH
+  Entonces el código de respuesta debe ser 200
+  
+  # DELETE
+  Dado que tengo el endpoint "/products/{productId}"
+  Cuando ejecuto una petición DELETE
+  Entonces el código de respuesta debe ser 204
+```
+
+### Ejemplo 4: Integración con Web (Cross-Layer)
+
+```gherkin
+@api @web
+Escenario: Crear usuario por API y validar en Web
+  # Crear usuario por API
+  Dado que tengo el endpoint "/users"
+  Y agrego el request:
+    """
+    {
+      "name": "Juan Pérez",
+      "email": "juan@test.com"
+    }
+    """
+  Cuando ejecuto una petición POST
+  Entonces el código de respuesta debe ser 201
+  Y guardo el valor del campo "id" en variable "userId"
+  
+  # Validar en interfaz web
+  Dado que navego a la URL "https://app.example.com/users/{userId}"
+  Entonces el texto del elemento "userName" debe ser "Juan Pérez"
+```
+
+---
+
+## Configuración
+
+### En el Módulo
+
+**1. Agregar dependencia en `build.gradle`:**
+
+```groovy
+dependencies {
+    testImplementation 'com.scotia.qa:api-core:1.0.0'
+    // common se incluye automáticamente
+}
+```
+
+**2. Configurar URLs en `config-scotia.properties`:**
+
+```properties
+# API Testing
+api.base.url=${{API_BASE_URL}}
+api.timeout=30000
+api.retry.count=3
+```
+
+**3. Configurar variables de entorno en `.env.local`:**
+
+```bash
+API_BASE_URL=https://api-qa.example.com/v1
+API_TOKEN=your_token_here
+```
+
+**4. Agregar glue en `RunCucumberTest.java`:**
+
+```java
+@ConfigurationParameter(
+    key = "cucumber.glue",
+    value = "com.scotia.qa.apicore, com.scotia.qa.common, com.tu.proyecto.steps"
+)
+```
+
+---
+
+## Integración con Módulos
+
+### Estructura Típica del Módulo
+
+```
+qa-module-tu-proyecto/
+├── src/test/
+│   ├── java/
+│   │   └── com/tu/proyecto/
+│   │       ├── RunCucumberTest.java      ← Configuración Cucumber
+│   │       └── steps/
+│   │           └── CustomSteps.java      ← Steps personalizados
+│   │
+│   └── resources/
+│       ├── features/
+│       │   └── api/
+│       │       ├── login.feature          ← Features de API
+│       │       └── users.feature
+│       │
+│       ├── config-scotia.properties       ← Configuración
+│       └── test-data/                     ← Test data
+│
+├── .env.local                             ← Credenciales (gitignored)
+└── build.gradle                           ← Dependencias
+```
+
+### Flujo de Trabajo
+
+```
+1. Escribir Feature (Gherkin)
+   └─> features/api/mi-test.feature
+   
+2. Usar Steps de api-core
+   └─> Ya disponibles, no requiere implementación
+   
+3. Ejecutar Tests
+   └─> ./gradlew test
+   o
+   └─> ../qa-scotia-frameworks/scripts/test.sh
+   
+4. Ver Reportes
+   └─> build/reports/cucumber/cucumber-html-report.html
+```
+
+---
+
+## Referencia Rápida
+
+### Cheat Sheet de Steps Comunes
+
+```gherkin
+# Configurar endpoint
+Dado que tengo el endpoint "/api/resource"
+
+# Agregar autenticación
+Y agrego el header "Authorization" con valor "Bearer {token}"
+
+# Agregar body JSON
+Y agrego el request:
   """
-  {"username": "john", "password": "secret"}
+  {"key": "value"}
   """
 
 # Ejecutar
-When ejecuto la consulta con el metodo "POST"
+Cuando ejecuto una petición POST
 
-# Validaciones
-Then valido que el codigo de respuesta del servicio sea 200
-And valido que el response contenga el campo "id"
-And obtengo el campo "token" del objeto "data" y lo guardo como "authToken"
+# Validar
+Entonces el código de respuesta debe ser 200
+Y el campo "status" debe ser "success"
+
+# Guardar dato
+Y guardo el valor del campo "id" en variable "resourceId"
 ```
 
-### RestApiClient
-
-Cliente HTTP especializado basado en Unirest:
+### Variables en Contexto
 
 ```java
-RestApiClient client = new RestApiClient("https://api.example.com");
+// API-Core guarda automáticamente en ScenarioContext
+ScenarioContext.setByLayer("api", "token", "abc123");
 
-// GET
-HttpResponse<JsonNode> response = client.get("/users/123");
+// Recuperar en cualquier step
+String token = (String) ScenarioContext.getFromLayer("api", "token");
 
-// POST con body
-Map<String, Object> body = Map.of("name", "John", "email", "john@example.com");
-HttpResponse<JsonNode> response = client.post("/users", body);
-
-// Headers
-client.addHeader("Authorization", "Bearer " + token);
-client.addHeader("Content-Type", "application/json");
-
-// Response
-int statusCode = response.getStatus();
-String body = response.getBody().toString();
-String value = response.getBody().getObject().getString("id");
+// O usar en Gherkin con {}
+Dado que tengo el endpoint "/users/{userId}"
+Y agrego el header "Authorization" con valor "Bearer {authToken}"
 ```
 
 ---
 
-## 🥒 Steps Disponibles
+## 📚 Documentación Adicional
 
-### Configuración de Endpoint
+- **[QUICK-REFERENCE.md](QUICK-REFERENCE.md)** - Referencia rápida de todos los steps
+- **[../FRAMEWORK-GUIDE.md](../FRAMEWORK-GUIDE.md)** - Arquitectura del framework
+- **[../QUICK-START.md](../QUICK-START.md)** - Guía de inicio rápido
+- **[../common/README.md](../common/README.md)** - Documentación de Common Layer
 
-```gherkin
-Given el host "https://api.example.com" mas el contexto "/api/v1/users"
-And establezco el base URL como "https://api.qa.example.com"
+---
+
+## 🐛 Troubleshooting
+
+### ❌ Step undefined
+
+**Problema:** Cucumber no encuentra los steps de api-core.
+
+**Solución:** Verificar que el glue incluye `com.scotia.qa.apicore`:
+
+```java
+@ConfigurationParameter(
+    key = "cucumber.glue",
+    value = "com.scotia.qa.apicore, com.scotia.qa.common, com.tu.proyecto"
+)
 ```
 
-### Headers
+### ❌ Connection refused
 
-```gherkin
-And agrego el header "Authorization" con valor "Bearer token123"
-And agrego el header "Content-Type" con valor "application/json"
-And agrego el header "Accept" con valor "application/json"
+**Problema:** No se puede conectar al API.
+
+**Solución:** Verificar configuración en `.env.local`:
+
+```bash
+API_BASE_URL=https://correct-url.com
 ```
 
-### Body/Payload
+### ❌ Variables no se resuelven
+
+**Problema:** `{userId}` no se reemplaza.
+
+**Solución:** Verificar que la variable se guardó antes:
 
 ```gherkin
-# JSON body
-And agrego el request
-  """
-  {
-    "username": "john.doe",
-    "email": "john@example.com",
-    "active": true
-  }
-  """
+# Primero guardar
+Y guardo el valor del campo "id" en variable "userId"
 
-# Desde archivo
-And cargo el request desde el archivo "templates/create-user.json"
-```
-
-### Ejecución
-
-```gherkin
-When ejecuto la consulta con el metodo "GET"
-When ejecuto la consulta con el metodo "POST"
-When ejecuto la consulta con el metodo "PUT"
-When ejecuto la consulta con el metodo "DELETE"
-When ejecuto la consulta con el metodo "PATCH"
-```
-
-### Validaciones de Status
-
-```gherkin
-Then valido que el codigo de respuesta del servicio sea 200
-Then valido que el codigo de respuesta del servicio sea 201
-Then valido que el codigo de respuesta del servicio sea 400
-Then valido que el codigo de respuesta del servicio sea 401
-Then valido que el codigo de respuesta del servicio sea 404
-Then valido que el codigo de respuesta del servicio sea 500
-```
-
-### Validaciones de Response
-
-```gherkin
-# Validar campo existe
-Then valido que el response contenga el campo "id"
-Then valido que el response contenga el campo "data.user.email"
-
-# Validar valor
-Then valido que el campo "status" del response sea "active"
-Then valido que el campo "data.count" del response sea "10"
-
-# Validar tipo
-Then valido que el campo "id" sea de tipo "number"
-Then valido que el campo "email" sea de tipo "string"
-Then valido que el campo "active" sea de tipo "boolean"
-```
-
-### Extraer y Guardar Datos
-
-```gherkin
-# Guardar en ScenarioContext para usar en Web/Mobile
-And obtengo el campo "token" del objeto "data" y lo guardo como "authToken"
-And obtengo el campo "userId" del objeto "data" y lo guardo como "userId"
-And obtengo el campo "email" del response y lo guardo como "userEmail"
-
-# Usar variable guardada
-And agrego el header "Authorization" con valor "Bearer {authToken}"
-```
-
-### Validaciones JSON Schema
-
-```gherkin
-Then valido que el response cumpla con el schema "user-schema.json"
+# Luego usar
+Dado que tengo el endpoint "/users/{userId}"
 ```
 
 ---
 
-## 💡 Ejemplos Completos
-
-### Ejemplo 1: Login y Crear Recurso
-
-```gherkin
-Feature: Gestión de órdenes - API Banking
-
-  Scenario: Login y crear orden de transferencia
-    # 1. Autenticación
-    Given el host "https://api.banking.com" mas el contexto "/auth/login"
-    And agrego el header "Content-Type" con valor "application/json"
-    And agrego el request
-      """
-      {
-        "username": "john.doe",
-        "password": "SecurePass123!"
-      }
-      """
-    When ejecuto la consulta con el metodo "POST"
-    Then valido que el codigo de respuesta del servicio sea 200
-    And obtengo el campo "token" del objeto "data" y lo guardo como "authToken"
-    
-    # 2. Crear orden de transferencia
-    Given el host "https://api.banking.com" mas el contexto "/transfers"
-    And agrego el header "Authorization" con valor "Bearer {authToken}"
-    And agrego el header "Content-Type" con valor "application/json"
-    And agrego el request
-      """
-      {
-        "fromAccount": "123456789",
-        "toAccount": "987654321",
-        "amount": 1000.50,
-        "currency": "USD",
-        "description": "Payment for services"
-      }
-      """
-    When ejecuto la consulta con el metodo "POST"
-    Then valido que el codigo de respuesta del servicio sea 201
-    And valido que el response contenga el campo "transferId"
-    And valido que el campo "status" del response sea "pending"
-    And obtengo el campo "transferId" del response y lo guardo como "transferId"
-```
-
-### Ejemplo 2: CRUD Completo
-
-```gherkin
-Feature: CRUD de Vehículos - API
-
-  Background:
-    Given el host "https://api.vehicles.com"
-    And agrego el header "Content-Type" con valor "application/json"
-    And agrego el header "Authorization" con valor "Bearer token123"
-
-  Scenario: Crear, leer, actualizar y eliminar vehículo
-    # CREATE
-    Given establezco el contexto "/vehicles"
-    And agrego el request
-      """
-      {
-        "brand": "Toyota",
-        "model": "Corolla",
-        "year": 2024,
-        "color": "Blue"
-      }
-      """
-    When ejecuto la consulta con el metodo "POST"
-    Then valido que el codigo de respuesta del servicio sea 201
-    And obtengo el campo "id" del response y lo guardo como "vehicleId"
-    
-    # READ
-    Given establezco el contexto "/vehicles/{vehicleId}"
-    When ejecuto la consulta con el metodo "GET"
-    Then valido que el codigo de respuesta del servicio sea 200
-    And valido que el campo "brand" del response sea "Toyota"
-    And valido que el campo "model" del response sea "Corolla"
-    
-    # UPDATE
-    Given establezco el contexto "/vehicles/{vehicleId}"
-    And agrego el request
-      """
-      {
-        "color": "Red"
-      }
-      """
-    When ejecuto la consulta con el metodo "PATCH"
-    Then valido que el codigo de respuesta del servicio sea 200
-    And valido que el campo "color" del response sea "Red"
-    
-    # DELETE
-    Given establezco el contexto "/vehicles/{vehicleId}"
-    When ejecuto la consulta con el metodo "DELETE"
-    Then valido que el codigo de respuesta del servicio sea 204
-```
-
-### Ejemplo 3: Validaciones Complejas
-
-```gherkin
-Feature: Validaciones avanzadas de API
-
-  Scenario: Validar estructura y tipos de respuesta
-    Given el host "https://api.example.com" mas el contexto "/users/123"
-    When ejecuto la consulta con el metodo "GET"
-    Then valido que el codigo de respuesta del servicio sea 200
-    
-    # Validar campos existen
-    And valido que el response contenga el campo "id"
-    And valido que el response contenga el campo "data.email"
-    And valido que el response contenga el campo "data.profile.address"
-    
-    # Validar tipos
-    And valido que el campo "id" sea de tipo "number"
-    And valido que el campo "data.email" sea de tipo "string"
-    And valido que el campo "data.active" sea de tipo "boolean"
-    And valido que el campo "data.roles" sea de tipo "array"
-    
-    # Validar valores específicos
-    And valido que el campo "data.status" del response sea "active"
-    And valido que el campo "data.email" del response contenga "@example.com"
-    
-    # Validar schema
-    Then valido que el response cumpla con el schema "user-response-schema.json"
-```
-
----
-
-## 🔗 Integración con Web/Mobile
-
-### Flujo API → Web
-
-```gherkin
-Feature: Login API y validar en Web
-
-  Scenario: Obtener token en API y usar en Web
-    # API: Login y obtener token
-    Given el host "https://api.banking.com" mas el contexto "/auth/login"
-    And agrego el header "Content-Type" con valor "application/json"
-    And agrego el request
-      """
-      {"username": "john.doe", "password": "pass123"}
-      """
-    When ejecuto la consulta con el metodo "POST"
-    Then valido que el codigo de respuesta del servicio sea 200
-    And obtengo el campo "token" del objeto "data" y lo guardo como "authToken"
-    And obtengo el campo "user_full_name" del objeto "data" y lo guardo como "fullName"
-    
-    # Web: Usar token para acceder
-    Given actualizo URL en el navegador "https://banking.com/dashboard"
-    When inyecto el token "{authToken}" en localStorage
-    And recargo la página
-    Then verifico que el elemento "welcomeMessage" contenga el texto "{fullName}"
-```
-
-### Flujo Web → API
-
-```gherkin
-Feature: Validar datos de Web en Backend
-
-  Scenario: Crear orden en Web y validar en API
-    # Web: Crear orden
-    Given actualizo URL en el navegador "https://shop.example.com"
-    When ingreso el texto "Laptop" en el elemento "productSearch"
-    And presiono el botón "addToCart"
-    And presiono el botón "checkout"
-    And guardo texto del elemento "orderNumber" en variable temporal llamada "orderNumber"
-    
-    # API: Validar que la orden existe en backend
-    Given el host "https://api.shop.example.com" mas el contexto "/orders/{orderNumber}"
-    And agrego el header "Authorization" con valor "Bearer admin-token"
-    When ejecuto la consulta con el metodo "GET"
-    Then valido que el codigo de respuesta del servicio sea 200
-    And valido que el campo "status" del response sea "pending"
-    And valido que el campo "items[0].product" del response sea "Laptop"
-```
-
----
-
-## ⚠️ Troubleshooting
-
-### Error: "Connection refused"
-
-**Causa:** El servidor API no está disponible.
-
-**Solución:**
-```gherkin
-# Verificar URL
-Given el host "https://api.example.com"  # ← Verificar URL correcta
-
-# Verificar red/VPN si es ambiente interno
-```
-
-### Error: "401 Unauthorized"
-
-**Causa:** Token inválido o expirado.
-
-**Solución:**
-```gherkin
-# 1. Verificar que el token se guardó
-And obtengo el campo "token" del objeto "data" y lo guardo como "authToken"
-
-# 2. Verificar que se usa correctamente
-And agrego el header "Authorization" con valor "Bearer {authToken}"
-
-# 3. Debug: Ver variables en contexto
-# En tu step definition:
-Map<String, Object> allData = ScenarioContext.getAllFromAllLayers();
-System.out.println("Variables: " + allData);
-```
-
-### Error: "JSON Parse Error"
-
-**Causa:** Response no es JSON válido o está vacío.
-
-**Solución:**
-```gherkin
-# Validar status primero
-Then valido que el codigo de respuesta del servicio sea 200
-
-# Loguear response para debug
-# En ApiSteps, el response se loguea automáticamente
-```
-
-### Error: "Campo no encontrado en response"
-
-**Causa:** Path JSON incorrecto.
-
-**Solución:**
-```gherkin
-# ✅ CORRECTO
-And valido que el response contenga el campo "data.user.email"
-
-# ❌ INCORRECTO
-And valido que el response contenga el campo "data user email"
-
-# JSONPath:
-# - Usar punto (.) para navegar objetos: "data.user.name"
-# - Usar corchetes para arrays: "items[0].name"
-```
-
----
-
-## 📚 Dependencias
-
-| Librería | Versión | Propósito |
-|----------|---------|-----------|
-| **common** | 1.0.2 | Capa base (logging, context, utils) |
-| **Unirest** | 4.4.4 | Cliente HTTP |
-| **JSON Path** | 2.8.0 | Query JSON |
-| **JSON Schema Validator** | 1.0.73 | Validar schemas |
-| **HikariCP** | 5.0.1 | Connection pool para BD |
-| **Oracle JDBC** | 21.9.0.0 | Driver Oracle |
-| **MySQL Connector** | 8.0.33 | Driver MySQL |
-| **Cucumber** | 7.18.0 | BDD Framework |
-
----
-
-## 🔗 Enlaces Relacionados
-
-- **[🚀 Quick Reference](./QUICK-REFERENCE.md)** - Cheat sheet rápida de steps API
-- **[Common README](../common/README.md)** - Capa base del framework
-- **[Web Core README](../web-core/README.md)** - Testing Web UI
-- **[Framework Guide](../FRAMEWORK-GUIDE.md)** - Guía completa
-- **[Troubleshooting](../TROUBLESHOOTING.md)** - Solución de problemas
-
----
-
-<div align="center">
-
-**[⬆ Volver arriba](#-api-core---framework-de-testing-rest)**
-
-**Versión:** 1.0.2 | **Autor:** Abel Venero | **QA Team - Scotia Bank**
-
-</div>
+**Última actualización:** 28 de Noviembre de 2025  
+**Autor:** Abel Venero  
+**Versión:** 1.0.0
 

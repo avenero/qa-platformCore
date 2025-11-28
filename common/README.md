@@ -1,597 +1,945 @@
-# 🔧 Common - Capa Base del Framework
+# 🔧 Common - Capa Base del Framework Scotia QA
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.14-blue.svg)](https://gradle.org/)
-[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/scotia-qa/qa-scotia-frameworks)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/scotia-qa/qa-scotia-frameworks)
 
 > La capa fundacional del QA Scotia Automation Framework. Proporciona componentes, interfaces y utilidades compartidas por todas las capas especializadas (API, Web, Mobile).
 
 ---
 
-## 📑 Índice
+## 📑 Índice General
 
-- [🎯 Visión General](#-visión-general)
+### Parte I: Visión General
+- [🎯 ¿Qué es Common?](#-qué-es-common)
 - [🏗️ Arquitectura de Common](#️-arquitectura-de-common)
 - [📦 Estructura de Paquetes](#-estructura-de-paquetes)
-- [🔍 Detalle de Componentes](#-detalle-de-componentes)
-  - [Logging System](#logging-system)
-  - [ScenarioContext](#scenariocontext)
-  - [HTTP Client Base](#http-client-base)
-  - [Cucumber Hooks](#cucumber-hooks)
-  - [Security & Sanitization](#security--sanitization)
-  - [Data Utilities](#data-utilities)
-- [🚀 Cómo Usar Common](#-cómo-usar-common)
+
+### Parte II: Componentes Principales
+- [📊 Sistema de Logging](#-sistema-de-logging)
+- [🔗 ScenarioContext](#-scenariocontext)
+- [🌐 HTTP Client Base](#-http-client-base)
+- [🥒 Cucumber Hooks](#-cucumber-hooks)
+- [🔒 Seguridad y Sanitización](#-seguridad-y-sanitización)
+- [⚙️ Gestión de Configuraciones](#️-gestión-de-configuraciones)
+- [💾 Conexión a Base de Datos](#-conexión-a-base-de-datos)
+- [🔍 Test Data Finder](#-test-data-finder)
+
+### Parte III: Guías de Uso
+- [🏷️ Guía de Tags para Hooks](#️-guía-de-tags-para-hooks)
+- [🔄 Ejemplo de Flujo Completo](#-ejemplo-de-flujo-completo)
 - [💡 Ejemplos Prácticos](#-ejemplos-prácticos)
 - [⚠️ Troubleshooting](#️-troubleshooting)
-- [📚 API Reference](#-api-reference)
 
 ---
 
-## 🎯 Visión General
+## 🎯 ¿Qué es Common?
 
-### ¿Qué es Common?
+### Definición
 
-**Common** es la **capa base y fundacional** del framework. No es un framework completo por sí solo, sino el **núcleo genérico y reutilizable** que proporciona:
+**Common** es la **capa base y fundacional** del framework Scotia QA. No es un framework completo por sí solo, sino el **núcleo genérico y reutilizable** que proporciona:
 
-- 🏗️ **Arquitectura base** mediante interfaces y contratos
-- 🔌 **HTTP Client genérico** (Unirest)
-- 📊 **Sistema de logging** estructurado y contextual
-- 🔗 **ScenarioContext** para compartir datos entre capas
-- 🥒 **Cucumber Hooks** base
-- 🔒 **Utilidades de seguridad** (sanitización, encriptación)
-- 🛠️ **Utilidades generales** (JSON, data handling, etc.)
+| Componente | Propósito |
+|------------|-----------|
+| 🏗️ **Arquitectura Base** | Interfaces y contratos genéricos |
+| 🔌 **HTTP Client** | Cliente HTTP genérico (Unirest) con SSL configurado |
+| 📊 **Logging** | Sistema de logging estructurado y contextual con MDC |
+| 🔗 **ScenarioContext** | Compartir datos entre capas (API ↔ Web ↔ Mobile) |
+| 🥒 **Cucumber Hooks** | Hooks base con inicialización condicional por tags |
+| 🔒 **Seguridad** | Sanitización, encriptación, manejo seguro de credenciales |
+| ⚙️ **Configuración** | ConfigManager para variables de entorno y properties |
+| 💾 **Database** | Conexión a BD con pool HikariCP |
+| 🔍 **Test Data** | UserFinderService para búsqueda de datos de prueba |
+| 🛠️ **Utilidades** | JSON parsing, data handling, validaciones |
 
 ### ¿Para Qué NO es Common?
 
 - ❌ **NO contiene** lógica de negocio específica
 - ❌ **NO conoce** nada sobre APIs REST, WebDriver o Appium
-- ❌ **NO tiene** steps de Cucumber específicos
-- ❌ **NO depende** de ningún framework especializado
+- ❌ **NO tiene** steps de Cucumber específicos de negocio
+- ❌ **NO depende** de frameworks especializados (Selenium, Appium, RestAssured)
 
 ### Principio de Diseño: Module-First
 
 Common sigue el principio **"Module-First"**:
 - Los **módulos de negocio** definen sus propios localizadores/endpoints
-- **Common** solo provee herramientas genéricas
+- **Common** solo provee herramientas genéricas y reutilizables
 - Sin acoplamiento a proyectos específicos
 
 ---
 
 ## 🏗️ Arquitectura de Common
 
-### Diagrama de Arquitectura General
+### Diagrama de Capas del Framework
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    MÓDULOS CONSUMIDORES                     │
 │          qa-banking • qa-autos • qa-logistics               │
+│          (Repositorios independientes)                      │
 └─────────────────────────────────────────────────────────────┘
-                            ↓ usan
+                            ↓ importan como librería
 ┌─────────────────────────────────────────────────────────────┐
 │              FRAMEWORKS ESPECIALIZADOS (CORE)               │
 │        api-core  •  web-core  •  mobile-core               │
+│     (Selenium, Appium, RestAssured específicos)             │
 └─────────────────────────────────────────────────────────────┘
-                            ↓ extienden
+                            ↓ extienden y dependen de
 ┌─────────────────────────────────────────────────────────────┐
 │                      COMMON (BASE)                          │
 │  ┌──────────────┬──────────────┬──────────────────────┐    │
 │  │  Interfaces  │   Logging    │   ScenarioContext    │    │
 │  │  HTTP Base   │   Security   │   Data Utilities     │    │
 │  │  Cucumber    │   Factories  │   Configuration      │    │
+│  │  Database    │   TestData   │   Utilities          │    │
 │  └──────────────┴──────────────┴──────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Diagrama de Paquetes
+### Relación con Otras Capas
 
 ```
 common/
-├── cucumber/              # Hooks y contexto de Cucumber
-│   ├── ScenarioContext
-│   └── ScenarioContextHooks
-│
-├── logging/               # Sistema de logging estructurado
-│   ├── TestLogger
-│   ├── LoggingInitializer
-│   └── LogMaskingConverter
-│
-├── http/                  # Cliente HTTP base
-│   ├── BaseHttpClient
-│   └── HttpResponse
-│
-├── security/              # Seguridad y sanitización
-│   ├── DataSanitizer
-│   └── EncryptionUtil
-│
-├── factories/             # Factories genéricos
-│   └── BaseFactory
-│
-└── utils/                 # Utilidades generales
-    ├── DataUtilities
-    ├── DateUtils
-    └── JsonUtils
+  ↓ es base de
+  ├─→ api-core (agrega: RestAssured, HTTP específico)
+  ├─→ web-core (agrega: Selenium, WebDriver, Page Objects)
+  └─→ mobile-core (agrega: Appium, Gestures móviles)
 ```
 
 ---
 
 ## 📦 Estructura de Paquetes
 
-### Vista Detallada
-
-| Paquete | Propósito | Clases Principales |
-|---------|-----------|-------------------|
-| **`cucumber/`** | Gestión de contexto BDD | `ScenarioContext`, `ScenarioContextHooks` |
-| **`logging/`** | Logging estructurado | `TestLogger`, `LoggingInitializer` |
-| **`http/`** | Cliente HTTP base | `BaseHttpClient`, `HttpResponse` |
-| **`security/`** | Sanitización y seguridad | `DataSanitizer`, `EncryptionUtil` |
-| **`factories/`** | Factories genéricos | `BaseFactory` |
-| **`utils/`** | Utilidades transversales | `DataUtilities`, `JsonUtils` |
+```
+common/
+├── src/main/java/com/scotia/qa/common/
+│   │
+│   ├── config/                    # 📁 Gestión de Configuraciones
+│   │   ├── ConfigManager.java           # Singleton para configuración
+│   │   └── providers/
+│   │       ├── ConfigurationProvider.java      # Interface
+│   │       └── BaseConfigurationProvider.java  # Implementación base
+│   │
+│   ├── cucumber/                  # 📁 Cucumber & Contexto
+│   │   ├── context/
+│   │   │   ├── ScenarioContext.java     # Compartir datos entre steps
+│   │   │   └── ScenarioContextHooks.java # Hooks de contexto
+│   │   ├── hooks/
+│   │   │   ├── ConditionalHookDefinition.java  # Interface hooks
+│   │   │   ├── ApiHooks.java            # Hooks @api
+│   │   │   ├── WebHooks.java            # Hooks @web
+│   │   │   ├── MobileHooks.java         # Hooks @mobile
+│   │   │   └── DatabaseHooks.java       # Hooks @database (lazy)
+│   │   └── tags/
+│   │       └── TagDetector.java         # Detecta tags del escenario
+│   │
+│   ├── database/                  # 📁 Conexión a Base de Datos
+│   │   ├── config/
+│   │   │   └── DatabaseConfig.java      # Config HikariCP
+│   │   ├── connectors/
+│   │   │   ├── OracleConnector.java     # Conector Oracle
+│   │   │   ├── PostgresConnector.java   # Conector PostgreSQL
+│   │   │   ├── MySQLConnector.java      # Conector MySQL
+│   │   │   └── SQLServerConnector.java  # Conector SQL Server
+│   │   ├── factory/
+│   │   │   └── DbConnectorFactory.java  # Factory para crear conectores
+│   │   ├── interfaces/
+│   │   │   └── DatabaseConnector.java   # Interface base
+│   │   └── repository/
+│   │       └── QueryRepository.java     # Ejecución de queries genéricas
+│   │
+│   ├── http/                      # 📁 Cliente HTTP Base
+│   │   ├── BaseHttpClient.java          # Cliente Unirest genérico
+│   │   ├── HttpResponse.java            # Wrapper de respuestas
+│   │   └── ssl/
+│   │       └── SSLUtils.java            # Utilidades SSL para testing
+│   │
+│   ├── logging/                   # 📁 Sistema de Logging
+│   │   ├── LoggingInitializer.java      # Inicializa MDC por módulo
+│   │   ├── TestLogger.java              # Logger estructurado
+│   │   └── LogMaskingConverter.java     # Enmascara credenciales en logs
+│   │
+│   ├── security/                  # 📁 Seguridad
+│   │   ├── DataSanitizer.java           # Sanitiza datos sensibles
+│   │   └── EncryptionUtils.java         # Encriptación básica
+│   │
+│   └── utils/                     # 📁 Utilidades
+│       ├── json/
+│       │   └── JsonUtils.java           # Parsing JSON
+│       ├── testdata/
+│       │   ├── model/
+│       │   │   └── TestUser.java        # Modelo de usuario de prueba
+│       │   ├── repository/
+│       │   │   └── TestDataRepository.java  # Repo de test data
+│       │   ├── service/
+│       │   │   └── UserFinderService.java   # Buscar usuarios de prueba
+│       │   └── steps/
+│       │       └── UserFinderSteps.java     # Steps Cucumber para test data
+│       └── DataUtilities.java           # Utilidades de datos
+│
+└── src/main/resources/
+    ├── logback.xml                      # Configuración logging
+    └── templates/
+        ├── config-scotia.properties.template  # Template configuración
+        └── README.md                    # Guía de templates
+```
 
 ---
 
-## 🔍 Detalle de Componentes
+## 📊 Sistema de Logging
 
-### Logging System
+### Características
 
-#### 📊 Arquitectura del Sistema de Logging
+- ✅ **Logging estructurado** con MDC (Mapped Diagnostic Context)
+- ✅ **Por módulo y escenario**: Logs identifican módulo y test actual
+- ✅ **Enmascaramiento automático** de credenciales (passwords, tokens)
+- ✅ **Formato unificado** en todas las capas
+- ✅ **Niveles configurables** por ambiente
 
-El sistema de logging usa **SLF4J + Logback** con **MDC (Mapped Diagnostic Context)** para logs contextuales.
+### Componentes Clave
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    TestLogger (API)                     │
-│  logInfo() • logDebug() • logWarning() • logError()    │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│              LoggingInitializer (Context)               │
-│  initModuleContext() • setTestContext() • clearMDC()   │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│                 SLF4J + Logback                         │
-│         MDC Context (module, testName, etc.)           │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌──────────────────────┬──────────────────────────────────┐
-│   Console (colors)   │   File (JSON/Plain)              │
-│   DEBUG-ERROR        │   Rotación diaria                │
-└──────────────────────┴──────────────────────────────────┘
-```
-
-#### 🎯 Características
-
-- ✅ **Logs contextuales** con módulo y test name
-- ✅ **Thread-safe** para ejecución paralela
-- ✅ **Colores en consola** para mejor legibilidad
-- ✅ **Archivos separados** por módulo (API, WEB, MOBILE)
-- ✅ **Masking automático** de datos sensibles
-- ✅ **Formato JSON** para integración con ELK/Splunk
-
-#### 📝 Uso Básico
+#### 1. LoggingInitializer
 
 ```java
-import com.scotia.qa.common.logging.TestLogger;
-import com.scotia.qa.common.logging.LoggingInitializer;
+// Inicializa contexto por módulo
+LoggingInitializer.initModuleContext("BANKING");
 
-// 1. Inicializar módulo (una vez por test suite)
-LoggingInitializer.initModuleContext("API");
+// Establece contexto del test actual
+LoggingInitializer.setTestContext("Login exitoso");
 
-// 2. Establecer contexto de test (por cada test)
-LoggingInitializer.setTestContext("Login Test");
-
-// 3. Loguear
-TestLogger.logInfo("AUTH", "Usuario autenticado exitosamente", null);
-
-TestLogger.logDebug("DEBUG", "Token recibido: " + token, null);
-
-TestLogger.logWarning("VALIDATION", "Campo email vacío", null);
-
-TestLogger.logError("EXCEPTION", "Falló conexión a BD", exception);
-
-// 4. Limpiar al final
+// Limpia contexto al finalizar
 LoggingInitializer.clearTestContext();
 ```
 
-#### 🎨 Niveles de Logging
-
-| Nivel | Cuándo Usar | Color en Consola |
-|-------|-------------|------------------|
-| **DEBUG** | Información detallada para debugging | 🔵 Azul |
-| **INFO** | Eventos normales del flujo | ⚪ Blanco |
-| **WARN** | Situaciones anómalas pero no críticas | 🟡 Amarillo |
-| **ERROR** | Errores que requieren atención | 🔴 Rojo |
-
-#### 🔒 Masking de Datos Sensibles
-
-El sistema **automáticamente enmascara** datos sensibles en los logs:
+#### 2. TestLogger
 
 ```java
-// ✅ ANTES DE LOGUEAR
-String password = "MySecretPass123!";
-String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+// Logging estructurado con contexto
+TestLogger.logInfo("USER_LOGIN", "Usuario autenticado", 
+    Map.of("userId", "12345", "timestamp", System.currentTimeMillis()));
 
-TestLogger.logInfo("AUTH", "Password: " + password, null);
-TestLogger.logInfo("AUTH", "Token: " + token, null);
+TestLogger.logError("API_ERROR", "Fallo en llamada", 
+    Map.of("endpoint", "/api/users", "status", 500));
 
-// ✅ EN EL LOG (MASKING AUTOMÁTICO)
-// [AUTH] Password: ********
-// [AUTH] Token: eyJhbG...***
+TestLogger.logSuccess("TEST_PASSED", "Test completado", null);
 ```
 
-**Palabras clave que activan masking:**
-- `password`, `passwd`, `pwd`
-- `token`, `bearer`
-- `secret`, `api_key`
-- `credit_card`, `cvv`
+#### 3. LogMaskingConverter
 
-#### 📂 Estructura de Archivos de Log
+Enmascara automáticamente:
+- Passwords
+- Tokens
+- API Keys
+- Números de tarjeta
+- SSNs
+
+**Ejemplo:**
 
 ```
-logs/
-├── api/
-│   ├── api-2025-11-26.log      # Log diario
-│   └── api-2025-11-26.json     # Formato JSON
-├── web/
-│   ├── web-2025-11-26.log
-│   └── web-2025-11-26.json
-└── mobile/
-    ├── mobile-2025-11-26.log
-    └── mobile-2025-11-26.json
+ANTES: {"password": "MySecret123"}
+DESPUÉS: {"password": "***MASKED***"}
 ```
 
-#### 🔧 Configuración Personalizada
+### Formato de Log
 
-Puedes personalizar el logging editando `logback.xml`:
-
-```xml
-<configuration>
-    <!-- Cambiar nivel global -->
-    <root level="INFO">  <!-- DEBUG, INFO, WARN, ERROR -->
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
-    </root>
-    
-    <!-- Silenciar librerías ruidosas -->
-    <logger name="org.apache.http" level="WARN"/>
-    <logger name="io.restassured" level="ERROR"/>
-</configuration>
+```
+12:30:45.123 INFO [BANKING] [Login exitoso] c.s.q.c.logging.TestLogger - [BANKING][Login exitoso][USER_LOGIN] Usuario autenticado
+Context: {userId=12345, timestamp=1701181845000}
 ```
 
 ---
 
-### ScenarioContext
+## 🔗 ScenarioContext
 
-#### 🔗 ¿Qué es ScenarioContext?
+### ¿Qué es?
 
-**ScenarioContext** es un almacén de datos **thread-safe** que permite **compartir información entre capas** (API ↔ Web ↔ Mobile) dentro de un mismo escenario de Cucumber.
+**ScenarioContext** permite **compartir datos entre diferentes steps y capas** dentro de un mismo escenario de Cucumber.
 
-#### 🎯 Casos de Uso
+### Casos de Uso
 
-1. **API obtiene token → Web lo usa para navegar**
-2. **Web obtiene ID de cliente → API valida en backend**
-3. **API crea registro → Mobile verifica en app**
-4. **Compartir datos entre steps** del mismo escenario
-
-#### 📊 Arquitectura
-
-```
-┌────────────────────────────────────────────────────────┐
-│              ScenarioContext (Thread-Safe)             │
-│  ┌──────────┬──────────┬──────────┬──────────────┐   │
-│  │   API    │   WEB    │  MOBILE  │   COMMON     │   │
-│  │  Layer   │  Layer   │  Layer   │   Layer      │   │
-│  │          │          │          │              │   │
-│  │  token   │  userId  │  orderId │  testData    │   │
-│  │  apiUrl  │  element │  device  │  timestamp   │   │
-│  └──────────┴──────────┴──────────┴──────────────┘   │
-└────────────────────────────────────────────────────────┘
-           ↑                                 ↑
-           │                                 │
-      Cucumber Hooks               Cucumber Steps
-    (auto-cleanup)              (set/get/getAllData)
-```
-
-#### 📝 API del ScenarioContext
+#### 1. Compartir entre Steps del Mismo Tipo
 
 ```java
-// Guardar datos en capa específica
-ScenarioContext.setInLayer("api", "authToken", token);
-ScenarioContext.setInLayer("web", "username", "john.doe");
+// En LoginSteps.java
+@When("me autentico con credenciales válidas")
+public void autenticar() {
+    String token = authService.login("user", "pass");
+    ScenarioContext.set("authToken", token);  // ← Guardar
+}
 
-// Obtener datos de capa específica
-String token = (String) ScenarioContext.getFromLayer("api", "authToken");
-
-// Buscar en TODAS las capas (recomendado)
-String username = (String) ScenarioContext.getFromAnyLayer("username");
-
-// Obtener todos los datos de todas las capas
-Map<String, Object> allData = ScenarioContext.getAllFromAllLayers();
-
-// Limpiar una capa
-ScenarioContext.clearLayer("api");
-
-// Limpiar todo (automático en hooks)
-ScenarioContext.clearAll();
+// En TransferSteps.java
+@When("realizo una transferencia")
+public void transferir() {
+    String token = ScenarioContext.get("authToken");  // ← Recuperar
+    transferService.transfer(token, amount);
+}
 ```
 
-#### 💡 Ejemplo Completo: Flujo API → Web
+#### 2. Compartir entre API y Web (Híbrido)
 
-**Scenario:**
 ```gherkin
-Scenario: Login con API y validar en Web
-  # 1. API obtiene token
-  Given ejecuto login en API con usuario "john.doe"
-  And guardo el token en contexto como "authToken"
-  
-  # 2. Web usa el token
-  When navego a dashboard usando token guardado
-  Then verifico que el usuario logueado sea "john.doe"
+@api @web @e2e
+Scenario: Crear usuario en API y verificar en Web
+  Given creo usuario via API                    # ← API guarda userId
+  When navego al perfil del usuario creado      # ← Web usa userId
+  Then veo los datos correctos                  # ← Web valida
 ```
 
-**API Steps:**
 ```java
-@Given("ejecuto login en API con usuario {string}")
-public void ejecutoLoginAPI(String username) {
-    Response response = apiClient.post("/auth/login", 
-        Map.of("username", username, "password", "test123"));
-    
-    String token = response.jsonPath().getString("token");
-    
-    // Guardar en contexto para que Web lo use
-    ScenarioContext.setInLayer("api", "authToken", token);
-    ScenarioContext.setInLayer("api", "username", username);
-    
-    TestLogger.logInfo("API", "Token guardado en contexto", null);
+// ApiSteps.java
+@Given("creo usuario via API")
+public void crearUsuario() {
+    String userId = apiClient.post("/users", userData).get("id");
+    ScenarioContext.set("userId", userId);  // ← Compartir a Web
+}
+
+// WebSteps.java
+@When("navego al perfil del usuario creado")
+public void navegarPerfil() {
+    String userId = ScenarioContext.get("userId");  // ← Recibir de API
+    driver.get("https://app.com/profile/" + userId);
 }
 ```
 
-**Web Steps:**
+#### 3. Compartir Test Data
+
 ```java
-@When("navego a dashboard usando token guardado")
-public void navegoADashboard() {
-    // Obtener token que guardó API
-    String token = (String) ScenarioContext.getFromLayer("api", "authToken");
-    
-    driver.get("https://app.example.com/dashboard");
-    
-    // Inyectar token en localStorage
-    ((JavascriptExecutor) driver).executeScript(
-        "localStorage.setItem('authToken', '" + token + "');"
-    );
-    
-    driver.navigate().refresh();
-    TestLogger.logInfo("WEB", "Dashboard cargado con token de API", null);
+// UserFinderSteps.java (@database)
+@Given("usuario con cuenta activa")
+public void usuarioConCuentaActiva() {
+    TestUser user = userFinder.findUserWith("cuenta-activa");
+    ScenarioContext.set("testUser", user);  // ← Guardar usuario
 }
 
-@Then("verifico que el usuario logueado sea {string}")
-public void verificoUsuario(String expectedUsername) {
-    String actualUsername = driver.findElement(By.id("username")).getText();
-    
-    // También podemos obtener del contexto
-    String usernameFromAPI = (String) ScenarioContext.getFromLayer("api", "username");
-    
-    assertThat(actualUsername).isEqualTo(expectedUsername);
-    assertThat(actualUsername).isEqualTo(usernameFromAPI);
+// LoginSteps.java (@web)
+@When("me autentico con el usuario de prueba")
+public void autenticar() {
+    TestUser user = ScenarioContext.get("testUser");  // ← Usar usuario
+    loginPage.login(user.getUsername(), user.getPassword());
 }
 ```
 
-#### 🧹 Limpieza Automática
-
-El framework limpia automáticamente el ScenarioContext usando hooks:
+### Métodos Principales
 
 ```java
-@After
-public void cleanupScenarioContext(Scenario scenario) {
-    ScenarioContext.clearAll();
-    TestLogger.logDebug("HOOKS", "ScenarioContext limpiado", null);
-}
+// Guardar dato
+ScenarioContext.set("key", value);
+
+// Recuperar dato
+String value = ScenarioContext.get("key");
+
+// Verificar existencia
+boolean exists = ScenarioContext.has("key");
+
+// Remover dato
+ScenarioContext.remove("key");
+
+// Limpiar todo (se hace automáticamente después de cada escenario)
+ScenarioContext.clear();
 ```
 
-**No necesitas** limpiar manualmente, pero puedes hacerlo si quieres:
+### Gestión Automática
+
+**ScenarioContextHooks** limpia automáticamente el contexto:
 
 ```java
-// Limpiar solo API layer
-ScenarioContext.clearLayer("api");
-
-// Limpiar todo
-ScenarioContext.clearAll();
-```
-
----
-
-### HTTP Client Base
-
-#### 🌐 BaseHttpClient
-
-Cliente HTTP genérico basado en **Unirest** para comunicación con servicios REST.
-
-#### 🎯 Características
-
-- ✅ **Unirest-powered** - Cliente HTTP robusto
-- ✅ **SSL flexible** - Soporta certificados auto-firmados
-- ✅ **Logging automático** de requests/responses
-- ✅ **Headers management**
-- ✅ **JSON/XML support**
-- ✅ **Timeouts configurables**
-
-#### 📝 Uso Básico
-
-```java
-import com.scotia.qa.common.http.BaseHttpClient;
-import kong.unirest.HttpResponse;
-import kong.unirest.JsonNode;
-
-public class MyApiClient extends BaseHttpClient {
-    
-    public MyApiClient() {
-        super("https://api.example.com");
-    }
-    
-    public HttpResponse<JsonNode> login(String user, String pass) {
-        return post("/auth/login", 
-            Map.of("username", user, "password", pass));
-    }
-    
-    public HttpResponse<JsonNode> getUserData(String userId) {
-        return get("/users/" + userId);
-    }
-}
-```
-
-#### 🔧 Métodos Disponibles
-
-```java
-// GET request
-HttpResponse<JsonNode> response = get("/endpoint");
-
-// POST request con body
-HttpResponse<JsonNode> response = post("/endpoint", bodyMap);
-
-// PUT request
-HttpResponse<JsonNode> response = put("/endpoint", bodyMap);
-
-// DELETE request
-HttpResponse<JsonNode> response = delete("/endpoint");
-
-// Con headers custom
-addHeader("Authorization", "Bearer " + token);
-HttpResponse<JsonNode> response = get("/protected");
-```
-
----
-
-### Cucumber Hooks
-
-#### 🥒 ScenarioContextHooks
-
-Hooks automáticos para gestión del ciclo de vida de tests.
-
-```java
-package com.scotia.qa.common.cucumber;
-
-public class ScenarioContextHooks {
-    
-    @Before
-    public void beforeScenario(Scenario scenario) {
-        // Inicializar contexto de logging
-        LoggingInitializer.setTestContext(scenario.getName());
-        
-        TestLogger.logInfo("SCENARIO_START", 
-            "Iniciando escenario: " + scenario.getName(), 
-            Map.of("tags", scenario.getSourceTagNames()));
-    }
-    
-    @After
-    public void afterScenario(Scenario scenario) {
-        // Limpiar ScenarioContext
-        ScenarioContext.clearAll();
-        
-        // Log final
-        if (scenario.isFailed()) {
-            TestLogger.logError("SCENARIO_FAILED", 
-                "Escenario falló: " + scenario.getName(), null);
-        } else {
-            TestLogger.logInfo("SCENARIO_PASSED", 
-                "Escenario exitoso: " + scenario.getName(), null);
-        }
-        
-        // Limpiar contexto de logging
-        LoggingInitializer.clearTestContext();
-    }
+@After(order = 999)  // Se ejecuta al final
+public void cleanupContext(Scenario scenario) {
+    ScenarioContext.clear();  // ← Limpieza automática
 }
 ```
 
 ---
 
-### Security & Sanitization
+## 🌐 HTTP Client Base
 
-#### 🔒 DataSanitizer
+### BaseHttpClient
 
-Utilidad para sanitizar y enmascarar datos sensibles.
+Cliente HTTP genérico basado en **Unirest** con configuración para testing.
+
+### Características
+
+- ✅ SSL deshabilitado para entornos de prueba
+- ✅ Timeouts configurables
+- ✅ Headers predefinidos
+- ✅ Logging automático de requests/responses
+- ✅ Manejo de errores centralizado
+
+### Uso Básico
 
 ```java
-import com.scotia.qa.common.security.DataSanitizer;
+BaseHttpClient client = new BaseHttpClient();
 
-// Enmascarar passwords
-String sanitized = DataSanitizer.maskSensitiveData(
-    "password=MySecret123&token=abc123"
+// GET
+HttpResponse<String> response = client.get("https://api.test.com/users");
+
+// POST
+String body = "{\"name\": \"John\"}";
+HttpResponse<String> response = client.post("https://api.test.com/users", body);
+
+// Headers personalizados
+client.addHeader("Authorization", "Bearer token123");
+client.get("https://api.test.com/protected");
+```
+
+### Configuración SSL
+
+```java
+// SSL ya viene deshabilitado para testing
+// Si necesitas habilitarlo:
+SSLUtils.enableSSLVerification();
+```
+
+---
+
+## 🥒 Cucumber Hooks
+
+### Sistema de Hooks Condicionales
+
+Common implementa **inicialización condicional** basada en **tags de Cucumber**.
+
+### Hooks Disponibles
+
+| Hook | Tag Requerido | Qué Inicializa |
+|------|---------------|----------------|
+| `ApiHooks` | `@api`, `@rest`, `@http` | HttpClient (lazy) |
+| `WebHooks` | `@web`, `@ui`, `@selenium` | WebDriver |
+| `MobileHooks` | `@mobile`, `@android`, `@ios` | AppiumDriver |
+| `DatabaseHooks` | `@database`, `@db`, `@sql` | DatabaseConnector (lazy) |
+
+### Orden de Ejecución
+
+```
+@Before (order = 10) → Detectar tags
+@Before (order = 20) → Inicializar componentes según tags
+@After (order = 999) → Limpiar ScenarioContext
+@After (order = 1000) → Cerrar conexiones
+```
+
+### Ejemplo de Uso
+
+```gherkin
+@web @api
+Scenario: Flujo híbrido Web + API
+  Given navego a la página de login          # ← WebDriver activo
+  When me autentico
+  Then valido en API que la sesión existe    # ← HttpClient activo
+```
+
+**Resultado:**
+- ✅ WebDriver se inicializa (por `@web`)
+- ✅ HttpClient se inicializa (por `@api`)
+- ❌ AppiumDriver NO se inicializa (sin `@mobile`)
+- ❌ Database NO se inicializa (sin `@database`)
+
+---
+
+## 🏷️ Guía de Tags para Hooks
+
+### Tags Soportados por Capa
+
+#### 🌐 Web Testing
+
+**Tags:** `@web`, `@ui`, `@selenium`, `@browser`
+
+**Inicializa:**
+- WebDriver (Selenium)
+- Navegador configurado
+- Page Objects
+- Screenshots automáticos
+
+**Ejemplo:**
+```gherkin
+@web @smoke
+Scenario: Login exitoso
+  Given navego a "https://qa.banking.com/login"
+  When ingreso credenciales válidas
+  Then veo el dashboard
+```
+
+#### 🔌 API Testing
+
+**Tags:** `@api`, `@rest`, `@http`, `@service`
+
+**Inicializa:**
+- HttpClient (lazy)
+- Gestión de headers
+- SSL configurado para testing
+
+**Ejemplo:**
+```gherkin
+@api @integration
+Scenario: Consulta de usuarios
+  Given configuro el endpoint "/users"
+  When ejecuto GET request
+  Then el código de respuesta es 200
+```
+
+#### 📱 Mobile Testing
+
+**Tags:** `@mobile`, `@android`, `@ios`, `@appium`
+
+**Inicializa:**
+- AppiumDriver
+- Gestures móviles
+- Context switching (NATIVE/WEBVIEW)
+
+**Ejemplo:**
+```gherkin
+@mobile @smoke
+Scenario: Login en app móvil
+  Given abro la aplicación móvil
+  When ingreso credenciales
+  Then veo el home
+```
+
+#### 💾 Database Testing
+
+**Tags:** `@database`, `@db`, `@sql`
+
+**NO inicializa automáticamente** - La conexión se crea lazy al usar `UserFinderService`.
+
+**Ejemplo:**
+```gherkin
+@database @testdata
+Scenario: Buscar usuario con cuenta activa
+  Given usuario con cuenta activa
+  Then valido que tiene saldo disponible
+```
+
+### Combinaciones (Tests Híbridos)
+
+#### Web + API
+
+```gherkin
+@web @api @e2e
+Scenario: Transferencia con validación backend
+  Given navego a la página de transferencias
+  When realizo transferencia de $100
+  Then veo confirmación en pantalla
+  And valido en API que el movimiento se registró
+```
+
+#### Mobile + API
+
+```gherkin
+@mobile @api @integration
+Scenario: Pago en app con validación
+  Given abro la app de pagos
+  When realizo un pago
+  Then veo confirmación
+  And valido en API el débito
+```
+
+#### Web + API + Database
+
+```gherkin
+@web @api @database @e2e
+Scenario: Flujo completo de registro
+  Given usuario nuevo desde base de datos
+  When registro usuario en web
+  Then valido creación en API
+  And valido registro en BD
+```
+
+### ⚠️ Reglas Importantes
+
+#### 1. Siempre Agregar el Tag Correcto
+
+❌ **MAL:**
+```gherkin
+Scenario: Login en web
+  Given navego a "https://..."
+```
+**Problema:** Sin tag `@web`, WebDriver NO se inicializa → Test falla
+
+✅ **BIEN:**
+```gherkin
+@web
+Scenario: Login en web
+  Given navego a "https://..."
+```
+
+#### 2. Usar Múltiples Tags para Tests Híbridos
+
+```gherkin
+@web @api  # ← Ambos tags necesarios
+Scenario: Test que usa Web y API
+```
+
+#### 3. Tags Específicos de Móvil
+
+```gherkin
+@mobile @android  # Para Android
+@mobile @ios      # Para iOS
+```
+
+---
+
+## 🔒 Seguridad y Sanitización
+
+### DataSanitizer
+
+Elimina o enmascara datos sensibles antes de logging.
+
+```java
+// Sanitizar JSON con passwords
+String json = "{\"user\":\"john\", \"password\":\"secret123\"}";
+String sanitized = DataSanitizer.sanitizeJson(json);
+// Resultado: {"user":"john", "password":"***MASKED***"}
+
+// Sanitizar URLs con query params sensibles
+String url = "https://api.com?token=abc123&key=secret";
+String sanitized = DataSanitizer.sanitizeUrl(url);
+// Resultado: https://api.com?token=***&key=***
+```
+
+### EncryptionUtils
+
+Encriptación básica para almacenamiento temporal.
+
+```java
+// Encriptar
+String encrypted = EncryptionUtils.encrypt("myPassword");
+
+// Desencriptar
+String decrypted = EncryptionUtils.decrypt(encrypted);
+```
+
+---
+
+## ⚙️ Gestión de Configuraciones
+
+### ConfigManager
+
+Singleton para gestionar configuraciones desde múltiples fuentes.
+
+### Prioridad de Carga
+
+```
+1. System Properties (-Dkey=value)
+2. Environment Variables (export KEY=value)
+3. Archivos .properties (config-qa.properties)
+4. Valores por defecto
+```
+
+### Uso
+
+```java
+// Obtener instancia
+ConfigManager config = ConfigManager.getInstance();
+
+// Leer valores
+String dbUrl = config.get("db.url");
+String timeout = config.get("api.timeout", "30000");  // Con default
+
+// Verificar existencia
+if (config.has("db.url")) {
+    // ...
+}
+```
+
+### Archivo de Configuración
+
+**`config-scotia.properties`:**
+
+```properties
+# Base de Datos
+db.url=jdbc:oracle:thin:@//qa-db:1521/XE
+db.username=${DB_USER}
+db.password=${DB_PASS}
+db.driver=oracle.jdbc.OracleDriver
+
+# API
+api.base.url=https://api-qa.scotia.com
+api.timeout=30000
+
+# Web
+web.base.url=https://qa.scotia.com
+web.browser=chrome
+web.headless=true
+```
+
+### Variables de Entorno
+
+**`.env.local`:**
+
+```bash
+# Base de Datos
+DB_USER=test_user
+DB_PASS=test_password
+
+# API
+API_TOKEN=your_token_here
+```
+
+---
+
+## 💾 Conexión a Base de Datos
+
+### Componentes
+
+#### 1. DbConnectorFactory
+
+Factory para crear conectores de BD.
+
+```java
+// Crear conector desde ConfigManager
+DatabaseConnector connector = DbConnectorFactory.createFromConfig();
+
+// Crear conector con parámetros directos
+DatabaseConnector connector = DbConnectorFactory.create(
+    "jdbc:oracle:thin:@//localhost:1521/XE",
+    "user",
+    "password",
+    "oracle.jdbc.OracleDriver"
 );
-// Resultado: "password=*******&token=***"
-
-// Remover caracteres peligrosos (prevenir inyección)
-String safe = DataSanitizer.removeDangerousChars("<script>alert(1)</script>");
-// Resultado: "scriptalert1script"
-
-// Validar formato de email
-boolean isValid = DataSanitizer.isValidEmail("user@example.com");
 ```
 
----
+#### 2. Conectores Específicos
 
-### Data Utilities
+- `OracleConnector` - Oracle DB
+- `PostgresConnector` - PostgreSQL
+- `MySQLConnector` - MySQL
+- `SQLServerConnector` - SQL Server
 
-#### 🛠️ DataUtilities
+#### 3. QueryRepository
 
-Utilidades para manejo de datos comunes.
+Ejecuta queries genéricas.
 
 ```java
-import com.scotia.qa.common.utils.DataUtilities;
+QueryRepository repo = new QueryRepository(connector);
 
-// Generar timestamps
-String timestamp = DataUtilities.generateTimestamp();
-String date = DataUtilities.generateDate("yyyy-MM-dd");
+// Query que retorna mapa
+Map<String, Object> result = repo.queryForMap("SELECT * FROM users WHERE id = ?", userId);
 
-// Manipular JSON
-Map<String, Object> jsonMap = DataUtilities.parseJson(jsonString);
-String jsonString = DataUtilities.toJson(map);
+// Query que retorna lista
+List<Map<String, Object>> results = repo.queryForList("SELECT * FROM users WHERE status = ?", "ACTIVE");
+```
 
-// Obtener valores de JSON usando JSON Path
-String value = DataUtilities.getValueFromJson(json, "$.user.name");
+### Pool de Conexiones
 
-// Generar datos aleatorios
-String randomEmail = DataUtilities.generateRandomEmail();
-String randomPhone = DataUtilities.generateRandomPhone();
-int randomNumber = DataUtilities.generateRandomNumber(1, 100);
+Usa **HikariCP** para pool de conexiones:
+
+```properties
+db.pool.size.min=2
+db.pool.size.max=10
+db.pool.connectionTimeout=30000
 ```
 
 ---
 
-## 🚀 Cómo Usar Common
+## 🔍 Test Data Finder
 
-### Agregar Dependencia
+### ¿Qué es?
 
-En el `build.gradle` de tu módulo:
+Sistema para **buscar usuarios de prueba** en base de datos según características específicas.
+
+### Componentes
+
+#### 1. UserFinderService
+
+```java
+// Inicializar (lee configuración automáticamente)
+UserFinderService userFinder = new UserFinderService("test-data-queries.yml");
+
+// Buscar usuario con característica
+TestUser user = userFinder.findUserWith("cuenta-activa");
+
+// Usar usuario
+System.out.println(user.getUserId());
+System.out.println(user.getUsername());
+System.out.println(user.getPassword());
+```
+
+#### 2. test-data-queries.yml
+
+Define queries para diferentes tipos de usuarios.
+
+```yaml
+queries:
+  cuenta-activa:
+    sql: |
+      SELECT user_id, username, password, email, phone
+      FROM test_users u
+      INNER JOIN accounts a ON u.user_id = a.user_id
+      WHERE a.status = 'ACTIVE' 
+        AND a.balance > 0
+        AND u.reserved_by IS NULL
+      LIMIT 1
+    description: "Usuario con cuenta activa"
+  
+  tarjeta-credito:
+    sql: |
+      SELECT user_id, username, password, email, phone
+      FROM test_users u
+      INNER JOIN credit_cards cc ON u.user_id = cc.user_id
+      WHERE cc.status = 'ACTIVE'
+        AND u.reserved_by IS NULL
+      LIMIT 1
+    description: "Usuario con tarjeta de crédito"
+```
+
+#### 3. TestUser Model
+
+```java
+public class TestUser {
+    private String userId;
+    private String username;
+    private String password;
+    private String email;
+    private String phone;
+    private Map<String, Object> additionalData;
+    
+    // Getters...
+}
+```
+
+#### 4. UserFinderSteps (Cucumber)
+
+Steps predefinidos para usar en features.
+
+```gherkin
+@database
+Scenario: Login con usuario de prueba
+  Given usuario con "cuenta-activa"            # ← Step del framework
+  When me autentico con el usuario de prueba   # ← Usa ScenarioContext
+  Then veo el dashboard
+```
+
+```java
+// El step guarda el usuario en ScenarioContext automáticamente
+@Given("usuario con {string}")
+public void usuarioConCaracteristica(String caracteristica) {
+    TestUser user = userFinder.findUserWith(caracteristica);
+    ScenarioContext.set("testUser", user);
+}
+```
+
+### Implementación en Módulos
+
+#### PASO 1: Agregar Dependencias
 
 ```groovy
 dependencies {
-    implementation 'com.scotia.qa:common:1.0.2'
+    implementation 'com.scotia.qa:common:1.0.0'
 }
 ```
 
-### Setup Inicial
+#### PASO 2: Crear test-data-queries.yml
+
+Ubicación: `src/test/resources/test-data-queries.yml`
+
+#### PASO 3: Configurar BD
+
+```properties
+# config-scotia.properties
+db.url=jdbc:oracle:thin:@//testdb:1521/TESTDB
+db.username=${DB_USER}
+db.password=${DB_PASS}
+```
+
+#### PASO 4: Usar en Steps
 
 ```java
-import com.scotia.qa.common.logging.LoggingInitializer;
-import com.scotia.qa.common.cucumber.ScenarioContext;
+@Given("usuario con cuenta activa")
+public void usuarioConCuentaActiva() {
+    TestUser user = userFinder.findUserWith("cuenta-activa");
+    ScenarioContext.set("testUser", user);
+}
+```
 
-@BeforeAll
-public static void setupFramework() {
-    // Inicializar logging para tu módulo
-    LoggingInitializer.initModuleContext("BANKING");
+---
+
+## 🔄 Ejemplo de Flujo Completo
+
+### Arquitectura del Flujo
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  MÓDULO qa-banking (repositorio independiente)              │
+└──────────────────────────────────────────────────────────────┘
+         │
+         │ 1. Lee configuraciones
+         ↓
+┌──────────────────────────────────────────────────────────────┐
+│  ConfigManager (common/config/)                              │
+│  └─→ config-qa.properties                                    │
+│      ├─ db.url=jdbc:oracle:thin:@//qa-db:1521/XE           │
+│      ├─ db.username=${DB_USER}                              │
+│      └─ db.password=${DB_PASS}                              │
+└──────────────────────────────────────────────────────────────┘
+         │
+         │ 2. Pasa config a Database
+         ↓
+┌──────────────────────────────────────────────────────────────┐
+│  DbConnectorFactory (common/database/factory/)               │
+│  └─→ OracleConnector                                         │
+│      └─→ HikariDataSource                                    │
+│          └─→ Connection a Oracle DB                          │
+└──────────────────────────────────────────────────────────────┘
+         │
+         │ 3. Connection disponible
+         ↓
+┌──────────────────────────────────────────────────────────────┐
+│  UserFinderService (common/utils/testdata/)                  │
+│  └─→ Carga test-data-queries.yml                            │
+│      └─→ Ejecuta query con QueryRepository                  │
+│          └─→ Retorna TestUser                                │
+└──────────────────────────────────────────────────────────────┘
+         │
+         │ 4. TestUser listo
+         ↓
+┌──────────────────────────────────────────────────────────────┐
+│  LoginSteps (módulo qa-banking)                              │
+│  └─→ Usa TestUser en escenarios Cucumber                    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Feature de Ejemplo
+
+```gherkin
+@web @api @database @e2e
+Feature: Login y validación completa
+
+  Scenario: Login con usuario de BD y validar en API
+    # 1. Test Data Finder busca usuario
+    Given usuario con "cuenta-activa"
+    
+    # 2. Web usa el usuario encontrado
+    And navego a "https://qa.banking.com/login"
+    When me autentico con el usuario de prueba
+    Then veo el dashboard
+    
+    # 3. API valida la sesión
+    And valido en API que la sesión está activa
+```
+
+### Steps Implementados
+
+```java
+// DatabaseSteps.java
+@Given("usuario con {string}")
+public void buscarUsuario(String caracteristica) {
+    TestUser user = userFinder.findUserWith(caracteristica);
+    ScenarioContext.set("testUser", user);
+    TestLogger.logInfo("USER_FOUND", "Usuario encontrado", 
+        Map.of("userId", user.getUserId()));
 }
 
-@Before
-public void beforeEachTest(Scenario scenario) {
-    // Contexto por test
-    LoggingInitializer.setTestContext(scenario.getName());
+// WebSteps.java
+@When("me autentico con el usuario de prueba")
+public void autenticar() {
+    TestUser user = ScenarioContext.get("testUser");
+    loginPage.login(user.getUsername(), user.getPassword());
 }
 
-@After
-public void afterEachTest() {
-    // Limpiar
-    ScenarioContext.clearAll();
-    LoggingInitializer.clearTestContext();
+// ApiSteps.java
+@Then("valido en API que la sesión está activa")
+public void validarSesion() {
+    TestUser user = ScenarioContext.get("testUser");
+    Response response = apiClient.get("/sessions/" + user.getUserId());
+    assertThat(response.jsonPath().getString("status")).isEqualTo("ACTIVE");
 }
 ```
 
@@ -599,218 +947,134 @@ public void afterEachTest() {
 
 ## 💡 Ejemplos Prácticos
 
-### Ejemplo 1: Flujo API → Web Completo
+### Ejemplo 1: Test Híbrido Web + API
 
 ```gherkin
-Feature: Proceso de compra E-commerce
+@web @api
+Feature: Transferencias
 
-  Scenario: Crear orden en API y validar en Web
-    # API: Crear orden
-    Given creo una orden en API con producto "Laptop"
-    And guardo el ID de orden como "orderId"
-    And guardo el monto total como "totalAmount"
-    
-    # Web: Verificar orden
-    When navego al portal de administración
-    And busco la orden con ID guardado
-    Then verifico que el monto sea el guardado
-    And verifico que el estado sea "Pendiente"
+  Scenario: Transferencia con validación backend
+    Given usuario con "cuenta-con-saldo"
+    And navego a transferencias
+    When transfiero $100 a cuenta "123456"
+    Then veo mensaje de confirmación
+    And valido en API que se registró el movimiento
 ```
 
-**Implementación:**
+### Ejemplo 2: Test con Test Data
 
-```java
-// API Steps
-@Given("creo una orden en API con producto {string}")
-public void creoOrdenAPI(String producto) {
-    Map<String, Object> orderData = Map.of(
-        "product", producto,
-        "quantity", 1,
-        "customer", "john.doe@example.com"
-    );
-    
-    HttpResponse<JsonNode> response = apiClient.post("/orders", orderData);
-    
-    String orderId = response.getBody().getObject().getString("orderId");
-    double totalAmount = response.getBody().getObject().getDouble("total");
-    
-    // Guardar en contexto para Web
-    ScenarioContext.setInLayer("api", "orderId", orderId);
-    ScenarioContext.setInLayer("api", "totalAmount", totalAmount);
-    
-    TestLogger.logInfo("API", "Orden creada: " + orderId, null);
-}
+```gherkin
+@database @web
+Feature: Productos
 
-// Web Steps
-@When("busco la orden con ID guardado")
-public void buscoOrden() {
-    String orderId = (String) ScenarioContext.getFromLayer("api", "orderId");
-    
-    driver.get("https://admin.example.com/orders");
-    driver.findElement(By.id("searchBox")).sendKeys(orderId);
-    driver.findElement(By.id("searchButton")).click();
-    
-    TestLogger.logInfo("WEB", "Buscando orden: " + orderId, null);
-}
-
-@Then("verifico que el monto sea el guardado")
-public void verificoMonto() {
-    Double expectedAmount = (Double) ScenarioContext.getFromLayer("api", "totalAmount");
-    
-    String actualAmount = driver.findElement(By.id("orderTotal")).getText();
-    assertThat(Double.parseDouble(actualAmount)).isEqualTo(expectedAmount);
-}
+  Scenario: Solicitar tarjeta
+    Given usuario sin "tarjeta-credito"
+    And navego a solicitudes
+    When solicito tarjeta de crédito
+    Then veo confirmación de solicitud
 ```
 
-### Ejemplo 2: Compartir Datos Entre Steps
+### Ejemplo 3: Test E2E Completo
 
-```java
-@Given("genero datos de usuario aleatorios")
-public void generoDatosAleatorios() {
-    Map<String, Object> userData = Map.of(
-        "email", DataUtilities.generateRandomEmail(),
-        "phone", DataUtilities.generateRandomPhone(),
-        "timestamp", DataUtilities.generateTimestamp()
-    );
-    
-    // Guardar en contexto
-    userData.forEach((key, value) -> 
-        ScenarioContext.setInLayer("common", key, value));
-    
-    TestLogger.logInfo("SETUP", "Datos aleatorios generados", userData);
-}
+```gherkin
+@web @api @database @e2e
+Feature: Registro completo
 
-@When("registro usuario con datos generados")
-public void registroUsuario() {
-    String email = (String) ScenarioContext.getFromLayer("common", "email");
-    String phone = (String) ScenarioContext.getFromLayer("common", "phone");
-    
-    // Usar datos en el registro...
-}
+  Scenario: Registro de usuario nuevo
+    Given usuario nuevo desde base de datos
+    When completo formulario de registro en web
+    Then veo bienvenida
+    And valido en API que el usuario existe
+    And valido en BD que se crearon sus productos por defecto
 ```
 
 ---
 
 ## ⚠️ Troubleshooting
 
-### Problema: Logs no aparecen
+### Error: "WebDriver no inicializado"
+
+**Causa:** Falta tag `@web` en el escenario.
+
+**Solución:**
+```gherkin
+@web  # ← Agregar tag
+Scenario: Test web
+```
+
+### Error: "No se encontró config-scotia.properties"
+
+**Causa:** Archivo no está en `src/test/resources/`
+
+**Solución:**
+```bash
+# Copiar template
+cp common/src/main/resources/templates/config-scotia.properties.template \
+   src/test/resources/config-scotia.properties
+```
+
+### Error: "Database connection failed"
+
+**Causa:** Variables de entorno no cargadas.
+
+**Solución:**
+```bash
+# Cargar .env.local
+source .env.local
+./gradlew test
+```
+
+### Error: "TestUser es null"
+
+**Causa:** Query no retornó resultados.
+
+**Solución:**
+- Verificar que hay datos de prueba en BD
+- Revisar query en `test-data-queries.yml`
+- Verificar conexión a BD
+
+### Error: "ScenarioContext.get() retorna null"
+
+**Causa:** Dato no fue guardado antes con `set()`.
 
 **Solución:**
 ```java
-// Verificar que inicializaste el módulo
-LoggingInitializer.initModuleContext("TU_MODULO");
-
-// Verificar nivel de logging en logback.xml
-<root level="INFO">  <!-- Cambiar a DEBUG si necesitas más detalle -->
-```
-
-### Problema: Variables no se comparten entre capas
-
-**Solución:**
-```java
-// ✅ CORRECTO - Usar getFromAnyLayer()
-String value = (String) ScenarioContext.getFromAnyLayer("miVariable");
-
-// ❌ INCORRECTO - Capa específica incorrecta
-String value = (String) ScenarioContext.getFromLayer("web", "miVariable");
-// Si la guardaste en "api", no la encontrará
-```
-
-### Problema: "Cannot resolve symbol 'ScenarioContext'"
-
-**Solución:**
-```groovy
-// Verificar dependencia en build.gradle
-dependencies {
-    implementation 'com.scotia.qa:common:1.0.2'
+// Siempre verificar antes de usar
+if (ScenarioContext.has("key")) {
+    String value = ScenarioContext.get("key");
+} else {
+    throw new RuntimeException("Dato no disponible en contexto");
 }
-
-// Reimportar en IDE
-./gradlew clean build --refresh-dependencies
 ```
 
 ---
 
-## 📚 API Reference
+## 📚 Recursos Adicionales
 
-### TestLogger
+### Documentación Relacionada
 
-| Método | Descripción | Ejemplo |
-|--------|-------------|---------|
-| `logDebug(tag, msg, context)` | Log nivel DEBUG | `TestLogger.logDebug("DEBUG", "Variable x = " + x, null)` |
-| `logInfo(tag, msg, context)` | Log nivel INFO | `TestLogger.logInfo("AUTH", "Login exitoso", null)` |
-| `logWarning(tag, msg, context)` | Log nivel WARN | `TestLogger.logWarning("VALIDATION", "Campo vacío", null)` |
-| `logError(tag, msg, exception)` | Log nivel ERROR | `TestLogger.logError("EXCEPTION", "Error BD", e)` |
+- **Framework General:** `/documentacion/FRAMEWORK-GUIDE.md`
+- **Quick Start:** `/documentacion/QUICK-START.md`
+- **API Core:** `/api-core/README.md`
+- **Web Core:** `/web-core/README.md`
+- **Mobile Core:** `/mobile-core/README.md`
+- **Scripts:** `/scripts/README.md`
 
-### ScenarioContext
+### Dependencias Principales
 
-| Método | Descripción | Retorno |
-|--------|-------------|---------|
-| `setInLayer(layer, key, value)` | Guardar en capa específica | `void` |
-| `getFromLayer(layer, key)` | Obtener de capa específica | `Object` |
-| `getFromAnyLayer(key)` | Buscar en todas las capas | `Object` |
-| `getAllFromAllLayers()` | Obtener todos los datos | `Map<String, Object>` |
-| `clearLayer(layer)` | Limpiar una capa | `void` |
-| `clearAll()` | Limpiar todo | `void` |
-
-### DataUtilities
-
-| Método | Descripción | Retorno |
-|--------|-------------|---------|
-| `generateTimestamp()` | Timestamp actual | `String` |
-| `generateDate(format)` | Fecha formateada | `String` |
-| `generateRandomEmail()` | Email aleatorio | `String` |
-| `generateRandomPhone()` | Teléfono aleatorio | `String` |
-| `generateRandomNumber(min, max)` | Número aleatorio | `int` |
-| `parseJson(jsonString)` | Parsear JSON a Map | `Map<String, Object>` |
-| `toJson(map)` | Convertir Map a JSON | `String` |
-| `getValueFromJson(json, path)` | Extraer valor con JSONPath | `String` |
+| Dependencia | Versión | Propósito |
+|-------------|---------|-----------|
+| Java | 21 | Lenguaje base |
+| Cucumber | 7.18.0 | BDD Framework |
+| SLF4J/Logback | 2.0.x | Logging |
+| Unirest | 3.14.5 | HTTP Client |
+| HikariCP | 5.1.0 | Connection Pool |
+| Jackson | 2.15.x | JSON parsing |
 
 ---
 
-## 📦 Dependencias Incluidas
-
-Common incluye estas dependencias que están disponibles para todos los módulos:
-
-| Librería | Versión | Propósito |
-|----------|---------|-----------|
-| **SLF4J** | 2.0.9 | Logging facade |
-| **Logback** | 1.5.13 | Implementación de logging |
-| **Jansi** | 2.4.0 | Colores en consola |
-| **Jackson** | 2.15.2 | JSON processing |
-| **Unirest** | 4.4.4 | HTTP client |
-| **Cucumber** | 7.18.0 | BDD framework |
-| **JUnit** | 5.10.0 | Testing framework |
-| **Commons Lang3** | 3.18.0 | Utilidades Java |
-| **JSON Path** | 2.9.0 | Query JSON |
-
----
-
-## 🔗 Enlaces Relacionados
-
-- **[Framework Guide](../FRAMEWORK-GUIDE.md)** - Guía completa del framework
-- **[API Core](../api-core/README.md)** - Framework para APIs REST
-- **[Web Core](../web-core/README.md)** - Framework para Web UI
-- **[Troubleshooting](../TROUBLESHOOTING.md)** - Solución de problemas
-- **[Contributing](../CONTRIBUTING.md)** - Guía de contribución
-
----
-
-## 📞 Soporte
-
-¿Problemas con Common?
-
-- 📧 Email: qa-team@scotiabank.com
-- 💬 Slack: #qa-automation
-- 📝 Issues: [GitHub Issues](https://github.com/scotia-qa/qa-scotia-frameworks/issues)
-
----
-
-<div align="center">
-
-**[⬆ Volver arriba](#-common---capa-base-del-framework)**
-
-**Versión:** 1.0.2 | **Autor:** Abel Venero | **QA Team - Scotia Bank**
-
-</div>
+**Versión:** 1.0.0  
+**Fecha:** 28 de Noviembre de 2025  
+**Autor:** Abel Venero  
+**Framework:** Scotia QA Framework
 
