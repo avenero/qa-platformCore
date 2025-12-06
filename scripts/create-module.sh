@@ -148,26 +148,59 @@ create_module_structure() {
 }
 
 copy_scripts() {
-    log_section "📜 Copiando Scripts de Testing"
+    log_section "📜 Copiando Scripts de Testing (Cross-Platform)"
 
-    if [[ -f "${FRAMEWORK_DIR}/scripts/run-test.sh" ]]; then
-        cp "${FRAMEWORK_DIR}/scripts/run-test.sh" "${MODULE_DIR}/scripts/"
-        chmod +x "${MODULE_DIR}/scripts/run-test.sh"
-        log_success "run-test.sh copiado"
-    fi
-
+    # Scripts CORE (utils) - Se extraen desde JAR con sync-utils
+    # Estos se copian inicialmente pero se actualizarán con sync-utils
     if [[ -f "${FRAMEWORK_DIR}/scripts/utils.sh" ]]; then
         cp "${FRAMEWORK_DIR}/scripts/utils.sh" "${MODULE_DIR}/scripts/"
+        chmod +x "${MODULE_DIR}/scripts/utils.sh"
         log_success "utils.sh copiado"
     fi
 
-    if [[ -f "${FRAMEWORK_DIR}/scripts/update-scripts.sh" ]]; then
-        cp "${FRAMEWORK_DIR}/scripts/update-scripts.sh" "${MODULE_DIR}/scripts/"
-        chmod +x "${MODULE_DIR}/scripts/update-scripts.sh"
-        log_success "update-scripts.sh copiado"
+    if [[ -f "${FRAMEWORK_DIR}/scripts/utils.ps1" ]]; then
+        cp "${FRAMEWORK_DIR}/scripts/utils.ps1" "${MODULE_DIR}/scripts/"
+        log_success "utils.ps1 copiado (Windows/PowerShell)"
     fi
 
-    log_success "Scripts de testing copiados"
+    # Scripts de sincronización (mantener scripts actualizados)
+    if [[ -f "${FRAMEWORK_DIR}/scripts/sync-utils.sh" ]]; then
+        cp "${FRAMEWORK_DIR}/scripts/sync-utils.sh" "${MODULE_DIR}/scripts/"
+        chmod +x "${MODULE_DIR}/scripts/sync-utils.sh"
+        log_success "sync-utils.sh copiado (Bash)"
+    fi
+
+    if [[ -f "${FRAMEWORK_DIR}/scripts/sync-utils.ps1" ]]; then
+        cp "${FRAMEWORK_DIR}/scripts/sync-utils.ps1" "${MODULE_DIR}/scripts/"
+        log_success "sync-utils.ps1 copiado (PowerShell)"
+    fi
+
+    # Scripts de ejecución de tests
+    if [[ -f "${FRAMEWORK_DIR}/scripts/run-test.sh" ]]; then
+        cp "${FRAMEWORK_DIR}/scripts/run-test.sh" "${MODULE_DIR}/scripts/"
+        chmod +x "${MODULE_DIR}/scripts/run-test.sh"
+        log_success "run-test.sh copiado (Bash)"
+    fi
+
+    if [[ -f "${FRAMEWORK_DIR}/scripts/run-test.ps1" ]]; then
+        cp "${FRAMEWORK_DIR}/scripts/run-test.ps1" "${MODULE_DIR}/scripts/"
+        log_success "run-test.ps1 copiado (PowerShell)"
+    fi
+
+    # NOTA: update-scripts.sh está DEPRECADO y ya no se copia
+    # Usar sync-utils.sh/ps1 en su lugar
+
+    echo ""
+    log_info "Scripts disponibles para macOS/Linux:"
+    echo "  • run-test.sh - Ejecutar tests"
+    echo "  • sync-utils.sh - Actualizar utils desde framework"
+    echo ""
+    log_info "Scripts disponibles para Windows:"
+    echo "  • run-test.ps1 - Ejecutar tests"
+    echo "  • sync-utils.ps1 - Actualizar utils desde framework"
+    echo ""
+
+    log_success "Scripts de testing copiados (soporte cross-platform)"
 }
 
 create_build_gradle() {
@@ -756,8 +789,27 @@ show_final_summary() {
     [[ "$WITH_WEB" == "true" ]] && echo "  ✓ Web Core"
     [[ "$WITH_MOBILE" == "true" ]] && echo "  ✓ Mobile Core"
     echo "  ✓ Common Layer"
-    echo "  ✓ Scripts de Testing"
+    echo "  ✓ Scripts de Testing (Cross-Platform)"
     echo "  ✓ Ejemplos de Features y Steps"
+    echo "  ✓ Configuración Consolidada (config-scotia.properties)"
+    echo "  ✓ Template de Variables de Entorno (.env.local)"
+    echo ""
+
+    echo -e "${BOLD}📄 Configuración Consolidada:${NC}"
+    echo ""
+    echo "  El módulo usa ${CYAN}UN SOLO ARCHIVO${NC} para configuración:"
+    echo ""
+    echo "  ${YELLOW}config-scotia.properties${NC}"
+    echo "    └─ Drivers (Artifactory/Local/WebDriverManager)"
+    echo "    └─ Base de Datos (Oracle/PostgreSQL/MySQL)"
+    echo "    └─ Jira/Xray (Estados + Reportes)"
+    echo "    └─ Reporting (Extent + Evidencias)"
+    echo "    └─ API/Web/Mobile (URLs, timeouts, SSL)"
+    echo "    └─ Logging, CI/CD, Feature Flags"
+    echo ""
+    echo "  ${YELLOW}.env.local${NC} (gitignored)"
+    echo "    └─ Variables sensibles (passwords, tokens)"
+    echo "    └─ Completar antes de ejecutar tests"
     echo ""
 
     echo -e "${BOLD}🚀 Próximos Pasos:${NC}"
@@ -765,17 +817,25 @@ show_final_summary() {
     echo "  1️⃣  Navegar al módulo:"
     echo -e "      ${CYAN}cd ${MODULE_DIR}${NC}"
     echo ""
-    echo "  2️⃣  Configurar credenciales:"
+    echo "  2️⃣  Editar configuración principal:"
+    echo -e "      ${CYAN}nano src/test/resources/config-scotia.properties${NC}"
+    echo -e "      💡 Habilita/deshabilita secciones según tu proyecto"
+    echo ""
+    echo "  3️⃣  Configurar credenciales (gitignored):"
     echo -e "      ${CYAN}nano .env.local${NC}"
+    echo -e "      ⚠️  Completa con valores reales (NO commitear)"
     echo ""
-    echo "  3️⃣  Ejecutar test de ejemplo:"
+    echo "  4️⃣  Cargar variables y ejecutar test de ejemplo:"
     echo -e "      ${CYAN}source .env.local && ./gradlew test${NC}"
+    echo -e "      ${CYAN}# Windows: . .\\.env.local; .\\gradlew.bat test${NC}"
     echo ""
-    echo "  4️⃣  Ver resultados:"
+    echo "  5️⃣  Ver resultados:"
     echo -e "      ${CYAN}open build/reports/tests/test/index.html${NC}"
     echo ""
 
-    log_info "Documentación completa en: ${MODULE_DIR}/README.md"
+    log_info "📚 Documentación completa en: ${MODULE_DIR}/README.md"
+    log_info "🔧 Scripts cross-platform en: ${MODULE_DIR}/scripts/"
+    log_info "📋 Configuración consolidada en: config-scotia.properties + .env.local"
 }
 
 # ============================================================================
@@ -941,10 +1001,8 @@ main() {
     create_gitignore
     create_readme
 
-    # Resumen
-    show_summary
-
-    log_success "🎉 ¡Módulo creado exitosamente!"
+    # Resumen final
+    show_final_summary
 }
 
 # Ejecutar

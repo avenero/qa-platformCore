@@ -42,6 +42,13 @@ dependencies {
     api 'com.jayway.jsonpath:json-path:2.9.0'
     api 'org.skyscreamer:jsonassert:1.5.1'
 
+    // === REPORTING (Extent Reports para HTML reports) ===
+    api 'com.aventstack:extentreports:5.1.1'
+
+    // === HTTP CLIENT (para Jira integration) ===
+    api 'org.apache.httpcomponents:httpclient:4.5.14'
+    api 'org.apache.httpcomponents:httpmime:4.5.14'
+
     // === DATABASE CONNECTION POOLING & DRIVERS ===
     // HikariCP para gestión genérica de conexiones
     api 'com.zaxxer:HikariCP:5.0.1'
@@ -75,3 +82,38 @@ dependencies {
 
 // NOTA: La configuración de publicación está en el build.gradle raíz
 // Para publicar: ./gradlew :common:publishToMavenLocal
+
+// ============================================================================
+// INCLUSIÓN DE SCRIPTS EN JAR
+// ============================================================================
+// Los scripts utils.sh y utils.ps1 se incluyen en el JAR para distribución
+// cross-platform. Los módulos pueden extraerlos con sync-utils.sh/ps1
+
+tasks.register('copyScriptsToResources', Copy) {
+    description = 'Copia scripts utils.sh y utils.ps1 a META-INF/scripts/ para incluirlos en el JAR'
+    group = 'build'
+
+    from(project.rootProject.file('scripts')) {
+        include 'utils.sh'
+        include 'utils.ps1'
+    }
+    into layout.buildDirectory.dir('resources/main/META-INF/scripts')
+
+    doLast {
+        logger.lifecycle("✅ Scripts copiados a META-INF/scripts/")
+    }
+}
+
+// Ejecutar copyScriptsToResources antes de processResources
+tasks.named('processResources') {
+    dependsOn 'copyScriptsToResources'
+}
+
+// Asegurar que jar incluye los scripts
+tasks.named('jar') {
+    dependsOn 'copyScriptsToResources'
+
+    doLast {
+        logger.lifecycle("📦 JAR de common incluye utils.sh y utils.ps1 en META-INF/scripts/")
+    }
+}

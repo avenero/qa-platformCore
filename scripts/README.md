@@ -1,53 +1,2188 @@
 # 🚀 Scripts del Framework Scotia QA
 
-Colección de scripts genéricos y reutilizables para automatización de testing en múltiples módulos.
+Sistema de scripts **cross-platform** (macOS/Linux + Windows) para automatización de testing, mantenimiento y ejecución de módulos de pruebas.
+
+**Versión:** 1.0.0  
+**Última Actualización:** 5 de Diciembre de 2025  
+**Sistemas Soportados:** macOS, Linux, Windows (PowerShell)
 
 ---
 
 ## 📑 ÍNDICE
 
-- [🎯 ¿Dónde se Alojan y Dónde se Usan?](#-dónde-se-alojan-y-dónde-se-usan)
-- [📋 Descripción General](#-descripción-general)
-- [🗂️ Estructura de Archivos](#️-estructura-de-archivos)
+- [🎯 Visión General](#-visión-general)
+- [🏗️ Arquitectura Cross-Platform](#️-arquitectura-cross-platform)
+- [📍 Ubicación y Uso](#-ubicación-y-uso)
+- [📦 Scripts Disponibles](#-scripts-disponibles)
 - [⚡ Inicio Rápido](#-inicio-rápido)
-- [📖 Scripts Disponibles](#-scripts-disponibles)
-  - [create-module.sh - Creador de Módulos](#create-modulesh---creador-de-módulos)
-  - [test.sh - Script Principal](#testsh---script-principal)
-  - [utils.sh - Utilidades Compartidas](#utilssh---utilidades-compartidas)
-  - [clean-ide.sh - Limpieza de IDE](#clean-idesh---limpieza-de-ide)
+  - [Para Módulos Nuevos](#para-módulos-nuevos)
+  - [Para Módulos Existentes](#para-módulos-existentes)
 - [🔧 Configuración](#-configuración)
-  - [Prioridad de Configuración](#prioridad-de-configuración)
-  - [Variables de Entorno Soportadas](#variables-de-entorno-soportadas)
-  - [Archivos .env](#archivos-env)
+- [📖 Guía Detallada por Script](#-guía-detallada-por-script)
+- [💻 Uso por Sistema Operativo](#-uso-por-sistema-operativo)
+- [🔄 Actualización de Scripts](#-actualización-de-scripts)
 - [📝 Ejemplos de Uso](#-ejemplos-de-uso)
-  - [Desarrollo Local](#desarrollo-local)
-  - [Jenkins / CI-CD](#jenkins--ci-cd)
-  - [GitLab CI](#gitlab-ci)
-  - [GitHub Actions](#github-actions)
-- [🏗️ Estructura de .env](#️-estructura-de-env)
-- [🔒 Seguridad](#-seguridad)
 - [🐛 Troubleshooting](#-troubleshooting)
-- [🚀 Jenkins Integration](#-jenkins-integration)
+- [🚀 CI/CD Integration](#-cicd-integration)
 - [📚 Documentación Adicional](#-documentación-adicional)
 
 ---
 
-## 🎯 ¿Dónde se Alojan y Dónde se Usan?
+## 🎯 Visión General
 
-### 📍 **Ubicación: EN EL FRAMEWORK**
+El framework incluye **11 scripts** organizados en 3 categorías:
 
-Los scripts están **alojados centralmente** en el framework:
+| Categoría | Scripts | Ubicación | Propósito |
+|-----------|---------|-----------|-----------|
+| **CORE** | `utils.sh`, `utils.ps1` | JAR de common | Funciones compartidas (empaquetados) |
+| **CUSTOM** | `run-test.*`, `sync-utils.*` | Módulos | Ejecución y sincronización |
+| **FRAMEWORK** | `create-module.sh`, etc. | Solo framework | Herramientas de desarrollo |
+
+---
+
+## 🏗️ Arquitectura Cross-Platform
+
+### **Innovación Principal: Scripts CORE en JAR**
+
+Los scripts `utils.sh` y `utils.ps1` se empaquetan dentro del JAR de `common`:
+
+```
+common-1.0.0.jar
+└── META-INF/scripts/
+    ├── utils.sh      ← Funciones Bash (12 KB)
+    └── utils.ps1     ← Funciones PowerShell (15 KB)
+```
+
+**Ventajas:**
+- ✅ Versionado coherente (common:1.0.0 = scripts v1.0.0)
+- ✅ Distribución automática vía Maven/Artifactory
+- ✅ Actualización simple con `sync-utils.*`
+- ✅ No requiere acceso al repositorio del framework
+
+### **Flujo de Sincronización**
+
+```
+Framework → Compile → JAR → Maven Local → Módulos
+   ↓           ↓        ↓         ↓           ↓
+utils.sh   copyScripts common- ~/.m2/    sync-utils
+           ToResources 1.0.0.jar          extrae scripts
+```
+
+---
+
+## 📍 Ubicación y Uso
+
+### **EN EL FRAMEWORK (Desarrollo)**
 
 ```
 qa-scotia-frameworks/
-└── scripts/                    ← Scripts viven AQUÍ
-    ├── run-test.sh
-    ├── utils.sh
-    ├── validate-framework.sh
-    └── jenkins/
+└── scripts/
+    ├── utils.sh              ← Master (se copia a JAR)
+    ├── utils.ps1             ← Master (se copia a JAR)
+    ├── sync-utils.sh         ← Se copia a módulos
+    ├── sync-utils.ps1        ← Se copia a módulos
+    ├── run-test.sh           ← Se copia a módulos
+    ├── run-test.ps1          ← Se copia a módulos
+    ├── create-module.sh      ← Solo en framework
+    ├── analyze-results.sh    ← Opcional en módulos
+    ├── code-quality.sh       ← Opcional en módulos
+    ├── pre-commit.sh         ← Opcional en módulos
+    └── clean-ide.sh          ← Opcional en módulos
 ```
 
-### 🚀 **Ejecución: DESDE LOS MÓDULOS**
+### **EN LOS MÓDULOS (Ejecución)**
+
+```
+qa-module-banking/
+├── scripts/
+│   ├── utils.sh              ← 🔄 Desde JAR (actualizable)
+│   ├── utils.ps1             ← 🔄 Desde JAR (actualizable)
+│   ├── sync-utils.sh         ← 🔒 Custom (no cambia)
+│   ├── sync-utils.ps1        ← 🔒 Custom (no cambia)
+│   ├── run-test.sh           ← 🔒 Custom (no cambia)
+│   ├── run-test.ps1          ← 🔒 Custom (no cambia)
+│   └── [scripts opcionales]  ← Según necesidad
+├── src/test/
+├── .env.local                ← Configuración (gitignored)
+└── build.gradle              ← Depende de common
+```
+
+**Clasificación:**
+- 🔄 **CORE**: Se actualizan con `sync-utils.*`
+- 🔒 **CUSTOM**: Copiados al crear módulo, personalizables
+- 📋 **OPCIONALES**: Copiados solo si se necesitan
+
+---
+
+## 📦 Scripts Disponibles
+
+### **🔵 Scripts CORE (En JAR)**
+
+| Script | Sistema | Propósito | Actualización |
+|--------|---------|-----------|---------------|
+| `utils.sh` | macOS/Linux | Funciones compartidas Bash | `sync-utils.sh` |
+| `utils.ps1` | Windows | Funciones compartidas PowerShell | `sync-utils.ps1` |
+
+**Características:**
+- Empaquetados en `common-X.X.X.jar`
+- Versionados con el framework
+- NUNCA se modifican en módulos
+- Importados automáticamente por otros scripts
+
+---
+
+### **🟢 Scripts CUSTOM (Módulos)**
+
+| Script | Sistema | Propósito | Personalizable |
+|--------|---------|-----------|----------------|
+| `run-test.sh` | macOS/Linux | Ejecutar tests | ✅ SÍ |
+| `run-test.ps1` | Windows | Ejecutar tests | ✅ SÍ |
+| `sync-utils.sh` | macOS/Linux | Sincronizar utils desde JAR | ✅ SÍ |
+| `sync-utils.ps1` | Windows | Sincronizar utils desde JAR | ✅ SÍ |
+
+**Características:**
+- Copiados al crear módulo con `create-module.sh`
+- Pueden personalizarse según necesidad del equipo
+- NO se sobrescriben al actualizar utils
+- Dependen de `utils.*` para funciones compartidas
+
+---
+
+### **🟡 Scripts FRAMEWORK (Herramientas)**
+
+| Script | Sistema | Propósito | Ubicación |
+|--------|---------|-----------|-----------|
+| `create-module.sh` | macOS/Linux | Crear módulos nuevos | Solo framework |
+| `analyze-results.sh` | Cross-platform | Analizar resultados de tests | Framework/Módulos |
+| `code-quality.sh` | Cross-platform | Verificar calidad de código | Framework/Módulos |
+| `pre-commit.sh` | Cross-platform | Hook Git pre-commit | Módulos |
+| `clean-ide.sh` | Cross-platform | Limpiar archivos IDE | Framework/Módulos |
+
+**Características:**
+- Herramientas de desarrollo y mantenimiento
+- Se copian opcionalmente a módulos
+- Útiles para desarrollo local y CI/CD
+
+---
+
+## ⚡ Inicio Rápido
+
+### **Para Módulos Nuevos**
+
+#### **Paso 1: Crear Módulo**
+
+```bash
+# Desde el framework
+cd qa-scotia-frameworks/
+./scripts/create-module.sh banking
+
+# Resultado: qa-module-banking/ con scripts incluidos
+```
+
+**Scripts copiados automáticamente:**
+- ✅ `utils.sh` y `utils.ps1` (desde master)
+- ✅ `sync-utils.sh` y `sync-utils.ps1`
+- ✅ `run-test.sh` y `run-test.ps1`
+- ✅ Estructura completa de directorios
+- ✅ Archivos de configuración (`.env.local`, `config-scotia.properties`)
+
+#### **Paso 2: Configurar Credenciales**
+
+```bash
+cd qa-module-banking/
+
+# Editar .env.local con credenciales reales
+nano .env.local
+```
+
+**Variables mínimas requeridas:**
+```properties
+# Ambiente
+TEST_ENV=local
+
+# Base de Datos (si usa Test Data Finder)
+DB_URL=jdbc:oracle:thin:@//host:1521/service
+DB_USER=usuario
+DB_PASS=password
+
+# API (si usa api-core)
+API_BASE_URL=https://api-dev.example.com/v1
+
+# Web (si usa web-core)
+WEB_BASE_URL=https://app-dev.example.com
+BROWSER=chrome
+```
+
+#### **Paso 3: Ejecutar Tests**
+
+**macOS/Linux:**
+```bash
+./scripts/run-test.sh
+```
+
+**Windows:**
+```powershell
+.\scripts\run-test.ps1
+```
+
+**¡Listo!** 🎉 El módulo está operativo.
+
+---
+
+### **Para Módulos Existentes (Migración)**
+
+Si ya tienes un módulo y quieres adoptar la nueva arquitectura cross-platform:
+
+#### **Paso 1: Actualizar Dependencia**
+
+Editar `build.gradle`:
+
+```gradle
+dependencies {
+    // Actualizar versión de common
+    testImplementation 'com.scotia.qa:common:1.0.0'  // ← Mínimo 1.0.0
+    
+    // Resto de dependencias
+    testImplementation 'com.scotia.qa:api-core:1.0.0'
+    testImplementation 'com.scotia.qa:web-core:1.0.0'
+}
+```
+
+#### **Paso 2: Copiar Scripts de Sincronización**
+
+```bash
+# Desde el framework, copiar a tu módulo
+cd qa-scotia-frameworks/
+cp scripts/sync-utils.sh ../qa-module-banking/scripts/
+cp scripts/sync-utils.ps1 ../qa-module-banking/scripts/
+cp scripts/run-test.ps1 ../qa-module-banking/scripts/  # Si usas Windows
+
+# Hacer ejecutables (macOS/Linux)
+chmod +x ../qa-module-banking/scripts/sync-utils.sh
+chmod +x ../qa-module-banking/scripts/run-test.sh
+```
+
+#### **Paso 3: Sincronizar Utils desde JAR**
+
+```bash
+cd qa-module-banking/
+
+# macOS/Linux
+./scripts/sync-utils.sh
+
+# Windows
+.\scripts\sync-utils.ps1
+```
+
+**Salida esperada:**
+```
+════════════════════════════════════════
+  🔄 Sincronizar Scripts desde common
+════════════════════════════════════════
+
+ℹ️  JAR encontrado: common-1.0.0.jar
+ℹ️  Versión: 1.0.0
+ℹ️  Fecha: 2025-12-04 17:41:48
+
+ℹ️  Extrayendo scripts desde: common-1.0.0.jar
+✓ utils.sh actualizado
+✓ utils.ps1 actualizado
+
+✓ Scripts sincronizados exitosamente
+```
+
+#### **Paso 4: Eliminar Scripts Legacy (si existen)**
+
+```bash
+# Si tenías el viejo sistema
+rm -f scripts/update-scripts.sh
+```
+
+#### **Paso 5: Probar**
+
+```bash
+./scripts/run-test.sh
+
+# o en Windows
+.\scripts\run-test.ps1
+```
+
+---
+
+## 🔧 Configuración
+
+### **Archivos de Configuración**
+
+El framework soporta múltiples métodos de configuración:
+
+#### **1. Archivo `.env.local` (Recomendado para desarrollo)**
+
+```properties
+# .env.local (NO commitear - debe estar en .gitignore)
+
+TEST_ENV=local
+DB_URL=jdbc:oracle:thin:@//host:1521/service
+DB_USER=usuario
+DB_PASS=password
+API_BASE_URL=https://api-dev.example.com/v1
+WEB_BASE_URL=https://app-dev.example.com
+BROWSER=chrome
+HEADLESS=false
+```
+
+#### **2. Archivo `config-scotia.properties`**
+
+```properties
+# src/test/resources/config-scotia.properties
+
+# Soporta variables de entorno con ${VAR}
+test.env=${{TEST_ENV}}
+db.url=${{DB_URL}}
+db.username=${{DB_USER}}
+db.password=${{DB_PASS}}
+api.base.url=${{API_BASE_URL}}
+web.base.url=${{WEB_BASE_URL}}
+```
+
+#### **3. Variables de Entorno (CI/CD)**
+
+```bash
+# Jenkins, GitLab CI, GitHub Actions
+export TEST_ENV=qa
+export DB_URL=jdbc:oracle:thin:@//prod-host:1521/service
+export DB_USER=qa_user
+export DB_PASS=secure_password
+
+./scripts/run-test.sh
+```
+
+### **Prioridad de Configuración**
+
+```
+1. Argumentos CLI (--env qa, --tags @smoke)     ← Mayor prioridad
+2. Variables de entorno (export VAR=value)
+3. Archivo .env.local
+4. Archivo .env.${TEST_ENV} (ej: .env.qa)
+5. Archivo .env (genérico)
+6. config-scotia.properties (valores default)   ← Menor prioridad
+```
+
+### **Variables Soportadas**
+
+| Variable | Propósito | Ejemplo | Requerida |
+|----------|-----------|---------|-----------|
+| `TEST_ENV` | Ambiente de ejecución | `local`, `qa`, `prod` | ✅ |
+| `DB_URL` | URL de base de datos | `jdbc:oracle:thin:@//host:1521/service` | Si usa BD |
+| `DB_USER` | Usuario de BD | `testuser` | Si usa BD |
+| `DB_PASS` | Password de BD | `password123` | Si usa BD |
+| `DB_DRIVER` | Driver JDBC | `oracle.jdbc.OracleDriver` | ❌ (default) |
+| `API_BASE_URL` | URL base de API | `https://api.example.com/v1` | Si usa API |
+| `API_TOKEN` | Token de autenticación | `Bearer xyz123...` | Si requiere auth |
+| `WEB_BASE_URL` | URL de aplicación web | `https://app.example.com` | Si usa Web |
+| `BROWSER` | Navegador para tests | `chrome`, `firefox` | ❌ (default: chrome) |
+| `HEADLESS` | Modo headless | `true`, `false` | ❌ (default: false) |
+| `APP_PATH` | Ruta a APK/IPA (mobile) | `/path/to/app.apk` | Si usa Mobile |
+
+---
+
+## 📖 Guía Detallada por Script
+
+### **1. `create-module.sh` - Creador de Módulos**
+
+**Propósito:** Crear módulos de prueba completos desde cero.
+
+**Ubicación:** Solo en framework (`qa-scotia-frameworks/scripts/`)
+
+**Uso:**
+```bash
+# Crear módulo con todas las capas
+./scripts/create-module.sh banking
+
+# Crear en ubicación específica
+./scripts/create-module.sh autos --dest ~/projects
+
+# Solo con api-core
+./scripts/create-module.sh cards --with-api
+
+# Solo con web-core
+./scripts/create-module.sh mobile --with-web
+```
+
+**¿Qué crea?**
+- ✅ Estructura completa de directorios
+- ✅ Scripts (run-test, utils, sync-utils) para ambos OS
+- ✅ `build.gradle` configurado con dependencias
+- ✅ `.env.local` template
+- ✅ `config-scotia.properties`
+- ✅ Feature y Steps de ejemplo
+- ✅ Cucumber hooks
+- ✅ `.gitignore` configurado
+- ✅ `README.md` del módulo
+
+**Cuándo usar:**
+- Al iniciar un nuevo proyecto de automatización
+- Para crear módulos de prueba rápidamente
+- Para estandarizar estructura entre equipos
+
+---
+
+### **2. `run-test.sh` / `run-test.ps1` - Ejecutor de Tests**
+
+**Propósito:** Ejecutar tests con configuración automática.
+
+**Ubicación:** Módulos (`qa-module-*/scripts/`)
+
+**Uso Básico:**
+
+**macOS/Linux:**
+```bash
+# Ejecución simple
+./scripts/run-test.sh
+
+# Modo setup (asistente interactivo)
+./scripts/run-test.sh --setup
+
+# Ambiente específico
+./scripts/run-test.sh --env qa
+
+# Tags de Cucumber
+./scripts/run-test.sh --tags "@smoke"
+
+# Modo verbose
+./scripts/run-test.sh --verbose
+
+# Dry-run (ver comando sin ejecutar)
+./scripts/run-test.sh --dry-run
+```
+
+**Windows PowerShell:**
+```powershell
+# Ejecución simple
+.\scripts\run-test.ps1
+
+# Modo setup
+.\scripts\run-test.ps1 -Setup
+
+# Ambiente específico
+.\scripts\run-test.ps1 -Env qa
+
+# Tags de Cucumber
+.\scripts\run-test.ps1 -Tags "@smoke"
+
+# Modo verbose
+.\scripts\run-test.ps1 -Verbose
+
+# Dry-run
+.\scripts\run-test.ps1 -DryRun
+```
+
+**Modo Setup Interactivo:**
+
+```bash
+./scripts/run-test.sh --setup
+
+# Asistente pregunta:
+# 1. ¿Qué ambiente? (local/qa/uat/prod)
+# 2. URL de BD
+# 3. Usuario de BD
+# 4. Password de BD
+# 5. API Base URL (opcional)
+# 6. ¿Ejecutar tests ahora?
+
+# Crea .env.local automáticamente
+```
+
+**Características:**
+- ✅ Auto-detección del módulo
+- ✅ Búsqueda automática de `.env` files
+- ✅ Validación de dependencias (Java, Gradle)
+- ✅ Construcción de propiedades Gradle (-D flags)
+- ✅ Modo interactivo para setup inicial
+- ✅ Soporte para CI/CD (variables de entorno)
+
+**Cuándo usar:**
+- Ejecución diaria de tests
+- Desarrollo local
+- CI/CD pipelines
+- Validación rápida de cambios
+
+---
+
+### **3. `sync-utils.sh` / `sync-utils.ps1` - Sincronizador**
+
+**Propósito:** Actualizar scripts CORE desde el JAR de common.
+
+**Ubicación:** Módulos (`qa-module-*/scripts/`)
+
+**Uso:**
+
+**macOS/Linux:**
+```bash
+# Sincronizar con última versión
+./scripts/sync-utils.sh
+
+# Sincronizar con versión específica
+./scripts/sync-utils.sh --version 1.0.1
+
+# Ver ayuda
+./scripts/sync-utils.sh --help
+```
+
+**Windows PowerShell:**
+```powershell
+# Sincronizar con última versión
+.\scripts\sync-utils.ps1
+
+# Sincronizar con versión específica
+.\scripts\sync-utils.ps1 -Version "1.0.1"
+
+# Ver ayuda
+.\scripts\sync-utils.ps1 -Help
+```
+
+**¿Qué hace?**
+1. Busca JAR de `common` en Maven local (`~/.m2/repository/`)
+2. Extrae `META-INF/scripts/utils.sh` y `utils.ps1`
+3. Copia a `scripts/` del módulo (sobrescribe SOLO utils.*)
+4. Hace ejecutable `utils.sh` (macOS/Linux)
+
+**Archivos que actualiza:**
+- ✅ `scripts/utils.sh`
+- ✅ `scripts/utils.ps1`
+
+**Archivos que NO toca:**
+- ✅ `scripts/run-test.*` (custom)
+- ✅ `scripts/sync-utils.*` (custom)
+- ✅ Cualquier otro script custom
+
+**Cuándo usar:**
+- Después de actualizar versión de `common` en build.gradle
+- Cuando se agrega una nueva función a utils en el framework
+- Al incorporar correcciones del framework
+- Periódicamente (mensual) para mantener sincronizado
+
+**Ejemplo completo:**
+
+```bash
+# 1. Actualizar dependencia (build.gradle)
+# common:1.0.0 → common:1.0.1
+
+# 2. Sincronizar scripts
+cd qa-module-banking/
+./scripts/sync-utils.sh
+
+# Salida:
+# ℹ️  JAR encontrado: common-1.0.1.jar
+# ✓ utils.sh actualizado
+# ✓ utils.ps1 actualizado
+
+# 3. Verificar cambios
+git diff scripts/utils.sh
+
+# 4. Probar
+./scripts/run-test.sh
+```
+
+---
+
+### **4. `utils.sh` / `utils.ps1` - Funciones Compartidas**
+
+**Propósito:** Librería de funciones reutilizables.
+
+**Ubicación:** 
+- **Master:** Framework (`qa-scotia-frameworks/scripts/`)
+- **Distribución:** JAR de common (`META-INF/scripts/`)
+- **Uso:** Módulos (`qa-module-*/scripts/`)
+
+**NO SE EJECUTA DIRECTAMENTE** - Se importa desde otros scripts.
+
+**Funciones Disponibles:**
+
+#### **Logging:**
+```bash
+log_success "Operación completada"    # ✓ verde
+log_error "Error crítico"              # ✗ rojo
+log_warning "Advertencia"              # ⚠️ amarillo
+log_info "Información"                 # ℹ️ cyan
+log_banner "Título del Banner"         # Banner azul
+log_separator                          # Línea separadora
+```
+
+#### **Detección de Entorno:**
+```bash
+os=$(detect_os)                        # "macOS", "Linux", "Windows"
+is_jenkins && echo "Running in Jenkins"
+is_ci && echo "Running in CI/CD"
+```
+
+#### **Detección de Módulo:**
+```bash
+module=$(detect_module_name)           # Auto-detecta desde gradle.properties
+```
+
+#### **Configuración:**
+```bash
+env_file=$(find_env_file)              # Busca .env.local, .env.qa, etc.
+load_env_file ".env.local"             # Carga variables
+```
+
+#### **Validación:**
+```bash
+validate_required_vars "DB_URL" "DB_USER" "DB_PASS"
+```
+
+#### **Gradle:**
+```bash
+gradle_cmd=$(get_gradle_command)       # ./gradlew o gradle
+props=$(build_gradle_properties)       # -DDB_URL=... -DDB_USER=...
+```
+
+#### **Dependencias:**
+```bash
+check_command "java" "Java JDK"
+check_framework_dependencies
+```
+
+**Cómo importar en tus scripts custom:**
+
+```bash
+#!/bin/bash
+
+# Cargar utilidades
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/utils.sh"
+
+# Usar funciones
+log_banner "Mi Script Custom"
+module=$(detect_module_name)
+log_success "Módulo detectado: $module"
+```
+
+**⚠️ IMPORTANTE:**
+- NUNCA editar `utils.sh` o `utils.ps1` en módulos
+- Se sobrescriben al ejecutar `sync-utils.*`
+- Si necesitas funciones custom, créalas en otro archivo
+
+---
+
+### **5. Scripts Opcionales**
+
+Estos scripts se copian opcionalmente según necesidad:
+
+#### **`analyze-results.sh` - Analizador de Resultados**
+
+Analiza resultados de tests y genera reportes.
+
+```bash
+./scripts/analyze-results.sh
+```
+
+#### **`code-quality.sh` - Calidad de Código**
+
+Verifica calidad con Checkstyle, SpotBugs, etc.
+
+```bash
+./scripts/code-quality.sh
+```
+
+#### **`pre-commit.sh` - Hook Git**
+
+Valida código antes de commit.
+
+```bash
+# Instalar como hook
+cp scripts/pre-commit.sh .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+#### **`clean-ide.sh` - Limpieza IDE**
+
+Limpia archivos temporales de IntelliJ, Eclipse, etc.
+
+```bash
+./scripts/clean-ide.sh
+```
+
+---
+
+## 💻 Uso por Sistema Operativo
+
+### **🍎 macOS / Linux**
+
+**Requisitos:**
+- Bash 4.0+
+- Java 21+
+- Gradle 8.14+ (o usar wrapper)
+
+**Comandos:**
+```bash
+# Crear módulo
+./scripts/create-module.sh banking
+
+# Sincronizar utils
+cd qa-module-banking/
+./scripts/sync-utils.sh
+
+# Ejecutar tests
+./scripts/run-test.sh
+
+# Con opciones
+./scripts/run-test.sh --env qa --tags "@smoke"
+```
+
+---
+
+### **🪟 Windows (PowerShell)**
+
+**Requisitos:**
+- PowerShell 5.1+ (o PowerShell Core 7+)
+- Java 21+
+- Gradle 8.14+ (o usar wrapper)
+
+**Configurar Política de Ejecución:**
+```powershell
+# Verificar política actual
+Get-ExecutionPolicy
+
+# Si es "Restricted", cambiar a "RemoteSigned"
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+---
+
+#### **🚀 Cómo Ejecutar Scripts PowerShell (4 Métodos)**
+
+##### **Método 1: PowerShell Terminal (RECOMENDADO) ✅**
+
+**Paso 1: Abrir PowerShell**
+```
+1. Presionar tecla Windows
+2. Escribir "PowerShell"
+3. Click en "Windows PowerShell" o "PowerShell 7"
+```
+
+**Paso 2: Navegar al módulo**
+```powershell
+cd C:\Users\TuUsuario\Projects\qa-module-banking
+```
+
+**Paso 3: Ejecutar script**
+```powershell
+.\scripts\run-test.ps1
+```
+
+**Con opciones:**
+```powershell
+.\scripts\run-test.ps1 -Env qa -Tags "@smoke" -Verbose
+```
+
+---
+
+##### **Método 2: Click Derecho "Ejecutar con PowerShell" ⚠️**
+
+```
+1. Navegar a la carpeta: C:\...\qa-module-banking\scripts\
+2. Click DERECHO en: run-test.ps1
+3. Seleccionar: "Ejecutar con PowerShell"
+```
+
+**⚠️ LIMITACIONES:**
+- NO permite pasar parámetros (-Env, -Tags, etc.)
+- Se ejecuta con configuración por defecto
+- Ventana se cierra automáticamente al terminar
+- **Solo usar para pruebas rápidas**
+
+**🔧 Solución:** Crear un archivo `.bat` wrapper:
+
+**`run-test-qa.bat`:**
+```batch
+@echo off
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0scripts\run-test.ps1" -Env qa -Tags "@smoke"
+pause
+```
+
+Ahora puedes hacer **doble click en `run-test-qa.bat`** y se ejecutará con parámetros.
+
+---
+
+##### **Método 3: Visual Studio Code (VS Code) 🔵**
+
+**Paso 1: Abrir VS Code**
+```
+1. Abrir carpeta del módulo: File → Open Folder → qa-module-banking
+2. Abrir terminal integrada: Terminal → New Terminal
+3. Asegurarse que esté en PowerShell (abajo a la derecha debe decir "pwsh" o "powershell")
+```
+
+**Paso 2: Ejecutar script**
+```powershell
+.\scripts\run-test.ps1
+```
+
+**Ventajas:**
+- ✅ Terminal integrada
+- ✅ Auto-completado
+- ✅ Control de versiones integrado
+- ✅ Debugging de scripts
+
+---
+
+##### **Método 4: Windows Terminal (MODERNO) 🟦**
+
+**Paso 1: Instalar Windows Terminal (opcional)**
+```
+Microsoft Store → Buscar "Windows Terminal" → Instalar
+```
+
+**Paso 2: Abrir en la carpeta del módulo**
+```
+1. En Explorador de Windows, navegar a: C:\...\qa-module-banking
+2. Click DERECHO en la carpeta
+3. Seleccionar: "Abrir en Terminal" (Windows 11) o "Open in Windows Terminal"
+```
+
+**Paso 3: Ejecutar script**
+```powershell
+.\scripts\run-test.ps1
+```
+
+**Ventajas:**
+- ✅ Moderna interfaz con pestañas
+- ✅ Soporte para múltiples shells (PowerShell, CMD, WSL)
+- ✅ Temas y personalización
+- ✅ Mejor rendimiento
+
+---
+
+#### **⚡ Atajos de Teclado en PowerShell**
+
+| Atajo | Función |
+|-------|---------|
+| `Tab` | Auto-completar rutas/comandos |
+| `Ctrl + C` | Cancelar comando en ejecución |
+| `Ctrl + L` | Limpiar pantalla (o `cls`) |
+| `↑` / `↓` | Navegar historial de comandos |
+| `Ctrl + R` | Buscar en historial |
+| `F7` | Ver historial completo |
+
+---
+
+**Comandos Básicos:**
+```powershell
+# Crear módulo (usar Git Bash o WSL)
+./scripts/create-module.sh banking
+
+# Sincronizar utils
+cd qa-module-banking\
+.\scripts\sync-utils.ps1
+
+# Ejecutar tests
+.\scripts\run-test.ps1
+
+# Con opciones
+.\scripts\run-test.ps1 -Env qa -Tags "@smoke"
+```
+
+---
+
+#### **📸 Ejemplo Visual: Ejecutar Tests en Windows**
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ Explorador de Windows                                          │
+├────────────────────────────────────────────────────────────────┤
+│ 📁 C:\Users\TuUsuario\Projects\qa-module-banking              │
+│                                                                │
+│ 📁 .gradle                                                     │
+│ 📁 build                                                       │
+│ 📂 scripts                     ← Click aquí con SHIFT+Derecho │
+│   ├── 📄 run-test.ps1         ← El script a ejecutar         │
+│   ├── 📄 sync-utils.ps1                                       │
+│   └── 📄 utils.ps1                                            │
+│ 📁 src                                                         │
+│ 📄 .env.local                                                  │
+│ 📄 build.gradle                                                │
+└────────────────────────────────────────────────────────────────┘
+
+OPCIÓN 1: Abrir PowerShell aquí
+─────────────────────────────────
+1. SHIFT + Click DERECHO en carpeta "scripts"
+2. Seleccionar: "Abrir ventana de PowerShell aquí"
+3. Ejecutar: .\run-test.ps1
+
+OPCIÓN 2: Navegar desde PowerShell
+───────────────────────────────────
+1. Abrir PowerShell (Tecla Windows → "PowerShell")
+2. cd C:\Users\TuUsuario\Projects\qa-module-banking
+3. .\scripts\run-test.ps1
+
+OPCIÓN 3: Crear acceso directo
+───────────────────────────────
+1. Click DERECHO en escritorio → Nuevo → Acceso directo
+2. Ubicación: 
+   powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TuUsuario\Projects\qa-module-banking\scripts\run-test.ps1"
+3. Nombre: "Ejecutar Tests QA Banking"
+4. Doble click para ejecutar
+```
+
+---
+
+#### **🎬 Paso a Paso: Primera Ejecución en Windows**
+
+**Escenario:** Tienes un módulo recién clonado y quieres ejecutar tests.
+
+**Paso 1: Verificar Requisitos**
+```powershell
+# Abrir PowerShell
+# Verificar Java
+java -version
+# Debe mostrar: openjdk version "21.0.x" o superior
+
+# Verificar política de ejecución
+Get-ExecutionPolicy
+# Si muestra "Restricted", ejecutar:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**Paso 2: Navegar al Módulo**
+```powershell
+# Ver tu ubicación actual
+pwd
+
+# Navegar al módulo
+cd C:\Users\TuUsuario\Projects\qa-module-banking
+
+# Confirmar ubicación
+pwd
+# Debe mostrar: C:\Users\TuUsuario\Projects\qa-module-banking
+```
+
+**Paso 3: Verificar Scripts**
+```powershell
+# Listar scripts
+Get-ChildItem scripts\
+
+# Debe mostrar:
+# run-test.ps1
+# sync-utils.ps1
+# utils.ps1
+```
+
+**Paso 4: Configurar Variables (Primera vez)**
+```powershell
+# Editar .env.local
+notepad .env.local
+
+# Agregar configuración mínima:
+# TEST_ENV=local
+# DB_URL=jdbc:oracle:thin:@//host:1521/service
+# DB_USER=testuser
+# DB_PASS=password123
+
+# Guardar y cerrar
+```
+
+**Paso 5: Ejecutar Tests**
+```powershell
+# Ejecución simple
+.\scripts\run-test.ps1
+
+# Ver salida:
+# ════════════════════════════════════════════
+#   🚀 Ejecutar Tests - qa-module-banking
+# ════════════════════════════════════════════
+# 
+# ✓ Variables cargadas desde .env.local
+# ✓ Tests ejecutándose...
+```
+
+**Paso 6: Ver Reportes**
+```powershell
+# Abrir reporte HTML
+Start-Process "build\reports\cucumber\cucumber-html-report.html"
+
+# O navegar manualmente:
+explorer.exe build\reports\cucumber\
+```
+
+---
+
+#### **🔧 Troubleshooting: Ejecución en Windows**
+
+**Problema 1: "No se puede ejecutar run-test.ps1"**
+```
+Error: run-test.ps1 : File cannot be loaded because running scripts is disabled on this system.
+```
+
+**Solución:**
+```powershell
+# Verificar política actual
+Get-ExecutionPolicy
+
+# Cambiar política (ejecutar como Administrador)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# O ejecutar con bypass (temporal)
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\run-test.ps1
+```
+
+---
+
+**Problema 2: "Script no encontrado"**
+```
+Error: .\run-test.ps1 : The term '.\run-test.ps1' is not recognized
+```
+
+**Causa:** Estás en el directorio incorrecto.
+
+**Solución:**
+```powershell
+# Ver dónde estás
+pwd
+
+# Navegar a la raíz del módulo
+cd C:\Users\TuUsuario\Projects\qa-module-banking
+
+# Listar archivos
+Get-ChildItem
+
+# Ahora ejecutar
+.\scripts\run-test.ps1
+```
+
+---
+
+**Problema 3: "Doble click no hace nada"**
+```
+Al hacer doble click en run-test.ps1, se abre y cierra rápidamente
+```
+
+**Causa:** Windows abre el script en editor por defecto.
+
+**Solución A: Usar terminal**
+```powershell
+# Siempre usar PowerShell terminal
+.\scripts\run-test.ps1
+```
+
+**Solución B: Crear archivo .bat**
+```batch
+REM Crear: ejecutar-tests.bat
+@echo off
+powershell.exe -ExecutionPolicy Bypass -NoExit -File "%~dp0scripts\run-test.ps1"
+```
+
+Ahora doble click en `ejecutar-tests.bat` funciona correctamente.
+
+---
+
+**Problema 4: "Ventana se cierra inmediatamente"**
+```
+Al ejecutar, la ventana de PowerShell se cierra antes de ver el resultado
+```
+
+**Solución A: Agregar pause**
+```powershell
+# Al final del script
+.\scripts\run-test.ps1
+pause
+```
+
+**Solución B: Usar -NoExit**
+```powershell
+powershell.exe -NoExit -File .\scripts\run-test.ps1
+```
+
+**Solución C: Ejecutar desde terminal ya abierta**
+```powershell
+# Abrir PowerShell primero, LUEGO ejecutar script
+.\scripts\run-test.ps1
+# La terminal permanece abierta
+```
+
+---
+
+**Problema 5: "Click derecho no muestra opción PowerShell"**
+```
+Al hacer click derecho, no aparece "Ejecutar con PowerShell"
+```
+
+**Solución A: Usar SHIFT + Click Derecho**
+```
+SHIFT + Click Derecho → "Abrir ventana de PowerShell aquí"
+```
+
+**Solución B: Instalar Windows Terminal**
+```
+Microsoft Store → "Windows Terminal" → Instalar
+Luego: Click Derecho → "Abrir en Terminal"
+```
+
+**Solución C: Agregar al menú contextual (Registry)**
+```powershell
+# Ejecutar como Administrador
+reg add "HKCR\Microsoft.PowerShellScript.1\Shell\Run\Command" /d "\"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe\" -NoExit -File \"%1\"" /f
+```
+
+---
+
+**Problema 6: "Parámetros no funcionan con click derecho"**
+```
+Quiero ejecutar con -Env qa pero click derecho no permite parámetros
+```
+
+**Solución: Crear scripts wrapper personalizados**
+
+**`ejecutar-tests-qa.bat`:**
+```batch
+@echo off
+powershell.exe -ExecutionPolicy Bypass -NoExit -File "%~dp0scripts\run-test.ps1" -Env qa
+```
+
+**`ejecutar-tests-smoke.bat`:**
+```batch
+@echo off
+powershell.exe -ExecutionPolicy Bypass -NoExit -File "%~dp0scripts\run-test.ps1" -Tags "@smoke"
+```
+
+Ahora puedes hacer doble click en cada `.bat` según necesites.
+
+---
+
+**Equivalencias Bash ↔ PowerShell:**
+
+| Bash | PowerShell | Descripción |
+|------|------------|-------------|
+| `./script.sh` | `.\script.ps1` | Ejecutar script |
+| `./script.sh --env qa` | `.\script.ps1 -Env qa` | Parámetro con valor |
+| `./script.sh --verbose` | `.\script.ps1 -Verbose` | Flag booleano |
+| `chmod +x script.sh` | N/A | No necesario en Windows |
+| `ls -la` | `Get-ChildItem` o `dir` | Listar archivos |
+| `pwd` | `Get-Location` o `pwd` | Ver directorio actual |
+| `cd ~` | `cd $HOME` | Ir a home |
+| `clear` | `Clear-Host` o `cls` | Limpiar pantalla |
+
+---
+
+## 🔄 Actualización de Scripts y Flujo de Trabajo
+
+### **📋 Flujo Completo: De Framework a Módulos**
+
+Este es el flujo detallado de cómo los scripts se actualizan y distribuyen desde el framework hasta los módulos:
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ 1️⃣  DESARROLLO EN FRAMEWORK (Desarrolladores Core)              │
+└──────────────────────────────────────────────────────────────────┘
+  qa-scotia-frameworks/
+  └── scripts/
+      ├── utils.sh         ← Se edita/actualiza aquí
+      └── utils.ps1        ← Se edita/actualiza aquí
+      
+  ✏️  Editar funciones en utils.sh/utils.ps1
+  ✅  Commit y push a repositorio del framework
+  
+┌──────────────────────────────────────────────────────────────────┐
+│ 2️⃣  COMPILACIÓN Y EMPAQUETADO (build.gradle)                    │
+└──────────────────────────────────────────────────────────────────┘
+  ./gradlew :common:clean :common:build
+  
+  Scripts se copian al JAR durante compilación:
+  
+  common/src/main/resources/META-INF/scripts/
+  ├── utils.sh
+  └── utils.ps1
+       ↓
+  common-1.0.0.jar
+  └── META-INF/scripts/
+      ├── utils.sh      ← Empaquetado
+      └── utils.ps1     ← Empaquetado
+
+┌──────────────────────────────────────────────────────────────────┐
+│ 3️⃣  PUBLICACIÓN (Maven Local o Artifactory)                     │
+└──────────────────────────────────────────────────────────────────┘
+  # Maven Local (desarrollo)
+  ./gradlew :common:publishToMavenLocal
+  
+  # Artifactory (producción)
+  ./gradlew :common:publish
+  
+  Resultado:
+  ~/.m2/repository/com/scotia/qa/common/1.0.0/
+  └── common-1.0.0.jar  ← Contiene los scripts actualizados
+
+┌──────────────────────────────────────────────────────────────────┐
+│ 4️⃣  ACTUALIZACIÓN EN MÓDULOS (QA/Testers)                       │
+└──────────────────────────────────────────────────────────────────┘
+  qa-module-banking/
+  
+  PASO A: Actualizar dependencia en build.gradle
+  ─────────────────────────────────────────────────
+  dependencies {
+      testImplementation 'com.scotia.qa:common:1.0.0'  →  1.0.1
+  }
+  
+  PASO B: Descargar nueva versión
+  ─────────────────────────────────
+  ./gradlew clean build --refresh-dependencies
+  
+  PASO C: Sincronizar scripts desde el JAR
+  ─────────────────────────────────────────
+  # macOS/Linux
+  ./scripts/sync-utils.sh
+  
+  # Windows
+  .\scripts\sync-utils.ps1
+  
+  El script sync-utils:
+  1. Busca el JAR en ~/.m2/repository/
+  2. Extrae META-INF/scripts/utils.sh y utils.ps1
+  3. Copia a scripts/ del módulo (sobrescribe SOLO utils.*)
+  4. Mantiene intactos run-test.*, sync-utils.* (custom)
+  
+  PASO D: Verificar y ejecutar
+  ─────────────────────────────
+  git diff scripts/utils.sh
+  ./scripts/run-test.sh  # Probar nueva versión
+
+┌──────────────────────────────────────────────────────────────────┐
+│ 5️⃣  EJECUCIÓN DE TESTS (QA/CI/CD)                               │
+└──────────────────────────────────────────────────────────────────┘
+  Scripts en el módulo:
+  
+  🔄 CORE (actualizables vía sync-utils):
+     ├── utils.sh          ← Versión del framework
+     └── utils.ps1         ← Versión del framework
+  
+  🔒 CUSTOM (personalizables, NO se sobrescriben):
+     ├── run-test.sh       ← Usa utils.sh
+     ├── run-test.ps1      ← Usa utils.ps1
+     ├── sync-utils.sh     ← Extrae de JAR
+     └── sync-utils.ps1    ← Extrae de JAR
+  
+  📋 OPCIONALES (copiados al crear módulo, personalizables):
+     ├── analyze-results.sh
+     ├── code-quality.sh
+     └── pre-commit.sh
+```
+
+---
+
+### **🔁 Flujo Simplificado de Uso en Módulos**
+
+#### **🎯 Objetivo: Ejecutar tests en un módulo**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ESCENARIO A: Módulo Nuevo (Desde Cero)                     │
+└─────────────────────────────────────────────────────────────┘
+
+1️⃣  Crear módulo desde framework:
+    cd qa-scotia-frameworks/
+    ./scripts/create-module.sh banking
+    
+    ✅ Se copian TODOS los scripts (utils, run-test, sync-utils)
+    ✅ Se crea .env.local template
+    ✅ Se configura build.gradle con dependencias
+
+2️⃣  Configurar credenciales:
+    cd qa-module-banking/
+    nano .env.local  # Agregar DB_URL, DB_USER, etc.
+
+3️⃣  Ejecutar tests:
+    # macOS/Linux
+    ./scripts/run-test.sh
+    
+    # Windows
+    .\scripts\run-test.ps1
+    
+    ✅ run-test.* importa utils.* automáticamente
+    ✅ Carga variables desde .env.local
+    ✅ Ejecuta tests con configuración correcta
+
+┌─────────────────────────────────────────────────────────────┐
+│ ESCENARIO B: Módulo Existente (Actualizar Scripts)         │
+└─────────────────────────────────────────────────────────────┘
+
+1️⃣  Actualizar dependencia de common:
+    nano build.gradle
+    # common:1.0.0 → common:1.0.1
+
+2️⃣  Descargar nueva versión:
+    ./gradlew clean build --refresh-dependencies
+
+3️⃣  Sincronizar scripts CORE:
+    # macOS/Linux
+    ./scripts/sync-utils.sh
+    
+    # Windows
+    .\scripts\sync-utils.ps1
+    
+    ✅ Se actualizan SOLO utils.sh y utils.ps1
+    ❌ NO se tocan run-test.*, sync-utils.* (custom)
+
+4️⃣  Ejecutar tests:
+    ./scripts/run-test.sh  # Usa los utils actualizados
+
+┌─────────────────────────────────────────────────────────────┐
+│ ESCENARIO C: Análisis de Código (Opcional)                 │
+└─────────────────────────────────────────────────────────────┘
+
+Los scripts de análisis (analyze-results, code-quality) se usan
+OPCIONALMENTE en los módulos para validar calidad:
+
+1️⃣  Ejecutar tests:
+    ./scripts/run-test.sh
+
+2️⃣  Analizar resultados:
+    ./scripts/analyze-results.sh
+    
+    ✅ Genera reporte con métricas
+    ✅ Identifica tests fallidos
+    ✅ Calcula cobertura
+
+3️⃣  Verificar calidad de código:
+    ./scripts/code-quality.sh
+    
+    ✅ Ejecuta Checkstyle
+    ✅ Ejecuta SpotBugs
+    ✅ Busca vulnerabilidades
+
+4️⃣  Pre-commit hook (opcional):
+    cp scripts/pre-commit.sh .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+    
+    ✅ Valida antes de commit
+    ✅ Evita código con errores
+
+🔍 IMPORTANTE: Estos scripts analizan el CÓDIGO DEL MÓDULO,
+   NO del framework. Por eso se ejecutan en los módulos.
+```
+
+---
+
+### **🪟 Configuración Específica para Windows**
+
+#### **⚙️ Requisitos Previos**
+
+```powershell
+# 1. Verificar PowerShell
+$PSVersionTable.PSVersion
+# Debe ser 5.1+ o PowerShell Core 7+
+
+# 2. Configurar política de ejecución
+Get-ExecutionPolicy
+# Si muestra "Restricted", cambiar:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 3. Verificar Java
+java -version
+# Debe mostrar Java 21+
+
+# 4. Verificar Gradle (opcional, se puede usar wrapper)
+gradle --version
+```
+
+#### **📁 Estructura de Directorios en Windows**
+
+```
+C:\Users\TuUsuario\Projects\qa-module-banking\
+├── scripts\
+│   ├── utils.ps1          ← Funciones compartidas (PowerShell)
+│   ├── sync-utils.ps1     ← Sincronizador (PowerShell)
+│   └── run-test.ps1       ← Ejecutor de tests (PowerShell)
+├── .env.local             ← Variables de entorno
+└── build.gradle           ← Configuración del proyecto
+```
+
+⚠️ **NOTA:** Windows usa `\` como separador, pero Gradle y Git usan `/`
+
+#### **🔧 Variables de Entorno en Windows**
+
+**Opción 1: Archivo `.env.local` (Recomendado)**
+
+```properties
+# .env.local (Windows usa mismo formato que Linux)
+TEST_ENV=local
+DB_URL=jdbc:oracle:thin:@//10.34.36.43:1628/Banking
+DB_USER=TESTUSER
+DB_PASS=Password123!
+API_BASE_URL=https://api-dev.example.com/v1
+WEB_BASE_URL=https://app-dev.example.com
+BROWSER=chrome
+HEADLESS=false
+```
+
+**Opción 2: Variables de Sistema (Para todo el sistema)**
+
+```powershell
+# Abrir configuración de variables de entorno
+rundll32 sysdm.cpl,EditEnvironmentVariables
+
+# O vía PowerShell (temporal, solo sesión actual):
+$env:TEST_ENV = "local"
+$env:DB_URL = "jdbc:oracle:thin:@//host:1521/service"
+$env:DB_USER = "testuser"
+$env:DB_PASS = "password123"
+```
+
+**Opción 3: Variables en PowerShell Profile (Persistentes)**
+
+```powershell
+# Editar perfil de PowerShell
+notepad $PROFILE
+
+# Agregar variables:
+$env:TEST_ENV = "local"
+$env:DB_URL = "jdbc:oracle:thin:@//host:1521/service"
+$env:DB_USER = "testuser"
+$env:DB_PASS = "password123"
+
+# Recargar perfil
+. $PROFILE
+```
+
+#### **🚀 Ejecutar Tests en Windows**
+
+**Ejecución Básica:**
+```powershell
+# Navegar al módulo
+cd C:\Users\TuUsuario\Projects\qa-module-banking
+
+# Ejecutar tests
+.\scripts\run-test.ps1
+```
+
+**Con Opciones:**
+```powershell
+# Ambiente específico
+.\scripts\run-test.ps1 -Env qa
+
+# Tags de Cucumber
+.\scripts\run-test.ps1 -Tags "@smoke"
+
+# Modo verbose
+.\scripts\run-test.ps1 -Verbose
+
+# Ver comando sin ejecutar
+.\scripts\run-test.ps1 -DryRun
+
+# Modo setup interactivo
+.\scripts\run-test.ps1 -Setup
+```
+
+**Sincronizar Scripts:**
+```powershell
+# Actualizar utils desde JAR de common
+.\scripts\sync-utils.ps1
+
+# Con versión específica
+.\scripts\sync-utils.ps1 -Version "1.0.1"
+```
+
+#### **🔍 Solución de Problemas en Windows**
+
+**Problema 1: "No se puede ejecutar scripts"**
+```
+Error: File cannot be loaded because running scripts is disabled
+```
+**Solución:**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+---
+
+**Problema 2: "Gradlew no encontrado"**
+```
+Error: .\gradlew : The term 'gradlew' is not recognized
+```
+**Solución:**
+```powershell
+# Usar gradlew.bat en Windows
+.\gradlew.bat test
+
+# O configurar alias
+Set-Alias -Name gradlew -Value .\gradlew.bat
+```
+
+---
+
+**Problema 3: "Encoding incorrecto en .env.local"**
+```
+Error: Invalid character in .env.local
+```
+**Solución:**
+```powershell
+# Guardar .env.local con UTF-8 sin BOM
+# En Notepad++: Encoding → UTF-8 without BOM
+# En VS Code: "Save with Encoding" → UTF-8
+```
+
+---
+
+**Problema 4: "CRLF vs LF"**
+```
+Error: Line endings not compatible
+```
+**Solución:**
+```powershell
+# Configurar Git para manejar line endings
+git config --global core.autocrlf true
+
+# Para scripts Bash (sync-utils.sh, run-test.sh):
+git config --global core.eol lf
+```
+
+---
+
+**Problema 5: "JAR no encontrado en sync-utils"**
+```
+Error: No se encontró JAR de common
+```
+**Solución:**
+```powershell
+# Verificar Maven local
+$mavenLocal = "$env:USERPROFILE\.m2\repository\com\scotia\qa\common"
+Get-ChildItem $mavenLocal -Recurse -Filter "common-*.jar"
+
+# Si no existe, descargar dependencia:
+.\gradlew clean build --refresh-dependencies
+```
+
+---
+
+#### **🔄 Equivalencias macOS/Linux ↔ Windows**
+
+| Tarea | macOS/Linux | Windows PowerShell |
+|-------|-------------|-------------------|
+| Ejecutar script | `./script.sh` | `.\script.ps1` |
+| Ver ayuda | `./script.sh --help` | `.\script.ps1 -Help` |
+| Parámetro | `--env qa` | `-Env qa` |
+| Flag booleano | `--verbose` | `-Verbose` |
+| Variable temporal | `export VAR=value` | `$env:VAR = "value"` |
+| Ver variable | `echo $VAR` | `$env:VAR` |
+| Ruta actual | `pwd` | `Get-Location` o `pwd` |
+| Listar archivos | `ls -la` | `Get-ChildItem` o `ls` |
+| Limpiar consola | `clear` | `Clear-Host` o `cls` |
+| Buscar texto | `grep "pattern"` | `Select-String "pattern"` |
+| Maven local | `~/.m2/repository` | `$env:USERPROFILE\.m2\repository` |
+| Separador rutas | `/` | `\` (pero `/` funciona en PowerShell) |
+
+#### **📋 Checklist de Configuración en Windows**
+
+**Para QA/Testers que ejecutan tests en Windows:**
+
+- [ ] **PowerShell 5.1+ instalado**
+  ```powershell
+  $PSVersionTable.PSVersion
+  ```
+
+- [ ] **Política de ejecución configurada**
+  ```powershell
+  Get-ExecutionPolicy  # Debe mostrar "RemoteSigned" o "Unrestricted"
+  ```
+
+- [ ] **Java 21+ instalado**
+  ```powershell
+  java -version
+  ```
+
+- [ ] **JAVA_HOME configurado**
+  ```powershell
+  $env:JAVA_HOME  # Debe apuntar a JDK 21
+  ```
+
+- [ ] **Git configurado para line endings**
+  ```powershell
+  git config --global core.autocrlf true
+  ```
+
+- [ ] **Maven local accesible**
+  ```powershell
+  Test-Path "$env:USERPROFILE\.m2\repository"
+  ```
+
+- [ ] **Archivo .env.local con encoding UTF-8 (sin BOM)**
+  - Usar Notepad++, VS Code, o cualquier editor que soporte UTF-8 sin BOM
+
+- [ ] **Scripts descargados y en el módulo**
+  ```powershell
+  Get-ChildItem scripts\  # Debe mostrar utils.ps1, run-test.ps1, sync-utils.ps1
+  ```
+
+- [ ] **Tests ejecutándose correctamente**
+  ```powershell
+  .\scripts\run-test.ps1 -Verbose
+  ```
+
+---
+
+### **📊 Versionado de Scripts**
+
+Los scripts CORE están versionados con el framework:
+
+| Versión common | Versión scripts | Cambios |
+|----------------|-----------------|---------|
+| 1.0.0 | 1.0.0 | Versión inicial con cross-platform |
+| 1.0.1 | 1.0.1 | Agregar validate_json() |
+| 1.1.0 | 1.1.0 | Soporte para feature flags |
+
+**Ver versión actual:**
+
+**macOS/Linux:**
+```bash
+head -20 scripts/utils.sh | grep "SCRIPT_VERSION"
+```
+
+**Windows:**
+```powershell
+Get-Content scripts\utils.ps1 | Select-Object -First 20 | Select-String "SCRIPT_VERSION"
+```
+
+---
+
+### **🎯 Resumen del Flujo para QA/Testers**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ¿QUÉ NECESITO HACER EN MI MÓDULO?                          │
+└─────────────────────────────────────────────────────────────┘
+
+1️⃣  ACTUALIZAR SCRIPTS DESDE EL FRAMEWORK:
+   ✅ Editar build.gradle (actualizar versión de common)
+   ✅ Ejecutar: sync-utils.sh o sync-utils.ps1
+   ✅ Resultado: utils.* actualizados desde el JAR
+
+2️⃣  EJECUTAR TESTS:
+   ✅ Ejecutar: run-test.sh o run-test.ps1
+   ✅ Resultado: Tests ejecutados con configuración correcta
+
+3️⃣  ANALIZAR CÓDIGO/RESULTADOS (OPCIONAL):
+   ✅ Ejecutar: analyze-results.sh, code-quality.sh, etc.
+   ✅ Resultado: Reportes de calidad y cobertura
+   
+💡 IMPORTANTE:
+   - Los scripts de análisis SE EJECUTAN EN LOS MÓDULOS
+   - Analizan el CÓDIGO DEL MÓDULO, no del framework
+   - Son opcionales, pero recomendados para CI/CD
+```
+
+---
+
+## 📝 Ejemplos de Uso
+
+### **Ejemplo 1: Desarrollo Local (macOS)**
+
+```bash
+# Día 1: Crear módulo
+cd ~/projects/
+git clone https://github.com/scotia/qa-scotia-frameworks.git
+cd qa-scotia-frameworks/
+./scripts/create-module.sh banking
+
+# Configurar
+cd ../qa-module-banking/
+nano .env.local  # Agregar credenciales
+
+# Ejecutar tests
+./scripts/run-test.sh
+
+# Ver resultados
+open build/reports/cucumber/cucumber-html-report.html
+```
+
+---
+
+### **Ejemplo 2: Equipo Mixto (Windows + macOS)**
+
+**Repositorio compartido:**
+```
+qa-module-banking/
+├── scripts/
+│   ├── run-test.sh      ← Para macOS/Linux
+│   ├── run-test.ps1     ← Para Windows
+│   ├── utils.sh         ← Funciones Bash
+│   └── utils.ps1        ← Funciones PowerShell
+└── .gitignore           ← .env.local no se commitea
+```
+
+**QA en macOS:**
+```bash
+./scripts/run-test.sh
+```
+
+**QA en Windows:**
+```powershell
+.\scripts\run-test.ps1
+```
+
+**✅ Ambos ejecutan los mismos tests con la misma configuración**
+
+---
+
+### **Ejemplo 3: CI/CD (Jenkins en Windows)**
+
+**Jenkinsfile:**
+```groovy
+pipeline {
+    agent { label 'windows' }
+    
+    environment {
+        TEST_ENV = 'qa'
+        DB_URL = credentials('banking-db-url')
+        DB_USER = credentials('banking-db-user')
+        DB_PASS = credentials('banking-db-pass')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/scotia/qa-module-banking.git'
+            }
+        }
+        
+        stage('Sync Scripts') {
+            steps {
+                powershell '.\\scripts\\sync-utils.ps1'
+            }
+        }
+        
+        stage('Tests') {
+            steps {
+                powershell '.\\scripts\\run-test.ps1 -Verbose'
+            }
+        }
+        
+        stage('Reports') {
+            steps {
+                publishHTML([
+                    reportName: 'Cucumber Reports',
+                    reportDir: 'build/reports/cucumber',
+                    reportFiles: 'cucumber-html-report.html'
+                ])
+                
+                junit 'build/test-results/test/*.xml'
+            }
+        }
+    }
+    
+    post {
+        always {
+            archiveArtifacts artifacts: 'build/reports/**', allowEmptyArchive: true
+        }
+    }
+}
+```
+
+---
+
+### **Ejemplo 4: GitLab CI (Linux)**
+
+**`.gitlab-ci.yml`:**
+```yaml
+variables:
+  TEST_ENV: "qa"
+  DB_URL: $QA_DB_URL           # Variable de GitLab
+  DB_USER: $QA_DB_USER
+  DB_PASS: $QA_DB_PASS
+
+stages:
+  - sync
+  - test
+  - report
+
+sync_scripts:
+  stage: sync
+  script:
+    - ./scripts/sync-utils.sh
+  artifacts:
+    paths:
+      - scripts/utils.sh
+      - scripts/utils.ps1
+
+run_tests:
+  stage: test
+  script:
+    - ./scripts/run-test.sh --verbose
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/*.xml
+    paths:
+      - build/reports/
+
+publish_reports:
+  stage: report
+  script:
+    - echo "Tests completados"
+  dependencies:
+    - run_tests
+```
+
+---
+
+### **Ejemplo 5: GitHub Actions (Multi-OS)**
+
+**`.github/workflows/tests.yml`:**
+```yaml
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      
+      - name: Sync Scripts
+        run: ./scripts/sync-utils.sh
+      
+      - name: Run Tests
+        env:
+          TEST_ENV: qa
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: ./scripts/run-test.sh
+      
+      - name: Publish Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports-linux
+          path: build/reports/
+
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      
+      - name: Sync Scripts
+        run: .\scripts\sync-utils.ps1
+        shell: powershell
+      
+      - name: Run Tests
+        env:
+          TEST_ENV: qa
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: .\scripts\run-test.ps1
+        shell: powershell
+      
+      - name: Publish Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports-windows
+          path: build/reports/
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### **Problema 1: "utils.sh not found"**
+
+**Síntoma:**
+```bash
+./scripts/run-test.sh
+source: utils.sh: No such file or directory
+```
+
+**Solución:**
+```bash
+# Sincronizar desde JAR
+./scripts/sync-utils.sh
+
+# Si falla, verificar dependencia
+./gradlew dependencies | grep common
+
+# Debe mostrar: com.scotia.qa:common:1.0.0
+# Si no está, agregar en build.gradle
+```
+
+---
+
+### **Problema 2: "JAR de common no encontrado"**
+
+**Síntoma:**
+```bash
+./scripts/sync-utils.sh
+❌ No se encontró ningún JAR de common en Maven local
+```
+
+**Soluciones:**
+
+**Opción A: Publicar desde framework**
+```bash
+cd qa-scotia-frameworks/
+./gradlew :common:publishToMavenLocal
+```
+
+**Opción B: Forzar descarga (si está en Artifactory)**
+```bash
+cd qa-module-banking/
+./gradlew clean build --refresh-dependencies
+
+# Verificar
+ls ~/.m2/repository/com/scotia/qa/common/1.0.0/
+# Debe listar: common-1.0.0.jar
+```
+
+---
+
+### **Problema 3: Scripts PowerShell no se ejecutan**
+
+**Síntoma:**
+```powershell
+.\scripts\run-test.ps1
+run-test.ps1 cannot be loaded because running scripts is disabled
+```
+
+**Solución:**
+```powershell
+# Ver política actual
+Get-ExecutionPolicy
+
+# Si es "Restricted", cambiar
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# O ejecutar temporalmente
+powershell -ExecutionPolicy Bypass -File .\scripts\run-test.ps1
+```
+
+---
+
+### **Problema 4: Variables de .env.local no se cargan**
+
+**Síntoma:**
+```bash
+./scripts/run-test.sh
+⚠️ DB_URL no está configurada
+```
+
+**Soluciones:**
+
+**1. Verificar que existe:**
+```bash
+ls -la .env.local
+```
+
+**2. Verificar formato:**
+```bash
+# Sin BOM, sin espacios extra
+file .env.local
+# Debe decir: ASCII text
+
+# Ver contenido
+cat .env.local | grep DB_URL
+# Debe mostrar: DB_URL=jdbc:...
+```
+
+**3. Convertir saltos de línea (si viene de Windows):**
+```bash
+dos2unix .env.local
+```
+
+**4. Verificar .gitignore:**
+```bash
+cat .gitignore | grep .env
+# Debe incluir:
+# .env.local
+# .env.*.local
+```
+
+---
+
+### **Problema 5: "Permission denied" en scripts**
+
+**Síntoma:**
+```bash
+./scripts/run-test.sh
+-bash: ./scripts/run-test.sh: Permission denied
+```
+
+**Solución:**
+```bash
+# Hacer ejecutables
+chmod +x scripts/*.sh
+
+# O específicamente
+chmod +x scripts/run-test.sh
+chmod +x scripts/sync-utils.sh
+```
+
+---
+
+## 🚀 CI/CD Integration
+
+### **Variables de Entorno en CI/CD**
+
+**Jenkins:**
+```groovy
+environment {
+    TEST_ENV = 'qa'
+    DB_URL = credentials('db-url-id')
+    DB_USER = credentials('db-user-id')
+    DB_PASS = credentials('db-pass-id')
+}
+```
+
+**GitLab CI:**
+```yaml
+variables:
+  TEST_ENV: "qa"
+  DB_URL: $QA_DB_URL     # Variable protegida
+  DB_USER: $QA_DB_USER
+  DB_PASS: $QA_DB_PASS
+```
+
+**GitHub Actions:**
+```yaml
+env:
+  TEST_ENV: qa
+  DB_URL: ${{ secrets.DB_URL }}
+  DB_USER: ${{ secrets.DB_USER }}
+  DB_PASS: ${{ secrets.DB_PASS }}
+```
+
+### **Buenas Prácticas CI/CD**
+
+✅ **DO:**
+- Usar secretos/credentials para datos sensibles
+- Sincronizar scripts antes de ejecutar (`sync-utils.*`)
+- Archivar reportes como artifacts
+- Usar variables de entorno en lugar de `.env` files
+- Publicar reportes JUnit/Cucumber
+
+❌ **DON'T:**
+- Commitear `.env.local` con credenciales
+- Hardcodear passwords en Jenkinsfile
+- Olvidar actualizar scripts en CI/CD
+- Ejecutar sin validar dependencias
+
+---
+
+## 📚 Documentación Adicional
+
+### **Documentos Relacionados**
+
+- **[SCRIPTS-GUIDE.md](./SCRIPTS-GUIDE.md)** - Documentación técnica completa (1442 líneas)
+  - Arquitectura detallada
+  - Diagramas de flujo
+  - Plan de implementación
+  - Troubleshooting avanzado
+  - Roadmap futuro
+
+- **[FRAMEWORK-GUIDE.md](../documentacion/FRAMEWORK-GUIDE.md)** - Guía general del framework
+  - Arquitectura de capas
+  - Patrones de diseño
+  - Mejores prácticas
+
+- **[QUICK-START.md](../documentacion/QUICK-START.md)** - Inicio rápido
+  - Setup inicial
+  - Primer módulo
+  - Ejemplos básicos
+
+### **Capas del Framework**
+
+- **[common/README.md](../common/README.md)** - Componentes compartidos
+- **[api-core/README.md](../api-core/README.md)** - Testing de APIs REST
+- **[web-core/README.md](../web-core/README.md)** - Testing web con Selenium
+- **[mobile-core/README.md](../mobile-core/README.md)** - Testing mobile con Appium
+
+---
+
+## 🎯 Resumen de Comandos
+
+### **Setup Inicial (Una Vez)**
+
+```bash
+# Crear módulo
+./scripts/create-module.sh banking
+
+# Configurar
+cd qa-module-banking/
+nano .env.local
+
+# Ejecutar
+./scripts/run-test.sh
+```
+
+### **Uso Diario**
+
+```bash
+# Ejecutar tests
+./scripts/run-test.sh
+
+# Con opciones
+./scripts/run-test.sh --env qa --tags "@smoke"
+
+# Modo setup
+./scripts/run-test.sh --setup
+```
+
+### **Actualización (Mensual)**
+
+```bash
+# 1. Actualizar common en build.gradle
+nano build.gradle  # common:1.0.0 → common:1.0.1
+
+# 2. Sincronizar scripts
+./scripts/sync-utils.sh
+
+# 3. Probar
+./scripts/run-test.sh
+```
+
+### **Windows (PowerShell)**
+
+```powershell
+# Ejecutar tests
+.\scripts\run-test.ps1
+
+# Sincronizar
+.\scripts\sync-utils.ps1
+
+# Con opciones
+.\scripts\run-test.ps1 -Env qa -Tags "@smoke"
+```
+
+---
+
+## ✨ Características Principales
+
+- ✅ **Cross-Platform**: Scripts para macOS/Linux (Bash) y Windows (PowerShell)
+- ✅ **Versionado**: Scripts sincronizados con versión del framework
+- ✅ **Auto-Detección**: Módulo, ambiente, archivos de configuración
+- ✅ **CI/CD Ready**: Soporte para Jenkins, GitLab CI, GitHub Actions
+- ✅ **Modo Interactivo**: Setup asistido para nuevos usuarios
+- ✅ **Actualización Simple**: Un comando (`sync-utils.*`) sincroniza desde JAR
+- ✅ **Sin Duplicación**: Scripts CORE empaquetados en common JAR
+- ✅ **Personalizable**: Scripts CUSTOM modificables en módulos
+- ✅ **Documentado**: Documentación exhaustiva y ejemplos
+
+---
+
+**Versión:** 1.0.0  
+**Última Actualización:** 4 de Diciembre de 2025  
+**Autor:** Abel Venero  
+**Framework:** Scotia QA Framework
+
+**¿Preguntas o problemas?** Consulta [SCRIPTS-GUIDE.md](./SCRIPTS-GUIDE.md) para documentación técnica completa.
 
 Los scripts se **ejecutan desde los módulos** de prueba:
 
@@ -2097,6 +4232,226 @@ fi
 
 ---
 
+## 📋 Quick Reference: Windows PowerShell
+
+Comandos rápidos para el día a día en Windows:
+
+### **🚀 Ejecución Rápida**
+
+```powershell
+# ========================================
+# BÁSICO: Ejecutar tests (más común)
+# ========================================
+cd C:\Users\TuUsuario\Projects\qa-module-banking
+.\scripts\run-test.ps1
+
+# ========================================
+# CON AMBIENTE ESPECÍFICO
+# ========================================
+.\scripts\run-test.ps1 -Env qa          # Ambiente QA
+.\scripts\run-test.ps1 -Env uat         # Ambiente UAT
+.\scripts\run-test.ps1 -Env prod        # Producción
+
+# ========================================
+# CON TAGS DE CUCUMBER
+# ========================================
+.\scripts\run-test.ps1 -Tags "@smoke"           # Solo smoke tests
+.\scripts\run-test.ps1 -Tags "@regression"      # Regression completa
+.\scripts\run-test.ps1 -Tags "@smoke and @api"  # Combinación
+
+# ========================================
+# MODO VERBOSE (Ver detalles)
+# ========================================
+.\scripts\run-test.ps1 -Verbose
+
+# ========================================
+# MODO DRY-RUN (Ver comando sin ejecutar)
+# ========================================
+.\scripts\run-test.ps1 -DryRun
+
+# ========================================
+# ACTUALIZAR SCRIPTS
+# ========================================
+.\scripts\sync-utils.ps1                # Última versión
+.\scripts\sync-utils.ps1 -Version 1.0.1 # Versión específica
+
+# ========================================
+# ABRIR REPORTES
+# ========================================
+Start-Process "build\reports\cucumber\cucumber-html-report.html"
+Start-Process "build\reports\tests\test\index.html"
+```
+
+### **📁 Navegación Básica**
+
+```powershell
+# Ver ubicación actual
+pwd
+Get-Location
+
+# Cambiar directorio
+cd C:\Users\TuUsuario\Projects\qa-module-banking
+
+# Listar archivos
+Get-ChildItem
+dir
+ls
+
+# Listar scripts
+Get-ChildItem scripts\
+
+# Ver contenido archivo
+Get-Content .env.local
+type .env.local
+
+# Editar archivo
+notepad .env.local
+code .env.local  # Si tienes VS Code
+```
+
+### **🔧 Configuración Primera Vez**
+
+```powershell
+# Paso 1: Verificar Java
+java -version
+# Debe mostrar: Java 21+
+
+# Paso 2: Configurar política PowerShell
+Get-ExecutionPolicy
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Paso 3: Navegar al módulo
+cd C:\Users\TuUsuario\Projects\qa-module-banking
+
+# Paso 4: Configurar .env.local
+notepad .env.local
+# Agregar:
+# TEST_ENV=local
+# DB_URL=jdbc:oracle:thin:@//host:1521/service
+# DB_USER=testuser
+# DB_PASS=password123
+
+# Paso 5: Sincronizar scripts (primera vez)
+.\scripts\sync-utils.ps1
+
+# Paso 6: Ejecutar tests
+.\scripts\run-test.ps1
+```
+
+### **⚡ Atajos Útiles**
+
+```powershell
+# Limpiar pantalla
+Clear-Host
+cls
+
+# Cancelar comando en ejecución
+# Presionar: Ctrl + C
+
+# Ver historial de comandos
+Get-History
+history
+
+# Repetir último comando
+# Presionar: ↑ (flecha arriba)
+
+# Auto-completar (TAB)
+.\scr[TAB]  # Completa a .\scripts\
+.\scripts\ru[TAB]  # Completa a .\scripts\run-test.ps1
+
+# Buscar en historial
+# Presionar: Ctrl + R
+# Escribir parte del comando
+```
+
+### **🆘 Comandos de Emergencia**
+
+```powershell
+# Tests colgados - Forzar cierre
+taskkill /F /IM java.exe
+taskkill /F /IM chromedriver.exe
+
+# Limpiar build
+.\gradlew.bat clean
+
+# Ver procesos Java
+Get-Process | Where-Object {$_.Name -like "*java*"}
+
+# Ver puertos en uso
+netstat -ano | findstr :8080
+
+# Eliminar archivos temporales
+Remove-Item -Recurse -Force build\
+Remove-Item -Recurse -Force .gradle\
+```
+
+### **📋 Archivos Wrapper para Doble Click**
+
+Crear estos archivos en la raíz del módulo para ejecución con doble click:
+
+**`ejecutar-tests-local.bat`:**
+```batch
+@echo off
+echo.
+echo ════════════════════════════════════════
+echo   Ejecutando Tests en Ambiente LOCAL
+echo ════════════════════════════════════════
+echo.
+powershell.exe -ExecutionPolicy Bypass -NoExit -File "%~dp0scripts\run-test.ps1" -Env local
+```
+
+**`ejecutar-tests-qa.bat`:**
+```batch
+@echo off
+echo.
+echo ════════════════════════════════════════
+echo   Ejecutando Tests en Ambiente QA
+echo ════════════════════════════════════════
+echo.
+powershell.exe -ExecutionPolicy Bypass -NoExit -File "%~dp0scripts\run-test.ps1" -Env qa
+```
+
+**`ejecutar-smoke-tests.bat`:**
+```batch
+@echo off
+echo.
+echo ════════════════════════════════════════
+echo   Ejecutando Smoke Tests
+echo ════════════════════════════════════════
+echo.
+powershell.exe -ExecutionPolicy Bypass -NoExit -File "%~dp0scripts\run-test.ps1" -Tags "@smoke"
+```
+
+**`actualizar-scripts.bat`:**
+```batch
+@echo off
+echo.
+echo ════════════════════════════════════════
+echo   Actualizando Scripts desde Framework
+echo ════════════════════════════════════════
+echo.
+powershell.exe -ExecutionPolicy Bypass -NoExit -File "%~dp0scripts\sync-utils.ps1"
+pause
+```
+
+**`abrir-reportes.bat`:**
+```batch
+@echo off
+start "" "build\reports\cucumber\cucumber-html-report.html"
+start "" "build\reports\tests\test\index.html"
+```
+
+Ahora simplemente **doble click** en el `.bat` que necesites! 🎯
+
+### **🔗 Links Útiles**
+
+- **PowerShell Cheat Sheet:** https://ss64.com/ps/
+- **Gradle Docs:** https://docs.gradle.org/current/userguide/userguide.html
+- **Cucumber Docs:** https://cucumber.io/docs/cucumber/
+- **Selenium WebDriver:** https://www.selenium.dev/documentation/
+
+---
+
 ## 📄 Licencia
 
 Scotia QA Framework © 2025  
@@ -2115,7 +4470,7 @@ Todos los derechos reservados.
 
 ---
 
-**Última actualización**: 28 de Noviembre de 2025  
+**Última actualización**: 5 de Diciembre de 2025  
 **Autor**: Abel Venero  
 **Versión**: 1.0.0  
 **Mantenido por**: Equipo Scotia QA

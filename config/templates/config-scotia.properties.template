@@ -1,0 +1,198 @@
+# ============================================================
+# CONFIGURACIÓN CONSOLIDADA - SCOTIA QA FRAMEWORK
+# ============================================================
+# Este archivo centraliza TODA la configuración del módulo.
+# Variables sensibles deben estar en .env.local (gitignored).
+# Usar placeholders ${VAR} para referenciar desde entorno.
+# ============================================================
+
+# ------------------------------------------------------------
+# AMBIENTE
+# ------------------------------------------------------------
+test.env=QA
+test.module.name=MODULE_NAME_PLACEHOLDER
+
+# ------------------------------------------------------------
+# DRIVERS (WebDriver)
+# ------------------------------------------------------------
+# Estrategia: local | artifactory | webdrivermanager
+driver.strategy=artifactory
+
+# Artifactory (si driver.strategy=artifactory)
+driver.artifactory.enabled=true
+driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}
+driver.artifactory.user=${ARTIFACTORY_USER}
+driver.artifactory.token=${ARTIFACTORY_TOKEN}
+
+# Timeout para descargas desde Artifactory (segundos)
+driver.artifactory.timeout=60
+
+# Retry en caso de fallo de descarga
+driver.artifactory.retry.enabled=true
+driver.artifactory.retry.max=3
+
+# Versiones de drivers
+driver.chrome.version=114.0.5735.90
+driver.firefox.version=0.33.0
+driver.edge.version=114.0.1823.37
+
+# Driver local (si driver.strategy=local)
+driver.local.path=${WEBDRIVER_LOCAL_PATH}
+driver.skip.wdm=false
+
+# Cache local
+driver.cache.enabled=true
+driver.cache.dir=${user.home}/.qa-drivers
+
+# Opciones de navegador
+browser.headless=false
+browser.default=chrome
+browser.window.maximize=true
+browser.accept.insecure.certs=true
+
+# ------------------------------------------------------------
+# BASE DE DATOS
+# ------------------------------------------------------------
+db.enabled=false
+db.driver=oracle.jdbc.OracleDriver
+db.url=${DB_URL}
+db.username=${DB_USER}
+db.password=${DB_PASS}
+
+# Pool de conexiones (HikariCP)
+db.pool.size=10
+db.pool.timeout=30000
+db.connection.timeout=20000
+
+# Query timeout
+db.query.timeout=30
+
+# ------------------------------------------------------------
+# JIRA / XRAY INTEGRATION
+# ------------------------------------------------------------
+jira.enabled=false
+jira.url=https://jira.agile.bns
+jira.user=${JIRA_USER}
+jira.password=${JIRA_PASSWORD}
+
+# Xray - Actualización de estados
+xray.update.enabled=false
+xray.project.key=QAAUY
+xray.test.execution.id=${TEST_EXECUTION_ID}
+xray.auto.create.execution=false
+xray.test.environment=${TEST_ENV}
+
+# Xray - Subida de reportes (adjuntos)
+xray.upload.attachments.enabled=false
+xray.attachment.path=build/reports/extent/ExtentReport.html
+xray.max.attachment.size.mb=10
+
+# Endpoint Xray
+xray.endpoint.path=/rest/raven/2.0/api/import/execution
+
+# ------------------------------------------------------------
+# REPORTING (Extent Reports)
+# ------------------------------------------------------------
+reporting.enabled=true
+reporting.extent.enabled=true
+reporting.extent.report.name=TestReport-${test.module.name}
+reporting.extent.report.path=build/reports/extent/ExtentReport.html
+reporting.extent.document.title=Scotia QA - ${test.module.name}
+reporting.extent.theme=dark
+
+# Evidencias (screenshots, videos)
+reporting.evidence.enabled=true
+reporting.evidence.path=build/screenshots
+reporting.evidence.on.failure=true
+reporting.evidence.on.success=false
+
+# Cucumber JSON (para Xray)
+reporting.cucumber.json.enabled=true
+reporting.cucumber.json.path=build/reports/cucumber.json
+
+# ------------------------------------------------------------
+# API TESTING
+# ------------------------------------------------------------
+api.enabled=false
+api.base.url=${API_BASE_URL}
+api.token=${API_TOKEN}
+api.timeout=30000
+api.retry.enabled=true
+api.retry.max=3
+api.retry.delay=2000
+
+# SSL
+api.ssl.verify=false
+
+# Endpoints específicos (ejemplos - personalizar según proyecto)
+api.endpoint.login=/v1/auth/login
+api.endpoint.users=/v1/users
+api.endpoint.loans=/v1/loans
+
+# ------------------------------------------------------------
+# WEB TESTING
+# ------------------------------------------------------------
+web.enabled=false
+web.base.url=${WEB_BASE_URL}
+web.timeout.page.load=90
+web.timeout.implicit=10
+web.timeout.explicit=30
+
+# Waits
+web.wait.polling.interval=500
+web.wait.stabilization.time=2000
+
+# Screenshots
+web.screenshot.on.failure=true
+web.screenshot.on.step=false
+
+# ------------------------------------------------------------
+# MOBILE TESTING
+# ------------------------------------------------------------
+mobile.enabled=false
+mobile.platform=${MOBILE_PLATFORM}
+mobile.device=${MOBILE_DEVICE}
+mobile.app.path=${APP_PATH}
+mobile.appium.url=http://localhost:4723/wd/hub
+
+# ------------------------------------------------------------
+# LOGGING
+# ------------------------------------------------------------
+logging.level=INFO
+logging.console.enabled=true
+logging.file.enabled=true
+logging.file.path=build/logs/test-execution.log
+
+# ------------------------------------------------------------
+# TIMEOUTS GLOBALES
+# ------------------------------------------------------------
+timeout.default=30
+timeout.short=10
+timeout.long=60
+
+# ------------------------------------------------------------
+# RETRY STRATEGY
+# ------------------------------------------------------------
+retry.enabled=true
+retry.max.attempts=2
+retry.delay.ms=1000
+
+# ------------------------------------------------------------
+# CI/CD
+# ------------------------------------------------------------
+ci.enabled=${CI:-false}
+ci.build.id=${BUILD_ID:-local}
+ci.build.url=${BUILD_URL:-}
+
+# ------------------------------------------------------------
+# FEATURE FLAGS (futuro)
+# ------------------------------------------------------------
+feature.parallel.execution=false
+feature.distributed.testing=false
+
+# ------------------------------------------------------------
+# CUSTOM (específico del módulo)
+# ------------------------------------------------------------
+# Agregar aquí configuraciones específicas del proyecto
+# Ejemplo: module.custom.property=valor_ejemplo
+
