@@ -11,8 +11,10 @@ subprojects {
     version = "1.0.0"
 
     repositories {
-        mavenLocal()
-        mavenCentral()
+        //mavenLocal()
+        maven {
+            url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository'
+        }
     }
 
     tasks.withType(JavaCompile) {
