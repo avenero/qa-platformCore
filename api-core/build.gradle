@@ -1,7 +1,8 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '6.19.0'
+    // Spotless (formateo código) - OPCIONAL, comentado para evitar problemas en Windows con proxy/firewall
+    // Descomentar si quieres formateo automático: id 'com.diffplug.spotless' version '6.19.0'
     id 'jacoco'
 }
 
@@ -53,7 +54,9 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 }
 
-// Spotless configuration para formateo de código
+// Spotless configuration para formateo de código - COMENTADO (opcional)
+// Descomentar junto con el plugin si quieres formateo automático
+/*
 spotless {
     java {
         googleJavaFormat()
@@ -62,6 +65,7 @@ spotless {
         endWithNewline()
     }
 }
+*/
 
 // Test configuration
 test {
@@ -228,8 +232,11 @@ tasks.register('cucumberTags', Test) {
     }
 }
 
-// Aplicar formateo antes de compilar
+// Aplicar formateo antes de compilar - COMENTADO (requiere plugin Spotless)
+// Descomentar si habilitas Spotless
+/*
 tasks.named('compileJava').configure {
     dependsOn tasks.named('spotlessApply')
 }
+*/
 

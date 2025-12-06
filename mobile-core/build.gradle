@@ -72,12 +72,5 @@ test {
     }
 }
 
-// Configuración de publicación del JAR
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.java
-            artifactId = 'mobile-core'
-        }
-    }
-}
+// NOTA: La publicación Maven está configurada automáticamente en el build.gradle raíz
+// para todos los submódulos. No es necesario configurarla aquí.
