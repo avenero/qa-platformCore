@@ -98,29 +98,69 @@ Then verifico en mobile que el usuario sea "{username}"
 ### Diagrama de Capas
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MÓDULOS CONSUMIDORES                         │
-│              (Proyectos Específicos de Negocio)                 │
-│   qa-autos • qa-banking • qa-mobile-app • qa-integration        │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓ dependen de
-┌─────────────────────────────────────────────────────────────────┐
-│              FRAMEWORKS ESPECIALIZADOS (CORE)                   │
-├─────────────────┬──────────────────┬──────────────────────────┤
-│  📱 mobile-core │   🌐 api-core    │      💻 web-core          │
-│                 │                  │                           │
-│ • Appium        │ • REST Testing   │ • Selenium WebDriver      │
-│ • Device Mgmt   │ • HTTP Client    │ • Page Object Model       │
-│ • Native Apps   │ • Validations    │ • Cross-browser           │
-└─────────────────┴──────────────────┴──────────────────────────┘
-                              ↓ extienden
-┌─────────────────────────────────────────────────────────────────┐
-│                      🔧 COMMON (BASE)                           │
-│  • Interfaces & Contracts    • Logging System                  │
-│  • HTTP Client Base          • ScenarioContext                 │
-│  • Cucumber Hooks            • Security Utils                  │
-│  • Database Support          • Data Utilities                  │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                          📦 REPOSITORIO DE MÓDULO                              │
+│                        (Proyecto de Testing Específico)                        │
+│                                                                                │
+│                            📁 qa-module-banking                                │
+│                                                                                │
+│                            - Features (Gherkin)                                │
+│                            - Step Definitions                                  │
+│                            - Test Data                                         │
+│                            - Page Objects                                      │
+│                            - Config específica                                 │
+│                                                                                │
+│                            └─> import framework                                │
+└────────────────────────────────────────────────────────────────────────────────┘
+                                         │
+                                         │ dependencies
+                                         ▼
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                      📦 REPOSITORIO DEL FRAMEWORK                              │
+│                         (qa-scotia-frameworks)                                 │
+│                                                                                │
+│  ┌──────────────────────────────────────────────────────────────────────┐      │
+│  │                          CAPA 1: COMMON                              │      │
+│  │                     (Componentes Compartidos)                        │      │
+│  │                                                                      │      │
+│  │  • HTTP Client         • Logging             • ScenarioContext       │      │
+│  │  • Validaciones        • Config Management   • Test Data Finder      │      │
+│  │  • Database Access     • Utilities           • Hooks & Validators    │      │
+│  │  • Exception Handling  • Data Utilities      • Cucumber Integration  │      │
+│  │                                                                      │      │
+│  │  📖 Ver: common/README.md                                            │      │
+│  └──────────────────────────────────────────────────────────────────────┘      │
+│                                       ▲                                        │
+│                                       │ depends on                             │
+│  ┌───────────────────┬────────────────┴──────────┬─────────────────────┐       │
+│  │                   │                           │                     │       │
+│  │  ┌────────────────▼──────┐  ┌────────────────▼──────┐  ┌───────────▼───┐    │
+│  │  │  CAPA 2: API-CORE     │  │  CAPA 3: WEB-CORE     │  │  CAPA 4:      │    │
+│  │  │   (API Testing)       │  │   (Web Testing)       │  │  MOBILE-CORE  │    │
+│  │  │                       │  │                       │  │  (Mobile Test)│    │
+│  │  │  • API Steps          │  │  • Web Steps          │  │  • Mobile     │    │
+│  │  │  • Request Builders   │  │  • WebDriver Manager  │  │    Steps      │    │
+│  │  │  • Response Validators│  │  • Page Helpers       │  │  • Appium     │    │
+│  │  │  • Auth Handlers      │  │  • Element Locators   │  │    Config     │    │
+│  │  │                       │  │  • Wait Strategies    │  │  • Device     │    │
+│  │  │ 📖 api-core/README.md │  │                       │  │    Manager    │    │
+│  │  └───────────────────────┘  │ 📖 web-core/README.md │  │               │    │
+│  │                              └───────────────────────┘ │ 📖 mobile-    │    │
+│  │                                                        │    core/      │    │
+│  │                                                        │    README.md  │    │
+│  │                                                         ───────────────┘    │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                │
+│  ┌──────────────────────────────────────────────────────────────────────┐      │
+│  │                    📜 SCRIPTS & UTILIDADES                           │      │
+│  │                                                                      │      │
+│  │  • test.sh (script de ejecución genérico)                            │      │
+│  │  • utils.sh (funciones compartidas)                                  │      │
+│  │  • Jenkins integration                                               │      │
+│  │                                                                      │      │
+│  │  📖 Ver: scripts/README.md                                           │      │
+│  └──────────────────────────────────────────────────────────────────────┘      │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Principios Arquitectónicos
@@ -335,13 +375,6 @@ Then verifico si existe el elemento "dashboard"
 
 ## 📚 Documentación
 
-### 📘 Documentos Principales (Consolidados)
-
-| Documento | Descripción | Audiencia |
-|-----------|-------------|-----------|
-| **[FRAMEWORK-GUIDE.md](documentacion/FRAMEWORK-GUIDE.md)** | 📖 Guía completa consolidada: arquitectura, capas, stack tecnológico, troubleshooting, contribución | Todos |
-| **[QUICK-START.md](documentacion/QUICK-START.md)** | 🚀 Guía paso a paso para configurar y ejecutar tu primer test | Nuevos usuarios |
-
 ### 📖 Documentación por Capa
 
 | Documento | Descripción |
@@ -352,7 +385,146 @@ Then verifico si existe el elemento "dashboard"
 | **[mobile-core/README.md](./mobile-core/README.md)** | 📱 Mobile Testing: +45 steps, Appium, Android/iOS |
 | **[scripts/README.md](./scripts/README.md)** | 📜 Scripts de automatización, CI/CD, Jenkins |
 
-> **Nota:** Toda la documentación sobre troubleshooting, contribución y guías adicionales ha sido consolidada en **FRAMEWORK-GUIDE.md**
+### 📝 Documentación Adicional
+
+| Documento | Descripción |
+|-----------|-------------|
+| **[config/](./config/)** | 📦 Templates, Artifactory, scripts Windows |
+| **[web-core/TROUBLESHOOTING-TIMEOUT.md](./web-core/TROUBLESHOOTING-TIMEOUT.md)** | 🐛 Solución problemas timeouts |
+| **[web-core/WEBDRIVER-SETUP-GUIDE.md](./web-core/WEBDRIVER-SETUP-GUIDE.md)** | 🚗 Configuración WebDrivers |
+
+> 💡 **Nota:** Este README consolida toda la documentación principal. Para detalles de cada capa, ver los README individuales.
+
+---
+
+## 🐛 Troubleshooting
+
+### Problemas Comunes
+
+#### ❌ Error: "Cannot resolve dependency com.scotia.qa:common"
+
+**Causa**: Framework no publicado en Maven Local
+
+**Solución**:
+```bash
+cd qa-scotia-frameworks
+./gradlew clean publishToMavenLocal
+```
+
+#### ❌ Error: "Driver not found" o "ChromeDriver version mismatch"
+
+**Causa**: WebDriver no compatible con versión del navegador
+
+**Solución**: Ver [web-core/WEBDRIVER-SETUP-GUIDE.md](./web-core/WEBDRIVER-SETUP-GUIDE.md)
+
+#### ❌ Error: "TimeoutException waiting for element"
+
+**Causa**: Waits mal configurados o elemento no existe
+
+**Solución**: Ver [web-core/TROUBLESHOOTING-TIMEOUT.md](./web-core/TROUBLESHOOTING-TIMEOUT.md)
+
+#### ❌ Error: "Connection refused" en API tests
+
+**Causa**: URL incorrecta o servicio no disponible
+
+**Solución**:
+```bash
+# Verificar URL en config
+cat src/test/resources/config-scotia.properties | grep api.base.url
+
+# Probar conexión
+curl -I https://tu-api.com/health
+```
+
+#### ❌ Error: Plugin Spotless en Windows
+
+**Causa**: Proxy/firewall bloqueando descarga
+
+**Solución**: Spotless fue removido del framework. Ver [config/SPOTLESS-REMOVIDO-WINDOWS.md](./config/SPOTLESS-REMOVIDO-WINDOWS.md)
+
+---
+
+## 🎯 Mejores Prácticas
+
+### ✅ Organización de Tests
+
+```
+qa-module-proyecto/
+├── src/test/
+│   ├── java/
+│   │   └── com/proyecto/
+│   │       ├── steps/           ← Steps por funcionalidad
+│   │       │   ├── LoginSteps.java
+│   │       │   └── DashboardSteps.java
+│   │       ├── hooks/           ← Hooks centralizados
+│   │       │   └── TestHooks.java
+│   │       └── pages/           ← Page Objects (solo Web)
+│   │           └── LoginPage.java
+│   └── resources/
+│       ├── features/            ← Features por módulo
+│       │   ├── login/
+│       │   │   └── login.feature
+│       │   └── dashboard/
+│       │       └── dashboard.feature
+│       └── config-scotia.properties
+```
+
+### ✅ Uso de Tags
+
+```gherkin
+@smoke @api @regression
+Escenario: Login exitoso
+  # Tags permiten ejecución selectiva
+  # ./gradlew test -Dcucumber.filter.tags="@smoke and @api"
+```
+
+### ✅ Compartir Datos entre Steps (ScenarioContext)
+
+```gherkin
+# API obtiene datos
+Given ejecuto login y guardo "token" como "authToken"
+
+# Web usa datos del API
+When navego con token "{authToken}"
+
+# Mobile valida datos
+Then verifico en mobile usuario "{username}"
+```
+
+### ✅ Configuración por Ambiente
+
+```properties
+# config-scotia.properties
+test.env=${TEST_ENV}
+api.base.url=${API_BASE_URL}
+web.base.url=${WEB_BASE_URL}
+```
+
+```bash
+# .env.local (gitignored)
+TEST_ENV=QA
+API_BASE_URL=https://api-qa.example.com
+WEB_BASE_URL=https://qa.example.com
+```
+
+### ✅ Logging Efectivo
+
+```java
+// Usar TestLogger, no System.out.println()
+TestLogger.logInfo("LOGIN", "Iniciando login", Map.of("user", "test123"));
+
+// Datos sensibles se enmascaran automáticamente
+TestLogger.logInfo("AUTH", "Token obtenido", Map.of("token", "abc123")); 
+// Output: Token obtenido: token=***
+```
+
+### ❌ Evitar
+
+- ❌ **Hardcodear datos**: Usar configuración
+- ❌ **Sleeps fijos**: Usar waits explícitos
+- ❌ **Lógica de negocio en steps**: Mantener steps genéricos
+- ❌ **Page Objects en el framework**: Van en los módulos
+- ❌ **Commits directos a master**: Usar branches
 
 ---
 
@@ -360,17 +532,107 @@ Then verifico si existe el elemento "dashboard"
 
 ¿Quieres contribuir al framework? ¡Excelente! 
 
-1. Lee la [Guía de Contribución en FRAMEWORK-GUIDE.md](./documentacion/FRAMEWORK-GUIDE.md#-contribución)
-2. Crea un branch desde `develop`
+### 📋 Proceso de Contribución
+
+1. **Fork** el repositorio
+2. Crea un **branch** desde `master`:
+   ```bash
+   git checkout -b feature/mi-nueva-funcionalidad
+   ```
 3. Haz tus cambios siguiendo las convenciones
-4. Crea un Pull Request
+4. Ejecuta tests:
+   ```bash
+   ./gradlew clean test
+   ```
+5. Commitea con mensajes descriptivos
+6. **Push** a tu fork
+7. Crea un **Pull Request** hacia `master`
 
-### Convenciones
+### 📝 Convenciones de Código
 
-- ✅ Código en **inglés**
-- ✅ Comentarios y documentación en **español**
-- ✅ Steps de Cucumber en **español**
-- ✅ Commits siguiendo [Conventional Commits](https://www.conventionalcommits.org/)
+#### Idiomas
+- ✅ **Código** (clases, métodos, variables): **Inglés**
+- ✅ **Comentarios Javadoc**: **Español**
+- ✅ **Steps de Cucumber**: **Español** (con soporte inglés)
+- ✅ **Documentación**: **Español**
+
+#### Naming
+
+```java
+// ✅ CORRECTO
+public class ApiSteps {
+    private final HttpClient httpClient;
+    
+    /**
+     * Ejecuta una petición HTTP con el método especificado.
+     */
+    public void executeRequest(HttpMethod method) { ... }
+}
+
+// ❌ INCORRECTO
+public class ApiPasos {
+    private final HttpClient clienteHttp;
+    
+    public void ejecutarPeticion(HttpMethod metodo) { ... }
+}
+```
+
+#### Commits
+
+Seguir [Conventional Commits](https://www.conventionalcommits.org/):
+
+```bash
+# Features nuevas
+git commit -m "feat(api-core): agregar soporte para OAuth2"
+
+# Corrección de bugs
+git commit -m "fix(web-core): corregir timeout en espera de elementos"
+
+# Documentación
+git commit -m "docs(readme): actualizar guía de instalación"
+
+# Refactoring
+git commit -m "refactor(common): mejorar performance de ScenarioContext"
+
+# Tests
+git commit -m "test(api-core): agregar tests para validación JSON"
+```
+
+### ✅ Estándares de Calidad
+
+Antes de hacer commit:
+
+1. **Código compila sin errores**:
+   ```bash
+   ./gradlew clean build
+   ```
+
+2. **Tests pasan**:
+   ```bash
+   ./gradlew test
+   ```
+
+3. **Javadoc completo** en clases públicas
+
+4. **Sin warnings** críticos
+
+5. **Código formateado** (IntelliJ: `Ctrl+Alt+L`)
+
+### 🔍 Proceso de Revisión
+
+Todo PR será revisado por:
+- ✅ **Code Review** (arquitectura, código limpio)
+- ✅ **Test Coverage** (nuevos tests si aplica)
+- ✅ **Documentación** (README actualizado si aplica)
+- ✅ **Breaking Changes** (versión semántica)
+
+### 🚫 No Permitido
+
+- ❌ Commitear a `master` directamente
+- ❌ Código sin tests (para features nuevas)
+- ❌ Lógica de negocio específica en el framework
+- ❌ Dependencias no aprobadas
+- ❌ Datos sensibles en código (usar config)
 
 ---
 
@@ -378,26 +640,32 @@ Then verifico si existe el elemento "dashboard"
 
 **Desarrollado por:** QA Team - Scotia Bank  
 **Autor Principal:** Abel Venero  
-**Mantenedores:** QA Engineering Team
 
 ---
 
-## 📄 Licencia
-
-Copyright © 2025 Scotia Bank. Todos los derechos reservados.
-
-Este framework es propiedad de Scotia Bank y su uso está restringido a proyectos autorizados de la organización.
-
----
 
 ## 🌟 Estado del Proyecto
 
-| Capa | Estado | Cobertura Tests | Build |
-|------|--------|-----------------|-------|
-| **common** | ✅ Estable | 85% | ![Build](https://img.shields.io/badge/build-passing-brightgreen) |
-| **api-core** | ✅ Estable | 80% | ![Build](https://img.shields.io/badge/build-passing-brightgreen) |
-| **web-core** | ✅ Estable | 90% | ![Build](https://img.shields.io/badge/build-passing-brightgreen) |
-| **mobile-core** | ⚠️ Beta | 70% | ![Build](https://img.shields.io/badge/build-passing-brightgreen) |
+| Capa | Versión | Estado | Cobertura | Build |
+|------|---------|--------|-----------|-------|
+| **common** | 1.0.0 | ✅ Estable | 85% | ![Build](https://img.shields.io/badge/build-passing-brightgreen) |
+| **api-core** | 1.0.0 | ✅ Estable | 80% | ![Build](https://img.shields.io/badge/build-passing-brightgreen) |
+| **web-core** | 1.0.0 | ✅ Estable | 90% | ![Build](https://img.shields.io/badge/build-passing-brightgreen) |
+| **mobile-core** | 1.0.0 | ⚠️ Beta | 70% | ![Build](https://img.shields.io/badge/build-passing-brightgreen) |
+
+### 🚀 Roadmap
+
+#### v1.1.0 (Próximo Release)
+- [ ] Integración con Artifactory para WebDrivers
+- [ ] Reporting avanzado con Extent Reports
+- [ ] Integración Jira/Xray mejorada
+- [ ] Soporte para Selenium Grid 4
+
+#### v1.2.0 (Futuro)
+- [ ] Soporte para tests de Performance (JMeter)
+- [ ] Integración con Allure Reports
+- [ ] Dashboard de métricas de tests
+- [ ] AI-powered test generation
 
 ---
 
@@ -405,10 +673,7 @@ Este framework es propiedad de Scotia Bank y su uso está restringido a proyecto
 
 ¿Necesitas ayuda?
 
-- 📧 Email: qa-team@scotiabank.com
-- 💬 Slack: #qa-automation
-- 📝 Issues: [GitHub Issues](https://github.com/scotia-qa/qa-scotia-frameworks/issues)
-
+- 📧 Email: abel.venero@scotiabank.com
 ---
 
 <div align="center">

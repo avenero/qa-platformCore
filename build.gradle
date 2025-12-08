@@ -11,16 +11,13 @@ subprojects {
     version = "1.0.0"
 
     repositories {
-        //mavenLocal()
         maven {
             url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository'
         }
+        //mavenLocal()
     }
 
-    tasks.withType(JavaCompile) {
-        sourceCompatibility = '21'
-        targetCompatibility = '21'
-    }
+
 
     tasks.withType(Test) {
         useJUnitPlatform()

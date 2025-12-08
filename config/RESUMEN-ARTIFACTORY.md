@@ -127,28 +127,30 @@ EDGEDRIVER_VERSION=114.0.1823.37
 ## 🌐 Estructura en Artifactory (Requerida)
 
 ```
-https://artifactory.scotia.com/artifactory/qa-drivers/
+https://path/artifactory/qa-drivers/
 │
 ├── chromedriver/
-│   └── 114.0.5735.90/
-│       ├── linux64/chromedriver.zip
+│   └── 114.0.5735.90/              ....version
 │       ├── mac64/chromedriver.zip
 │       ├── mac_arm64/chromedriver.zip
 │       └── win32/chromedriver.zip
 │
 ├── geckodriver/
-│   └── 0.33.0/
-│       ├── linux64/geckodriver.zip
+│   └── 0.33.0/                     ....version
 │       ├── mac64/geckodriver.zip
 │       ├── mac_arm64/geckodriver.zip
 │       └── win32/geckodriver.zip
 │
-└── edgedriver/
-    └── 114.0.1823.37/
-        ├── linux64/msedgedriver.zip
-        ├── mac64/msedgedriver.zip
-        ├── mac_arm64/msedgedriver.zip
-        └── win32/msedgedriver.zip
+├── edgedriver/
+│   └── 114.0.1823.37/              ....version
+│       ├── mac64/msedgedriver.zip
+│       ├── mac_arm64/msedgedriver.zip
+│       └── win32/msedgedriver.zip
+│
+└── safaridriver/
+    └── 16.0/                      ....version
+        ├── mac64/safaridriver.zip
+        └── mac_arm64/safaridriver.zip
 ```
 
 ---

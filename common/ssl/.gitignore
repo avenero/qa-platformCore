@@ -1,0 +1,12 @@
+# Commitear truststore (JKS)
+!myTrustStore.jks
+
+# No commitear certificados en texto plano
+*.crt
+*.pem
+*.cer
+
+# No commitear backups
+*.bak
+*.old
+
