@@ -128,7 +128,7 @@ function Import-EnvFile {
                 $value = $parts[1].Trim()
 
                 # Remover comillas si existen
-                $value = $value -replace '^["'']|["'']$', ''
+                $value = $value -replace '^["\x27]|["\x27]$', ''
 
                 # Establecer variable de entorno en el proceso actual
                 [System.Environment]::SetEnvironmentVariable($name, $value, "Process")
@@ -168,7 +168,7 @@ function Show-LoadedVariables {
                 }
                 else {
                     # Remover comillas para mostrar
-                    $value = $value -replace '^["'']|["'']$', ''
+                    $value = $value -replace '^["\x27]|["\x27]$', ''
                 }
 
                 Write-Host "   " -NoNewline

@@ -236,7 +236,28 @@ Ejecutaste el script sin el `.` inicial
 
 ---
 
-### ❌ Problema 4: "Error cargando archivo"
+### ❌ Problema 4: "Error de Parser / MissingTypename"
+
+**Error:**
+```
+En setup-env.ps1: 131 Carácter: 51
+Falta el nombre de tipo después de '['.
+```
+
+**Causa:**
+El script tiene un problema de codificación de caracteres (comillas).
+
+**Solución:**
+El script ya fue corregido en la última versión. Si aún ves este error:
+
+```powershell
+# Re-descargar el script desde el framework actualizado
+Copy-Item ..\qa-scotia-frameworks\scripts\setup-env.ps1 -Destination .\scripts\ -Force
+```
+
+---
+
+### ❌ Problema 5: "Error cargando archivo"
 
 **Error:**
 ```
