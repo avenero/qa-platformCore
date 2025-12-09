@@ -77,7 +77,52 @@ Get-Content $ENV_FILE | ForEach-Object {
 Write-Host ""
 Write-Host "Variables cargadas: $count" -ForegroundColor Green
 Write-Host ""
-Write-Host "Ahora puedes ejecutar:" -ForegroundColor Yellow
-Write-Host "  .\gradlew test" -ForegroundColor Cyan
+Write-Host "Para ejecutar tests, usa:" -ForegroundColor Yellow
+Write-Host ""
+
+# Generar comando con todas las variables como -D
+$gradleCommand = ".\gradlew test"
+Get-Content $ENV_FILE | ForEach-Object {
+    $line = $_.Trim()
+    if ($line -and -not $line.StartsWith("#")) {
+        $parts = $line -split '=', 2
+        if ($parts.Count -eq 2) {
+            $name = $parts[0].Trim()
+            $value = [System.Environment]::GetEnvironmentVariable($name, "Process")
+            if ($value) {
+                $gradleCommand += " -D$name=`"$value`""
+            }
+        }
+    }
+}
+
+Write-Host "  $gradleCommand" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "O copia este comando:" -ForegroundColor Yellow
+Write-Host ""
+
+# Mostrar comando formateado
+$formattedCommand = ".\gradlew test ``"
+Get-Content $ENV_FILE | ForEach-Object {
+    $line = $_.Trim()
+    if ($line -and -not $line.StartsWith("#")) {
+        $parts = $line -split '=', 2
+        if ($parts.Count -eq 2) {
+            $name = $parts[0].Trim()
+            $value = [System.Environment]::GetEnvironmentVariable($name, "Process")
+            if ($value) {
+                # Ocultar passwords
+                if ($name -match "PASS|PASSWORD|TOKEN|SECRET|KEY") {
+                    $formattedCommand += "`n  -D$name=***HIDDEN*** ``"
+                } else {
+                    $formattedCommand += "`n  -D$name=`"$value`" ``"
+                }
+            }
+        }
+    }
+}
+$formattedCommand = $formattedCommand.TrimEnd('`').TrimEnd()
+
+Write-Host $formattedCommand -ForegroundColor Cyan
 Write-Host ""
 
