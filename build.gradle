@@ -80,9 +80,7 @@ subprojects {
         options.author = true
         options.version = true
         options.links = [
-            'https://docs.oracle.com/en/java/javase/21/docs/api/',
-            'https://javadoc.io/doc/io.cucumber/cucumber-java/7.18.0/',
-            'https://www.slf4j.org/apidocs/'
+            'https://artifactory.cldevops.chl.bns/ui/native/external-repository/javadoc/javadoc'
         ]
 
         // Ignorar errores en JavaDoc (para no bloquear el build)

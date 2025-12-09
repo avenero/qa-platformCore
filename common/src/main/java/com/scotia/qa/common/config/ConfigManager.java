@@ -353,19 +353,31 @@ public class ConfigManager {
         StringBuffer result = new StringBuffer(); // StringBuffer requerido por Matcher.appendReplacement
 
         while (matcher.find()) {
-            String varName = matcher.group(1);
+            String varName = matcher.group(1); // Extrae "DB_URL" de "${DB_URL}"
 
-            // Buscar en ENV vars
-            String varValue = System.getenv(varName);
+            // 1. Buscar en System Properties (máxima prioridad)
+            String varValue = System.getProperty(varName);
 
-            // Buscar en System Properties
+            // 2. Buscar en Environment Variables
             if (varValue == null) {
-                varValue = System.getProperty(varName);
+                varValue = System.getenv(varName);
+            }
+
+            // 3. Intentar con guiones bajos convertidos a puntos (db.url → DB_URL)
+            if (varValue == null) {
+                String upperVarName = varName.toUpperCase().replace(".", "_");
+                varValue = System.getenv(upperVarName);
+            }
+
+            // 4. Intentar con puntos convertidos a guiones bajos (DB_URL → db.url)
+            if (varValue == null) {
+                String lowerVarName = varName.toLowerCase().replace("_", ".");
+                varValue = System.getProperty(lowerVarName);
             }
 
             // Si no se encuentra, dejar sin resolver y avisar
             if (varValue == null) {
-                log.warn("⚠️ Variable de entorno '{}' no encontrada. Verifica que esté configurada en .env.local y cargada con 'source .env.local'", varName);
+                log.error("⚠️ Variable de entorno '{}' no encontrada. Verifica que esté configurada en .env.local y cargada con 'source .env.local' (macOS/Linux) o '. .\\scripts\\setup-env.ps1' (Windows)", varName);
                 varValue = matcher.group(0); // Dejar ${VAR} sin cambios
             }
 
