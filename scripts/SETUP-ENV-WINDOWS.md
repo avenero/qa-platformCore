@@ -2,9 +2,10 @@
 
 **Última actualización**: 8 de Diciembre 2025  
 **Script**: `setup-env.ps1`  
-**Versión**: 1.0.0
+**Versión**: 1.0.1
 
 ---
+
 
 ## ✅ RESPUESTA RÁPIDA: ¿Necesito Permisos de Administrador?
 
@@ -198,7 +199,41 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
 ---
 
-### ❌ Problema 2: "Archivo .env.local no encontrado"
+### ❌ Problema 2: "Script setup-env.ps1 no encontrado"
+
+**Error:**
+```
+El término '.\scripts\setup-env.ps1' no se reconoce como nombre de un cmdlet...
+CommandNotFoundException
+```
+
+**Causa:**
+El script no existe en tu módulo. Necesitas copiarlo desde el framework.
+
+**Solución:**
+```powershell
+# Verificar ubicación del framework
+Test-Path ..\qa-scotia-frameworks\scripts\setup-env.ps1
+
+# Copiar desde el framework
+Copy-Item ..\qa-scotia-frameworks\scripts\setup-env.ps1 -Destination .\scripts\ -Force
+
+# Verificar que se copió
+Test-Path .\scripts\setup-env.ps1
+
+# Ahora ejecutar
+. .\scripts\setup-env.ps1
+```
+
+**Si el framework está en otra ubicación:**
+```powershell
+# Ajustar la ruta según tu caso
+Copy-Item C:\ruta\al\framework\scripts\setup-env.ps1 -Destination .\scripts\ -Force
+```
+
+---
+
+### ❌ Problema 3: "Archivo .env.local no encontrado"
 
 **Error:**
 ```
@@ -216,7 +251,7 @@ notepad .env.local
 
 ---
 
-### ❌ Problema 3: Variables no persisten
+### ❌ Problema 4: Variables no persisten
 
 **Síntoma:**
 - El script se ejecuta sin errores
@@ -236,7 +271,7 @@ Ejecutaste el script sin el `.` inicial
 
 ---
 
-### ❌ Problema 4: "Error de Parser / MissingTypename"
+### ❌ Problema 5: "Error de Parser / MissingTypename"
 
 **Error:**
 ```
@@ -257,7 +292,7 @@ Copy-Item ..\qa-scotia-frameworks\scripts\setup-env.ps1 -Destination .\scripts\ 
 
 ---
 
-### ❌ Problema 5: "Error cargando archivo"
+### ❌ Problema 6: "Error cargando archivo"
 
 **Error:**
 ```
