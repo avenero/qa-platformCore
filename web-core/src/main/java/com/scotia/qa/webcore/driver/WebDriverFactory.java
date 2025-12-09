@@ -400,8 +400,6 @@ public class WebDriverFactory {
      * @param browserName Nombre del navegador para logs (Chrome, Firefox, Edge)
      */
     private static void setupDriver(String driverName, String propertyName, String browserName) {
-        // Configurar System Properties de red para WebDriverManager
-        configureNetworkProperties();
         // FALLBACK 1: ¿Hay driver manual configurado?
         String manualDriverPath = System.getProperty(propertyName);
         if (manualDriverPath != null && !manualDriverPath.isEmpty()) {
@@ -416,71 +414,35 @@ public class WebDriverFactory {
             }
         }
 
-        // FALLBACK 2: Intentar WebDriverManager (con timeout reducido y configuración robusta)
+        // FALLBACK 2: Usar WebDriverManager del framework (Local → Caché → Artifactory)
         try {
             TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                String.format("🔄 Intentando configurar %s con WebDriverManager...", driverName), null);
+                String.format("🔄 Obteniendo %s con estrategia de fallback del framework...", driverName), null);
 
-            WebDriverManager wdm = getWebDriverManager(driverName);
+            // Usar WebDriverManager del framework con auto-detección de versión
+            java.nio.file.Path driverPath = com.scotia.qa.common.driver.WebDriverManager.getDriverFromConfig(driverName);
 
-            // Configurar cache local PRIMERO (prioridad máxima)
-            String cachePath = getDefaultCachePath();
-            wdm.cachePath(cachePath);
-
-            // Verificar si ya existe en cache antes de intentar descargar
-            java.io.File cacheDir = new java.io.File(cachePath);
-            if (cacheDir.exists()) {
+            if (driverPath != null && java.nio.file.Files.exists(driverPath)) {
+                System.setProperty(propertyName, driverPath.toString());
                 TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                    String.format("📁 Cache encontrado en: %s", cachePath), null);
-                wdm.ttl(0);  // Usar cache sin verificar versión online
+                    String.format("✅ %s configurado: %s", driverName, driverPath), null);
+                return;
             }
-
-            // Configurar proxy si existe (usar configuración del sistema)
-            String proxyHost = System.getProperty("http.proxyHost");
-            String proxyPort = System.getProperty("http.proxyPort");
-
-            // Si no hay proxy en System Properties, intentar con variables de entorno
-            if (proxyHost == null) {
-                proxyHost = System.getenv("HTTP_PROXY_HOST");
-                proxyPort = System.getenv("HTTP_PROXY_PORT");
-            }
-
-            if (proxyHost != null && proxyPort != null) {
-                String proxyUrl = proxyHost + ":" + proxyPort;
-                TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                    String.format("🔧 Configurando proxy: %s", proxyUrl), null);
-                wdm.proxy(proxyUrl);
-            }
-
-            // Configuración ULTRA ROBUSTA para ambientes corporativos
-            wdm.timeout(10)  // Timeout AGRESIVO: 10 segundos (default: 60s)
-               .avoidReadReleaseFromRepository()  // Evitar consultas lentas a repositorios
-               .avoidBrowserDetection()  // No detectar navegador (ahorra 2-3 segundos)
-               .avoidExport();  // No exportar variables de entorno
-
-            TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                String.format("⏱️ Timeout configurado: 10 segundos (máximo)"), null);
-
-            wdm.setup();
-
-            TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                String.format("✅ %s configurado correctamente vía WebDriverManager", driverName), null);
-            return;
 
         } catch (Exception e) {
             String errorDetail = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             TestLogger.logWarning("WEB_DRIVER_FACTORY",
-                String.format("⚠️ WebDriverManager falló para %s: %s", driverName, errorDetail), null);
-            TestLogger.logWarning("WEB_DRIVER_FACTORY",
-                "💡 Intentando fallbacks (cache local → PATH sistema → error descriptivo)", null);
+                String.format("⚠️ WebDriverManager del framework falló para %s: %s", driverName, errorDetail), null);
+            TestLogger.logInfo("WEB_DRIVER_FACTORY",
+                "💡 Intentando fallbacks legacy (cache WDM → PATH sistema)", null);
         }
 
-        // FALLBACK 3: Buscar en cache local
+        // FALLBACK 3: Buscar en cache de WebDriverManager legacy (bonigarcia)
         String cacheDriver = findDriverInCache(driverName);
         if (cacheDriver != null) {
             System.setProperty(propertyName, cacheDriver);
             TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                String.format("✅ Usando %s desde cache: %s", driverName, cacheDriver), null);
+                String.format("✅ Usando %s desde cache legacy: %s", driverName, cacheDriver), null);
             return;
         }
 
