@@ -33,7 +33,7 @@ set -e
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/utils.sh"
+# NOTE: utils.sh fue eliminado - funciones básicas implementadas localmente
 
 # ============================================================================
 # VARIABLES GLOBALES

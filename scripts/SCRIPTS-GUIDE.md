@@ -1,22 +1,21 @@
 # 🎯 Scripts del Framework - Guía Completa de Uso
 
-## 🔍 Auditoría de Scripts (Actualizado: 4 Diciembre 2025)
+## 🔍 Auditoría de Scripts (Actualizado: 8 Diciembre 2025)
+
+> **⚠️ NOTA IMPORTANTE:** Este documento fue actualizado eliminando scripts obsoletos (`utils.sh`, `sync-utils.sh`, `run-test.sh`).  
+> Si encuentras referencias a estos scripts en secciones antiguas, **ignóralas**. La información actualizada está en las primeras secciones.
 
 ### **Scripts Inventariados:**
 
 | # | Script | Sistema | Ubicación | Estado | Notas |
 |---|--------|---------|-----------|--------|-------|
-| 1 | `utils.sh` | macOS/Linux | CORE (JAR) | ✅ ACTIVO | Funciones compartidas |
-| 2 | `utils.ps1` | Windows | CORE (JAR) | ✅ ACTIVO | Equivalente PowerShell |
-| 3 | `sync-utils.sh` | macOS/Linux | Módulos | ✅ ACTIVO | Sincroniza desde JAR |
-| 4 | `sync-utils.ps1` | Windows | Módulos | ✅ ACTIVO | Sincroniza desde JAR |
-| 5 | `run-test.sh` | macOS/Linux | Módulos | ✅ ACTIVO | Ejecuta tests |
-| 6 | `run-test.ps1` | Windows | Módulos | ✅ ACTIVO | Ejecuta tests |
-| 7 | `create-module.sh` | macOS/Linux | Framework | ✅ ACTIVO | Crea módulos |
-| 8 | `analyze-results.sh` | Cross-platform | Framework/Módulos | ✅ ACTIVO | Analiza resultados |
-| 9 | `code-quality.sh` | Cross-platform | Framework/Módulos | ✅ ACTIVO | Calidad de código |
-| 10 | `pre-commit.sh` | Cross-platform | Módulos | ✅ ACTIVO | Hook Git |
-| 11 | `clean-ide.sh` | Cross-platform | Framework/Módulos | ✅ ACTIVO | Limpia IDE |
+| 1 | `setup-env.sh` | macOS/Linux | Módulos | ✅ ACTIVO | Configura variables de entorno |
+| 2 | `setup-env.ps1` | Windows | Módulos | ✅ ACTIVO | Configura variables de entorno |
+| 3 | `create-module.sh` | macOS/Linux | Framework | ✅ ACTIVO | Crea módulos nuevos |
+| 4 | `analyze-results.sh` | Cross-platform | Framework/Módulos | ✅ ACTIVO | Analiza resultados |
+| 5 | `code-quality.sh` | Cross-platform | Framework/Módulos | ✅ ACTIVO | Calidad de código |
+| 6 | `pre-commit.sh` | Cross-platform | Módulos | ✅ ACTIVO | Hook Git |
+| 7 | `clean-ide.sh` | Cross-platform | Framework/Módulos | ✅ ACTIVO | Limpia IDE |
 
 **Total:** 11 scripts (todos activos)
 
@@ -37,7 +36,7 @@ El framework Scotia QA incluye **11 scripts** que automatizan diferentes aspecto
 | # | Script | Propósito | Cuándo Usar | Tipo |
 |---|--------|-----------|-------------|------|
 | 1 | `create-module.sh` | Crear módulos nuevos | Al iniciar proyecto | Manual |
-| 2 | `run-test.sh` / `.ps1` | Ejecutar tests | Continuamente | Manual |
+| 2 | `setup-env.sh` / `.ps1` | Configurar variables de entorno | Antes de tests | Manual |
 | 3 | `utils.sh` / `.ps1` | Funciones compartidas | Automático (importado) | Librería |
 | 4 | `sync-utils.sh` / `.ps1` | Sincronizar utils desde JAR | Actualizar framework | Manual |
 | 5 | `analyze-results.sh` | Analizar resultados | Después de ejecutar tests | Manual |
@@ -161,16 +160,6 @@ qa-module-banking/
 **Tiempo:** ~30 segundos
 
 ---
-
-### 2. `run-test.sh` 🚀 **PRINCIPAL**
-
-**Descripción:** Ejecuta tests del módulo con auto-configuración.
-
-**Cuándo usar:**
-- Desarrollo local
-- Validar cambios
-- Antes de hacer commit
-</details>
 
 <details>
 <summary><strong>🪟 Windows (PowerShell)</strong></summary>
@@ -454,16 +443,18 @@ Issues encontrados:
 ```
 1. code-quality.sh          ← Detectar problemas
 2. [Corregir issues]
-3. run-test.sh              ← Validar cambios
-4. [git commit]             ← pre-commit valida
+3. source setup-env.sh      ← Configurar ambiente
+4. ./gradlew test           ← Validar cambios
+5. [git commit]             ← pre-commit valida automáticamente
 ```
 
 ### **Actualización (Cuando hay cambios)**
 
 ```
 1. [Actualizar common en build.gradle]  ← Nueva versión
-2. sync-utils.sh                         ← Sincronizar desde JAR
-3. run-test.sh                           ← Probar
+2. ./gradlew clean build                ← Reconstruir
+3. source setup-env.sh                  ← Configurar ambiente
+4. ./gradlew test                       ← Probar
 ```
 
 ### **Setup Nuevo Módulo (Una vez)**
@@ -472,7 +463,8 @@ Issues encontrados:
 1. create-module.sh         ← Crear módulo
 2. [Configurar .env.local]
 3. cp pre-commit.sh .git/hooks/  ← Instalar hook
-4. run-test.sh              ← Probar
+4. source setup-env.sh      ← Configurar ambiente
+5. ./gradlew test           ← Probar
 ```
 
 ---
@@ -482,8 +474,7 @@ Issues encontrados:
 | Script | Tiempo Ahorrado | Beneficio Principal |
 |--------|----------------|---------------------|
 | `create-module.sh` | ~30 minutos → 30 segundos | Estandarización |
-| `run-test.sh` / `.ps1` | Manual → Automático | Eficiencia Cross-OS |
-| `sync-utils.sh` / `.ps1` | Manual → 1 comando | Sincronización desde JAR |
+| `setup-env.sh` / `.ps1` | Manual → 5 segundos | Configuración automática |
 | `analyze-results.sh` | ~15 minutos análisis | Insights |
 | `pre-commit.sh` | Previene problemas | Calidad preventiva |
 | `code-quality.sh` | Detecta vulnerabilidades | Seguridad |

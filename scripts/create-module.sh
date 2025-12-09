@@ -150,54 +150,24 @@ create_module_structure() {
 copy_scripts() {
     log_section "📜 Copiando Scripts de Testing (Cross-Platform)"
 
-    # Scripts CORE (utils) - Se extraen desde JAR con sync-utils
-    # Estos se copian inicialmente pero se actualizarán con sync-utils
-    if [[ -f "${FRAMEWORK_DIR}/scripts/utils.sh" ]]; then
-        cp "${FRAMEWORK_DIR}/scripts/utils.sh" "${MODULE_DIR}/scripts/"
-        chmod +x "${MODULE_DIR}/scripts/utils.sh"
-        log_success "utils.sh copiado"
+    # Scripts de configuración de ambiente
+    if [[ -f "${FRAMEWORK_DIR}/scripts/setup-env.sh" ]]; then
+        cp "${FRAMEWORK_DIR}/scripts/setup-env.sh" "${MODULE_DIR}/scripts/"
+        chmod +x "${MODULE_DIR}/scripts/setup-env.sh"
+        log_success "setup-env.sh copiado (Bash)"
     fi
 
-    if [[ -f "${FRAMEWORK_DIR}/scripts/utils.ps1" ]]; then
-        cp "${FRAMEWORK_DIR}/scripts/utils.ps1" "${MODULE_DIR}/scripts/"
-        log_success "utils.ps1 copiado (Windows/PowerShell)"
+    if [[ -f "${FRAMEWORK_DIR}/scripts/setup-env.ps1" ]]; then
+        cp "${FRAMEWORK_DIR}/scripts/setup-env.ps1" "${MODULE_DIR}/scripts/"
+        log_success "setup-env.ps1 copiado (PowerShell)"
     fi
-
-    # Scripts de sincronización (mantener scripts actualizados)
-    if [[ -f "${FRAMEWORK_DIR}/scripts/sync-utils.sh" ]]; then
-        cp "${FRAMEWORK_DIR}/scripts/sync-utils.sh" "${MODULE_DIR}/scripts/"
-        chmod +x "${MODULE_DIR}/scripts/sync-utils.sh"
-        log_success "sync-utils.sh copiado (Bash)"
-    fi
-
-    if [[ -f "${FRAMEWORK_DIR}/scripts/sync-utils.ps1" ]]; then
-        cp "${FRAMEWORK_DIR}/scripts/sync-utils.ps1" "${MODULE_DIR}/scripts/"
-        log_success "sync-utils.ps1 copiado (PowerShell)"
-    fi
-
-    # Scripts de ejecución de tests
-    if [[ -f "${FRAMEWORK_DIR}/scripts/run-test.sh" ]]; then
-        cp "${FRAMEWORK_DIR}/scripts/run-test.sh" "${MODULE_DIR}/scripts/"
-        chmod +x "${MODULE_DIR}/scripts/run-test.sh"
-        log_success "run-test.sh copiado (Bash)"
-    fi
-
-    if [[ -f "${FRAMEWORK_DIR}/scripts/run-test.ps1" ]]; then
-        cp "${FRAMEWORK_DIR}/scripts/run-test.ps1" "${MODULE_DIR}/scripts/"
-        log_success "run-test.ps1 copiado (PowerShell)"
-    fi
-
-    # NOTA: update-scripts.sh está DEPRECADO y ya no se copia
-    # Usar sync-utils.sh/ps1 en su lugar
 
     echo ""
     log_info "Scripts disponibles para macOS/Linux:"
-    echo "  • run-test.sh - Ejecutar tests"
-    echo "  • sync-utils.sh - Actualizar utils desde framework"
+    echo "  • setup-env.sh - Configurar variables de entorno desde .env.local"
     echo ""
     log_info "Scripts disponibles para Windows:"
-    echo "  • run-test.ps1 - Ejecutar tests"
-    echo "  • sync-utils.ps1 - Actualizar utils desde framework"
+    echo "  • setup-env.ps1 - Configurar variables de entorno desde .env.local"
     echo ""
 
     log_success "Scripts de testing copiados (soporte cross-platform)"
@@ -630,7 +600,8 @@ source .env.local
 ./gradlew test
 
 # O usar el script del framework
-./scripts/run-test.sh
+source ./scripts/setup-env.sh
+./gradlew test
 \`\`\`
 
 ### 3️⃣ Ver Reportes

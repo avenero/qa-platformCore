@@ -30,43 +30,24 @@ Sistema de scripts **cross-platform** (macOS/Linux + Windows) para automatizaci�
 
 ## 🎯 Visión General
 
-El framework incluye **11 scripts** organizados en 3 categorías:
+El framework incluye **scripts** organizados en 3 categorías:
 
 | Categoría | Scripts | Ubicación | Propósito |
 |-----------|---------|-----------|-----------|
-| **CORE** | `utils.sh`, `utils.ps1` | JAR de common | Funciones compartidas (empaquetados) |
-| **CUSTOM** | `run-test.*`, `sync-utils.*` | Módulos | Ejecución y sincronización |
+| **CUSTOM** | `setup-env.*` | Módulos | Configuración de variables de entorno |
 | **FRAMEWORK** | `create-module.sh`, etc. | Solo framework | Herramientas de desarrollo |
 
 ---
 
 ## 🏗️ Arquitectura Cross-Platform
 
-### **Innovación Principal: Scripts CORE en JAR**
+### **Filosofía de los Scripts**
 
-Los scripts `utils.sh` y `utils.ps1` se empaquetan dentro del JAR de `common`:
-
-```
-common-1.0.0.jar
-└── META-INF/scripts/
-    ├── utils.sh      ← Funciones Bash (12 KB)
-    └── utils.ps1     ← Funciones PowerShell (15 KB)
-```
-
-**Ventajas:**
-- ✅ Versionado coherente (common:1.0.0 = scripts v1.0.0)
-- ✅ Distribución automática vía Maven/Artifactory
-- ✅ Actualización simple con `sync-utils.*`
-- ✅ No requiere acceso al repositorio del framework
-
-### **Flujo de Sincronización**
-
-```
-Framework → Compile → JAR → Maven Local → Módulos
-   ↓           ↓        ↓         ↓           ↓
-utils.sh   copyScripts common- ~/.m2/    sync-utils
-           ToResources 1.0.0.jar          extrae scripts
-```
+Los scripts del framework están diseñados para:
+- ✅ Funcionar en múltiples sistemas operativos (macOS, Linux, Windows)
+- ✅ Simplificar configuración y ejecución de tests
+- ✅ No requerir instalación adicional más allá del framework
+- ✅ Ser auto-contenidos y fáciles de usar
 
 ---
 
@@ -77,17 +58,13 @@ utils.sh   copyScripts common- ~/.m2/    sync-utils
 ```
 qa-scotia-frameworks/
 └── scripts/
-    ├── utils.sh              ← Master (se copia a JAR)
-    ├── utils.ps1             ← Master (se copia a JAR)
-    ├── sync-utils.sh         ← Se copia a módulos
-    ├── sync-utils.ps1        ← Se copia a módulos
-    ├── run-test.sh           ← Se copia a módulos
-    ├── run-test.ps1          ← Se copia a módulos
+    ├── setup-env.sh          ← Se copia a módulos
+    ├── setup-env.ps1         ← Se copia a módulos
     ├── create-module.sh      ← Solo en framework
-    ├── analyze-results.sh    ← Opcional en módulos
-    ├── code-quality.sh       ← Opcional en módulos
-    ├── pre-commit.sh         ← Opcional en módulos
-    └── clean-ide.sh          ← Opcional en módulos
+    ├── analyze-results.sh    ← Herramienta de análisis
+    ├── code-quality.sh       ← Validación de código
+    ├── pre-commit.sh         ← Git hooks
+    └── clean-ide.sh          ← Limpieza de cache
 ```
 
 ### **EN LOS MÓDULOS (Ejecución)**
@@ -95,60 +72,38 @@ qa-scotia-frameworks/
 ```
 qa-module-banking/
 ├── scripts/
-│   ├── utils.sh              ← 🔄 Desde JAR (actualizable)
-│   ├── utils.ps1             ← 🔄 Desde JAR (actualizable)
-│   ├── sync-utils.sh         ← 🔒 Custom (no cambia)
-│   ├── sync-utils.ps1        ← 🔒 Custom (no cambia)
-│   ├── run-test.sh           ← 🔒 Custom (no cambia)
-│   ├── run-test.ps1          ← 🔒 Custom (no cambia)
-│   └── [scripts opcionales]  ← Según necesidad
+│   ├── setup-env.sh          ← Configurar variables de entorno
+│   └── setup-env.ps1         ← Configurar variables de entorno (Windows)
 ├── src/test/
 ├── .env.local                ← Configuración (gitignored)
 └── build.gradle              ← Depende de common
 ```
 
 **Clasificación:**
-- 🔄 **CORE**: Se actualizan con `sync-utils.*`
-- 🔒 **CUSTOM**: Copiados al crear módulo, personalizables
-- 📋 **OPCIONALES**: Copiados solo si se necesitan
+- 🔧 **CONFIGURACIÓN**: Scripts de setup de ambiente
+- 🛠️ **DESARROLLO**: Scripts solo en framework (herramientas)
+- 📋 **OPCIONALES**: Pueden copiarse según necesidad
 
 ---
 
 ## 📦 Scripts Disponibles
 
-### **🔵 Scripts CORE (En JAR)**
+### **🔧 Scripts de Configuración (Módulos)**
 
-| Script | Sistema | Propósito | Actualización |
-|--------|---------|-----------|---------------|
-| `utils.sh` | macOS/Linux | Funciones compartidas Bash | `sync-utils.sh` |
-| `utils.ps1` | Windows | Funciones compartidas PowerShell | `sync-utils.ps1` |
-
-**Características:**
-- Empaquetados en `common-X.X.X.jar`
-- Versionados con el framework
-- NUNCA se modifican en módulos
-- Importados automáticamente por otros scripts
-
----
-
-### **🟢 Scripts CUSTOM (Módulos)**
-
-| Script | Sistema | Propósito | Personalizable |
-|--------|---------|-----------|----------------|
-| `run-test.sh` | macOS/Linux | Ejecutar tests | ✅ SÍ |
-| `run-test.ps1` | Windows | Ejecutar tests | ✅ SÍ |
-| `sync-utils.sh` | macOS/Linux | Sincronizar utils desde JAR | ✅ SÍ |
-| `sync-utils.ps1` | Windows | Sincronizar utils desde JAR | ✅ SÍ |
+| Script | Sistema | Propósito | Ubicación |
+|--------|---------|-----------|-----------|
+| `setup-env.sh` | macOS/Linux | Configurar variables de entorno desde .env.local | Módulos |
+| `setup-env.ps1` | Windows | Configurar variables de entorno desde .env.local | Módulos |
 
 **Características:**
 - Copiados al crear módulo con `create-module.sh`
-- Pueden personalizarse según necesidad del equipo
-- NO se sobrescriben al actualizar utils
-- Dependen de `utils.*` para funciones compartidas
+- Leen `.env.local` y exportan variables al shell actual
+- Permiten ejecutar tests con configuración correcta
+- Ver documentación detallada: [SETUP-ENV-GUIDE.md](SETUP-ENV-GUIDE.md)
 
 ---
 
-### **🟡 Scripts FRAMEWORK (Herramientas)**
+### **🛠️ Scripts de Herramientas (Framework)**
 
 | Script | Sistema | Propósito | Ubicación |
 |--------|---------|-----------|-----------|
@@ -180,11 +135,9 @@ cd qa-scotia-frameworks/
 ```
 
 **Scripts copiados automáticamente:**
-- ✅ `utils.sh` y `utils.ps1` (desde master)
-- ✅ `sync-utils.sh` y `sync-utils.ps1`
-- ✅ `run-test.sh` y `run-test.ps1`
+- ✅ `setup-env.sh` y `setup-env.ps1` (configuración de ambiente)
 - ✅ Estructura completa de directorios
-- ✅ Archivos de configuración (`.env.local`, `config-scotia.properties`)
+- ✅ Archivos de configuración (`.env.local.template`, `config-scotia.properties.template`)
 
 #### **Paso 2: Configurar Credenciales**
 
@@ -213,16 +166,24 @@ WEB_BASE_URL=https://app-dev.example.com
 BROWSER=chrome
 ```
 
-#### **Paso 3: Ejecutar Tests**
+#### **Paso 3: Configurar y Ejecutar Tests**
 
 **macOS/Linux:**
 ```bash
-./scripts/run-test.sh
+# Configurar variables de entorno
+source ./scripts/setup-env.sh
+
+# Ejecutar tests
+./gradlew test
 ```
 
 **Windows:**
 ```powershell
-.\scripts\run-test.ps1
+# Configurar variables de entorno
+. .\scripts\setup-env.ps1
+
+# Ejecutar tests
+.\gradlew test
 ```
 
 **¡Listo!** 🎉 El módulo está operativo.
@@ -231,7 +192,7 @@ BROWSER=chrome
 
 ### **Para Módulos Existentes (Migración)**
 
-Si ya tienes un módulo y quieres adoptar la nueva arquitectura cross-platform:
+Si ya tienes un módulo y quieres adoptar los nuevos scripts:
 
 #### **Paso 1: Actualizar Dependencia**
 
@@ -248,44 +209,37 @@ dependencies {
 }
 ```
 
-#### **Paso 2: Copiar Scripts de Sincronización**
+#### **Paso 2: Copiar Scripts de Configuración**
 
 ```bash
 # Desde el framework, copiar a tu módulo
 cd qa-scotia-frameworks/
-cp scripts/sync-utils.sh ../qa-module-banking/scripts/
-cp scripts/sync-utils.ps1 ../qa-module-banking/scripts/
-cp scripts/run-test.ps1 ../qa-module-banking/scripts/  # Si usas Windows
+cp scripts/setup-env.sh ../qa-module-banking/scripts/
+cp scripts/setup-env.ps1 ../qa-module-banking/scripts/
 
 # Hacer ejecutables (macOS/Linux)
-chmod +x ../qa-module-banking/scripts/sync-utils.sh
-chmod +x ../qa-module-banking/scripts/run-test.sh
+chmod +x ../qa-module-banking/scripts/setup-env.sh
 ```
 
-#### **Paso 3: Sincronizar Utils desde JAR**
+#### **Paso 3: Copiar Template de Configuración**
 
 ```bash
-cd qa-module-banking/
+# Copiar template de .env.local
+cp config/templates/.env.local.template ../qa-module-banking/.env.local
 
-# macOS/Linux
-./scripts/sync-utils.sh
-
-# Windows
-.\scripts\sync-utils.ps1
+# Editar con valores reales
+cd ../qa-module-banking/
+nano .env.local
 ```
 
-**Salida esperada:**
+**Salida esperada al ejecutar setup-env:**
 ```
 ════════════════════════════════════════
-  🔄 Sincronizar Scripts desde common
+  🔧 Configurar Variables de Entorno
 ════════════════════════════════════════
 
-ℹ️  JAR encontrado: common-1.0.0.jar
-ℹ️  Versión: 1.0.0
-ℹ️  Fecha: 2025-12-04 17:41:48
-
-ℹ️  Extrayendo scripts desde: common-1.0.0.jar
-✓ utils.sh actualizado
+ℹ️  Cargando variables desde: .env.local
+✓ Variables cargadas: 12
 ✓ utils.ps1 actualizado
 
 ✓ Scripts sincronizados exitosamente
