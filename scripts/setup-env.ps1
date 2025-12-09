@@ -77,11 +77,16 @@ Get-Content $ENV_FILE | ForEach-Object {
 Write-Host ""
 Write-Host "Variables cargadas: $count" -ForegroundColor Green
 Write-Host ""
-Write-Host "Para ejecutar tests, usa:" -ForegroundColor Yellow
+Write-Host "=======================================" -ForegroundColor Cyan
+Write-Host "  IMPORTANTE PARA WINDOWS" -ForegroundColor Yellow
+Write-Host "=======================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "En Windows, las variables NO se heredan automaticamente a Gradle." -ForegroundColor Yellow
+Write-Host "Debes ejecutar tests con este comando:" -ForegroundColor Yellow
 Write-Host ""
 
-# Generar comando con todas las variables como -D
-$gradleCommand = ".\gradlew test"
+# Construir comando Gradle con parametros -D
+$gradleParams = @()
 Get-Content $ENV_FILE | ForEach-Object {
     $line = $_.Trim()
     if ($line -and -not $line.StartsWith("#")) {
@@ -90,39 +95,25 @@ Get-Content $ENV_FILE | ForEach-Object {
             $name = $parts[0].Trim()
             $value = [System.Environment]::GetEnvironmentVariable($name, "Process")
             if ($value) {
-                $gradleCommand += " -D$name=`"$value`""
+                $gradleParams += "-D$name=`"$value`""
             }
         }
     }
 }
 
-Write-Host "  $gradleCommand" -ForegroundColor Cyan
+# Mostrar comando completo
+Write-Host ".\gradlew test $($gradleParams -join ' ')" -ForegroundColor Green
 Write-Host ""
-Write-Host "O copia este comando:" -ForegroundColor Yellow
+Write-Host "O ejecuta este comando guardado:" -ForegroundColor Yellow
+
+# Crear archivo batch temporal con el comando
+$batchContent = "@echo off`r`n"
+$batchContent += ".\gradlew test $($gradleParams -join ' ')"
+$batchFile = "run-tests.bat"
+Set-Content -Path $batchFile -Value $batchContent -Encoding ASCII
+
+Write-Host "  .\$batchFile" -ForegroundColor Green
 Write-Host ""
-
-# Mostrar comando formateado
-$formattedCommand = ".\gradlew test ``"
-Get-Content $ENV_FILE | ForEach-Object {
-    $line = $_.Trim()
-    if ($line -and -not $line.StartsWith("#")) {
-        $parts = $line -split '=', 2
-        if ($parts.Count -eq 2) {
-            $name = $parts[0].Trim()
-            $value = [System.Environment]::GetEnvironmentVariable($name, "Process")
-            if ($value) {
-                # Ocultar passwords
-                if ($name -match "PASS|PASSWORD|TOKEN|SECRET|KEY") {
-                    $formattedCommand += "`n  -D$name=***HIDDEN*** ``"
-                } else {
-                    $formattedCommand += "`n  -D$name=`"$value`" ``"
-                }
-            }
-        }
-    }
-}
-$formattedCommand = $formattedCommand.TrimEnd('`').TrimEnd()
-
-Write-Host $formattedCommand -ForegroundColor Cyan
+Write-Host "Archivo '$batchFile' creado en el directorio actual." -ForegroundColor Cyan
 Write-Host ""
 
