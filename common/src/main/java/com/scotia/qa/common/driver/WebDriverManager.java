@@ -6,7 +6,6 @@ import com.scotia.qa.common.logging.TestLogger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -45,7 +44,7 @@ import java.util.zip.ZipInputStream;
  *
  * # .env.local
  * DRIVER_LOCAL_PATH=/Users/tu_usuario/drivers
- * ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers
+ * {@code ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers}
  * </pre>
  *
  * <h3>Ejemplo de uso:</h3>
@@ -90,7 +89,7 @@ public class WebDriverManager {
         // ESTRATEGIA 1: Local Path Fijo
         if (config.getBoolean("driver.local.enabled", true)) {
             try {
-                Path localPath = getDriverFromLocalPath(driverName, version);
+                Path localPath = findDriverInLocalPath(driverName, version);
                 if (localPath != null) {
                     if (showStrategy) {
                         TestLogger.logInfo("DRIVER_MANAGER",
@@ -175,32 +174,112 @@ public class WebDriverManager {
     }
 
     /**
+     * Obtiene el driver SOLO desde path local fijo.
+     * No usa caché ni descarga desde Artifactory.
+     *
+     * @param driverName Nombre del driver (chromedriver, geckodriver, edgedriver)
+     * @return Path al ejecutable del driver
+     * @throws DriverNotFoundException Si no se encuentra en path local
+     */
+    public static Path getDriverFromLocalPath(String driverName) {
+        String versionKey = String.format("driver.%s.version",
+            driverName.replace("driver", ""));
+
+        String version = config.get(versionKey);
+        if (version == null || version.isEmpty()) {
+            throw new DriverNotFoundException(
+                String.format("Versión de %s no configurada. Verifica %s en config-scotia.properties",
+                    driverName, versionKey));
+        }
+
+        try {
+            Path localPath = findDriverInLocalPath(driverName, version);
+            if (localPath != null) {
+                return localPath;
+            }
+        } catch (IOException e) {
+            throw new DriverNotFoundException(
+                String.format("Error buscando %s en LOCAL PATH: %s", driverName, e.getMessage()));
+        }
+
+        throw new DriverNotFoundException(
+            String.format("Driver %s %s no encontrado en LOCAL PATH: %s",
+                driverName, version, config.get("driver.local.base.path")));
+    }
+
+    /**
      * Busca driver en path local fijo configurado por el desarrollador.
      *
-     * <p>Estructura esperada: {base.path}/{driver-name}/{version}/{executable}</p>
-     * <p>Ejemplo: ~/drivers/chromedriver/114.0.5735.90/chromedriver</p>
+     * <p>Soporta tres estructuras de directorios:</p>
+     * <ul>
+     *   <li>Estructura versionada: {@code base-path/chromedriver/114.0.5735.90/chromedriver}</li>
+     *   <li>Estructura de driver: {@code base-path/chromedriver/chromedriver} (cualquier versión)</li>
+     *   <li>Estructura plana: {@code base-path/chromedriver} (directamente el ejecutable)</li>
+     * </ul>
      *
-     * @param driverName Nombre del driver
-     * @param version Versión del driver
-     * @return Path al driver si existe, null si no existe
+     * @param driverName Nombre del driver (chromedriver, geckodriver, edgedriver)
+     * @param version Versión específica del driver
+     * @return Path al ejecutable si existe, null si no se encuentra
      * @throws IOException Si hay error accediendo al filesystem
      */
-    private static Path getDriverFromLocalPath(String driverName, String version) throws IOException {
+    private static Path findDriverInLocalPath(String driverName, String version) throws IOException {
         String basePath = config.get("driver.local.base.path");
+
         if (basePath == null || basePath.isEmpty()) {
+            TestLogger.logDebug("DRIVER_MANAGER",
+                "driver.local.base.path no configurado, omitiendo búsqueda en path local",
+                null);
             return null;
         }
 
-        // Resolver variables de entorno y home
+        // Resolver variables de entorno
         basePath = resolvePathVariables(basePath);
+        Path baseDir = Paths.get(basePath);
 
-        // Construir path esperado
-        String executableName = getExecutableName(driverName);
-        Path driverPath = Paths.get(basePath, driverName, version, executableName);
-
-        if (Files.exists(driverPath) && Files.isExecutable(driverPath)) {
-            return driverPath;
+        if (!Files.exists(baseDir) || !Files.isDirectory(baseDir)) {
+            TestLogger.logWarning("DRIVER_MANAGER",
+                "Path local no existe o no es un directorio",
+                Map.of("path", basePath));
+            return null;
         }
+
+        String executableName = getExecutableName(driverName);
+
+        // Estrategia 1: Buscar en estructura versionada (base-path/driver/version/executable)
+        Path versionedPath = baseDir.resolve(driverName).resolve(version).resolve(executableName);
+        if (Files.exists(versionedPath) && Files.isExecutable(versionedPath)) {
+            TestLogger.logDebug("DRIVER_MANAGER",
+                "Driver encontrado en estructura versionada",
+                Map.of("path", versionedPath.toString()));
+            return versionedPath;
+        }
+
+        // Estrategia 2: Buscar en carpeta de driver sin versión (base-path/driver/executable)
+        Path driverDirPath = baseDir.resolve(driverName).resolve(executableName);
+        if (Files.exists(driverDirPath) && Files.isExecutable(driverDirPath)) {
+            TestLogger.logDebug("DRIVER_MANAGER",
+                "Driver encontrado en carpeta de driver",
+                Map.of("path", driverDirPath.toString()));
+            return driverDirPath;
+        }
+
+        // Estrategia 3: Buscar en estructura plana (base-path/executable directamente)
+        Path flatPath = baseDir.resolve(executableName);
+        if (Files.exists(flatPath) && Files.isExecutable(flatPath)) {
+            TestLogger.logDebug("DRIVER_MANAGER",
+                "Driver encontrado en estructura plana",
+                Map.of("path", flatPath.toString()));
+            return flatPath;
+        }
+
+        TestLogger.logDebug("DRIVER_MANAGER",
+            "Driver no encontrado en path local",
+            Map.of(
+                "basePath", basePath,
+                "driverName", driverName,
+                "version", version,
+                "executable", executableName
+            ));
 
         return null;
     }
@@ -320,7 +399,7 @@ public class WebDriverManager {
         while (attempt < (retryEnabled ? maxRetries : 1)) {
             attempt++;
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                HttpURLConnection conn = (HttpURLConnection) java.net.URI.create(url).toURL().openConnection();
                 conn.setConnectTimeout(timeout);
                 conn.setReadTimeout(timeout);
                 conn.setRequestProperty("User-Agent", "Scotia-QA-Framework/1.0.0");

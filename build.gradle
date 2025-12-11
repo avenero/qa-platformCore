@@ -11,10 +11,11 @@ subprojects {
     version = "1.0.0"
 
     repositories {
-        maven {
-            url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository'
-        }
-        //mavenLocal()
+        mavenLocal()
+        mavenCentral()
+        //maven {
+        //    url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository'
+        //}
     }
 
 

@@ -1,6 +1,12 @@
 // Configuración específica del módulo common - CORE GENÉRICO (v1.1.0)
 // Solo dependencias verdaderamente comunes a TODOS los frameworks
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 dependencies {
 
     // === CONFIGURACIÓN Y PROCESAMIENTO DE ARCHIVOS ===

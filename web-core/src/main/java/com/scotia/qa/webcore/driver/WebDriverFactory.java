@@ -382,14 +382,15 @@ public class WebDriverFactory {
     // =========================================================================
 
     /**
-     * Configuración genérica y robusta de drivers con estrategia de fallback.
+     * Configuración genérica y robusta de drivers con estrategia de fallback configurable.
      *
      * <p><b>Estrategia de fallback (en orden):</b></p>
      * <ol>
      *   <li><b>Driver manual:</b> System Property configurado (ej: -Dwebdriver.chrome.driver=...)</li>
-     *   <li><b>WebDriverManager online:</b> Intenta descargar desde internet (con timeout reducido)</li>
-     *   <li><b>Cache local:</b> Busca en ~/.cache/selenium/ si descarga falla</li>
+     *   <li><b>WebDriverManager Framework:</b> LOCAL PATH → CACHÉ → ARTIFACTORY</li>
+     *   <li><b>Cache legacy:</b> Busca en ~/.cache/selenium/ (WebDriverManager de Bonigarcia)</li>
      *   <li><b>PATH del sistema:</b> Busca en directorios comunes del SO</li>
+     *   <li><b>Fallback Internet (OPCIONAL):</b> WebDriverManager legacy descarga desde internet (configurable)</li>
      *   <li><b>Error descriptivo:</b> Mensaje claro con instrucciones de solución</li>
      * </ol>
      *
@@ -400,6 +401,10 @@ public class WebDriverFactory {
      * @param browserName Nombre del navegador para logs (Chrome, Firefox, Edge)
      */
     private static void setupDriver(String driverName, String propertyName, String browserName) {
+        // Obtener configuración de fallback legacy
+        com.scotia.qa.common.config.ConfigManager config = com.scotia.qa.common.config.ConfigManager.getInstance();
+        boolean legacyFallbackEnabled = config.getBoolean("driver.fallback.legacy.enabled", false);
+
         // FALLBACK 1: ¿Hay driver manual configurado?
         String manualDriverPath = System.getProperty(propertyName);
         if (manualDriverPath != null && !manualDriverPath.isEmpty()) {
@@ -455,8 +460,35 @@ public class WebDriverFactory {
             return;
         }
 
-        // FALLBACK 5: Todo falló → Error descriptivo con soluciones
-        String errorMsg = buildDriverNotFoundError(driverName, propertyName, browserName);
+        // FALLBACK 5: Descargar desde internet (SOLO SI ESTÁ HABILITADO)
+        if (legacyFallbackEnabled) {
+            TestLogger.logInfo("WEB_DRIVER_FACTORY",
+                String.format("🌐 Fallback legacy habilitado, intentando descargar %s desde internet...", driverName), null);
+
+            try {
+                configureNetworkProperties();
+                WebDriverManager wdm = getWebDriverManager(driverName);
+                wdm.setup();
+
+                // Verificar que se configuró correctamente
+                String configuredPath = System.getProperty(propertyName);
+                if (configuredPath != null && !configuredPath.isEmpty()) {
+                    TestLogger.logInfo("WEB_DRIVER_FACTORY",
+                        String.format("✅ %s descargado desde internet: %s", driverName, configuredPath), null);
+                    return;
+                }
+            } catch (Exception e) {
+                TestLogger.logWarning("WEB_DRIVER_FACTORY",
+                    String.format("⚠️ Descarga desde internet falló para %s: %s", driverName, e.getMessage()), null);
+            }
+        } else {
+            TestLogger.logWarning("WEB_DRIVER_FACTORY",
+                "⚠️ Fallback legacy DESHABILITADO (driver.fallback.legacy.enabled=false). " +
+                "No se intentará descargar desde internet.", null);
+        }
+
+        // FALLBACK 6: Todo falló → Error descriptivo con soluciones
+        String errorMsg = buildDriverNotFoundError(driverName, propertyName, browserName, legacyFallbackEnabled);
         TestLogger.logError("WEB_DRIVER_FACTORY", errorMsg, null);
         throw new RuntimeException(errorMsg);
     }
@@ -609,18 +641,55 @@ public class WebDriverFactory {
 
     /**
      * Construye mensaje de error descriptivo con soluciones específicas por SO.
+     *
+     * @param driverName Nombre del driver (chromedriver, geckodriver, etc.)
+     * @param propertyName System property key
+     * @param browserName Nombre del navegador
+     * @param legacyFallbackEnabled Si el fallback legacy está habilitado
      */
-    private static String buildDriverNotFoundError(String driverName, String propertyName, String browserName) {
+    private static String buildDriverNotFoundError(String driverName, String propertyName, String browserName, boolean legacyFallbackEnabled) {
         String os = System.getProperty("os.name").toLowerCase();
         String downloadUrl = getDriverDownloadUrl(browserName);
 
         StringBuilder error = new StringBuilder();
         error.append(String.format("\n\n❌ No se pudo configurar %s automáticamente.\n\n", driverName));
-        error.append("🔥 CAUSA PROBABLE: Firewall/Proxy corporativo bloqueando descarga.\n\n");
+
+        if (!legacyFallbackEnabled) {
+            error.append("ℹ️ INFORMACIÓN: Fallback legacy DESHABILITADO (driver.fallback.legacy.enabled=false)\n");
+            error.append("   No se intentó descargar desde internet para evitar timeouts en firewalls corporativos.\n\n");
+        } else {
+            error.append("🔥 CAUSA PROBABLE: Firewall/Proxy corporativo bloqueando descarga desde internet.\n\n");
+        }
+
         error.append("📋 SOLUCIONES:\n\n");
 
-        // Solución 1: Descarga manual (específica por SO)
-        error.append("1️⃣ DESCARGA MANUAL (Recomendado):\n");
+        // Solución 0: Usar estrategias del framework (LOCAL PATH, CACHE, ARTIFACTORY)
+        error.append("0️⃣ USAR ESTRATEGIAS DEL FRAMEWORK (Recomendado):\n\n");
+        error.append("   A) LOCAL PATH - Driver manual en tu máquina:\n");
+        error.append("      ➤ Descargar driver desde: " + downloadUrl + "\n");
+        error.append("      ➤ Configurar en .env.local:\n");
+        if (os.contains("win")) {
+            error.append("         DRIVER_LOCAL_PATH=C:/drivers\n");
+            error.append("      ➤ Crear estructura: C:/drivers/chromedriver/114.0.5735.90/chromedriver.exe\n");
+        } else {
+            error.append("         DRIVER_LOCAL_PATH=~/drivers\n");
+            error.append("      ➤ Crear estructura: ~/drivers/chromedriver/114.0.5735.90/chromedriver\n");
+        }
+        error.append("      ➤ En config-scotia.properties:\n");
+        error.append("         driver.local.enabled=true\n");
+        error.append("         driver.local.base.path=${DRIVER_LOCAL_PATH}\n");
+        error.append("         driver.chrome.version=114.0.5735.90\n\n");
+
+        error.append("   B) ARTIFACTORY - Descarga automática desde repositorio corporativo:\n");
+        error.append("      ➤ Configurar en .env.local:\n");
+        error.append("         ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers\n");
+        error.append("         ARTIFACTORY_USER=tu_usuario\n");
+        error.append("         ARTIFACTORY_TOKEN=tu_token\n");
+        error.append("      ➤ En config-scotia.properties:\n");
+        error.append("         driver.artifactory.enabled=true\n\n");
+
+        // Solución 1: Descarga manual (específica por SO) - LEGACY
+        error.append("1️⃣ DESCARGA MANUAL + SYSTEM PROPERTY (Legacy):\n");
         error.append(String.format("   ➤ Descargar desde: %s\n", downloadUrl));
         error.append(String.format("   ➤ Versión debe coincidir con %s instalado\n", browserName));
 
@@ -637,21 +706,88 @@ public class WebDriverFactory {
             error.append(String.format("   ➤ O agregar property: -D%s=/usr/local/bin/%s\n\n", propertyName, driverName));
         }
 
-        // Solución 2: Configurar proxy
-        error.append("2️⃣ CONFIGURAR PROXY (Si tienes proxy corporativo):\n");
+        // Solución 2: Habilitar fallback legacy (si está deshabilitado)
+        if (!legacyFallbackEnabled) {
+            error.append("2️⃣ HABILITAR FALLBACK LEGACY (Solo si tienes acceso a internet sin firewall):\n");
+            error.append("   ➤ En config-scotia.properties:\n");
+            error.append("      driver.fallback.legacy.enabled=true\n");
+            error.append("   ⚠️ ADVERTENCIA: Puede causar timeouts de 85+ segundos en redes corporativas\n\n");
+        }
+
+        // Solución 3: Configurar proxy (si aplica)
+        error.append("3️⃣ CONFIGURAR PROXY (Si tienes proxy corporativo):\n");
         error.append("   ➤ Agregar: -Dhttp.proxyHost=proxy.empresa.com\n");
         error.append("   ➤ Agregar: -Dhttp.proxyPort=8080\n");
         error.append("   ➤ Ejecutar tests: ./gradlew test -Dhttp.proxyHost=... -Dhttp.proxyPort=...\n\n");
 
-        // Solución 3: Cache local
-        error.append("3️⃣ USAR CACHE LOCAL (Si ya descargaste antes):\n");
-        error.append(String.format("   ➤ Buscar en: %s\n", getDefaultCachePath()));
-        error.append(String.format("   ➤ Copiar %s a ubicación manual (opción 1)\n\n", driverName));
-
         // Solución 4: Contacto
         error.append("4️⃣ PEDIR AYUDA:\n");
         error.append("   ➤ Contactar al equipo de QA o Infra\n");
-        error.append(String.format("   ➤ Solicitar %s preconfigurado\n\n", driverName));
+        error.append(String.format("   ➤ Solicitar %s preconfigurado o acceso a Artifactory\n\n", driverName));
+
+        return error.toString();
+    }
+
+    /**
+     * Construye mensaje de error para estrategia LOCAL.
+     */
+    private static String buildDriverNotFoundErrorLocal(String driverName, String propertyName, String browserName, String errorDetail) {
+        String os = System.getProperty("os.name").toLowerCase();
+        String downloadUrl = getDriverDownloadUrl(browserName);
+
+        StringBuilder error = new StringBuilder();
+        error.append(String.format("\n\n❌ ESTRATEGIA LOCAL: No se encontró %s en path local.\n\n", driverName));
+        error.append("🔍 Error: ").append(errorDetail).append("\n\n");
+
+        error.append("📋 SOLUCIONES:\n\n");
+        error.append("1️⃣ Descargar y configurar driver manualmente:\n");
+        error.append(String.format("   ➤ Descargar desde: %s\n", downloadUrl));
+        error.append("   ➤ Configurar en .env.local:\n");
+
+        if (os.contains("win")) {
+            error.append("      DRIVER_LOCAL_PATH=C:/drivers\n");
+            error.append(String.format("   ➤ Crear estructura: C:/drivers/%s/VERSION/%s.exe\n", driverName, driverName));
+        } else {
+            error.append("      DRIVER_LOCAL_PATH=~/drivers\n");
+            error.append(String.format("   ➤ Crear estructura: ~/drivers/%s/VERSION/%s\n", driverName, driverName));
+        }
+
+        error.append("   ➤ En config-scotia.properties:\n");
+        error.append("      driver.local.base.path=${DRIVER_LOCAL_PATH}\n");
+        error.append(String.format("      driver.%s.version=114.0.5735.90\n\n", driverName.replace("driver", "")));
+
+        error.append("2️⃣ Cambiar a estrategia FALLBACK o ARTIFACTORY:\n");
+        error.append("   ➤ En config-scotia.properties:\n");
+        error.append("      driver.strategy=fallback\n\n");
+
+        return error.toString();
+    }
+
+    /**
+     * Construye mensaje de error para estrategia ARTIFACTORY.
+     */
+    private static String buildDriverNotFoundErrorArtifactory(String driverName, String propertyName, String browserName, String errorDetail) {
+        StringBuilder error = new StringBuilder();
+        error.append(String.format("\n\n❌ ESTRATEGIA ARTIFACTORY: No se pudo obtener %s desde repositorio corporativo.\n\n", driverName));
+        error.append("🔍 Error: ").append(errorDetail).append("\n\n");
+
+        error.append("📋 SOLUCIONES:\n\n");
+        error.append("1️⃣ Verificar configuración de Artifactory:\n");
+        error.append("   ➤ En .env.local:\n");
+        error.append("      ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers\n");
+        error.append("      ARTIFACTORY_USER=tu_usuario\n");
+        error.append("      ARTIFACTORY_TOKEN=tu_token\n");
+        error.append("   ➤ En config-scotia.properties:\n");
+        error.append("      driver.artifactory.enabled=true\n");
+        error.append("      driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}\n\n");
+
+        error.append("2️⃣ Verificar conectividad de red:\n");
+        error.append("   ➤ Probar: curl https://artifactory.corp.com/qa-drivers\n");
+        error.append("   ➤ Revisar firewall/proxy corporativo\n\n");
+
+        error.append("3️⃣ Cambiar a estrategia LOCAL:\n");
+        error.append("   ➤ Descargar driver manualmente\n");
+        error.append("   ➤ En config-scotia.properties: driver.strategy=local\n\n");
 
         return error.toString();
     }

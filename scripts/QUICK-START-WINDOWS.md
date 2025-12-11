@@ -32,15 +32,20 @@ Copy-Item config\templates\.env.local.template -Destination .env.local
 notepad .env.local
 ```
 
-### 3️⃣ Ejecutar el script
+### 3️⃣ Ejecutar el script y tests
 
 ```powershell
 # Permitir scripts (si aparece error)
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
-# Cargar variables
+# Cargar variables - esto generará un archivo run-tests.bat
 . .\scripts\setup-env.ps1
+
+# Ejecutar tests usando el comando generado
+.\run-tests.bat
 ```
+
+**⚠️ IMPORTANTE:** En Windows, las variables NO se pasan automáticamente a Gradle. El script genera un archivo `run-tests.bat` con el comando correcto que incluye todas las variables como parámetros `-D`.
 
 ---
 
@@ -59,8 +64,19 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
 Variables cargadas: 8
 
-Ahora puedes ejecutar:
-  .\gradlew test
+=======================================
+  IMPORTANTE PARA WINDOWS
+=======================================
+
+En Windows, las variables NO se heredan automaticamente a Gradle.
+Debes ejecutar tests con este comando:
+
+.\gradlew test -DTEST_ENV="QA" -DDB_URL="jdbc:oracle:..." -DDB_USER="AVENERO_PROXY" -DDB_PASS="***" ...
+
+O ejecuta este comando guardado:
+  .\run-tests.bat
+
+Archivo 'run-tests.bat' creado en el directorio actual.
 ```
 
 ---
@@ -85,10 +101,18 @@ cd C:\Users\s2994840\Downloads
 Copy-Item .\qa-scotia-frameworks\scripts\setup-env.ps1 -Destination .\qa-module-autos\scripts\ -Force
 cd .\qa-module-autos
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+
+# Generar comando con variables
 . .\scripts\setup-env.ps1
-echo $env:DB_URL
-.\gradlew test
+
+# Ejecutar tests usando el archivo generado
+.\run-tests.bat
 ```
+
+**Explicación del flujo:**
+1. `setup-env.ps1` lee `.env.local` y crea `run-tests.bat`
+2. `run-tests.bat` contiene el comando completo con todas las variables como `-D`
+3. Ejecutar `run-tests.bat` pasa correctamente las variables a Java/Gradle
 
 ---
 
@@ -111,9 +135,15 @@ echo $env:DB_URL
 ```powershell
 # Cada vez que abras PowerShell:
 cd C:\Users\s2994840\Downloads\qa-module-autos
+
+# Generar run-tests.bat (solo si cambiaste .env.local)
 . .\scripts\setup-env.ps1
-.\gradlew test
+
+# Ejecutar tests
+.\run-tests.bat
 ```
+
+**💡 TIP:** El archivo `run-tests.bat` se crea automáticamente cada vez que ejecutas `setup-env.ps1`. Si tus variables no cambian, puedes ejecutar directamente `.\run-tests.bat` sin volver a ejecutar el script.
 
 ---
 

@@ -74,6 +74,22 @@ driver.firefox.version=0.33.0
 driver.edge.version=114.0.1823.37
 
 # ════════════════════════════════════════════════════════════
+# FALLBACK LEGACY (WebDriverManager de Bonigarcia)
+# ════════════════════════════════════════════════════════════
+# Habilitar fallback a WebDriverManager legacy como último recurso
+# Si true: Intenta descargar desde internet (googlechromelabs.github.io) si fallan todas las estrategias
+# Si false: Falla inmediatamente si no encuentra driver en local/cache/artifactory
+#
+# ⚠️ RECOMENDACIÓN:
+#   - Usar true en ambientes CON acceso a internet (desarrollo local sin firewall)
+#   - Usar false en ambientes corporativos con firewall (evita timeouts de 85+ segundos)
+driver.fallback.legacy.enabled=false
+
+# Timeout para intentos de descarga desde internet (segundos)
+# Solo aplica si driver.fallback.legacy.enabled=true
+driver.fallback.legacy.timeout=10
+
+# ════════════════════════════════════════════════════════════
 # LOGS Y DIAGNÓSTICO
 # ════════════════════════════════════════════════════════════
 # Nivel de detalle en logs (info, debug)

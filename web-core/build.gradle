@@ -1,6 +1,12 @@
 // Configuración específica del módulo web-core (v1.1.0)
 // Especializado en automatización de pruebas Web UI con Selenium
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 dependencies {
     // ===== DEPENDENCIA PRINCIPAL =====
     // WEB-CORE depende de COMMON (no de API-CORE)

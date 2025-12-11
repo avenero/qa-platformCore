@@ -1,5 +1,11 @@
 // Configuración específica del módulo mobile-core
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 dependencies {
     // Dependencia del módulo común
     api project(':common')
