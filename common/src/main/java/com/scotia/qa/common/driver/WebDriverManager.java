@@ -16,140 +16,159 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Gestor inteligente de WebDrivers con estrategia de triple fallback.
+ * Gestor simplificado de WebDrivers con estrategia dual.
  *
- * <p>Implementa una estrategia completa y autónoma de triple fallback para obtener WebDrivers:</p>
+ * <p>Implementa una estrategia simple y robusta con 2 opciones:</p>
  * <ol>
- *   <li><strong>Local Path Fijo</strong> - Ruta configurada manualmente por el desarrollador</li>
- *   <li><strong>Caché Local</strong> - Drivers descargados previamente (automático)</li>
- *   <li><strong>Artifactory</strong> - Descarga desde repositorio corporativo con autenticación (último recurso)</li>
+ *   <li><strong>Local Path</strong> - Ruta configurada manualmente (recomendado para desarrollo)</li>
+ *   <li><strong>Artifactory</strong> - Descarga desde repositorio corporativo (CI/CD)</li>
  * </ol>
  *
  * <p>Esta clase consolida toda la lógica de gestión de drivers, incluyendo descarga,
- * extracción, caché, detección de OS, y reintentos automáticos.</p>
+ * extracción, detección de OS, y reintentos automáticos.</p>
  *
  * <h3>Configuración:</h3>
  * <pre>
  * # config-scotia.properties
- * driver.strategy=fallback
- * driver.local.enabled=true
+ * # Estrategia: local o artifactory
+ * driver.strategy=local
+ *
+ * # Opción 1: LOCAL (desarrollo local)
  * driver.local.base.path=${DRIVER_LOCAL_PATH}
- * driver.local.strict=false
- * driver.cache.enabled=true
- * driver.cache.dir=${user.home}/.qa-drivers
- * driver.cache.ttl=30
- * driver.artifactory.enabled=true
+ *
+ * # Opción 2: ARTIFACTORY (CI/CD)
  * driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}
- * driver.logging.show.strategy=true
+ * driver.artifactory.user=${ARTIFACTORY_USER}
+ * driver.artifactory.token=${ARTIFACTORY_TOKEN}
+ *
+ * # Configuración de versión
+ * driver.chrome.version=143.0.7499.41
  *
  * # .env.local
- * DRIVER_LOCAL_PATH=/Users/tu_usuario/drivers
- * {@code ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers}
+ * DRIVER_LOCAL_PATH=/Users/tu_usuario/drivers  (Mac/Linux) o C:/drivers (Windows)
+ * ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers
+ * ARTIFACTORY_USER=tu_usuario
+ * ARTIFACTORY_TOKEN=tu_token
  * </pre>
  *
  * <h3>Ejemplo de uso:</h3>
  * <pre>{@code
- * // Obtener driver con fallback automático
- * Path driver = WebDriverManager.getDriver("chromedriver", "114.0.5735.90");
+ * // Obtener driver (usa estrategia configurada)
+ * Path driver = WebDriverManager.getDriver("chromedriver", "143.0.7499.41");
  * System.setProperty("webdriver.chrome.driver", driver.toString());
  *
- * // Usar con auto-detección de versión
+ * // Usar con auto-detección de versión desde config
  * Path driver = WebDriverManager.getDriverFromConfig("chromedriver");
- *
- * // Limpiar caché
- * WebDriverManager.clearCache();
  * }</pre>
  *
  * @author Abel Venero
- * @version 1.0.0
- * @since 2025-12-08
+ * @version 2.0.0
+ * @since 2025-12-16
  */
 public class WebDriverManager {
 
     private static final ConfigManager config = ConfigManager.getInstance();
 
     /**
-     * Obtiene el driver usando estrategia de fallback.
+     * Obtiene el driver usando la estrategia configurada.
      *
-     * <p>Orden de búsqueda:</p>
-     * <ol>
-     *   <li>Local Path Fijo (si driver.local.enabled=true)</li>
-     *   <li>Caché Local (si driver.cache.enabled=true)</li>
-     *   <li>Artifactory (si driver.artifactory.enabled=true)</li>
-     * </ol>
+     * <p>Estrategias soportadas:</p>
+     * <ul>
+     *   <li><strong>local</strong> - Busca en path local fijo configurado</li>
+     *   <li><strong>artifactory</strong> - Descarga desde repositorio corporativo</li>
+     * </ul>
      *
      * @param driverName Nombre del driver (chromedriver, geckodriver, edgedriver)
-     * @param version Versión específica (ej: "114.0.5735.90")
+     * @param version Versión específica (ej: "143.0.7499.41")
      * @return Path al ejecutable del driver
-     * @throws DriverNotFoundException Si no se encuentra en ninguna fuente
+     * @throws DriverNotFoundException Si no se encuentra con la estrategia configurada
      */
     public static Path getDriver(String driverName, String version) {
-        boolean showStrategy = config.getBoolean("driver.logging.show.strategy", true);
+        String strategy = config.get("driver.strategy", "local").toLowerCase();
 
-        // ESTRATEGIA 1: Local Path Fijo
-        if (config.getBoolean("driver.local.enabled", true)) {
-            try {
-                Path localPath = findDriverInLocalPath(driverName, version);
-                if (localPath != null) {
-                    if (showStrategy) {
-                        TestLogger.logInfo("DRIVER_MANAGER",
-                            String.format("✓ Usando driver desde LOCAL PATH: %s %s",
-                                driverName, version),
-                            Map.of("strategy", "local-path", "path", localPath.toString()));
-                    }
-                    return localPath;
-                }
+        TestLogger.logInfo("DRIVER_MANAGER",
+            String.format("🔍 Buscando %s %s usando estrategia: %s",
+                driverName, version, strategy.toUpperCase()),
+            Map.of("driver", driverName, "version", version, "strategy", strategy));
 
-                // Modo strict: falla si no existe en local
-                if (config.getBoolean("driver.local.strict", false)) {
-                    throw new DriverNotFoundException(
-                        String.format("driver.local.strict=true pero %s %s no existe en %s",
-                            driverName, version, config.get("driver.local.base.path")));
-                }
-            } catch (IOException e) {
-                TestLogger.logWarning("DRIVER_MANAGER",
-                    "No se pudo acceder a LOCAL PATH, intentando caché...",
-                    Map.of("error", e.getMessage()));
+        switch (strategy) {
+            case "local":
+                return getDriverFromLocalStrategy(driverName, version);
+
+            case "artifactory":
+                return getDriverFromArtifactoryStrategy(driverName, version);
+
+            default:
+                throw new DriverNotFoundException(
+                    String.format("Estrategia '%s' no válida. Valores permitidos: 'local', 'artifactory'",
+                        strategy));
+        }
+    }
+
+    /**
+     * Obtiene driver usando estrategia LOCAL.
+     *
+     * @param driverName Nombre del driver
+     * @param version Versión del driver
+     * @return Path al driver local
+     * @throws DriverNotFoundException Si no se encuentra en path local
+     */
+    private static Path getDriverFromLocalStrategy(String driverName, String version) {
+        try {
+            Path localPath = findDriverInLocalPath(driverName, version);
+            if (localPath != null) {
+                TestLogger.logInfo("DRIVER_MANAGER",
+                    String.format("✅ Driver encontrado en LOCAL PATH: %s %s",
+                        driverName, version),
+                    Map.of("strategy", "local", "path", localPath.toString()));
+                return localPath;
             }
+        } catch (IOException e) {
+            throw new DriverNotFoundException(
+                String.format("Error buscando %s %s en LOCAL PATH: %s",
+                    driverName, version, e.getMessage()));
         }
 
-        // ESTRATEGIA 2: Caché Local
-        if (config.getBoolean("driver.cache.enabled", true)) {
-            Path cachedPath = getDriverFromCache(driverName, version);
-            if (cachedPath != null) {
-                if (showStrategy) {
-                    TestLogger.logInfo("DRIVER_MANAGER",
-                        String.format("✓ Usando driver desde CACHÉ: %s %s",
-                            driverName, version),
-                        Map.of("strategy", "cache", "path", cachedPath.toString()));
-                }
-                return cachedPath;
-            }
-        }
-
-        // ESTRATEGIA 3: Artifactory
-        if (config.getBoolean("driver.artifactory.enabled", true)) {
-            try {
-                Path downloadedPath = downloadFromArtifactory(driverName, version);
-                if (showStrategy) {
-                    TestLogger.logInfo("DRIVER_MANAGER",
-                        String.format("✓ Driver descargado desde ARTIFACTORY: %s %s",
-                            driverName, version),
-                        Map.of("strategy", "artifactory", "path", downloadedPath.toString()));
-                }
-                return downloadedPath;
-            } catch (IOException e) {
-                TestLogger.logError("DRIVER_MANAGER",
-                    "Falló descarga desde Artifactory",
-                    Map.of("error", e.getMessage()));
-            }
-        }
-
-        // Todas las estrategias fallaron
+        // No encontrado → error descriptivo
+        String basePath = config.get("driver.local.base.path", "NO_CONFIGURADO");
         throw new DriverNotFoundException(
-            String.format("No se pudo obtener %s %s desde ninguna fuente. " +
-                "Verifica: (1) driver.local.base.path, (2) caché en ~/.qa-drivers, " +
-                "(3) credenciales de Artifactory", driverName, version));
+            String.format("❌ Driver %s %s no encontrado en LOCAL PATH: %s\n\n" +
+                "📋 SOLUCIÓN:\n" +
+                "1. Descargar driver desde: %s\n" +
+                "2. Copiar a: %s/%s/%s/%s\n" +
+                "3. Verificar permisos de ejecución",
+                driverName, version, basePath,
+                getDriverDownloadUrl(driverName),
+                basePath, driverName, version, getExecutableName(driverName)));
+    }
+
+    /**
+     * Obtiene driver usando estrategia ARTIFACTORY.
+     *
+     * @param driverName Nombre del driver
+     * @param version Versión del driver
+     * @return Path al driver descargado
+     * @throws DriverNotFoundException Si falla la descarga
+     */
+    private static Path getDriverFromArtifactoryStrategy(String driverName, String version) {
+        try {
+            Path downloadedPath = downloadFromArtifactory(driverName, version);
+            TestLogger.logInfo("DRIVER_MANAGER",
+                String.format("✅ Driver descargado desde ARTIFACTORY: %s %s",
+                    driverName, version),
+                Map.of("strategy", "artifactory", "path", downloadedPath.toString()));
+            return downloadedPath;
+        } catch (IOException e) {
+            String baseUrl = config.get("driver.artifactory.base.url", "NO_CONFIGURADO");
+            throw new DriverNotFoundException(
+                String.format("❌ Error descargando %s %s desde Artifactory: %s\n\n" +
+                    "📋 SOLUCIÓN:\n" +
+                    "1. Verificar URL: %s\n" +
+                    "2. Verificar credenciales (ARTIFACTORY_USER, ARTIFACTORY_TOKEN)\n" +
+                    "3. Verificar conectividad de red\n" +
+                    "4. Considerar cambiar a estrategia 'local'",
+                    driverName, version, e.getMessage(), baseUrl));
+        }
     }
 
     /**
@@ -171,40 +190,6 @@ public class WebDriverManager {
         }
 
         return getDriver(driverName, version);
-    }
-
-    /**
-     * Obtiene el driver SOLO desde path local fijo.
-     * No usa caché ni descarga desde Artifactory.
-     *
-     * @param driverName Nombre del driver (chromedriver, geckodriver, edgedriver)
-     * @return Path al ejecutable del driver
-     * @throws DriverNotFoundException Si no se encuentra en path local
-     */
-    public static Path getDriverFromLocalPath(String driverName) {
-        String versionKey = String.format("driver.%s.version",
-            driverName.replace("driver", ""));
-
-        String version = config.get(versionKey);
-        if (version == null || version.isEmpty()) {
-            throw new DriverNotFoundException(
-                String.format("Versión de %s no configurada. Verifica %s en config-scotia.properties",
-                    driverName, versionKey));
-        }
-
-        try {
-            Path localPath = findDriverInLocalPath(driverName, version);
-            if (localPath != null) {
-                return localPath;
-            }
-        } catch (IOException e) {
-            throw new DriverNotFoundException(
-                String.format("Error buscando %s en LOCAL PATH: %s", driverName, e.getMessage()));
-        }
-
-        throw new DriverNotFoundException(
-            String.format("Driver %s %s no encontrado en LOCAL PATH: %s",
-                driverName, version, config.get("driver.local.base.path")));
     }
 
     /**
@@ -285,44 +270,11 @@ public class WebDriverManager {
     }
 
     /**
-     * Busca driver en caché local.
-     *
-     * <p>Verifica si el driver existe en el directorio de caché y no ha expirado.</p>
-     *
-     * @param driverName Nombre del driver
-     * @param version Versión del driver
-     * @return Path al driver si existe y es válido, null en caso contrario
-     */
-    private static Path getDriverFromCache(String driverName, String version) {
-        String cacheDir = config.get("driver.cache.dir",
-            System.getProperty("user.home") + "/.qa-drivers");
-
-        // Resolver variables
-        cacheDir = resolvePathVariables(cacheDir);
-
-        Path driverPath = Paths.get(cacheDir, driverName, version,
-            getExecutableName(driverName));
-
-        if (Files.exists(driverPath) && Files.isExecutable(driverPath)) {
-            // Verificar expiración
-            if (isCacheExpired(driverPath)) {
-                TestLogger.logWarning("DRIVER_MANAGER",
-                    "Driver en caché expirado, se descargará nuevo",
-                    Map.of("path", driverPath.toString()));
-                return null;
-            }
-            return driverPath;
-        }
-
-        return null;
-    }
-
-    /**
      * Descarga driver desde Artifactory con autenticación.
      *
      * @param driverName Nombre del driver
      * @param version Versión del driver
-     * @return Path al driver descargado y cacheado
+     * @return Path al driver descargado
      * @throws IOException Si falla la descarga
      */
     private static Path downloadFromArtifactory(String driverName, String version) throws IOException {
@@ -336,11 +288,11 @@ public class WebDriverManager {
         // 2. Descargar driver
         Path downloadedZip = downloadDriverZip(artifactoryUrl, driverName, version);
 
-        // 3. Extraer y guardar en caché
-        Path extractedDriver = extractAndCache(downloadedZip, driverName, version);
+        // 3. Extraer driver
+        Path extractedDriver = extractDriver(downloadedZip, driverName);
 
         TestLogger.logInfo("DRIVER_MANAGER",
-            String.format("✓ Driver descargado y cacheado: %s %s", driverName, version),
+            String.format("✅ Driver descargado y extraído: %s %s", driverName, version),
             Map.of("path", extractedDriver.toString()));
 
         return extractedDriver;
@@ -453,22 +405,15 @@ public class WebDriverManager {
     }
 
     /**
-     * Extrae el driver del zip y lo guarda en caché.
+     * Extrae el driver del zip.
      *
      * @param zipPath Path al archivo zip descargado
      * @param driverName Nombre del driver
-     * @param version Versión del driver
      * @return Path al ejecutable extraído
      * @throws IOException Si falla la extracción
      */
-    private static Path extractAndCache(Path zipPath, String driverName, String version) throws IOException {
-        String cacheDir = config.get("driver.cache.dir",
-            System.getProperty("user.home") + "/.qa-drivers");
-
-        cacheDir = resolvePathVariables(cacheDir);
-        Path targetDir = Paths.get(cacheDir, driverName, version);
-        Files.createDirectories(targetDir);
-
+    private static Path extractDriver(Path zipPath, String driverName) throws IOException {
+        Path tempDir = Files.createTempDirectory("qa-driver-");
         Path extractedDriver = null;
         String executableName = getExecutableName(driverName);
 
@@ -478,7 +423,7 @@ public class WebDriverManager {
                 String fileName = Paths.get(entry.getName()).getFileName().toString();
 
                 if (!entry.isDirectory() && fileName.equalsIgnoreCase(executableName)) {
-                    extractedDriver = targetDir.resolve(executableName);
+                    extractedDriver = tempDir.resolve(executableName);
                     Files.copy(zis, extractedDriver, StandardCopyOption.REPLACE_EXISTING);
                     break;
                 }
@@ -504,7 +449,6 @@ public class WebDriverManager {
         // Limpiar zip temporal
         try {
             Files.deleteIfExists(zipPath);
-            Files.deleteIfExists(zipPath.getParent());
         } catch (Exception ignored) {}
 
         return extractedDriver;
@@ -528,102 +472,6 @@ public class WebDriverManager {
         }
     }
 
-    /**
-     * Verifica si el caché expiró según TTL configurado.
-     *
-     * @param driverPath Path al driver en caché
-     * @return true si expiró, false si sigue válido
-     */
-    private static boolean isCacheExpired(Path driverPath) {
-        int ttlDays = config.getInt("driver.cache.ttl", 30);
-        if (ttlDays == 0) {
-            return false; // Nunca expira
-        }
-
-        try {
-            long lastModified = Files.getLastModifiedTime(driverPath).toMillis();
-            long now = System.currentTimeMillis();
-            long daysSinceDownload = (now - lastModified) / (1000L * 60L * 60L * 24L);
-            return daysSinceDownload > ttlDays;
-        } catch (IOException e) {
-            TestLogger.logWarning("DRIVER_MANAGER",
-                "No se pudo verificar fecha de caché, asumiendo válido",
-                Map.of("path", driverPath.toString()));
-            return false; // En caso de error, no expirar
-        }
-    }
-
-    /**
-     * Limpia el caché de drivers.
-     *
-     * <p>Elimina todos los drivers descargados en el directorio de caché.</p>
-     *
-     * @throws IOException Si falla la eliminación
-     */
-    public static void clearCache() throws IOException {
-        String cacheDir = config.get("driver.cache.dir",
-            System.getProperty("user.home") + "/.qa-drivers");
-
-        cacheDir = resolvePathVariables(cacheDir);
-        Path cachePath = Paths.get(cacheDir);
-
-        if (Files.exists(cachePath)) {
-            try (var paths = Files.walk(cachePath)) {
-                paths.sorted(java.util.Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.deleteIfExists(path);
-                        } catch (IOException e) {
-                            TestLogger.logWarning("DRIVER_MANAGER",
-                                "No se pudo eliminar: " + path,
-                                Map.of("error", e.getMessage()));
-                        }
-                    });
-            }
-
-            TestLogger.logInfo("DRIVER_MANAGER",
-                "Caché de drivers limpiado",
-                Map.of("path", cachePath.toString()));
-        }
-    }
-
-    /**
-     * Limpia el caché de un driver específico.
-     *
-     * @param driverName Nombre del driver
-     * @param version Versión del driver (opcional, null para todas las versiones)
-     * @throws IOException Si falla la eliminación
-     */
-    public static void clearCacheFor(String driverName, String version) throws IOException {
-        String cacheDir = config.get("driver.cache.dir",
-            System.getProperty("user.home") + "/.qa-drivers");
-
-        cacheDir = resolvePathVariables(cacheDir);
-
-        Path targetPath = version != null
-            ? Paths.get(cacheDir, driverName, version)
-            : Paths.get(cacheDir, driverName);
-
-        if (Files.exists(targetPath)) {
-            try (var paths = Files.walk(targetPath)) {
-                paths.sorted(java.util.Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.deleteIfExists(path);
-                        } catch (IOException e) {
-                            TestLogger.logWarning("DRIVER_MANAGER",
-                                "No se pudo eliminar: " + path,
-                                Map.of("error", e.getMessage()));
-                        }
-                    });
-            }
-
-            TestLogger.logInfo("DRIVER_MANAGER",
-                String.format("Caché limpiado para %s %s",
-                    driverName, version != null ? version : "(todas las versiones)"),
-                Map.of("path", targetPath.toString()));
-        }
-    }
 
     /**
      * Obtiene el nombre del ejecutable según OS.
@@ -640,6 +488,21 @@ public class WebDriverManager {
             case "geckodriver" -> isWindows ? "geckodriver.exe" : "geckodriver";
             case "edgedriver" -> isWindows ? "msedgedriver.exe" : "msedgedriver";
             default -> throw new IllegalArgumentException("Driver desconocido: " + driverName);
+        };
+    }
+
+    /**
+     * Obtiene la URL de descarga oficial del driver.
+     *
+     * @param driverName Nombre del driver
+     * @return URL de descarga oficial
+     */
+    private static String getDriverDownloadUrl(String driverName) {
+        return switch (driverName) {
+            case "chromedriver" -> "https://googlechromelabs.github.io/chrome-for-testing/";
+            case "geckodriver" -> "https://github.com/mozilla/geckodriver/releases";
+            case "edgedriver" -> "https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/";
+            default -> "https://www.selenium.dev/documentation/webdriver/getting_started/install_drivers/";
         };
     }
 

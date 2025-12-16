@@ -11,11 +11,17 @@ subprojects {
     version = "1.0.0"
 
     repositories {
-        mavenLocal()
-        mavenCentral()
-        //maven {
-        //    url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository'
-        //}
+        // Switch entre mavenLocal y Artifactory usando flag
+        // Uso: ./gradlew build -PuseArtifactory=true
+        if (project.hasProperty('useArtifactory') && project.property('useArtifactory') == 'true') {
+            maven {
+                url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository'
+            }
+        } else {
+            // Por defecto: mavenLocal para desarrollo
+            mavenLocal()
+            mavenCentral()
+        }
     }
 
 

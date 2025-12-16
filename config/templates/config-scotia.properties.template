@@ -13,87 +13,44 @@ test.env=QA
 test.module.name=MODULE_NAME_PLACEHOLDER
 
 # ------------------------------------------------------------
-# DRIVERS (WebDriver) - ESTRATEGIA DE FALLBACK
+# DRIVERS (WebDriver) - ESTRATEGIA DUAL SIMPLIFICADA
 # ------------------------------------------------------------
-# Estrategia general (fallback = busca en local → caché → artifactory)
-driver.strategy=fallback
+# SOLO 2 OPCIONES: 'local' (desarrollo) o 'artifactory' (CI/CD)
+driver.strategy=local
 
 # ════════════════════════════════════════════════════════════
-# ESTRATEGIA 1: LOCAL PATH FIJO (Manual por desarrollador)
+# OPCIÓN 1: LOCAL (Recomendado para desarrollo)
 # ════════════════════════════════════════════════════════════
-# Habilitar búsqueda en path local fijo
-driver.local.enabled=true
-
-# Directorio base donde el desarrollador coloca drivers manualmente
+# Directorio base donde se encuentran los drivers
 # Estructura esperada: {base.path}/{driver-name}/{version}/chromedriver
-# Ejemplo: ~/drivers/chromedriver/114.0.5735.90/chromedriver
+# Ejemplo Windows: C:/drivers/chromedriver/143.0.7499.41/chromedriver.exe
+# Ejemplo Mac/Linux: ~/drivers/chromedriver/143.0.7499.41/chromedriver
 driver.local.base.path=${DRIVER_LOCAL_PATH}
 
-# Modo strict: Si true y driver no existe en local, falla inmediatamente
-# Si false, intenta caché y Artifactory
-driver.local.strict=false
-
 # ════════════════════════════════════════════════════════════
-# ESTRATEGIA 2: CACHÉ LOCAL (Automático)
+# OPCIÓN 2: ARTIFACTORY (CI/CD y ambientes corporativos)
 # ════════════════════════════════════════════════════════════
-# Habilitar caché de drivers descargados
-driver.cache.enabled=true
-
-# Directorio de caché (se crea automáticamente)
-driver.cache.dir=${user.home}/.qa-drivers
-
-# Tiempo de expiración del caché (días, 0 = nunca expira)
-driver.cache.ttl=30
-
-# ════════════════════════════════════════════════════════════
-# ESTRATEGIA 3: ARTIFACTORY (Fallback - Descarga automática)
-# ════════════════════════════════════════════════════════════
-# Habilitar descarga desde Artifactory
-driver.artifactory.enabled=true
-
-# URL base de Artifactory
+# URL base de Artifactory (ej: https://artifactory.corp.com/qa-drivers)
 driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}
 
-# Credenciales (desde .env.local)
+# Credenciales de Artifactory (desde .env.local)
 driver.artifactory.user=${ARTIFACTORY_USER}
 driver.artifactory.token=${ARTIFACTORY_TOKEN}
 
-# Timeout para descargas (segundos)
+# Configuración de reintentos y timeouts
 driver.artifactory.timeout=60
-
-# Reintentos en caso de fallo
 driver.artifactory.retry.enabled=true
 driver.artifactory.retry.max=3
-driver.artifactory.retry.backoff=exponential
 
 # ════════════════════════════════════════════════════════════
 # VERSIONES DE DRIVERS
 # ════════════════════════════════════════════════════════════
-driver.chrome.version=114.0.5735.90
+# Versión del driver (debe coincidir con tu navegador instalado)
+# Verifica tu versión: chrome://version
+driver.chrome.version=143.0.7499.41
 driver.firefox.version=0.33.0
-driver.edge.version=114.0.1823.37
+driver.edge.version=143.0.2210.55
 
-# ════════════════════════════════════════════════════════════
-# FALLBACK LEGACY (WebDriverManager de Bonigarcia)
-# ════════════════════════════════════════════════════════════
-# Habilitar fallback a WebDriverManager legacy como último recurso
-# Si true: Intenta descargar desde internet (googlechromelabs.github.io) si fallan todas las estrategias
-# Si false: Falla inmediatamente si no encuentra driver en local/cache/artifactory
-#
-# ⚠️ RECOMENDACIÓN:
-#   - Usar true en ambientes CON acceso a internet (desarrollo local sin firewall)
-#   - Usar false en ambientes corporativos con firewall (evita timeouts de 85+ segundos)
-driver.fallback.legacy.enabled=false
-
-# Timeout para intentos de descarga desde internet (segundos)
-# Solo aplica si driver.fallback.legacy.enabled=true
-driver.fallback.legacy.timeout=10
-
-# ════════════════════════════════════════════════════════════
-# LOGS Y DIAGNÓSTICO
-# ════════════════════════════════════════════════════════════
-# Nivel de detalle en logs (info, debug)
-driver.logging.level=info
 
 # Mostrar estrategia usada en cada ejecución (local-path|cache|artifactory)
 driver.logging.show.strategy=true
