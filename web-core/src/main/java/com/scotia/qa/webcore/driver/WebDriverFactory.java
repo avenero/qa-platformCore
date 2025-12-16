@@ -390,21 +390,6 @@ public class WebDriverFactory {
      *   <li><b>ARTIFACTORY:</b> Descarga desde repositorio corporativo</li>
      * </ol>
      *
-     * <p><b>Configuración en config-scotia.properties:</b></p>
-     * <pre>
-     * # Estrategia: local o artifactory
-     * driver.strategy=local
-     *
-     * # LOCAL (desarrollo)
-     * driver.local.base.path=${DRIVER_LOCAL_PATH}
-     * driver.chrome.version=143.0.7499.41
-     *
-     * # ARTIFACTORY (CI/CD)
-     * driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}
-     * driver.artifactory.user=${ARTIFACTORY_USER}
-     * driver.artifactory.token=${ARTIFACTORY_TOKEN}
-     * </pre>
-     *
      * @param driverName Nombre del ejecutable (chromedriver, geckodriver, msedgedriver)
      * @param propertyName System Property key (webdriver.chrome.driver, webdriver.gecko.driver, etc.)
      * @param browserName Nombre del navegador para logs (Chrome, Firefox, Edge)
@@ -415,59 +400,43 @@ public class WebDriverFactory {
         if (manualDriverPath != null && !manualDriverPath.isEmpty()) {
             java.io.File manualDriver = new java.io.File(manualDriverPath);
             if (manualDriver.exists() && manualDriver.canExecute()) {
-                TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                    String.format("✅ Usando %s manual (System Property): %s", driverName, manualDriverPath), null);
+                TestLogger.logDebug("WEB_DRIVER_FACTORY",
+                    String.format("Usando %s manual: %s", driverName, manualDriverPath), null);
                 return;
-            } else {
-                TestLogger.logWarning("WEB_DRIVER_FACTORY",
-                    String.format("⚠️ Driver manual configurado pero no válido: %s", manualDriverPath), null);
             }
         }
 
-        // ESTRATEGIA 2: Usar WebDriverManager del framework (estrategia configurada)
+        // ESTRATEGIA 2: Usar WebDriverManager del framework
         try {
-            TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                String.format("🔍 Configurando %s usando WebDriverManager del framework...", driverName), null);
-
             java.nio.file.Path driverPath = com.scotia.qa.common.driver.WebDriverManager.getDriverFromConfig(driverName);
 
             if (driverPath != null && java.nio.file.Files.exists(driverPath)) {
                 System.setProperty(propertyName, driverPath.toString());
-                TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                    String.format("✅ %s configurado exitosamente: %s", driverName, driverPath), null);
+                TestLogger.logDebug("WEB_DRIVER_FACTORY",
+                    String.format("%s configurado: %s", driverName, driverPath), null);
                 return;
             }
 
         } catch (com.scotia.qa.common.driver.WebDriverManager.DriverNotFoundException e) {
-            // Error descriptivo del WebDriverManager
-            TestLogger.logError("WEB_DRIVER_FACTORY", e.getMessage(), null);
-            throw new RuntimeException(e.getMessage(), e);
+            // Error conciso del WebDriverManager
+            String errorMsg = String.format("❌ %s no encontrado.\n" +
+                "Solución: Verifica config-scotia.properties:\n" +
+                "  - driver.strategy=local (o artifactory)\n" +
+                "  - driver.local.base.path=${DRIVER_LOCAL_PATH}\n" +
+                "  - driver.chrome.version=143.0.7499.41\n" +
+                "Descarga: %s",
+                driverName,
+                getDriverDownloadUrl(browserName));
+
+            TestLogger.logError("WEB_DRIVER_FACTORY", errorMsg, null);
+            throw new RuntimeException(errorMsg, e);
         } catch (Exception e) {
-            String errorDetail = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            String errorMsg = buildGenericError(driverName, browserName, errorDetail);
+            String errorMsg = String.format("❌ Error configurando %s: %s", driverName, e.getMessage());
             TestLogger.logError("WEB_DRIVER_FACTORY", errorMsg, null);
             throw new RuntimeException(errorMsg, e);
         }
     }
 
-    /**
-     * Construye mensaje de error genérico cuando falla la configuración del driver.
-     */
-    private static String buildGenericError(String driverName, String browserName, String errorDetail) {
-        String downloadUrl = getDriverDownloadUrl(browserName);
-
-        return String.format("\n\n❌ Error inesperado configurando %s: %s\n\n" +
-            "📋 SOLUCIONES:\n" +
-            "1. Verificar configuración en config-scotia.properties:\n" +
-            "   - driver.strategy=local o artifactory\n" +
-            "   - driver.local.base.path (para estrategia local)\n" +
-            "   - driver.artifactory.* (para estrategia artifactory)\n\n" +
-            "2. Verificar versión configurada:\n" +
-            "   - driver.chrome.version=143.0.7499.41\n\n" +
-            "3. Descargar manualmente desde: %s\n\n" +
-            "4. Contactar al equipo de QA para soporte",
-            driverName, errorDetail, downloadUrl);
-    }
 
     /**
      * Obtiene la URL de descarga oficial del driver según el navegador.

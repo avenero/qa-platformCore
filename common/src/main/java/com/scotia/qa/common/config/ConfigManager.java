@@ -302,33 +302,59 @@ public class ConfigManager {
     /**
      * Carga el archivo de configuración apropiado según el ambiente.
      *
+     * <p>Estrategia de búsqueda flexible:</p>
+     * <ol>
+     *   <li>config-{env}.properties (ej: config-qa.properties)</li>
+     *   <li>config-scotia.properties (nombre estándar recomendado)</li>
+     *   <li>config.properties (fallback genérico)</li>
+     *   <li>Cualquier archivo config-*.properties encontrado</li>
+     * </ol>
+     *
      * @return Properties cargado o vacío si no existe
      */
     private Properties loadConfigurationProperties() {
-        // Intentar cargar config-{env}.properties
+        // 1. Intentar config-{env}.properties
         String envConfigFile = "config-" + environment + ".properties";
-
-        try {
-            Properties props = provider.loadPropertiesConfiguration(envConfigFile);
+        Properties props = tryLoadProperties(envConfigFile);
+        if (props != null) {
             log.info("✅ Configuración cargada: {}", envConfigFile);
             return props;
-        } catch (Exception e) {
-            log.debug("No se encontró {}, intentando config.properties", envConfigFile);
         }
 
-        // Fallback a config.properties
-        try {
-            Properties props = provider.loadPropertiesConfiguration("config.properties");
+        // 2. Intentar config-scotia.properties (recomendado)
+        props = tryLoadProperties("config-scotia.properties");
+        if (props != null) {
+            log.info("✅ Configuración cargada: config-scotia.properties");
+            return props;
+        }
+
+        // 3. Intentar config.properties (fallback)
+        props = tryLoadProperties("config.properties");
+        if (props != null) {
             log.info("✅ Configuración cargada: config.properties");
             return props;
+        }
+
+        // 4. No se encontró archivo de configuración
+        log.warn("⚠️ No se encontró archivo de configuración, usando solo System Properties y ENV");
+        log.warn("📝 Solución: Crea 'config-scotia.properties' en src/test/resources/ del módulo");
+        log.warn("   Ejemplo: cp config-scotia.properties.template config-scotia.properties");
+
+        return new Properties();
+    }
+
+    /**
+     * Intenta cargar un archivo .properties sin lanzar excepción.
+     *
+     * @param fileName nombre del archivo
+     * @return Properties cargado o null si no existe/falla
+     */
+    private Properties tryLoadProperties(String fileName) {
+        try {
+            return provider.loadPropertiesConfiguration(fileName);
         } catch (Exception e) {
-            log.warn("⚠️ No se encontró archivo de configuración, usando solo System Properties y ENV");
-            log.warn("📝 Para solucionar:");
-            log.warn("   1. Copia el template: config-scotia.properties.template → src/test/resources/config-{}.properties", environment);
-            log.warn("   2. Edita config-{}.properties con tus configuraciones", environment);
-            log.warn("   3. Configura variables sensibles en .env.local");
-            log.warn("   Ver: doc/GUIA-CONFIGURACION-MODULOS.md");
-            return new Properties();
+            log.debug("No se encontró: {} ({})", fileName, e.getMessage());
+            return null;
         }
     }
 
