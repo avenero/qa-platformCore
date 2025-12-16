@@ -389,7 +389,7 @@ Then verifico si existe el elemento "dashboard"
 
 | Documento | Descripción |
 |-----------|-------------|
-| **[config/](./config/)** | 📦 Templates, Artifactory, scripts Windows |
+| **[config/](./config/)** | 📦 Configuración: Templates, Artifactory, Drivers, SSL |
 | **[web-core/TROUBLESHOOTING-TIMEOUT.md](./web-core/TROUBLESHOOTING-TIMEOUT.md)** | 🐛 Solución problemas timeouts |
 | **[web-core/WEBDRIVER-SETUP-GUIDE.md](./web-core/WEBDRIVER-SETUP-GUIDE.md)** | 🚗 Configuración WebDrivers |
 
@@ -436,11 +436,6 @@ cat src/test/resources/config-scotia.properties | grep api.base.url
 curl -I https://tu-api.com/health
 ```
 
-#### ❌ Error: Plugin Spotless en Windows
-
-**Causa**: Proxy/firewall bloqueando descarga
-
-**Solución**: Spotless fue removido del framework. Ver [config/SPOTLESS-REMOVIDO-WINDOWS.md](./config/SPOTLESS-REMOVIDO-WINDOWS.md)
 
 ---
 

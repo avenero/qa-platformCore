@@ -33,7 +33,7 @@ systemProp.javax.net.ssl.trustStoreType=JKS
 
 ## 🔧 Crear/Actualizar el Truststore
 
-Ver guía completa: **[../config/CERTIFICADO-SSL-ARTIFACTORY.md](../config/CERTIFICADO-SSL-ARTIFACTORY.md)**
+Ver guía completa: **[../config/README.md](../config/README.md#-certificados-ssl)**
 
 ### Resumen rápido:
 
@@ -88,7 +88,7 @@ keytool -list \
 
 ## 📚 Más Información
 
-- **Guía completa de certificados SSL**: [../config/CERTIFICADO-SSL-ARTIFACTORY.md](../config/CERTIFICADO-SSL-ARTIFACTORY.md)
+- **Guía completa de certificados SSL**: [../config/README.md](../config/README.md#-certificados-ssl)
 - **Troubleshooting SSL**: Ver sección "Troubleshooting" en la guía completa
 
 ---
