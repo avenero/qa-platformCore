@@ -171,7 +171,9 @@ dependencies {
 
 ## 📤 Publicación de Capas
 
-### 🏠 Publicar en mavenLocal
+### 🏠 Publicar en mavenLocal (Único método disponible)
+
+**IMPORTANTE:** Solo puedes publicar en `mavenLocal` porque **no tienes permisos de escritura** en Artifactory.
 
 ```bash
 cd /path/to/qa-scotia-frameworks
@@ -182,6 +184,8 @@ cd /path/to/qa-scotia-frameworks
 # Publicar capa específica
 ./gradlew :common:publishToMavenLocal
 ./gradlew :api-core:publishToMavenLocal
+./gradlew :web-core:publishToMavenLocal
+./gradlew :mobile-core:publishToMavenLocal
 ```
 
 **Verificar publicación:**
@@ -193,21 +197,41 @@ ls -la ~/.m2/repository/com/scotia/qa/common/1.0.0/
 dir %USERPROFILE%\.m2\repository\com\scotia\qa\common\1.0.0\
 ```
 
-### 🏢 Publicar en Artifactory
+**Resultado:**
+```
+~/.m2/repository/com/scotia/qa/common/1.0.0/
+├── common-1.0.0.jar
+├── common-1.0.0.pom
+├── common-1.0.0-sources.jar
+└── common-1.0.0-javadoc.jar
+```
 
-**Nota:** Esta tarea la realiza Infra/DevOps, pero aquí está el proceso:
+### 🏢 Publicar en Artifactory (Solo Infra/DevOps)
+
+**Nota:** Tú **NO** puedes publicar directamente en Artifactory. Este proceso lo realiza Infra manualmente.
+
+**Proceso para solicitar publicación:**
 
 ```bash
-# 1. Generar artefactos
-./gradlew clean build
+# 1. Generar artefactos completos
+cd /path/to/qa-scotia-frameworks
+./gradlew clean build -x test
 
-# 2. Los artefactos están en:
+# 2. Los artefactos se generan en:
 common/build/libs/
 ├── common-1.0.0.jar
 ├── common-1.0.0-sources.jar
 └── common-1.0.0-javadoc.jar
 
-# 3. Enviar a Infra para publicación en Artifactory
+# Y el POM en:
+common/build/publications/mavenJava/pom-default.xml
+
+# 3. Recopilar artefactos para enviar a Infra
+mkdir -p artifacts/common/1.0.0
+cp common/build/libs/* artifacts/common/1.0.0/
+cp common/build/publications/mavenJava/pom-default.xml artifacts/common/1.0.0/common-1.0.0.pom
+
+# 4. Enviar a Infra con ticket solicitando publicación
 # Incluir: .jar, .pom, -sources.jar, -javadoc.jar
 ```
 

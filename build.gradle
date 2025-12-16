@@ -11,15 +11,28 @@ subprojects {
     version = "1.0.0"
 
     repositories {
-        // Switch entre mavenLocal y Artifactory usando flag
-        // Uso: ./gradlew build -PuseArtifactory=true
+        // ═══════════════════════════════════════════════════════════════════
+        // DESCARGA DE DEPENDENCIAS (dependencies)
+        // ═══════════════════════════════════════════════════════════════════
+        // Estrategia de búsqueda en CASCADA:
+        // 1. mavenLocal      → Rápido (framework publicado localmente)
+        // 2. Artifactory     → Red corporativa (dependencias externas)
+        // 3. mavenCentral    → Fallback (puede estar bloqueado por firewall)
+        //
+        // Flag -PuseArtifactory=true:
+        //   → Cambia el ORDEN (Artifactory primero, luego mavenLocal)
+        //   → Útil para CI/CD que siempre descarga desde Artifactory
+        // ═══════════════════════════════════════════════════════════════════
+
         if (project.hasProperty('useArtifactory') && project.property('useArtifactory') == 'true') {
-            maven {
-                url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository'
-            }
-        } else {
-            // Por defecto: mavenLocal para desarrollo
+            // CI/CD: Priorizar Artifactory
+            maven { url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository' }
             mavenLocal()
+            mavenCentral()
+        } else {
+            // Desarrollo: Priorizar mavenLocal, pero incluir Artifactory como fallback
+            mavenLocal()
+            maven { url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository' }
             mavenCentral()
         }
     }
@@ -97,6 +110,9 @@ subprojects {
         options.addStringOption('Xdoclint:none', '-quiet')
     }
 
+    // ========================================================================
+    // PUBLICACIÓN (Publishing)
+    // ========================================================================
     // Configuración de publicación Maven para submódulos sin configuración propia
     afterEvaluate {
         // Solo aplicar si el módulo no tiene su propia configuración de publicación
@@ -114,6 +130,15 @@ subprojects {
                     }
                 }
                 repositories {
+                    // ═══════════════════════════════════════════════════════════════
+                    // PUBLICACIÓN: Solo mavenLocal
+                    // ═══════════════════════════════════════════════════════════════
+                    // Uso: ./gradlew publishToMavenLocal
+                    //   → Publica en ~/.m2/repository/com/scotia/qa/
+                    //
+                    // NOTA: No hay publicación en Artifactory (sin permisos de escritura)
+                    //       Infra publica manualmente los artefactos generados
+                    // ═══════════════════════════════════════════════════════════════
                     mavenLocal()
                 }
             }
