@@ -1,18 +1,12 @@
 #!groovy
 @Library('pipeline-utils') _
-def customImage
+
 pipeline {
     agent { label 'jslave1'}
-    options {
-        ansiColor('xterm')
-        timestamps()
-        timeout(time: 30, unit: 'MINUTES')
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        disableConcurrentBuilds()
-    }
+
     tools {
-        jdk 'OpenJDK 21'      // ✅ Ya configurado en Jenkins
-        gradle 'Gradle 8.5'   // ✅ Ya configurado en Jenkins
+        jdk 'OpenJDK 21'
+        gradle 'Gradle 8.5'
     }
 
     parameters {
@@ -66,13 +60,15 @@ pipeline {
     // ========================================================================
     options {
         buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
-        timeout(time: 30, unit: 'MINUTES')  // ✅ Mismo que tu Jenkinsfile existente
+        timeout(time: 30, unit: 'MINUTES')
         timestamps()
         disableConcurrentBuilds()
         skipDefaultCheckout()
         ansiColor('xterm')
     }
-    // =============================    // =============================    // =    // STAGES
+
+    // ========================================================================
+    // STAGES
     // ========================================================================
     stages {
         stage('🔽 Checkout') {
@@ -108,7 +104,9 @@ pipeline {
                     } else {
                         shouldPublish = false
                     }
-                    env.WILL_PUBLISH = shouldPublish                                        if (params.CUSTOM_VERSION) {
+                    env.WILL_PUBLISH = shouldPublish.toString()
+
+                    if (params.CUSTOM_VERSION) {
                         env.VERSION = params.CUSTOM_VERSION
                     } else {
                         def baseVersion = '1.0.0'
@@ -146,7 +144,7 @@ pipeline {
             steps {
                 script {
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo "🔍 Verificando vers           VERSION} en Artifactory..."
+                    echo "🔍 Verificando versión ${env.VERSION} en Artifactory..."
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                     def versionExists = false
                     def modulosExistentes = []
@@ -238,7 +236,8 @@ pipeline {
                 sh 'gradle jacocoTestReport || ./gradlew jacocoTestReport'
                 jacoco(
                     execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java                            sourcePattern: '**/src/main/java',
+                    classPattern: '**/build/classes/java/main',
+                    sourcePattern: '**/src/main/java',
                     minimumLineCoverage: env.MIN_CODE_COVERAGE
                 )
             }
@@ -258,7 +257,10 @@ pipeline {
         }
         stage('📦 Artefactos') {
             steps {
-                sh "gradle jar ja              esJar -Pversion=${env.VERSION} || ./gradlew jar javadocJar sourcesJar -Pversion=${env.VERSION}"
+                sh """
+                    gradle jar javadocJar sourcesJar -Pversion=${env.VERSION} || \
+                    ./gradlew jar javadocJar sourcesJar -Pversion=${env.VERSION}
+                """
             }
             post {
                 always {
@@ -307,42 +309,43 @@ pipeline {
             script {
                 echo '✅ BUILD EXITOSO'
                 try {
+                    def publishStatus = env.WILL_PUBLISH == 'true' ? 'SÍ ✅' : 'NO ⚠️'
                     def publishedInfo = ''
+
                     if (env.WILL_PUBLISH == 'true') {
-                        env.MODULES.split(',').each { module ->
-                            publishedInfo += "- **${module.trim()}** v${env.VERSION}\\n"
-                        }
-                        publishedInfo += "\\n🔒 **INMUTABLE**"
+                        publishedInfo = "Publicado: ${env.VERSION} (INMUTABLE)"
                     } else {
-                        publishedInfo = "Build exitoso. NO publicado (rama: ${env.BRANCH_NAME})"
+                        publishedInfo = "NO publicado (rama: ${env.BRANCH_NAME})"
                     }
-                    def teamsMessage = """
-                    {
-                        "@type": "MessageCard",
-                        "@context": "https://schema.org/extensions",
-                        "summary": "Build Exitoso",
-                        "themeColor": "00FF00",
-                        "title": "✅ Build Exitoso - ${env.PROJECT_NAME}",
-                        "sections": [{
-                            "activityTitle": "Build #${env.BUILD_NUMBER}",
-                            "facts": [
-                                {"name": "📌 Branch:", "value": "${env.BRANCH_NAME}"},
-                                {"name": "📦 Versión:", "value": "${env.VERSION}"},
-                                {"name": "🚀 Publicado:", "value": "${env.WILL_PUBLISH == 'true'
-                                {"name": "👤 Autor:", "value": "${env{"name": "💬 Commit:", "value": "${env.GIT_COMMIT_MSG}"}
+
+                    def payload = [
+                        '@type': 'MessageCard',
+                        '@context': 'https://schema.org/extensions',
+                        summary: 'Build Exitoso',
+                        themeColor: '00FF00',
+                        title: "✅ Build Exitoso - ${env.PROJECT_NAME}",
+                        sections: [[
+                            activityTitle: "Build #${env.BUILD_NUMBER}",
+                            facts: [
+                                [name: '📌 Branch', value: env.BRANCH_NAME],
+                                [name: '📦 Versión', value: env.VERSION],
+                                [name: '🚀 Publicado', value: publishStatus],
+                                [name: '👤 Autor', value: env.GIT_AUTHOR],
+                                [name: '💬 Commit', value: env.GIT_COMMIT_MSG]
                             ],
-                            "text": "${publishedInfo}"
-                        }],
-                        "potentialAction": [{
-                            "@type": "OpenUri",
-                            "name": "Ver Build",
-                            "targets": [{"os": "default", "uri": "${env.BUILD_URL}"}]
-                        }]
-                    }
-                    """
+                            text: publishedInfo
+                        ]],
+                        potentialAction: [[
+                            '@type': 'OpenUri',
+                            name: 'Ver Build',
+                            targets: [[os: 'default', uri: env.BUILD_URL]]
+                        ]]
+                    ]
+
                     httpRequest(
                         httpMode: 'POST',
-                        requestBody: teamsMessage,
+                        contentType: 'APPLICATION_JSON',
+                        requestBody: groovy.json.JsonOutput.toJson(payload),
                         url: env.TEAMS_WEBHOOK,
                         validResponseCodes: '200:299'
                     )
@@ -356,30 +359,35 @@ pipeline {
             script {
                 echo '❌ BUILD FALLIDO'
                 try {
-                    def teamsMessage = """
-                    {
-                        "@type": "MessageCard",
-                        "@context": "https://schema.org/extensions",
-                        "summary": "Build Fallido",
-                        "themeColor": "FF0000",
-                        "title": "❌ Build Fallido - ${env.PROJECT_NAME}",
-                        "sections": [{
-                            "activityTitle": "Build #${env.BUILD_NUMBER}",
-                            "facts": [
-                                {"name": "📌 Branch:", "value": "${env.BRANCH_NAME}"},
-                                {"name": "📦 Versión:", "value": "${env.VERSION ?: 'N/A'}"},
-                                {"name": "👤 Autor:", "value": "${env.GIT_AUTHOR ?: 'N/A'}"}
+                    def payload = [
+                        '@type': 'MessageCard',
+                        '@context': 'https://schema.org/extensions',
+                        summary: 'Build Fallido',
+                        themeColor: 'FF0000',
+                        title: "❌ Build Fallido - ${env.PROJECT_NAME}",
+                        sections: [[
+                            activityTitle: "Build #${env.BUILD_NUMBER}",
+                            facts: [
+                                [name: '📌 Branch', value: env.BRANCH_NAME],
+                                [name: '📦 Versión', value: env.VERSION ?: 'N/A'],
+                                [name: '👤 Autor', value: env.GIT_AUTHOR ?: 'N/A']
                             ],
-                            "text": "⚠️ Build falló. Revisar logs."
-                        }],
-                        "potentialAction": [{
-                            "@type": "OpenUri",
-                            "name": "Ver Logs",
-                            "targets": [{"os": "default", "uri": "${env.BUILD_URL}console"}]
-                        }]
-                    }
-                    """
-                    httpRequest(httpMode: 'POST', contentType: 'APPLICATION_JSON', requestBody: teamsMessage, url: env.TEAMS_WEBHOOK, validResponseCodes: '200:299')
+                            text: '⚠️ Build falló. Revisar logs.'
+                        ]],
+                        potentialAction: [[
+                            '@type': 'OpenUri',
+                            name: 'Ver Logs',
+                            targets: [[os: 'default', uri: "${env.BUILD_URL}console"]]
+                        ]]
+                    ]
+
+                    httpRequest(
+                        httpMode: 'POST',
+                        contentType: 'APPLICATION_JSON',
+                        requestBody: groovy.json.JsonOutput.toJson(payload),
+                        url: env.TEAMS_WEBHOOK,
+                        validResponseCodes: '200:299'
+                    )
                 } catch (Exception e) {
                     echo "⚠️  Teams falló: ${e.message}"
                 }
