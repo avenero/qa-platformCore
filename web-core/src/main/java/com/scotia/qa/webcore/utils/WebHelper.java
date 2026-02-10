@@ -41,6 +41,13 @@ import java.util.*;
  */
 public class WebHelper {
 
+    // =========================================================================
+    // CONSTANTES DE CONFIGURACIÓN
+    // =========================================================================
+
+    /** Timeout por defecto para waits explícitos (en segundos) */
+    private static final int DEFAULT_WAIT_SECONDS = 15;
+
     public WebHelper() {
         // Constructor vacío - todas las operaciones delegadas a ScenarioContext estático
     }
@@ -1020,7 +1027,18 @@ public class WebHelper {
 
     public void checkTextAndClic(String text) {
         WebDriver driver = DriverManager.getDriver();
-        WebElement element = driver.findElement(By.xpath("//*[contains(text(), '" + text + "')]"));
+
+        // Escapar comillas para prevenir XPath injection
+        String safeText = text.replace("'", "\\'").replace("\"", "\\\"");
+
+        // Usar wait explícito para estabilidad
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(DEFAULT_WAIT_SECONDS));
+        WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(
+            By.xpath(String.format("//*[contains(text(), '%s')]", safeText))
+        ));
+
+        // Click con wait de clickeabilidad
+        wait.until(ExpectedConditions.elementToBeClickable(element));
         element.click();
     }
 

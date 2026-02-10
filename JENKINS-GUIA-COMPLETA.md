@@ -33,6 +33,11 @@
 16. [🔧 Configuración Inicial](#configuración-inicial)
 17. [🐛 Troubleshooting](#troubleshooting)
 
+### PARTE 5: GESTIÓN AVANZADA
+18. [📦 Gestión de Artefactos](#gestión-de-artefactos)
+19. [🔢 Estrategia de Versionado](#estrategia-de-versionado)
+20. [📍 Ubicación de Artefactos](#ubicación-de-artefactos)
+
 ---
 
 # PARTE 1: ESTRUCTURA DEL PIPELINE
@@ -1486,6 +1491,115 @@ com/scotia/qa/common/1.0.0/common-1.0.0.jar
 com/scotia/qa/api-core/1.0.0/api-core-1.0.0.jar
 com/scotia/qa/web-core/1.0.0/web-core-1.0.0.jar
 com/scotia/qa/mobile-core/1.0.0/mobile-core-1.0.0.jar
+```
+
+---
+
+# 📊 GESTIÓN AVANZADA
+
+---
+
+## 18. GESTIÓN DE ARTEFACTOS
+
+### **¿Cómo funciona la retención automática?**
+
+**Configuración actual (líneas 62-69):**
+
+```groovy
+options {
+    buildDiscarder(logRotator(
+        numToKeepStr: '30',           // Logs de últimos 30 builds
+        artifactNumToKeepStr: '10'    // Artefactos de últimos 10 builds
+    ))
+}
+```
+
+### **¿Qué se elimina?**
+
+```
+Build #1-20  → Logs: ❌ Eliminados  │ Artefactos: ❌ Eliminados
+Build #21-40 → Logs: ✅ Guardados   │ Artefactos: ❌ Eliminados  
+Build #41-50 → Logs: ✅ Guardados   │ Artefactos: ✅ Guardados
+```
+
+**Resultado:**
+- ✅ Jenkins mantiene **30 logs** automáticamente
+- ✅ Jenkins mantiene **10 artefactos** automáticamente
+- 💾 Ahorra ~195 MB por rama
+
+### **Configuraciones alternativas:**
+
+| Tipo | numToKeepStr | artifactNumToKeepStr | Espacio |
+|------|--------------|---------------------|---------|
+| **Pequeño** | `'10'` | `'3'` | ~60 MB |
+| **Normal** ✅ | `'30'` | `'10'` | ~195 MB |
+| **Crítico** | `'100'` | `'20'` | ~400 MB |
+
+---
+
+## 19. ESTRATEGIA DE VERSIONADO
+
+### **Prioridad de Versión:**
+
+```
+1️⃣ CUSTOM_VERSION (manual)     → Máxima prioridad
+   ↓ Si vacío...
+2️⃣ Git Tag                     → git describe --tags
+   ↓ Si no hay tag...
+3️⃣ gradle.properties           → version=X.X.X
+```
+
+### **Casos de uso:**
+
+| Caso | Método | Ejemplo |
+|------|--------|---------|
+| **Desarrollo diario (90%)** | Automático | Lee gradle.properties → 1.0.0 |
+| **Release oficial** | Git Tag | `git tag v1.1.0` → 1.1.0 |
+| **Hotfix urgente (10%)** | CUSTOM_VERSION | `1.0.2-hotfix` |
+| **Release candidates** | CUSTOM_VERSION | `1.1.0-rc1` |
+
+### **¿Cuándo usar CUSTOM_VERSION?**
+
+✅ **Úsalo para:**
+- Hotfixes urgentes (`1.0.2-hotfix`)
+- Release candidates (`1.1.0-rc1`)
+- Testing versión específica
+
+❌ **NO lo uses para:**
+- Desarrollo diario (déjalo vacío)
+- Builds automáticos
+- Versionado estándar del proyecto
+
+### **Comparación:**
+
+| Método | Desarrollo | Automático | Hotfixes |
+|--------|------------|-----------|----------|
+| Solo parámetro | ❌ Tedioso | ❌ Falla | ✅ Rápido |
+| Solo automático | ✅ Perfecto | ✅ OK | ❌ Lento |
+| **AMBOS** ✅ | ✅ Perfecto | ✅ OK | ✅ Rápido |
+
+---
+
+## 20. UBICACIÓN DE ARTEFACTOS
+
+**En agente Jenkins:**
+```
+/home/jenkins/remote/workspace/QAAUY_qaauy_develop/
+└── {module}/build/libs/
+    ├── {module}-{version}.jar
+    ├── {module}-{version}-javadoc.jar
+    └── {module}-{version}-sources.jar
+```
+
+**En Jenkins UI:**
+```
+Build #X → Artifacts → Descargar (12 archivos total)
+```
+
+**En Artifactory:**
+```
+https://artifactory.cldevops.chl.bns/artifactory/libs-release-thirdparty/
+└── com/scotia/qa/{module}/{version}/
 ```
 
 ---

@@ -44,6 +44,9 @@ subprojects {
     // ========================================================================
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
+
+        // Mostrar warnings de unchecked operations y deprecations
+        options.compilerArgs << '-Xlint:unchecked' << '-Xlint:deprecation'
     }
 
     // ========================================================================

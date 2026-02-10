@@ -21,7 +21,10 @@ pipeline {
         string(
             name: 'CUSTOM_VERSION',
             defaultValue: '',
-            description: 'Versión personalizada. Ej: 1.2.0'
+            description: '''Versión personalizada (OPCIONAL):
+• Dejar VACÍO para cálculo automático (recomendado)
+• Llenar solo para: hotfixes, RCs, testing
+• Ejemplo: 1.2.0-hotfix, 1.0.0-rc1'''
         )
         booleanParam(
             name: 'SKIP_TESTS',
@@ -106,34 +109,53 @@ pipeline {
                     }
                     env.WILL_PUBLISH = shouldPublish.toString()
 
-                    if (params.CUSTOM_VERSION) {
-                        env.VERSION = params.CUSTOM_VERSION
+                    // Calcular versión con manejo correcto de string vacío
+                    if (params.CUSTOM_VERSION && params.CUSTOM_VERSION.trim() != '') {
+                        // Usuario especificó versión manualmente
+                        env.VERSION = params.CUSTOM_VERSION.trim()
+                        echo "✅ Versión manual: ${env.VERSION}"
                     } else {
+                        // Versión automática: leer de gradle.properties o Git tag
                         def baseVersion = '1.0.0'
+
+                        // Intentar leer de gradle.properties
                         try {
                             def propsFile = readFile('gradle.properties')
                             def matcher = (propsFile =~ /version=(.+)/)
                             if (matcher.find()) {
                                 baseVersion = matcher.group(1).trim()
+                                echo "📄 Versión de gradle.properties: ${baseVersion}"
                             }
                         } catch (Exception e) {
-                            echo "⚠️  gradle.properties no encontrado, usando: ${baseVersion}"
+                            echo "⚠️  Error leyendo gradle.properties: ${e.message}"
+                            echo "⚠️  Usando versión por defecto: ${baseVersion}"
                         }
+
+                        // Buscar Git Tag (tiene prioridad sobre gradle.properties)
                         try {
                             def gitTag = sh(script: 'git describe --tags --exact-match 2>/dev/null || echo ""', returnStdout: true).trim()
-                            if (gitTag) {
+                            if (gitTag && gitTag != '') {
                                 env.VERSION = gitTag.startsWith('v') ? gitTag.substring(1) : gitTag
+                                echo "🏷️  Git tag encontrado: ${env.VERSION}"
                             } else {
                                 env.VERSION = baseVersion
+                                echo "📦 Usando versión de gradle.properties: ${env.VERSION}"
                             }
                         } catch (Exception e) {
                             env.VERSION = baseVersion
+                            echo "⚠️  Error buscando Git tag: ${e.message}"
+                            echo "📦 Usando versión de gradle.properties: ${env.VERSION}"
                         }
                     }
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     echo "📦 VERSIÓN: ${env.VERSION}"
                     echo "🚀 PUBLICAR: ${env.WILL_PUBLISH == 'true' ? 'SÍ' : 'NO'}"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+                    // Validar que la versión no sea null o vacía
+                    if (!env.VERSION || env.VERSION == 'null' || env.VERSION.trim() == '') {
+                        error("❌ ERROR: No se pudo determinar la versión. Verifica gradle.properties o especifica CUSTOM_VERSION")
+                    }
                 }
             }
         }
@@ -204,7 +226,7 @@ pipeline {
         }
         stage('🧹 Limpiar') {
             steps {
-                sh 'gradle clean || ./gradlew clean'
+                sh './gradlew clean'
             }
         }
         stage('🔨 Compilar') {
@@ -212,7 +234,7 @@ pipeline {
                 script {
                     echo "🔨 Compilando módulos: ${env.MODULES}"
                 }
-                sh "gradle build -x test -Pversion=${env.VERSION} || ./gradlew build -x test -Pversion=${env.VERSION}"
+                sh "./gradlew build -x test -Pversion=${env.VERSION}"
             }
         }
         stage('🧪 Tests') {
@@ -220,7 +242,7 @@ pipeline {
                 expression { params.SKIP_TESTS == false }
             }
             steps {
-                sh 'gradle test || ./gradlew test'
+                sh './gradlew test'
             }
             post {
                 always {
@@ -233,7 +255,7 @@ pipeline {
                 expression { params.SKIP_TESTS == false }
             }
             steps {
-                sh 'gradle jacocoTestReport || ./gradlew jacocoTestReport'
+                sh './gradlew jacocoTestReport'
                 jacoco(
                     execPattern: '**/build/jacoco/*.exec',
                     classPattern: '**/build/classes/java/main',
@@ -257,10 +279,7 @@ pipeline {
         }
         stage('📦 Artefactos') {
             steps {
-                sh """
-                    gradle jar javadocJar sourcesJar -Pversion=${env.VERSION} || \
-                    ./gradlew jar javadocJar sourcesJar -Pversion=${env.VERSION}
-                """
+                sh "./gradlew jar javadocJar sourcesJar -Pversion=${env.VERSION}"
             }
             post {
                 always {
@@ -282,11 +301,6 @@ pipeline {
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                 }
                 sh """
-                    gradle publish \
-                        -Pversion=${env.VERSION} \
-                        -PartifactoryUrl=${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO} \
-                        -PartifactoryUser=${env.ARTIFACTORY_CREDS_USR} \
-                        -PartifactoryPassword=${env.ARTIFACTORY_CREDS_PSW} || \
                     ./gradlew publish \
                         -Pversion=${env.VERSION} \
                         -PartifactoryUrl=${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO} \

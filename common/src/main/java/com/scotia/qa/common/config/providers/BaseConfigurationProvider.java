@@ -1,10 +1,8 @@
 package com.scotia.qa.common.config.providers;
 
-import com.scotia.qa.common.config.providers.ConfigurationProvider;
 import com.scotia.qa.common.utils.ConfigurationUtilities;
 import com.scotia.qa.common.logging.TestLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,8 +78,8 @@ public class BaseConfigurationProvider implements ConfigurationProvider {
         Set.of("yml", "yaml", "json", "properties");
 
     // Cache thread-safe para configuraciones
-    private final Map<String, Map<String, Object>> configurationCache = new ConcurrentHashMap<>();
-    private final Map<String, Properties> propertiesCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Map<String, Object>> configurationCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Properties> propertiesCache = new ConcurrentHashMap<>();
 
     // Configuración del proveedor
     private boolean cacheEnabled = false;
