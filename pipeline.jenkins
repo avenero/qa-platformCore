@@ -6,7 +6,7 @@ pipeline {
 
     tools {
         jdk 'OpenJDK 21'
-        gradle 'Gradle 9.0'
+        gradle 'Gradle 8.5'
     }
 
     parameters {
