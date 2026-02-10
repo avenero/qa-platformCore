@@ -1,36 +1,20 @@
-// ============================================================================
-// Jenkinsfile - Scotia QA Framework - Publicación a Artifactory
-// ============================================================================
-//
-// Pipeline CI/CD para publicar SOLO RELEASES a Artifactory.
-//
-// CONFIGURACIÓN BASADA EN INFRAESTRUCTURA EXISTENTE:
-//   - Agente: jslave1 (ya configurado)
-//   - JDK: OpenJDK 21 (ya configurado en Jenkins Tools)
-//   - Gradle: Gradle 8.5 (ya configurado en Jenkins Tools)
-//   - Credencial: Artifactory (ya existe - reutilizada)
-//   - Repositorio: libs-release-local (verificar con DevOps)
-//
-// @author Abel Venero
-// @version 4.0.0 (Adaptado a infraestructura real)
-// @date 2026-02-10
-// ============================================================================
+#!groovy
+@Library('pipeline-utils') _
+def customImage
 pipeline {
-    // ========================================================================
-    // AGENTE - Usando agente Jenkins existente
-    // ========================================================================
-    agent {
-        label 'jslave1'  // ✅ Agente existente (tiene OpenJDK 21 + Gradle 8.5)
+    agent { label 'jslave1'}
+    options {
+        ansiColor('xterm')
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
     }
-    // ========================================================================
-    // TOOLS - Herramientas configuradas en Jenkins Global Tool Configuration
-    // ========================================================================
     tools {
         jdk 'OpenJDK 21'      // ✅ Ya configurado en Jenkins
         gradle 'Gradle 8.5'   // ✅ Ya configurado en Jenkins
     }
-    // ====================    // ====================    // ===================    // PARÁMETROS
-    // ========================================================================
+
     parameters {
         choice(
             name: 'PUBLISH_TO_ARTIFACTORY',
