@@ -72,8 +72,6 @@ public class ConversionStep implements ReportingStep {
             } else {
                 TestLogger.logInfo("CONVERSION_STEP",
                     String.format("   Scenarios procesados: %d", result.getScenarios().size()), null);
-                TestLogger.logInfo("CONVERSION_STEP",
-                    String.format("   Estadísticas: %s", result.getStatistics()), null);
             }
 
             // Guardar en contexto

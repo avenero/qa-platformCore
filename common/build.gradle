@@ -9,6 +9,7 @@ java {
 
 dependencies {
 
+
     // === CONFIGURACIÓN Y PROCESAMIENTO DE ARCHIVOS ===
     // JSON processing básico (para DataUtilities y ConfigurationProvider)
     api 'com.fasterxml.jackson.core:jackson-core:2.15.2'

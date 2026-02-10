@@ -17,6 +17,13 @@ dependencies {
     api 'org.seleniumhq.selenium:selenium-java:4.13.0'
     api 'org.seleniumhq.selenium:selenium-support:4.13.0'
 
+    // Forzar versión segura de async-http-client para corregir CVE-2024-53990
+    constraints {
+        implementation('org.asynchttpclient:async-http-client:2.12.4') {
+            because 'CVE-2024-53990: AsyncHttpClient CookieStore vulnerability'
+        }
+    }
+
     // TestNG para mobile testing
     api 'org.testng:testng:7.8.0'
 
