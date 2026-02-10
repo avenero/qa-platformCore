@@ -6,7 +6,7 @@ pipeline {
 
     tools {
         jdk 'OpenJDK 21'
-        gradle 'Gradle 8.5'
+        gradle 'Gradle 9.0'
     }
 
     parameters {
@@ -38,7 +38,7 @@ pipeline {
         ARTIFACTORY_RELEASE_REPO = 'libs-release-thirdparty'  // ⚠️ Verificar: libs-release-local o libs-release-thirdparty
         ARTIFACTORY_CREDS = credentials('Artifactory')  // ✅ Credencial existente reutilizada
         // Teams
-        TEAMS_WEBHOOK = credentials('teams-webhook-qa-framework')  // ⚠️ Crear esta credencial
+        // TEAMS_WEBHOOK = credentials('teams-webhook-qa-framework')  // ⚠️ TODO: Crear esta credencial
         // Proyecto
         PROJECT_GROUP = 'com.scotia.qa'
         PROJECT_NAME = 'qa-scotia-frameworks'
@@ -308,6 +308,13 @@ pipeline {
         success {
             script {
                 echo '✅ BUILD EXITOSO'
+
+                // ═══════════════════════════════════════════════════════════════
+                // NOTIFICACIONES TEAMS (DESHABILITADO)
+                // ═══════════════════════════════════════════════════════════════
+                // TODO: Descomentar cuando se cree la credencial 'teams-webhook-qa-framework'
+                // ═══════════════════════════════════════════════════════════════
+                /*
                 try {
                     def publishStatus = env.WILL_PUBLISH == 'true' ? 'SÍ ✅' : 'NO ⚠️'
                     def publishedInfo = ''
@@ -353,11 +360,20 @@ pipeline {
                 } catch (Exception e) {
                     echo "⚠️  Teams falló: ${e.message}"
                 }
+                */
+                echo '📧 Notificaciones Teams deshabilitadas (falta credencial)'
             }
         }
         failure {
             script {
                 echo '❌ BUILD FALLIDO'
+
+                // ═══════════════════════════════════════════════════════════════
+                // NOTIFICACIONES TEAMS (DESHABILITADO)
+                // ═══════════════════════════════════════════════════════════════
+                // TODO: Descomentar cuando se cree la credencial 'teams-webhook-qa-framework'
+                // ═══════════════════════════════════════════════════════════════
+                /*
                 try {
                     def payload = [
                         '@type': 'MessageCard',
@@ -391,6 +407,8 @@ pipeline {
                 } catch (Exception e) {
                     echo "⚠️  Teams falló: ${e.message}"
                 }
+                */
+                echo '📧 Notificaciones Teams deshabilitadas (falta credencial)'
             }
         }
         always {
