@@ -138,13 +138,14 @@ pipeline {
                                 env.VERSION = gitTag.startsWith('v') ? gitTag.substring(1) : gitTag
                                 echo "🏷️  Git tag encontrado: ${env.VERSION}"
                             } else {
+                                // ⚠️ CRÍTICO: Asignar baseVersion cuando no hay tag
                                 env.VERSION = baseVersion
                                 echo "📦 Usando versión de gradle.properties: ${env.VERSION}"
                             }
                         } catch (Exception e) {
                             env.VERSION = baseVersion
                             echo "⚠️  Error buscando Git tag: ${e.message}"
-                            echo "📦 Usando versión de gradle.properties: ${env.VERSION}"
+                            echo "📦 Usando versión de gradle.properties (fallback): ${env.VERSION}"
                         }
                     }
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
