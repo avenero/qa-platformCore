@@ -116,7 +116,7 @@ pipeline {
                         echo "✅ Versión manual: ${env.VERSION}"
                     } else {
                         // Versión automática: leer de gradle.properties o Git tag
-                        def baseVersion = '1.0.0'
+                        def baseVersion = '1.0.0'  // Fallback por defecto
 
                         // Intentar leer de gradle.properties
                         try {
@@ -131,21 +131,19 @@ pipeline {
                             echo "⚠️  Usando versión por defecto: ${baseVersion}"
                         }
 
-                        // Buscar Git Tag (tiene prioridad sobre gradle.properties)
+                        // Asignar INMEDIATAMENTE para evitar problemas de scope
+                        env.VERSION = baseVersion
+                        echo "✅ Versión base asignada: ${env.VERSION}"
+
+                        // Buscar Git Tag (tiene prioridad sobre gradle.properties y puede sobrescribir)
                         try {
                             def gitTag = sh(script: 'git describe --tags --exact-match 2>/dev/null || echo ""', returnStdout: true).trim()
                             if (gitTag && gitTag != '') {
                                 env.VERSION = gitTag.startsWith('v') ? gitTag.substring(1) : gitTag
-                                echo "🏷️  Git tag encontrado: ${env.VERSION}"
-                            } else {
-                                // ⚠️ CRÍTICO: Asignar baseVersion cuando no hay tag
-                                env.VERSION = baseVersion
-                                echo "📦 Usando versión de gradle.properties: ${env.VERSION}"
+                                echo "🏷️  Git tag encontrado, sobrescribiendo: ${env.VERSION}"
                             }
                         } catch (Exception e) {
-                            env.VERSION = baseVersion
-                            echo "⚠️  Error buscando Git tag: ${e.message}"
-                            echo "📦 Usando versión de gradle.properties (fallback): ${env.VERSION}"
+                            echo "⚠️  No hay Git tag (normal si no se usa versionado por tags)"
                         }
                     }
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
