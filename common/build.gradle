@@ -1,6 +1,10 @@
 // Configuración específica del módulo common - CORE GENÉRICO (v1.1.0)
 // Solo dependencias verdaderamente comunes a TODOS los frameworks
 
+plugins {
+    id 'jacoco'
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -85,7 +89,88 @@ dependencies {
     // - JSON Schema Validator (solo para API REST)
     // - HTTP Components (específico API)
     // ========================================================================
+
+    // ========================================================================
+    // DEPENDENCIAS DE TEST
+    // ========================================================================
+
+    // JUnit 5 ya está en 'api' arriba, pero agregamos extras para tests
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
+
+    // Mocking
+    testImplementation 'org.mockito:mockito-core:5.8.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
+
+    // Assertions mejoradas
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+
+    // JSON testing
+    testImplementation 'net.javacrumbs.json-unit:json-unit-assertj:2.38.0'
+
+    // Concurrency testing
+    testImplementation 'org.awaitility:awaitility:4.2.0'
 }
+
+// ========================================================================
+// CONFIGURACIÓN DE TESTS
+// ========================================================================
+
+test {
+    useJUnitPlatform()
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+    }
+
+    // Configuración de memoria para tests
+    minHeapSize = "256m"
+    maxHeapSize = "1024m"
+}
+
+// ========================================================================
+// JACOCO - COBERTURA DE CÓDIGO
+// ========================================================================
+
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/model/**',        // POJOs
+                '**/exceptions/**',   // Excepciones simples
+                '**/enums/**'         // Enums
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.60  // 60% mínimo para empezar
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
 
 // NOTA: La configuración de publicación está en el build.gradle raíz
 // Para publicar: ./gradlew :common:publishToMavenLocal
