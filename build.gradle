@@ -33,7 +33,7 @@ subprojects {
             // Desarrollo: Priorizar mavenLocal, pero incluir Artifactory como fallback
             mavenLocal()
             maven { url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository' }
-            mavenCentral()
+
         }
     }
 
