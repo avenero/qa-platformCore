@@ -1,85 +1,208 @@
 # 🔄 FLUJO DE GIT - BUENAS PRÁCTICAS
 
+## ⚠️ CONCEPTO CLAVE - SIEMPRE COMMIT ANTES DE MERGE
+
+### **❌ ERROR COMÚN:**
+```bash
+# Estás en feature/mi-funcionalidad con cambios SIN commitear
+git checkout develop        # ❌ MAL - los cambios se "mueven" contigo
+git merge feature/mi-funcionalidad  # ❌ No hay nada nuevo que mergear
+```
+
+### **✅ FLUJO CORRECTO:**
+```bash
+# Estás en feature/mi-funcionalidad con cambios
+git add .
+git commit -m "feat: mi funcionalidad completa"  # ✅ PRIMERO commit
+git checkout develop        # ✅ Cambias de rama limpio
+git merge feature/mi-funcionalidad  # ✅ Ahora SÍ hay commits que mergear
+```
+
+---
+
 ## 📊 SITUACIÓN ACTUAL
 
-- ✅ `feature/warningsFixed` (local) - con cambios de vulnerabilidades
+- ✅ `feature/FixWarnnings` (local) - con cambios de vulnerabilidades
 - ✅ `develop` (remota) - rama de integración
 - ✅ `master` (remota) - rama de producción
 
 ---
 
-## 📋 SECUENCIA CORRECTA
+## 📋 SECUENCIA CORRECTA DETALLADA
 
-### **PASO 1: Asegurar que tienes los últimos cambios de develop**
+### **FASE 1: TRABAJAR EN FEATURE BRANCH**
 
+#### **PASO 1.1: Crear feature branch (si no existe)**
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/mi-funcionalidad
+```
+
+#### **PASO 1.2: Desarrollar y hacer commits frecuentes**
+```bash
+# Hacer cambios en el código...
+git add .
+git commit -m "feat: implementar parte 1"
+
+# Más cambios...
+git add .
+git commit -m "feat: implementar parte 2"
+
+# Correcciones...
+git add .
+git commit -m "fix: corregir bug en parte 1"
+```
+
+**⚠️ IMPORTANTE:** Haz commits **FRECUENTEMENTE** en tu feature branch.
+
+#### **PASO 1.3: Verificar que TODO está commiteado**
+```bash
+git status
+```
+
+**Resultado esperado:**
+```
+On branch feature/mi-funcionalidad
+nothing to commit, working tree clean  ← ✅ ESTO ES CRÍTICO
+```
+
+**Si ves archivos modificados (M):**
+```
+M   archivo1.java
+M   archivo2.java
+```
+
+**Debes commitear ANTES de continuar:**
+```bash
+git add .
+git commit -m "feat: completar funcionalidad"
+```
+
+---
+
+### **FASE 2: INTEGRAR A DEVELOP**
+
+#### **PASO 2.1: Actualizar develop local**
 ```bash
 git checkout develop
 git pull origin develop
 ```
 
----
-
-### **PASO 2: Mergear tu feature branch a develop**
-
+**Verificar estado:**
 ```bash
-git merge feature/warningsFixed
+git status
 ```
 
-Si hay conflictos, resuelve y luego:
+**Resultado esperado:**
+```
+On branch develop
+Your branch is up to date with 'origin/develop'.
+nothing to commit, working tree clean  ← ✅ Limpio
+```
 
+**⚠️ Si ves archivos modificados (M) aquí:**
+```
+M   archivo1.java  ← ❌ ERROR - olvidaste commitear en feature branch
+```
+
+**Solución:**
 ```bash
+# Volver a feature branch
+git checkout feature/mi-funcionalidad
+
+# Commitear los cambios
 git add .
-git commit -m "Merge feature/warningsFixed into develop"
+git commit -m "feat: cambios finales"
+
+# Ahora sí, volver a develop
+git checkout develop
 ```
 
 ---
 
-### **PASO 3: Ejecutar tests en develop (CRÍTICO)**
+#### **PASO 2.2: Mergear feature branch a develop**
+```bash
+git merge feature/mi-funcionalidad
+```
 
+**Resultado esperado:**
+```
+Updating abc123..def456
+Fast-forward
+ archivo1.java | 10 +++++
+ archivo2.java | 5 +++
+ 2 files changed, 15 insertions(+)
+```
+
+**Si dice "Already up to date":**
+- Significa que `feature/mi-funcionalidad` no tiene commits nuevos
+- Probablemente olvidaste commitear los cambios en la feature branch
+
+---
+
+#### **PASO 2.3: Ejecutar tests en develop (CRÍTICO)**
 ```bash
 ./gradlew clean test
 ```
 
-**⚠️ IMPORTANTE:** Si algo falla, corrige antes de seguir.
+**Si fallan tests:**
+```bash
+# Corregir el código
+git add .
+git commit -m "fix: corregir tests"
+```
 
 ---
 
-### **PASO 4: Push a develop remota**
-
+#### **PASO 2.4: Push a develop remota**
 ```bash
 git push origin develop
 ```
 
 ---
 
-### **PASO 5: Actualizar master con los últimos cambios de develop**
+### **FASE 3: LLEVAR A MASTER (PRODUCCIÓN)**
 
+#### **PASO 3.1: Actualizar master local**
 ```bash
 git checkout master
 git pull origin master
-git merge develop
 ```
 
 ---
 
-### **PASO 6: Ejecutar tests en master (DOBLE VERIFICACIÓN)**
+#### **PASO 3.2: Mergear develop a master**
+```bash
+git merge develop
+```
 
+**Si hay conflictos:**
+```bash
+# Resolver conflictos manualmente en los archivos
+git add .
+git commit -m "merge: resolver conflictos develop → master"
+```
+
+---
+
+#### **PASO 3.3: Ejecutar tests en master (DOBLE VERIFICACIÓN)**
 ```bash
 ./gradlew clean test
 ```
 
+**⚠️ CRÍTICO:** Los tests **DEBEN pasar** antes de pushear a master.
+
 ---
 
-### **PASO 7: Push a master remota**
-
+#### **PASO 3.4: Push a master remota**
 ```bash
 git push origin master
 ```
 
 ---
 
-### **PASO 8: Crear tag de versión (RECOMENDADO)**
-
+#### **PASO 3.5: Crear tag de versión**
 ```bash
 git tag -a v1.0.1 -m "fix: resolver 7 CVEs y mejorar compatibilidad Windows"
 git push origin v1.0.1
@@ -87,279 +210,666 @@ git push origin v1.0.1
 
 ---
 
-### **PASO 9: Volver a develop para seguir trabajando**
-
+#### **PASO 3.6: Volver a develop**
 ```bash
 git checkout develop
 ```
 
 ---
 
-## 🎯 DIAGRAMA DEL FLUJO
+#### **PASO 3.7: Sincronizar develop con master (IMPORTANTE)**
+
+Después de hacer cambios directos en master (como el commit SSL), debes sincronizar develop:
+
+```bash
+git checkout develop
+git merge master
+git push origin develop
+```
+
+**¿Por qué?** Para que develop tenga TODOS los cambios que master tiene.
+
+---
+
+#### **PASO 3.8: Eliminar feature branch (opcional)**
+```bash
+git branch -d feature/mi-funcionalidad
+```
+
+---
+
+## 🎯 DIAGRAMA DEL FLUJO COMPLETO
 
 ```
-feature/warningsFixed (local)
-        ↓ merge
-    develop (local)
-        ↓ test ✅
-    develop (remota) ← push
-        ↓ merge
-    master (local)
-        ↓ test ✅
-    master (remota) ← push
-        ↓ tag
-    v1.0.1 (tag) ← push
+┌─────────────────────────────────────────────────────────┐
+│ FASE 1: DESARROLLO EN FEATURE BRANCH                   │
+└─────────────────────────────────────────────────────────┘
+
+feature/mi-funcionalidad
+    ↓ git add . && git commit -m "..."  (MÚLTIPLES VECES)
+feature/mi-funcionalidad (con commits)
+    ↓ git status → "nothing to commit" ✅
+    ↓ git checkout develop
+
+┌─────────────────────────────────────────────────────────┐
+│ FASE 2: INTEGRACIÓN EN DEVELOP                         │
+└─────────────────────────────────────────────────────────┘
+
+develop (local)
+    ↓ git pull origin develop
+develop (actualizada)
+    ↓ git merge feature/mi-funcionalidad
+develop (con nuevos commits)
+    ↓ ./gradlew clean test ✅
+develop (tests pasan)
+    ↓ git push origin develop
+develop (remota) ✅
+
+┌─────────────────────────────────────────────────────────┐
+│ FASE 3: PRODUCCIÓN EN MASTER                           │
+└─────────────────────────────────────────────────────────┘
+
+master (local)
+    ↓ git pull origin master
+master (actualizada)
+    ↓ git merge develop
+master (con cambios de develop)
+    ↓ ./gradlew clean test ✅
+master (tests pasan)
+    ↓ git push origin master
+master (remota) ✅
+    ↓ git tag -a v1.0.1 -m "..."
+    ↓ git push origin v1.0.1
+v1.0.1 (tag) ✅
+
+┌─────────────────────────────────────────────────────────┐
+│ FASE 4: SINCRONIZACIÓN Y LIMPIEZA                      │
+└─────────────────────────────────────────────────────────┘
+
+    ↓ git checkout develop
+develop (local)
+    ↓ git merge master (sincronizar cambios de master)
+    ↓ git push origin develop
+develop (sincronizada) ✅
+    ↓ git branch -d feature/mi-funcionalidad
+feature branch eliminada ✅
 ```
 
 ---
 
 ## ⚠️ REGLAS DE ORO
 
-1. **NUNCA** hacer push directo a master sin pasar por develop
-2. **SIEMPRE** ejecutar tests antes de mergear a master
-3. **SIEMPRE** crear tags en master para versiones estables
-4. **NUNCA** trabajar directo en master, siempre usar feature branches
-5. **SIEMPRE** hacer pull antes de merge para evitar conflictos
+1. **SIEMPRE** commitear cambios en feature branch ANTES de hacer checkout
+2. **NUNCA** cambiar de rama con cambios sin commitear (se "mueven" contigo)
+3. **SIEMPRE** verificar `git status` antes de cambiar de rama
+4. **SIEMPRE** ejecutar tests antes de mergear a develop
+5. **SIEMPRE** ejecutar tests antes de mergear a master
+6. **SIEMPRE** crear tags en master para versiones estables
+7. **SIEMPRE** sincronizar develop con master después de cambios directos en master
+8. **NUNCA** trabajar directamente en master
 
 ---
 
-## 💡 ALTERNATIVAS
+## 🔍 VERIFICACIÓN EN CADA PASO
 
-### **Opción A: Si develop tiene cambios que no quieres**
-
-Si `develop` remota tiene cambios de otros desarrolladores que NO quieres llevar a master aún:
-
-```bash
-# Cherry-pick solo tus commits
-git checkout master
-git cherry-pick <commit-hash-1> <commit-hash-2>
-git push origin master
-```
-
----
-
-### **Opción B: Usar release branch**
-
-```bash
-git checkout develop
-git checkout -b release/1.0.1
-# revisar y ajustar
-git checkout master
-git merge release/1.0.1
-git push origin master
-```
-
----
-
-## 🔍 COMANDOS DE VERIFICACIÓN
-
-### **Ver en qué rama estás:**
-```bash
-git branch
-```
-
-### **Ver estado actual:**
+### **Antes de cambiar de rama:**
 ```bash
 git status
 ```
 
-### **Ver último commit:**
+**✅ Resultado esperado:**
+```
+On branch feature/mi-funcionalidad
+nothing to commit, working tree clean
+```
+
+**❌ Si ves esto, NO cambies de rama todavía:**
+```
+On branch feature/mi-funcionalidad
+Changes not staged for commit:
+  M   archivo1.java
+  M   archivo2.java
+```
+
+**Solución:**
 ```bash
-git log --oneline -1
-```
-
-### **Ver diferencias antes de merge:**
-```bash
-git diff develop..feature/warningsFixed
-```
-
-### **Ver historial gráfico:**
-```bash
-git log --graph --oneline --all
-```
-
----
-
-## 📊 ESTRATEGIA DE RAMAS
-
-### **Ramas permanentes:**
-- `master` - Producción, solo código estable
-- `develop` - Integración, cambios en desarrollo
-
-### **Ramas temporales:**
-- `feature/nombre` - Nueva funcionalidad
-- `bugfix/nombre` - Corrección de bugs
-- `hotfix/nombre` - Corrección urgente en producción
-- `release/x.y.z` - Preparación de release
-
-### **Ciclo de vida:**
-
-```
-1. Crear feature branch desde develop:
-   git checkout develop
-   git checkout -b feature/nueva-funcionalidad
-
-2. Desarrollar y commitear cambios:
-   git add .
-   git commit -m "feat: descripción"
-
-3. Mergear a develop cuando termine:
-   git checkout develop
-   git merge feature/nueva-funcionalidad
-
-4. Eliminar feature branch:
-   git branch -d feature/nueva-funcionalidad
-
-5. Cuando develop esté estable, mergear a master:
-   git checkout master
-   git merge develop
-   git tag -a v1.x.x -m "Release x.x.x"
-   git push origin master --tags
-```
-
----
-
-## 🏷️ CONVENCIONES DE COMMITS
-
-### **Formato:**
-```
-tipo: descripción breve
-
-Descripción detallada (opcional)
-```
-
-### **Tipos:**
-- `feat:` - Nueva funcionalidad
-- `fix:` - Corrección de bug
-- `docs:` - Cambios en documentación
-- `refactor:` - Refactorización de código
-- `test:` - Agregar o modificar tests
-- `chore:` - Tareas de mantenimiento
-- `perf:` - Mejoras de performance
-- `style:` - Formateo, indentación
-
-### **Ejemplos:**
-```bash
-git commit -m "fix: resolver CVE-2023-51074 en json-path"
-git commit -m "feat: agregar soporte para SQL Server"
-git commit -m "refactor: eliminar hardcode de Oracle en DbConnectorFactory"
-git commit -m "test: agregar 179 tests unitarios para common module"
-```
-
----
-
-## 🚨 SOLUCIÓN DE PROBLEMAS
-
-### **Conflictos en merge:**
-
-```bash
-# Ver archivos en conflicto
-git status
-
-# Resolver manualmente los archivos
-# Luego:
 git add .
-git commit -m "Merge: resolver conflictos"
+git commit -m "feat: descripción"
+# Ahora sí, cambiar de rama
+git checkout develop
 ```
 
-### **Deshacer último commit (local):**
+---
 
+### **Después de merge:**
 ```bash
-git reset --soft HEAD~1  # Mantiene cambios
-git reset --hard HEAD~1  # Descarta cambios
+git log --oneline -5
 ```
 
-### **Deshacer push (PELIGROSO):**
+**Debe mostrar los commits de feature branch en develop:**
+```
+def456 (HEAD -> develop) feat: implementar parte 2
+abc123 feat: implementar parte 1
+...
+```
+
+---
+
+### **Antes de push a master:**
+```bash
+git log --oneline master..develop
+```
+
+**Debe mostrar los commits que se van a integrar:**
+```
+def456 feat: implementar parte 2
+abc123 feat: implementar parte 1
+```
+
+**Si no muestra nada, develop y master ya están sincronizadas.**
+
+---
+
+## 💡 EJEMPLO REAL CON TU CASO
+
+### **SITUACIÓN ACTUAL (lo que pasó):**
 
 ```bash
-# Revertir commit pero mantener historial
-git revert <commit-hash>
+# Estabas en feature/FixWarnnings
+# Hiciste cambios (SSL, warnings, etc.)
+# ❌ NO hiciste commit
+git checkout develop
+# Los cambios se "movieron" a develop (aparecen como M)
+
+git merge feature/FixWarnnings
+# Already up to date (porque no hay commits nuevos en feature)
+```
+
+---
+
+### **LO QUE DEBISTE HACER:**
+
+```bash
+# PASO 1: En feature/FixWarnnings - COMMITEAR PRIMERO
+git add .
+git commit -m "fix: resolver warnings unchecked y SSL Javadoc"
+
+# PASO 2: Verificar que está limpio
+git status
+# → nothing to commit, working tree clean ✅
+
+# PASO 3: Cambiar a develop
+git checkout develop
+# → Switched to branch 'develop' (sin archivos M)
+
+# PASO 4: Mergear feature
+git merge feature/FixWarnnings
+# → Mergeando commits (no "Already up to date")
+
+# PASO 5: Push a develop
 git push origin develop
 ```
 
 ---
 
-## 📋 CHECKLIST PRE-MERGE A MASTER
+## 🚀 SOLUCIÓN PARA TU SITUACIÓN ACTUAL
 
-Antes de hacer `git push origin master`, verifica:
-
-- [ ] Tests pasan: `./gradlew clean test`
-- [ ] Build compila: `./gradlew clean build`
-- [ ] Sin conflictos con master remota
-- [ ] Versión actualizada en `gradle.properties`
-- [ ] Changelog/documentación actualizada
-- [ ] Sin archivos temporales o builds en staging
-
----
-
-## 🎓 EJEMPLO COMPLETO
+Como ya tienes los cambios en develop (sin commitear), hazlo así:
 
 ```bash
-# 1. Traer últimos cambios de develop
-git checkout develop
-git pull origin develop
+# PASO 1: Commitear los cambios en develop
+git add .
+git commit -m "fix: eliminar warnings unchecked y configurar SSL para Javadoc
 
-# 2. Mergear feature
-git merge feature/warningsFixed
+- Agregar @SuppressWarnings en BaseConfigurationProvider
+- Agregar @SuppressWarnings en JiraUpdateService
+- Agregar @SuppressWarnings en DataUtilities
+- Configurar SSL truststore para Javadoc via jFlags
+- Resolver errores PKIX en Javadoc Windows/Mac"
 
-# 3. Verificar
+# PASO 2: Push a develop remota
+git push origin develop
+
+# PASO 3: Tests (opcional, ya los ejecutaste antes)
 ./gradlew clean test
 
-# 4. Push a develop
-git push origin develop
-
-# 5. Mergear develop a master
+# PASO 4: Mergear develop a master
 git checkout master
 git pull origin master
 git merge develop
 
-# 6. Verificar en master
+# PASO 5: Tests en master
 ./gradlew clean test
 
-# 7. Push a master
+# PASO 6: Push a master
 git push origin master
 
-# 8. Crear tag
-git tag -a v1.0.1 -m "fix: resolver 7 CVEs y mejorar compatibilidad Windows"
-git push origin v1.0.1
+# PASO 7: Tag de versión
+git tag -a v1.0.2 -m "fix: eliminar warnings y SSL Javadoc Windows"
+git push origin v1.0.2
 
-# 9. Volver a develop
+# PASO 8: Volver a develop y sincronizar
 git checkout develop
-
-# 10. Eliminar feature branch (opcional)
-git branch -d feature/warningsFixed
+git merge master
+git push origin develop
 ```
 
 ---
 
-## 🎯 FLUJO SIMPLIFICADO PARA ESTE CASO
+## 🎓 FLUJO IDEAL PASO A PASO
+
+### **ESCENARIO: Desarrollar nueva funcionalidad**
 
 ```bash
-# Paso rápido (si develop local está actualizada):
+# ═══════════════════════════════════════════════════════════
+# FASE 1: CREAR Y TRABAJAR EN FEATURE BRANCH
+# ═══════════════════════════════════════════════════════════
+
+# 1.1 Crear feature branch desde develop actualizada
 git checkout develop
-git merge feature/warningsFixed
+git pull origin develop
+git checkout -b feature/nueva-funcionalidad
+
+# 1.2 Hacer cambios en el código
+# (editar archivos...)
+
+# 1.3 COMMITEAR cambios (FRECUENTEMENTE)
+git add .
+git commit -m "feat: implementar parte 1"
+
+# 1.4 Más cambios...
+# (editar más archivos...)
+
+# 1.5 COMMITEAR de nuevo
+git add .
+git commit -m "feat: implementar parte 2"
+
+# 1.6 Correcciones...
+# (editar archivos...)
+
+# 1.7 COMMITEAR correcciones
+git add .
+git commit -m "fix: corregir bug en parte 1"
+
+# 1.8 VERIFICAR que TODO está commiteado (CRÍTICO)
+git status
+
+# ✅ DEBE decir:
+# On branch feature/nueva-funcionalidad
+# nothing to commit, working tree clean
+
+# ❌ Si dice "Changes not staged for commit", hacer:
+git add .
+git commit -m "feat: cambios finales"
+
+# ═══════════════════════════════════════════════════════════
+# FASE 2: INTEGRAR A DEVELOP
+# ═══════════════════════════════════════════════════════════
+
+# 2.1 Cambiar a develop
+git checkout develop
+# ✅ Debe decir: "Switched to branch 'develop'" (sin archivos M)
+
+# 2.2 Actualizar develop con cambios remotos
+git pull origin develop
+
+# 2.3 Mergear feature branch a develop
+git merge feature/nueva-funcionalidad
+
+# ✅ DEBE decir algo como:
+# Updating abc123..def456
+# Fast-forward
+#  archivo1.java | 10 +++++
+#  2 files changed, 15 insertions(+)
+
+# ❌ Si dice "Already up to date":
+# → Olvidaste commitear en feature branch
+# → Vuelve a feature branch y commitea:
+#   git checkout feature/nueva-funcionalidad
+#   git add .
+#   git commit -m "feat: cambios finales"
+#   git checkout develop
+#   git merge feature/nueva-funcionalidad
+
+# 2.4 Ejecutar tests en develop (CRÍTICO)
 ./gradlew clean test
+
+# ✅ Si pasan:
+# BUILD SUCCESSFUL
+
+# ❌ Si fallan:
+# Corregir el código
+git add .
+git commit -m "fix: corregir tests"
+./gradlew clean test  # Verificar de nuevo
+
+# 2.5 Push a develop remota
 git push origin develop
 
+# ═══════════════════════════════════════════════════════════
+# FASE 3: LLEVAR A MASTER (PRODUCCIÓN)
+# ═══════════════════════════════════════════════════════════
+
+# 3.1 Cambiar a master
 git checkout master
+
+# 3.2 Actualizar master local
+git pull origin master
+
+# 3.3 Mergear develop a master
 git merge develop
+
+# 3.4 Ejecutar tests en master (DOBLE VERIFICACIÓN)
 ./gradlew clean test
+
+# ✅ DEBEN pasar TODOS los tests antes de continuar
+
+# 3.5 Push a master remota
 git push origin master
 
-git tag -a v1.0.1 -m "fix: vulnerabilidades resueltas"
-git push origin v1.0.1
+# 3.6 Crear tag de versión
+git tag -a v1.0.2 -m "feat: nueva funcionalidad implementada"
+git push origin v1.0.2
 
+# ═══════════════════════════════════════════════════════════
+# FASE 4: SINCRONIZACIÓN Y LIMPIEZA
+# ═══════════════════════════════════════════════════════════
+
+# 4.1 Volver a develop
+git checkout develop
+
+# 4.2 Sincronizar develop con master
+# (Por si hubo commits directos en master)
+git merge master
+
+# 4.3 Push a develop remota
+git push origin develop
+
+# 4.4 Eliminar feature branch local
+git branch -d feature/nueva-funcionalidad
+
+# 4.5 Verificar estado final
+git status
+
+# ✅ DEBE decir:
+# On branch develop
+# Your branch is up to date with 'origin/develop'.
+# nothing to commit, working tree clean
+```
+
+---
+
+## 🔑 CONCEPTOS CLAVE
+
+### **1. Los cambios SIN commitear se "mueven" contigo**
+
+```bash
+# Ejemplo:
+# Estás en feature/mi-rama con cambios sin commitear
+git status
+# → M   archivo.java (modificado, sin commitear)
+
+git checkout develop
+# → Los cambios se mueven a develop
+
+git status
+# → M   archivo.java (mismo archivo modificado ahora en develop)
+```
+
+**Problema:** El archivo modificado **NO está en ninguna rama** - está en tu working directory.
+
+**Solución:** Siempre commitear antes de cambiar de rama.
+
+---
+
+### **2. Merge solo funciona con COMMITS**
+
+```bash
+git merge feature/mi-rama
+```
+
+**Esto mergea:** Los **COMMITS** de `feature/mi-rama` que no están en la rama actual.
+
+**NO mergea:** Archivos modificados sin commitear.
+
+**Ejemplo:**
+
+```bash
+# En feature/mi-rama
+echo "cambio" >> archivo.txt
+# NO hacer commit
+
+git checkout develop
+git merge feature/mi-rama
+# → Already up to date (porque no hay commits nuevos)
+```
+
+---
+
+### **3. "Already up to date" significa:**
+
+```
+La rama actual YA contiene TODOS los commits de la rama que intentas mergear.
+```
+
+**Causas comunes:**
+- Ya hiciste el merge antes
+- Olvidaste commitear en la feature branch
+- La feature branch no tiene commits nuevos
+
+---
+
+## 📋 CHECKLIST ANTES DE CADA ACCIÓN
+
+### **Antes de cambiar de rama:**
+- [ ] `git status` → debe decir "nothing to commit, working tree clean"
+- [ ] Si hay archivos modificados, hacer `git add . && git commit -m "..."`
+
+### **Antes de hacer merge:**
+- [ ] `git pull` en la rama destino (develop o master)
+- [ ] Verificar que feature branch tiene commits: `git log develop..feature/mi-rama`
+
+### **Antes de push a develop:**
+- [ ] Tests pasan: `./gradlew clean test`
+- [ ] No hay archivos sin commitear: `git status`
+
+### **Antes de push a master:**
+- [ ] Tests pasan: `./gradlew clean test`
+- [ ] Sin conflictos con master remota
+- [ ] Versión actualizada en `gradle.properties` (si aplica)
+- [ ] Documentación actualizada (si aplica)
+
+---
+
+## 🚨 SOLUCIÓN DE PROBLEMAS COMUNES
+
+### **Problema 1: "Already up to date" al mergear**
+
+**Causa:** No hay commits nuevos en feature branch.
+
+**Diagnóstico:**
+```bash
+git log develop..feature/mi-rama
+# Si no muestra nada → No hay commits nuevos
+```
+
+**Solución:**
+```bash
+# Volver a feature branch
+git checkout feature/mi-rama
+
+# Ver estado
+git status
+# Si hay archivos M → commitear
+git add .
+git commit -m "feat: cambios finales"
+
+# Volver a develop y mergear
+git checkout develop
+git merge feature/mi-rama
+```
+
+---
+
+### **Problema 2: Archivos modificados (M) al cambiar de rama**
+
+**Causa:** Cambios sin commitear en la rama anterior.
+
+**Solución:**
+```bash
+# Volver a la rama anterior
+git checkout feature/mi-rama
+
+# Commitear
+git add .
+git commit -m "feat: guardar cambios"
+
+# Ahora sí cambiar de rama
 git checkout develop
 ```
 
 ---
 
-**Duración estimada:** 5-10 minutos (dependiendo de la velocidad de los tests).
+### **Problema 3: Conflictos al mergear**
 
-**Resultado:** Cambios en master remota con tag v1.0.1. ✅
+**Síntomas:**
+```
+Auto-merging archivo.java
+CONFLICT (content): Merge conflict in archivo.java
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+**Solución:**
+```bash
+# Ver archivos en conflicto
+git status
+
+# Editar manualmente los archivos y resolver conflictos
+# Buscar marcadores: <<<<<<<, =======, >>>>>>>
+
+# Después de resolver
+git add .
+git commit -m "merge: resolver conflictos"
+```
 
 ---
 
-**Última actualización:** 2026-02-15  
+### **Problema 4: Cambios directos en master que no están en develop**
+
+**Causa:** Hiciste commits en master sin pasar por develop.
+
+**Solución:**
+```bash
+# Sincronizar develop con master
+git checkout develop
+git merge master
+git push origin develop
+```
+
+---
+
+## 🎯 FLUJO RESUMIDO (TU CASO ACTUAL)
+
+```bash
+# PASO 1: Commitear cambios actuales en develop
+git add .
+git commit -m "fix: eliminar warnings unchecked y configurar SSL para Javadoc"
+
+# PASO 2: Push a develop remota
+git push origin develop
+
+# PASO 3: Llevar a master
+git checkout master
+git pull origin master
+git merge develop
+./gradlew clean test
+
+# PASO 4: Push a master
+git push origin master
+git tag -a v1.0.2 -m "fix: warnings y SSL Javadoc"
+git push origin v1.0.2
+
+# PASO 5: Sincronizar develop con master
+git checkout develop
+git merge master
+git push origin develop
+```
+
+---
+
+## 📊 COMPARACIÓN: CORRECTO VS INCORRECTO
+
+### **❌ FLUJO INCORRECTO:**
+
+```bash
+# En feature branch con cambios
+git checkout develop              # ❌ Cambios se mueven
+git merge feature/mi-rama         # ❌ "Already up to date"
+git add .                         # ❌ Commiteando en develop directamente
+git commit -m "..."               # ❌ Perdiste el historial de feature
+```
+
+---
+
+### **✅ FLUJO CORRECTO:**
+
+```bash
+# En feature branch con cambios
+git add .                         # ✅ Commitear primero
+git commit -m "..."               # ✅ Guardar en feature branch
+git checkout develop              # ✅ Cambias limpio
+git merge feature/mi-rama         # ✅ Mergea commits de feature
+git push origin develop           # ✅ Historial limpio
+```
+
+---
+
+## 🎓 MEJORES PRÁCTICAS
+
+### **1. Commits pequeños y frecuentes en feature branch:**
+```bash
+git commit -m "feat: agregar clase X"
+git commit -m "feat: agregar método Y"
+git commit -m "test: agregar tests para X"
+git commit -m "fix: corregir bug en Y"
+```
+
+### **2. Siempre verificar antes de cambiar de rama:**
+```bash
+git status  # ← SIEMPRE antes de checkout
+```
+
+### **3. Usar alias para verificación rápida:**
+```bash
+# En ~/.gitconfig o ~/.zshrc
+alias gs='git status'
+alias gcheck='git status && echo "✅ OK para cambiar de rama" || echo "❌ Commitea primero"'
+```
+
+### **4. Commits descriptivos:**
+```bash
+# ✅ BIEN:
+git commit -m "fix: resolver CVE-2023-51074 en json-path"
+
+# ❌ MAL:
+git commit -m "cambios"
+git commit -m "fix"
+```
+
+---
+
+## 📖 GLOSARIO
+
+- **Working Directory:** Archivos modificados sin agregar al staging area (sin `git add`)
+- **Staging Area:** Archivos agregados con `git add` listos para commit
+- **Commit:** Snapshot permanente de cambios guardado en el historial
+- **Branch:** Línea de desarrollo independiente
+- **Merge:** Integrar commits de una rama a otra
+- **Fast-forward:** Merge sin conflictos (solo avanza el puntero)
+- **Tag:** Marca permanente en un commit específico (ej: v1.0.1)
+
+---
+
+**Última actualización:** 2025-02-15  
 **Autor:** Abel Venero
 
