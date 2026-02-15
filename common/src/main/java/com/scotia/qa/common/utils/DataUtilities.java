@@ -582,10 +582,16 @@ public class DataUtilities {
         }
 
         // Buscar según el tipo
-        if (response instanceof Map) {
-            return findValueInMap((Map<String, Object>) response, targetKey);
-        } else if (response instanceof List) {
-            return findValueInList((List<Object>) response, targetKey);
+        @SuppressWarnings("unchecked")  // Suprime warnings de cast genérico
+        Map<String, Object> mapResponse = (response instanceof Map) ? (Map<String, Object>) response : null;
+
+        @SuppressWarnings("unchecked")  // Suprime warnings de cast genérico
+        List<Object> listResponse = (response instanceof List) ? (List<Object>) response : null;
+
+        if (mapResponse != null) {
+            return findValueInMap(mapResponse, targetKey);
+        } else if (listResponse != null) {
+            return findValueInList(listResponse, targetKey);
         }
 
         TestLogger.logDebug("DATA_UTILITIES",

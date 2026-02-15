@@ -6,16 +6,20 @@ version = "1.0.0"  // Versión inicial estable con todas las mejoras implementad
 // CONFIGURACIÓN SSL GLOBAL PARA GRADLE (antes de subprojects)
 // ========================================================================
 // Configura el truststore para que Gradle pueda descargar dependencias desde Artifactory
+// Y también para que Javadoc pueda acceder a links externos HTTPS
 def trustStorePath = file("${rootProject.projectDir}/common/ssl/myTrustStore.jks")
 if (trustStorePath.exists()) {
     def normalizedPath = trustStorePath.absolutePath.replace('\\', '/')
 
-    // Configurar SSL para todas las operaciones de Gradle
+    // Configurar SSL para todas las operaciones de Gradle (descarga de dependencias)
     System.setProperty('javax.net.ssl.trustStore', normalizedPath)
     System.setProperty('javax.net.ssl.trustStorePassword', 'changeit')
     System.setProperty('javax.net.ssl.trustStoreType', 'PKCS12')
 
     println "🔐 SSL Truststore configurado globalmente para Gradle: ${normalizedPath}"
+
+    // ⚠️ IMPORTANTE: System.setProperty() NO afecta a subprocesos de Javadoc
+    // La configuración SSL para Javadoc se hace en tasks.withType(Javadoc) más abajo
 } else {
     println "⚠️  myTrustStore.jks no encontrado - SSL podría fallar con Artifactory"
 }
@@ -126,6 +130,26 @@ subprojects {
         options.charSet = 'UTF-8'
         options.author = true
         options.version = true
+
+        // ========================================================================
+        // CONFIGURACIÓN SSL PARA JAVADOC
+        // ========================================================================
+        // Javadoc se ejecuta en una JVM separada, necesita SSL configurado vía jFlags
+        def truststorePath = file("${rootProject.projectDir}/common/ssl/myTrustStore.jks")
+        if (truststorePath.exists()) {
+            def normalizedPath = truststorePath.absolutePath.replace('\\', '/')
+
+            // Pasar propiedades SSL a la JVM de Javadoc
+            options.jFlags(
+                "-Djavax.net.ssl.trustStore=${normalizedPath}",
+                "-Djavax.net.ssl.trustStorePassword=changeit",
+                "-Djavax.net.ssl.trustStoreType=PKCS12"
+            )
+
+            println "🔐 [${project.name}] Javadoc configurado con SSL truststore"
+        }
+
+        // Links a documentación (ahora funcionarán con SSL configurado)
         options.links = [
             'https://artifactory.cldevops.chl.bns/ui/native/external-repository/javadoc/javadoc'
         ]

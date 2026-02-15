@@ -84,6 +84,7 @@ public class JiraUpdateService {
         String response = httpClient.post(endpoint, jsonPayload);
 
         // Parsear respuesta para obtener el ID del Test Execution creado
+        @SuppressWarnings("unchecked")  // Suprime warning de conversión genérica
         Map<String, Object> responseMap = objectMapper.readValue(response, Map.class);
         String newExecutionId = (String) responseMap.get("key");
 

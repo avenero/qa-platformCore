@@ -257,6 +257,7 @@ public class BaseConfigurationProvider implements ConfigurationProvider {
     }
 
     @Override
+    @SuppressWarnings("unchecked")  // Suprime warning de cast genérico
     public <T> T getConfigurationValue(String path, Map<String, Object> configuration, T defaultValue) {
         T value = (T) getConfigurationValue(path, configuration, defaultValue.getClass());
         return value != null ? value : defaultValue;
