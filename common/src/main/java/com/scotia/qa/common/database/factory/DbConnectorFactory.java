@@ -166,11 +166,18 @@ public class DbConnectorFactory {
      *
      * <p><b>Configuración requerida en config-{env}.properties:</b></p>
      * <pre>
+     * # Opción 1: Configuración explícita (RECOMENDADO)
      * db.url=jdbc:oracle:thin:@//host:port/service
-     * db.username=${DB_USER_QA}
-     * db.password=${DB_PASS_QA}
+     * db.username=${DB_USER}
+     * db.password=${DB_PASS}
      * db.driver=oracle.jdbc.OracleDriver
      * db.pool.size.max=10
+     *
+     * # Opción 2: Usando db.type para auto-detección
+     * db.type=sqlserver  # o oracle, postgresql, mysql
+     * sqlserver.db.url=jdbc:sqlserver://host:port;databaseName=db
+     * sqlserver.db.username=${DB_USER}
+     * sqlserver.db.password=${DB_PASS}
      * </pre>
      *
      * @return DatabaseConnector configurado
@@ -183,7 +190,31 @@ public class DbConnectorFactory {
         String jdbcUrl = config.get("db.url");
         String username = config.get("db.username");
         String password = config.get("db.password");
-        String driver = config.get("db.driver", "oracle.jdbc.OracleDriver");
+
+        // Detectar driver automáticamente si no está especificado
+        String driver = config.get("db.driver");
+
+        if (driver == null || driver.trim().isEmpty()) {
+            // Intentar detectar por db.type
+            String dbType = config.get("db.type");
+            if (dbType != null && !dbType.trim().isEmpty()) {
+                driver = getDriverByType(dbType.trim().toLowerCase());
+                TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                    "Driver detectado por db.type",
+                    Map.of("dbType", dbType, "driver", driver));
+            } else if (jdbcUrl != null) {
+                // Detectar por URL JDBC
+                driver = detectDriverFromUrl(jdbcUrl);
+                TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                    "Driver detectado por URL JDBC",
+                    Map.of("driver", driver));
+            } else {
+                throw new IllegalArgumentException(
+                    "No se pudo determinar el driver de base de datos. " +
+                    "Especifica 'db.driver' o 'db.type' en config-{env}.properties"
+                );
+            }
+        }
 
         validateProperties(jdbcUrl, username, password, driver);
 
@@ -248,6 +279,64 @@ public class DbConnectorFactory {
             throw new IllegalArgumentException(
                 "Propiedad '" + PROP_DB_DRIVER + "' no configurada. " +
                 "Ejemplos: oracle.jdbc.OracleDriver, com.microsoft.sqlserver.jdbc.SQLServerDriver"
+            );
+        }
+    }
+
+    /**
+     * Obtiene el driver JDBC según el tipo de base de datos.
+     *
+     * @param dbType Tipo de BD: oracle, sqlserver, postgresql, mysql
+     * @return Nombre de clase del driver JDBC
+     * @throws IllegalArgumentException Si el tipo no es soportado
+     */
+    private static String getDriverByType(String dbType) {
+        switch (dbType) {
+            case "oracle":
+                return "oracle.jdbc.OracleDriver";
+            case "sqlserver":
+            case "mssql":
+            case "sql-server":
+                return "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+            case "postgresql":
+            case "postgres":
+                return "org.postgresql.Driver";
+            case "mysql":
+                return "com.mysql.cj.jdbc.Driver";
+            default:
+                throw new IllegalArgumentException(
+                    "Tipo de base de datos no soportado: " + dbType + ". " +
+                    "Tipos válidos: oracle, sqlserver, postgresql, mysql"
+                );
+        }
+    }
+
+    /**
+     * Detecta el driver JDBC analizando la URL de conexión.
+     *
+     * @param jdbcUrl URL JDBC
+     * @return Nombre de clase del driver JDBC
+     * @throws IllegalArgumentException Si no se puede detectar el tipo de BD
+     */
+    private static String detectDriverFromUrl(String jdbcUrl) {
+        if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
+            throw new IllegalArgumentException("URL JDBC no puede ser null o vacía");
+        }
+
+        String url = jdbcUrl.toLowerCase();
+
+        if (url.contains("jdbc:oracle")) {
+            return "oracle.jdbc.OracleDriver";
+        } else if (url.contains("jdbc:sqlserver") || url.contains("jdbc:jtds:sqlserver")) {
+            return "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+        } else if (url.contains("jdbc:postgresql")) {
+            return "org.postgresql.Driver";
+        } else if (url.contains("jdbc:mysql")) {
+            return "com.mysql.cj.jdbc.Driver";
+        } else {
+            throw new IllegalArgumentException(
+                "No se pudo detectar el tipo de base de datos desde la URL: " + jdbcUrl + ". " +
+                "Especifica 'db.driver' explícitamente en config-{env}.properties"
             );
         }
     }
