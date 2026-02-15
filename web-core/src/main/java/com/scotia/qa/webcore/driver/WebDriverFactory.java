@@ -268,7 +268,8 @@ public class WebDriverFactory {
         }
 
         try {
-            URL hubUrl = new URL(config.getGridHubUrl());
+            // Usar URI.toURL() en lugar del constructor deprecado URL(String)
+            URL hubUrl = new java.net.URI(config.getGridHubUrl()).toURL();
 
             switch (config.getBrowserType()) {
                 case CHROME:

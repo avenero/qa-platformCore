@@ -37,7 +37,8 @@ public class InputComponent extends BaseComponent {
 
     public String getValue() {
         try {
-            return getElement().getAttribute("value");
+            // Usar getDomAttribute() en lugar de getAttribute() (deprecado en Selenium 4+)
+            return getElement().getDomAttribute("value");
         } catch (Exception e) {
             TestLogger.logDebug("INPUT_COMPONENT", "getValue -> error leyendo value de: " + locator, null);
             return null;

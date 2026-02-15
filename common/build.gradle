@@ -29,7 +29,7 @@ dependencies {
 
     // === LOGGING ===
     api 'org.slf4j:slf4j-api:2.0.9'
-    api 'ch.qos.logback:logback-classic:1.5.13'
+    api 'ch.qos.logback:logback-classic:1.5.25'  // Actualizado para resolver CVE-2025-11226 y CVE-2026-1225
     api 'org.fusesource.jansi:jansi:2.4.0'  // Para colores ANSI en consola
 
     // === CUCUMBER (para hooks y contexto comunes) ===
@@ -60,15 +60,19 @@ dependencies {
     api 'org.apache.httpcomponents:httpclient:4.5.14'
     api 'org.apache.httpcomponents:httpmime:4.5.14'
 
+    // Forzar versión segura de commons-codec (dependencia transitiva de httpclient)
+    // Resuelve WS-2019-0379 (Input Validation vulnerability)
+    api 'commons-codec:commons-codec:1.17.1'
+
     // === DATABASE CONNECTION POOLING & DRIVERS ===
     // HikariCP para gestión genérica de conexiones
     api 'com.zaxxer:HikariCP:5.0.1'
 
     // JDBC Drivers (disponibles para todos los módulos)
     // Nota: Cada proyecto puede usar el driver que necesite
-    api 'mysql:mysql-connector-java:8.0.33'
+    api 'com.mysql:mysql-connector-j:8.4.0'  // Actualizado (reemplaza mysql-connector-java para resolver CVE-2023-22102)
     api 'org.postgresql:postgresql:42.7.7'
-    api 'com.microsoft.sqlserver:mssql-jdbc:12.4.1.jre11'
+    api 'com.microsoft.sqlserver:mssql-jdbc:12.8.2.jre11'  // Actualizado para resolver CVE-2025-59250
     api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
 
     // ========================================================================
@@ -102,7 +106,7 @@ dependencies {
     testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
 
     // Assertions mejoradas
-    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation 'org.assertj:assertj-core:3.27.7'  // Actualizado para resolver CVE-2026-24400 (XXE vulnerability)
 
     // JSON testing
     testImplementation 'net.javacrumbs.json-unit:json-unit-assertj:2.38.0'
