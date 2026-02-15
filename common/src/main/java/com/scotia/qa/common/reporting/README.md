@@ -12,10 +12,13 @@
 - [Configuración](#️-configuración)
 - [Guía de Uso](#-guía-de-uso)
 - [Integración con Evidencias](#-integración-con-evidencias)
+- [Comunicación con Jira/Xray](#-comunicación-con-jiraxray)
 - [Pipeline Interno](#-pipeline-interno)
 - [Ejemplos Completos](#-ejemplos-completos)
 - [Troubleshooting](#-troubleshooting)
+- [Preguntas Frecuentes](#-preguntas-frecuentes-faq)
 - [API Reference](#-api-reference)
+- [Referencias](#-referencias)
 
 ---
 
@@ -218,6 +221,50 @@ source .env.local
 
 ## 📘 Guía de Uso
 
+### **Paso 0: Configurar Cucumber Runner (IMPORTANTE)**
+
+El framework incluye `CucumberReportingPlugin` que **DEBE** ser registrado en el runner de tu módulo:
+
+```java
+package com.module.runner;
+
+import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
+import static io.cucumber.junit.platform.engine.Constants.FILTER_TAGS_PROPERTY_NAME;
+import org.junit.platform.suite.api.ConfigurationParameter;
+import org.junit.platform.suite.api.IncludeEngines;
+import org.junit.platform.suite.api.SelectClasspathResource;
+import org.junit.platform.suite.api.Suite;
+
+@Suite
+@IncludeEngines("cucumber")
+@SelectClasspathResource("features")
+@ConfigurationParameter(
+    key = GLUE_PROPERTY_NAME,
+    value = "com.scotia.qa.apicore.steps,com.module.hooks,com.module.steps"
+)
+@ConfigurationParameter(
+    key = PLUGIN_PROPERTY_NAME,
+    value = "json:target/cucumber-reports/cucumber.json, " +
+            "html:target/cucumber-reports/cucumber.html, " +
+            "pretty, " +
+            "com.scotia.qa.common.reporting.cucumber.CucumberReportingPlugin"  // ← DEL FRAMEWORK
+)
+@ConfigurationParameter(
+    key = FILTER_TAGS_PROPERTY_NAME,
+    value = "@test"
+)
+public class RunCucumberTest {
+}
+```
+
+**⚠️ IMPORTANTE:** 
+- **NO CREAR** `ReportingPlugin.java` en tu módulo
+- El plugin está **EN EL FRAMEWORK** (`common`)
+- Solo registrarlo en `PLUGIN_PROPERTY_NAME`
+
+---
+
 ### **Paso 1: Capturar Evidencias Durante Tests (Opcional pero Recomendado)**
 
 ```java
@@ -226,6 +273,7 @@ import com.scotia.qa.common.logging.EvidenceManager;
 public class WebSteps {
     
     @When("hago clic en el botón {string}")
+
     public void hagoClicEnBoton(String buttonId) {
         driver.findElement(By.id(buttonId)).click();
         
@@ -239,33 +287,331 @@ public class WebSteps {
 ### **Paso 2: Configurar Hooks de Cucumber**
 
 ```java
-import com.scotia.qa.common.logging.EvidenceManager;
-import io.cucumber.java.Before;
-import io.cucumber.java.After;
-import io.cucumber.java.Scenario;
+package com.module.hooks;
 
-public class CucumberHooks {
+import com.scotia.qa.common.logging.EvidenceManager;
+import com.scotia.qa.common.logging.LoggingInitializer;
+import com.scotia.qa.common.logging.ModuleDetector;
+import com.scotia.qa.common.logging.TestLogger;
+import com.scotia.qa.common.reporting.core.config.ReportingConfig;
+import com.scotia.qa.common.reporting.extent.generator.ReportingManager;
+import com.scotia.qa.common.reporting.manager.pipeline.PipelineResult;
+import io.cucumber.java.*;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Hook unificado con Logging, Evidencias y Reporting.
+ * 
+ * <p><b>Responsabilidades:</b>
+ * <ul>
+ *   <li>Inicializar contexto de logging y módulo</li>
+ *   <li>Establecer contexto de evidencias por scenario</li>
+ *   <li>Capturar screenshots en caso de fallo</li>
+ *   <li>Generar reportes Extent + actualizar Jira al finalizar suite</li>
+ * </ul>
+ */
+public class Hook {
     
-    @Before
-    public void beforeScenario(Scenario scenario) {
-        // Establecer contexto para evidencias
-        String framework = detectFramework(scenario.getSourceTagNames());
-        EvidenceManager.setTestContext(
-            framework, 
-            "LoginFeature", 
-            scenario.getName()
-        );
+    // Inyectar WebDriver desde tu context (ajustar según tu implementación)
+    // Ejemplo: private WebDriver driver = DriverManager.getDriver();
+    
+    /**
+     * Hook que se ejecuta UNA VEZ antes de toda la suite.
+     * Inicializa logging y contexto del módulo.
+     */
+    @BeforeAll
+    public static void beforeAll() {
+        String moduleName = ModuleDetector.detectModuleName();
+        LoggingInitializer.initModuleContext(moduleName);
+        
+        TestLogger.logInfo("FRAMEWORK", "Sistema de logging inicializado",
+                Map.of("module", moduleName));
     }
     
-    @After
-    public void afterScenario(Scenario scenario) {
+    /**
+     * Hook que se ejecuta ANTES de cada scenario.
+     * Establece contexto de logging + evidencias.
+     */
+    @Before(order = 0)
+    public void before(Scenario scenario) {
+        // 1. Contexto de logging
+        LoggingInitializer.setTestContext(scenario.getName());
+        
+        // 2. Contexto de evidencias
+        String framework = detectFramework(scenario.getSourceTagNames());
+        String featureName = extractFeatureName(scenario.getUri().toString());
+        
+        EvidenceManager.setTestContext(
+            framework, 
+            featureName, 
+            scenario.getName()
+        );
+        
+        TestLogger.logInfo("SCENARIO_START", "Iniciando escenario", Map.of(
+                "name", scenario.getName(),
+                "framework", framework,
+                "uri", scenario.getUri().toString(),
+                "tags", scenario.getSourceTagNames()
+        ));
+    }
+    
+    /**
+     * Hook que se ejecuta DESPUÉS de cada scenario.
+     * Captura screenshot de error + limpia contextos.
+     */
+    @After(order = Integer.MAX_VALUE)
+    public void after(Scenario scenario) {
         if (scenario.isFailed()) {
-            // Screenshot de error automático
-            byte[] screenshot = captureScreenshot();
-            EvidenceManager.saveScreenshot(screenshot, "failure");
+            // Capturar screenshot de error
+            captureFailureScreenshot();
+            
+            TestLogger.logError("SCENARIO_FAILED", "Escenario falló", Map.of(
+                    "name", scenario.getName(),
+                    "status", scenario.getStatus().toString()
+            ));
+        } else {
+            TestLogger.logInfo("SCENARIO_PASSED", "Escenario exitoso", Map.of(
+                    "name", scenario.getName()
+            ));
         }
         
+        // Limpiar contextos
         EvidenceManager.clearTestContext();
+        LoggingInitializer.clearTestContext();
+    }
+    
+    /**
+     * Hook que se ejecuta UNA VEZ después de toda la suite.
+     * Genera reportes (Extent + Jira) y limpia contexto.
+     */
+    @AfterAll
+    public static void afterAll() {
+        TestLogger.logInfo("FRAMEWORK", "Suite de pruebas finalizada, generando reportes...", null);
+        
+        try {
+            // 1. Obtener ruta del archivo cucumber.json
+            Path moduleDir = Paths.get(System.getProperty("user.dir"));
+            Path cucumberJsonPath = moduleDir.resolve("target/cucumber-reports/cucumber.json");
+            
+            System.out.println("🔍 Buscando cucumber.json en: " + cucumberJsonPath.toAbsolutePath());
+            
+            // 2. Esperar a que el archivo esté disponible y con contenido (retry logic)
+            String cucumberJson = waitForCucumberJson(cucumberJsonPath);
+            
+            if (cucumberJson == null || cucumberJson.trim().isEmpty() || cucumberJson.equals("[]")) {
+                System.err.println("❌ cucumber.json está VACÍO o no contiene scenarios");
+                System.err.println("💡 Verificar que los tests se ejecutaron correctamente");
+                return;
+            }
+            
+            System.out.println("✅ cucumber.json cargado (" + cucumberJson.length() + " caracteres)");
+            
+            // 3. Cargar configuración de reporting
+            ReportingConfig config = ReportingConfig.fromConfigManager();
+            
+            // 4. Inicializar ReportingManager
+            ReportingManager.initialize(config);
+            
+            // 5. Procesar resultados (genera Extent + actualiza Jira)
+            PipelineResult result = ReportingManager.processTestResults(cucumberJson);
+            
+            // 6. Validar resultado
+            if (result.isSuccess()) {
+                TestLogger.logInfo("REPORTING", "Reportes generados exitosamente", Map.of(
+                    "extentReport", result.getExtentReportPath() != null ? result.getExtentReportPath() : "N/A"
+                ));
+                System.out.println("✅ Reporting completado");
+                System.out.println("📄 Reporte HTML: " + result.getExtentReportPath());
+            } else {
+                TestLogger.logError("REPORTING", "Error al generar reportes", Map.of(
+                    "failedStep", result.getFailedStep(),
+                    "error", result.getErrorMessage()
+                ));
+                System.err.println("❌ Falló reporting: " + result.getErrorMessage());
+            }
+            
+        } catch (Exception e) {
+            TestLogger.logError("REPORTING", "Excepción al generar reportes", Map.of(
+                "error", e.getMessage()
+            ));
+            System.err.println("❌ Error crítico en reporting: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Limpiar todo el contexto de logging
+            LoggingInitializer.clearAllContext();
+        }
+    }
+    
+    /**
+     * Espera a que el archivo cucumber.json esté disponible y con contenido válido.
+     * Implementa retry logic con backoff para evitar timing issues.
+     * 
+     * @param cucumberJsonPath Ruta al archivo cucumber.json
+     * @return Contenido del archivo JSON o null si falla
+     */
+    private static String waitForCucumberJson(Path cucumberJsonPath) {
+        int maxRetries = 10;
+        long waitMillis = 300; // 300ms entre intentos
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                // Verificar que el archivo existe
+                if (!Files.exists(cucumberJsonPath)) {
+                    System.out.println("⏳ Intento " + attempt + "/" + maxRetries + " - Esperando a que se cree el archivo...");
+                    Thread.sleep(waitMillis);
+                    continue;
+                }
+                
+                // Verificar tamaño del archivo
+                long fileSize = Files.size(cucumberJsonPath);
+                if (fileSize == 0) {
+                    System.out.println("⏳ Intento " + attempt + "/" + maxRetries + " - Archivo existe pero tamaño = 0 bytes");
+                    Thread.sleep(waitMillis);
+                    continue;
+                }
+                
+                // Leer contenido
+                String content = Files.readString(cucumberJsonPath, java.nio.charset.StandardCharsets.UTF_8);
+                
+                // DEBUG: Mostrar primeros caracteres
+                if (content == null) {
+                    System.out.println("⏳ Intento " + attempt + "/" + maxRetries + " - Contenido es NULL");
+                    Thread.sleep(waitMillis);
+                    continue;
+                }
+                
+                String trimmed = content.trim();
+                int contentLength = trimmed.length();
+                
+                if (contentLength == 0) {
+                    System.out.println("⏳ Intento " + attempt + "/" + maxRetries + " - Contenido vacío después de trim()");
+                    Thread.sleep(waitMillis);
+                    continue;
+                }
+                
+                if (trimmed.equals("[]")) {
+                    System.out.println("⏳ Intento " + attempt + "/" + maxRetries + " - Contenido es '[]' (sin scenarios)");
+                    Thread.sleep(waitMillis);
+                    continue;
+                }
+                
+                // Validar que empieza con '[{' (JSON válido de Cucumber)
+                if (!trimmed.startsWith("[{")) {
+                    System.out.println("⚠️ Intento " + attempt + "/" + maxRetries + " - Contenido no es JSON válido de Cucumber");
+                    System.out.println("   Primeros 50 chars: " + trimmed.substring(0, Math.min(50, trimmed.length())));
+                    Thread.sleep(waitMillis);
+                    continue;
+                }
+                
+                // TODO BIEN: Archivo con contenido válido
+                if (attempt > 1) {
+                    System.out.println("✅ cucumber.json disponible después de " + attempt + " intentos");
+                }
+                System.out.println("📊 Tamaño archivo: " + fileSize + " bytes, Contenido: " + contentLength + " caracteres");
+                return content;
+                
+            } catch (java.nio.file.NoSuchFileException e) {
+                System.out.println("⏳ Intento " + attempt + "/" + maxRetries + " - Archivo no existe aún");
+                try {
+                    Thread.sleep(waitMillis);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Intento " + attempt + "/" + maxRetries + " - Error: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                e.printStackTrace();
+                try {
+                    Thread.sleep(waitMillis);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            }
+        }
+        
+        // Timeout - último intento de diagnosticar
+        try {
+            if (Files.exists(cucumberJsonPath)) {
+                long finalSize = Files.size(cucumberJsonPath);
+                System.err.println("❌ Timeout: Archivo existe con " + finalSize + " bytes pero no pudo leerse correctamente");
+            } else {
+                System.err.println("❌ Timeout: Archivo NO existe después de " + maxRetries + " intentos");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Timeout y error al diagnosticar: " + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    // ============================================================================
+    // MÉTODOS AUXILIARES
+    // ============================================================================
+    
+    /**
+     * Detecta el framework desde los tags del scenario.
+     * 
+     * @param tags Tags del scenario (@web, @api, @mobile)
+     * @return Framework detectado (WEB, API, MOBILE, TEST)
+     */
+    private String detectFramework(Collection<String> tags) {
+        if (tags.contains("@web")) return "WEB";
+        if (tags.contains("@api")) return "API";
+        if (tags.contains("@mobile")) return "MOBILE";
+        return "TEST"; // Fallback
+    }
+    
+    /**
+     * Extrae el nombre del feature desde la URI.
+     * 
+     * @param uri URI del feature (ej: file:///path/to/login.feature)
+     * @return Nombre del feature (ej: LoginFeature)
+     */
+    private String extractFeatureName(String uri) {
+        String fileName = uri.substring(uri.lastIndexOf('/') + 1);
+        return fileName.replace(".feature", "")
+                       .replaceAll("[^a-zA-Z0-9]", "_");
+    }
+    
+    /**
+     * Captura screenshot de error y lo guarda con EvidenceManager.
+     * Ajustar según tu implementación de WebDriver.
+     */
+    private void captureFailureScreenshot() {
+        try {
+            // Ajustar según cómo obtienes tu WebDriver
+            // Opción 1: DriverManager estático
+            // WebDriver driver = DriverManager.getDriver();
+            
+            // Opción 2: ThreadLocal
+            // WebDriver driver = DriverContext.get();
+            
+            // Opción 3: Cucumber PicoContainer / Dependency Injection
+            // WebDriver driver = this.driver; (inyectado en constructor)
+            
+            // DESCOMENTAR Y AJUSTAR SEGÚN TU IMPLEMENTACIÓN:
+            /*
+            if (driver instanceof TakesScreenshot) {
+                byte[] screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+                EvidenceManager.saveScreenshot(screenshot, "failure");
+                TestLogger.logInfo("EVIDENCE", "Screenshot de error capturado", null);
+            }
+            */
+            
+        } catch (Exception e) {
+            TestLogger.logError("EVIDENCE", "Error al capturar screenshot", Map.of(
+                "error", e.getMessage()
+            ));
+        }
     }
 }
 ```
@@ -274,7 +620,7 @@ public class CucumberHooks {
 
 ```java
 import com.scotia.qa.common.reporting.core.config.ReportingConfig;
-import com.scotia.qa.common.reporting.manager.ReportingManager;
+import com.scotia.qa.common.reporting.extent.generator.ReportingManager;
 import com.scotia.qa.common.reporting.manager.pipeline.PipelineResult;
 import io.cucumber.java.AfterAll;
 
@@ -348,6 +694,470 @@ JiraAttachmentService: Sube a Jira
 - ✅ API Responses (JSON)
 - ✅ UI Interactions (JSON logs)
 - ✅ Errors (JSON con stacktrace)
+
+---
+
+## 🔗 Comunicación con Jira/Xray
+
+### **📌 ¿Cómo se identifica un Test en Jira?**
+
+El framework utiliza **tags de Cucumber** para vincular scenarios con tests en Jira:
+
+```gherkin
+@QAAUY-123 @smoke @web
+Scenario: Login exitoso
+  Given usuario ingresa credenciales válidas
+  When hace clic en Login
+  Then debería ver el dashboard
+```
+
+**Extracción del Test Key:**
+- `TagExtractor.java` busca pattern: `@([A-Z]{2,10}-\\d+)`
+- Resultado: `QAAUY-123` → Este es el **Test ID en Jira**
+
+**❌ Sin tag válido = No se reporta a Jira**
+
+---
+
+### **📋 ¿Qué es un Test Execution?**
+
+Un **Test Execution** es un issue de tipo especial en Jira/Xray que **agrupa múltiples tests ejecutados juntos**.
+
+**Ejemplo:**
+
+```
+Test Execution: QAAUY-640 - "Sprint 12 - Regression Tests"
+├── Test 1: QAAUY-123 → PASS ✅
+├── Test 2: QAAUY-124 → FAIL ❌
+├── Test 3: QAAUY-125 → PASS ✅
+└── Test 4: QAAUY-126 → SKIP ⏭️
+```
+
+**Beneficios:**
+- ✅ Agrupa tests por sprint/release/ambiente
+- ✅ Facilita tracking de ejecuciones históricas
+- ✅ Permite comparar resultados entre ejecuciones
+
+---
+
+### **🎯 Dos Estrategias de Test Execution**
+
+#### **Estrategia 1: Test Execution PRE-EXISTENTE** (Recomendado)
+
+**Configuración:**
+```properties
+jira.autoCreateExecution=false         # ← DEFAULT
+jira.testExecutionId=QAAUY-640        # ID del execution ya creado en Jira
+```
+
+**Flujo:**
+1. ✅ Creas manualmente un Test Execution en Jira: `QAAUY-640`
+2. ✅ Asocias tests al execution (QAAUY-123, QAAUY-124...)
+3. ✅ Ejecutas tests localmente
+4. ✅ El framework **actualiza el status de cada test** dentro del execution
+
+**Ventajas:**
+- ✅ Control total sobre qué tests van en cada execution
+- ✅ Puedes pre-cargar tests antes de ejecutar
+- ✅ Funciona sin permisos de creación de issues
+
+**Desventaja:**
+- ⚠️ Requiere creación manual del execution
+
+---
+
+#### **Estrategia 2: AUTO-CREAR Test Execution** (Automático)
+
+**Configuración:**
+```properties
+jira.autoCreateExecution=true          # ← Habilitar auto-creación
+jira.projectKey=QAAUY                  # Requerido
+jira.testEnvironment=QA                # Requerido
+# jira.testExecutionId NO necesario
+```
+
+**Flujo:**
+1. ❌ **NO** proporcionas `testExecutionId`
+2. ✅ El framework **crea automáticamente** un Test Execution:
+   - Summary: "Automated Test Execution - 2025-12-19 15:30"
+   - Project: QAAUY
+   - Environment: QA
+   - Ejecuta API: `POST /rest/api/2/issue`
+3. ✅ Todos los tests del `cucumber.json` se asocian al nuevo execution
+4. ✅ El execution ID se loguea para futuras referencias
+
+**Ventajas:**
+- ✅ Totalmente automático (ideal para CI/CD)
+- ✅ No requiere preparación manual
+
+**Desventajas:**
+- ⚠️ Requiere permisos de creación de issues en Jira
+- ⚠️ Crea un nuevo execution cada vez que ejecutas
+
+**⚠️ IMPORTANTE:**
+```properties
+# Si ambas están configuradas, testExecutionId tiene prioridad:
+jira.autoCreateExecution=true
+jira.testExecutionId=QAAUY-640  # ← Se usará este, NO se crea uno nuevo
+```
+
+---
+
+### **🔄 Flujo Completo de Comunicación**
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                    1. EJECUCIÓN DE TESTS                           │
+└────────────────────────────────────────────────────────────────────┘
+                              ↓
+   Cucumber ejecuta scenarios con tags: @QAAUY-123, @QAAUY-124
+                              ↓
+┌────────────────────────────────────────────────────────────────────┐
+│                  2. CUCUMBER GENERA cucumber.json                  │
+└────────────────────────────────────────────────────────────────────┘
+{
+  "elements": [
+    {
+      "tags": ["@QAAUY-123", "@smoke"],
+      "steps": [...],
+      "status": "passed"
+    },
+    {
+      "tags": ["@QAAUY-124", "@regression"],
+      "steps": [...],
+      "status": "failed"
+    }
+  ]
+}
+                              ↓
+┌────────────────────────────────────────────────────────────────────┐
+│         3. REPORTING PIPELINE - ConversionStep                     │
+└────────────────────────────────────────────────────────────────────┘
+   CucumberResultAdapter.convert(cucumber.json)
+     ├─ TagExtractor.extractTestKey("@QAAUY-123") → "QAAUY-123"
+     ├─ TagExtractor.extractTestKey("@QAAUY-124") → "QAAUY-124"
+     └─ Genera: TestExecutionResult con 2 ScenarioResults
+                              ↓
+┌────────────────────────────────────────────────────────────────────┐
+│         4. REPORTING PIPELINE - JiraUpdateStatusStep               │
+└────────────────────────────────────────────────────────────────────┘
+   JiraUpdateService.updateTestStatus(result)
+     ├─ ensureTestExecutionExists()
+     │   ├─ Si testExecutionId existe → Usar ese
+     │   └─ Si NO existe y autoCreate=true → Crear nuevo
+     │       POST /rest/api/2/issue
+     │       {
+     │         "fields": {
+     │           "project": {"key": "QAAUY"},
+     │           "summary": "Automated Test Execution - 2025-12-19",
+     │           "issuetype": {"name": "Test Execution"}
+     │         }
+     │       }
+     │       Respuesta: {"key": "QAAUY-750"} ✅
+     │
+     └─ updateBatch() o updateSingle()
+         POST /rest/raven/2.0/import/execution
+         {
+           "info": {
+             "project": "QAAUY",
+             "testEnvironments": ["QA"]
+           },
+           "tests": [
+             {"testKey": "QAAUY-123", "status": "PASS"},
+             {"testKey": "QAAUY-124", "status": "FAIL"}
+           ]
+         }
+                              ↓
+┌────────────────────────────────────────────────────────────────────┐
+│      5. REPORTING PIPELINE - JiraUploadAttachmentsStep             │
+└────────────────────────────────────────────────────────────────────┘
+   JiraAttachmentService.uploadAttachments()
+     ├─ Sube reporte HTML → QAAUY-640
+     ├─ Sube screenshot_001.png → QAAUY-123
+     └─ Sube screenshot_002.png → QAAUY-124
+         POST /rest/api/2/issue/{testKey}/attachments
+         Content-Type: multipart/form-data
+                              ↓
+┌────────────────────────────────────────────────────────────────────┐
+│                        6. RESULTADO FINAL                          │
+└────────────────────────────────────────────────────────────────────┘
+   ✅ Test Execution actualizado (QAAUY-640 o auto-creado)
+   ✅ Tests con status correcto (PASS/FAIL)
+   ✅ Screenshots adjuntos
+   ✅ Reporte HTML adjunto
+```
+
+---
+
+### **🛠️ Configuración por Caso de Uso**
+
+#### **Caso 1: Desarrollo Local (Manual)**
+```properties
+jira.updateStatus=false             # No actualizar Jira
+jira.uploadReport=false             # No subir attachments
+extent.enabled=true                 # Solo generar HTML local
+```
+
+#### **Caso 2: CI/CD con Test Execution Pre-creado**
+```properties
+jira.updateStatus=true
+jira.uploadReport=true
+jira.autoCreateExecution=false
+jira.testExecutionId=${TEST_EXECUTION_ID}  # Variable de Jenkins
+```
+
+#### **Caso 3: CI/CD Totalmente Automático**
+```properties
+jira.updateStatus=true
+jira.uploadReport=true
+jira.autoCreateExecution=true       # ← Crea execution automáticamente
+jira.projectKey=QAAUY
+jira.testEnvironment=${ENV}         # Variable de Jenkins (QA, PROD...)
+```
+
+---
+
+### **📊 Modos de Actualización**
+
+#### **BATCH Mode** (Recomendado)
+```properties
+jira.updateMode=BATCH
+```
+
+**Funcionamiento:**
+- Envía **todos los tests en un solo request**
+- API: `/rest/raven/2.0/import/execution`
+- Más rápido (1 llamada HTTP)
+
+**Ventaja:** Performance
+**Desventaja:** Si falla, fallan todos
+
+---
+
+#### **SINGLE Mode**
+```properties
+jira.updateMode=SINGLE
+```
+
+**Funcionamiento:**
+- Envía **cada test en un request separado**
+- API: `/rest/api/2/issue/{testKey}/transitions`
+- Más lento (N llamadas HTTP)
+
+**Ventaja:** Tolerante a fallos (un test no afecta otros)
+**Desventaja:** Lento con muchos tests
+
+---
+
+### **🚨 Troubleshooting Jira**
+
+#### **Error: "Test Execution not found"**
+```
+❌ 404 Not Found: /rest/api/2/issue/QAAUY-640
+```
+
+**Solución:**
+```properties
+# Verifica que el execution exista en Jira
+jira.testExecutionId=QAAUY-640
+
+# O habilita auto-creación
+jira.autoCreateExecution=true
+```
+
+---
+
+#### **Error: "Test key not found in Jira"**
+```
+❌ 404 Not Found: Test QAAUY-999 does not exist
+```
+
+**Solución:**
+1. Verifica que el test existe en Jira (proyecto QAAUY)
+2. Verifica el tag en tu feature:
+```gherkin
+@QAAUY-999 @smoke
+Scenario: Mi test
+```
+
+---
+
+#### **Warning: "Scenario without test key"**
+```
+⏭️ Scenario 'Login exitoso' sin test key válido, omitiendo
+```
+
+**Solución:**
+Agregar tag con test key:
+```gherkin
+@QAAUY-123  # ← Agregar esto
+Scenario: Login exitoso
+```
+
+---
+
+### **❓ Preguntas Frecuentes (FAQ)**
+
+#### **Q1: ¿Necesito crear Test Executions manualmente siempre?**
+
+**R:** Depende de tu estrategia:
+
+- ✅ **Manual (Recomendado)**: Sí, creas `QAAUY-640` en Jira antes de ejecutar
+  ```properties
+  jira.autoCreateExecution=false
+  jira.testExecutionId=QAAUY-640
+  ```
+
+- ✅ **Automática**: No, se crea automáticamente cada vez que ejecutas
+  ```properties
+  jira.autoCreateExecution=true
+  jira.projectKey=QAAUY
+  ```
+
+**Recomendación**: Usa manual para control total, automática para CI/CD.
+
+---
+
+#### **Q2: ¿Puedo mezclar tests de diferentes módulos en un execution?**
+
+**R:** ✅ **Sí**, un Test Execution puede contener tests de cualquier módulo:
+
+```
+Test Execution: QAAUY-640 - "Sprint 12 - Regression"
+├── QAAUY-123 (módulo: qa-module-login)    → PASS ✅
+├── QAAUY-124 (módulo: qa-module-checkout) → FAIL ❌
+├── QAAUY-125 (módulo: qa-module-payments) → PASS ✅
+└── QAAUY-126 (módulo: qa-module-reports)  → SKIP ⏭️
+```
+
+Esto es útil para **regression suites** que abarcan múltiples funcionalidades.
+
+---
+
+#### **Q3: ¿Qué pasa si un scenario no tiene tag `@QAAUY-XXX`?**
+
+**R:** ⏭️ Se **omite de Jira** pero **sí se ejecuta** en Cucumber:
+
+```gherkin
+Scenario: Login exitoso (sin tag)
+  → Se ejecuta ✅
+  → NO se reporta a Jira ⏭️
+  → Sí aparece en Extent Report HTML 📄
+```
+
+**Log esperado:**
+```
+⏭️ Scenario 'Login exitoso' sin test key válido, omitiendo actualización Jira
+```
+
+**Cuándo usar scenarios sin tag:**
+- Tests exploratorios temporales
+- Tests en desarrollo (WIP)
+- Tests que no requieren trazabilidad en Jira
+
+---
+
+#### **Q4: ¿Puedo tener múltiples Test Executions en paralelo?**
+
+**R:** ✅ **Sí**, configura diferentes `testExecutionId` por ejecución:
+
+**Ejemplo con Jenkins Jobs:**
+```bash
+# Job 1: Regression QA
+./gradlew test -DTEST_EXECUTION_ID=QAAUY-640 -Dcucumber.filter.tags="@regression"
+
+# Job 2: Smoke Tests QA
+./gradlew test -DTEST_EXECUTION_ID=QAAUY-641 -Dcucumber.filter.tags="@smoke"
+
+# Job 3: Regression PROD
+./gradlew test -DTEST_EXECUTION_ID=QAAUY-642 -DENV=PROD
+```
+
+Cada job reporta a un Test Execution diferente **sin conflictos**.
+
+---
+
+#### **Q5: ¿Qué es mejor: BATCH o SINGLE mode?**
+
+**R:** Depende de tu escenario:
+
+| Aspecto | BATCH | SINGLE |
+|---------|-------|--------|
+| **Velocidad** | ⚡ Rápido (1 request) | 🐢 Lento (N requests) |
+| **Tolerancia a fallos** | ❌ Si falla, afecta todos | ✅ Un fallo no afecta otros |
+| **Uso de red** | Bajo (1 conexión) | Alto (N conexiones) |
+| **Recomendado para** | ≤100 tests, red estable | >100 tests, red inestable |
+| **Timeout risk** | Medio (1 request grande) | Bajo (requests pequeños) |
+
+**Configuración:**
+```properties
+# BATCH (default, recomendado)
+jira.updateMode=BATCH
+
+# SINGLE (para redes inestables o muchos tests)
+jira.updateMode=SINGLE
+```
+
+**Recomendación**: Usa BATCH por defecto, cambia a SINGLE solo si tienes problemas.
+
+---
+
+#### **Q6: ¿Cómo depurar problemas de comunicación con Jira?**
+
+**R:** Habilita logs detallados:
+
+**1. Verifica configuración:**
+```properties
+jira.enabled=true
+jira.updateStatus=true
+jira.url=https://jira.your-company.com
+jira.user=${JIRA_USER}
+jira.password=${JIRA_PASSWORD}
+```
+
+**2. Revisa logs del pipeline:**
+```
+[JIRA_UPDATE_STEP] 📤 Actualizando status en Jira
+[JIRA_UPDATE_STEP] ✅ 5 tests actualizados en Jira
+```
+
+**3. Verifica conectividad:**
+```bash
+# Test manual con curl
+curl -u "$JIRA_USER:$JIRA_PASSWORD" \
+  "https://jira.your-company.com/rest/api/2/issue/QAAUY-123"
+```
+
+**4. Habilita logging DEBUG:**
+```xml
+<!-- logback.xml -->
+<logger name="com.scotia.qa.common.reporting.jira" level="DEBUG"/>
+```
+
+---
+
+#### **Q7: ¿Los attachments tienen límite de tamaño?**
+
+**R:** ✅ **Sí**, configurable:
+
+```properties
+jira.maxAttachmentSizeMb=10  # Default: 10 MB
+```
+
+**Comportamiento:**
+- Screenshots: Se suben individualmente
+- Reporte HTML: Se valida tamaño antes de subir
+- Si excede límite: Se loguea WARNING y continúa
+
+**Logs:**
+```
+⚠️ Attachment 'screenshot_large.png' (15 MB) excede límite (10 MB), omitiendo
+```
+
+**Solución si tienes screenshots muy grandes:**
+```properties
+jira.maxAttachmentSizeMb=20  # Incrementar límite
+```
 
 ---
 
@@ -688,6 +1498,83 @@ EvidenceManager.clearTestContext();
 | **Dependencias externas** | 3 (Extent, HttpClient, Jackson) |
 | **Cobertura de tests** | Pendiente |
 | **Performance** | < 5s para 100 scenarios |
+
+---
+
+## 📚 Referencias
+
+### **Código Fuente**
+
+| Componente | Clase Principal | Descripción |
+|------------|----------------|-------------|
+| **Tag Extraction** | `TagExtractor.java` | Extrae test keys desde tags Cucumber |
+| **Jira Communication** | `JiraUpdateService.java` | Actualiza status en Jira/Xray |
+| **Result Conversion** | `CucumberResultAdapter.java` | Convierte Cucumber JSON a modelo |
+| **Evidence Collection** | `EvidenceCollector.java` | Recolecta screenshots y evidencias |
+| **Extent Generation** | `ExtentReportGenerator.java` | Genera reportes HTML |
+| **Pipeline Orchestration** | `ReportingPipeline.java` | Orquesta ejecución de steps |
+
+### **Configuración**
+
+- **Módulo Reporting**: Este README
+- **Configuración General**: `/config/README.md`
+- **Variables de Entorno**: `/config/README.md#variables-de-entorno`
+- **Configuración Jira**: Sección [Comunicación con Jira/Xray](#-comunicación-con-jiraxray)
+
+### **APIs Externas**
+
+#### **Jira/Xray REST API**
+
+| Recurso | URL |
+|---------|-----|
+| **Xray REST API Documentation** | [https://docs.getxray.app/display/XRAY/REST+API](https://docs.getxray.app/display/XRAY/REST+API) |
+| **Import Execution Results** | [https://docs.getxray.app/display/XRAY/Import+Execution+Results](https://docs.getxray.app/display/XRAY/Import+Execution+Results) |
+| **Jira REST API v2** | [https://docs.atlassian.com/software/jira/docs/api/REST/latest/](https://docs.atlassian.com/software/jira/docs/api/REST/latest/) |
+| **Create Issue** | `POST /rest/api/2/issue` |
+| **Add Attachment** | `POST /rest/api/2/issue/{issueKey}/attachments` |
+
+#### **Extent Reports**
+
+| Recurso | URL |
+|---------|-----|
+| **Extent Reports Documentation** | [https://www.extentreports.com/docs/](https://www.extentreports.com/docs/) |
+| **Extent HTML Reporter** | [https://www.extentreports.com/docs/versions/5/java/index.html](https://www.extentreports.com/docs/versions/5/java/index.html) |
+
+### **Dependencias Maven**
+
+```xml
+<!-- Extent Reports -->
+<dependency>
+    <groupId>com.aventstack</groupId>
+    <artifactId>extentreports</artifactId>
+    <version>5.1.1</version>
+</dependency>
+
+<!-- Apache HttpClient (Jira communication) -->
+<dependency>
+    <groupId>org.apache.httpcomponents</groupId>
+    <artifactId>httpclient</artifactId>
+    <version>4.5.14</version>
+</dependency>
+
+<!-- Jackson (JSON processing) -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.15.2</version>
+</dependency>
+```
+
+### **Patrones de Diseño Implementados**
+
+| Patrón | Uso en Reporting |
+|--------|------------------|
+| **Facade** | `ReportingManager` como punto de entrada único |
+| **Chain of Responsibility** | `ReportingPipeline` ejecuta steps en cadena |
+| **Strategy** | `ResultAdapter` permite múltiples formatos |
+| **Builder** | `ReportingPipeline.Builder()` para construcción |
+| **Factory** | `ResultAdapter` factory pattern |
+| **Singleton** | `ReportingConfig` única instancia |
 
 ---
 

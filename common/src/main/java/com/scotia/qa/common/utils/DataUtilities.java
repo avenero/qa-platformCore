@@ -110,18 +110,20 @@ public class DataUtilities {
     }
 
     // Store de variables thread-safe para todos los frameworks
-    private static final Map<String, String> variableStore = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, String> variableStore = new ConcurrentHashMap<>();
 
     // Store de objetos complejos thread-safe (nuevo - para deserialización)
-    private static final Map<String, Object> objectStore = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Object> objectStore = new ConcurrentHashMap<>();
 
     // Store de variables con namespace thread-safe (para parallel execution)
-    // Estructura: Map<namespace, Map<key, value>>
-    private static final Map<String, Map<String, String>> namespacedVariableStore = new ConcurrentHashMap<>();
+    // Estructura: ConcurrentHashMap<namespace, ConcurrentHashMap<key, value>>
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, String>> namespacedVariableStore =
+        new ConcurrentHashMap<>();
 
     // Store de objetos con namespace thread-safe
-    // Estructura: Map<namespace, Map<key, object>>
-    private static final Map<String, Map<String, Object>> namespacedObjectStore = new ConcurrentHashMap<>();
+    // Estructura: ConcurrentHashMap<namespace, ConcurrentHashMap<key, object>>
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, Object>> namespacedObjectStore =
+        new ConcurrentHashMap<>();
 
     private DataUtilities() {
         // Utility class - no instances
@@ -627,14 +629,20 @@ public class DataUtilities {
 
             // Si el valor es un Map anidado, buscar recursivamente
             if (value instanceof Map) {
-                Object nested = findValueInMap((Map<String, Object>) value, targetKey);
+                // Cast seguro - ya verificado con instanceof
+                @SuppressWarnings("unchecked")
+                Map<String, Object> mapValue = (Map<String, Object>) value;
+                Object nested = findValueInMap(mapValue, targetKey);
                 if (nested != null) {
                     return nested;
                 }
             }
             // Si el valor es una List, buscar recursivamente
             else if (value instanceof List) {
-                Object nested = findValueInList((List<Object>) value, targetKey);
+                // Cast seguro - ya verificado con instanceof
+                @SuppressWarnings("unchecked")
+                List<Object> listValue = (List<Object>) value;
+                Object nested = findValueInList(listValue, targetKey);
                 if (nested != null) {
                     return nested;
                 }
@@ -664,14 +672,20 @@ public class DataUtilities {
         for (Object item : list) {
             // Si el item es un Map, buscar dentro
             if (item instanceof Map) {
-                Object nested = findValueInMap((Map<String, Object>) item, targetKey);
+                // Cast seguro - ya verificado con instanceof
+                @SuppressWarnings("unchecked")
+                Map<String, Object> mapItem = (Map<String, Object>) item;
+                Object nested = findValueInMap(mapItem, targetKey);
                 if (nested != null) {
                     return nested;
                 }
             }
             // Si el item es una List anidada, buscar recursivamente
             else if (item instanceof List) {
-                Object nested = findValueInList((List<Object>) item, targetKey);
+                // Cast seguro - ya verificado con instanceof
+                @SuppressWarnings("unchecked")
+                List<Object> listItem = (List<Object>) item;
+                Object nested = findValueInList(listItem, targetKey);
                 if (nested != null) {
                     return nested;
                 }

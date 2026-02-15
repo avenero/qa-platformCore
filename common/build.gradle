@@ -1,6 +1,10 @@
 // Configuración específica del módulo common - CORE GENÉRICO (v1.1.0)
 // Solo dependencias verdaderamente comunes a TODOS los frameworks
 
+plugins {
+    id 'jacoco'
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -8,6 +12,7 @@ java {
 }
 
 dependencies {
+
 
     // === CONFIGURACIÓN Y PROCESAMIENTO DE ARCHIVOS ===
     // JSON processing básico (para DataUtilities y ConfigurationProvider)
@@ -24,7 +29,7 @@ dependencies {
 
     // === LOGGING ===
     api 'org.slf4j:slf4j-api:2.0.9'
-    api 'ch.qos.logback:logback-classic:1.5.13'
+    api 'ch.qos.logback:logback-classic:1.5.25'  // Actualizado para resolver CVE-2025-11226 y CVE-2026-1225
     api 'org.fusesource.jansi:jansi:2.4.0'  // Para colores ANSI en consola
 
     // === CUCUMBER (para hooks y contexto comunes) ===
@@ -55,15 +60,19 @@ dependencies {
     api 'org.apache.httpcomponents:httpclient:4.5.14'
     api 'org.apache.httpcomponents:httpmime:4.5.14'
 
+    // Forzar versión segura de commons-codec (dependencia transitiva de httpclient)
+    // Resuelve WS-2019-0379 (Input Validation vulnerability)
+    api 'commons-codec:commons-codec:1.17.1'
+
     // === DATABASE CONNECTION POOLING & DRIVERS ===
     // HikariCP para gestión genérica de conexiones
     api 'com.zaxxer:HikariCP:5.0.1'
 
     // JDBC Drivers (disponibles para todos los módulos)
     // Nota: Cada proyecto puede usar el driver que necesite
-    api 'mysql:mysql-connector-java:8.0.33'
+    api 'com.mysql:mysql-connector-j:8.4.0'  // Actualizado (reemplaza mysql-connector-java para resolver CVE-2023-22102)
     api 'org.postgresql:postgresql:42.7.7'
-    api 'com.microsoft.sqlserver:mssql-jdbc:12.4.1.jre11'
+    api 'com.microsoft.sqlserver:mssql-jdbc:12.8.2.jre11'  // Actualizado para resolver CVE-2025-59250
     api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
 
     // ========================================================================
@@ -84,7 +93,88 @@ dependencies {
     // - JSON Schema Validator (solo para API REST)
     // - HTTP Components (específico API)
     // ========================================================================
+
+    // ========================================================================
+    // DEPENDENCIAS DE TEST
+    // ========================================================================
+
+    // JUnit 5 ya está en 'api' arriba, pero agregamos extras para tests
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
+
+    // Mocking
+    testImplementation 'org.mockito:mockito-core:5.8.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
+
+    // Assertions mejoradas
+    testImplementation 'org.assertj:assertj-core:3.27.7'  // Actualizado para resolver CVE-2026-24400 (XXE vulnerability)
+
+    // JSON testing
+    testImplementation 'net.javacrumbs.json-unit:json-unit-assertj:2.38.0'
+
+    // Concurrency testing
+    testImplementation 'org.awaitility:awaitility:4.2.0'
 }
+
+// ========================================================================
+// CONFIGURACIÓN DE TESTS
+// ========================================================================
+
+test {
+    useJUnitPlatform()
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+    }
+
+    // Configuración de memoria para tests
+    minHeapSize = "256m"
+    maxHeapSize = "1024m"
+}
+
+// ========================================================================
+// JACOCO - COBERTURA DE CÓDIGO
+// ========================================================================
+
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/model/**',        // POJOs
+                '**/exceptions/**',   // Excepciones simples
+                '**/enums/**'         // Enums
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.60  // 60% mínimo para empezar
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
 
 // NOTA: La configuración de publicación está en el build.gradle raíz
 // Para publicar: ./gradlew :common:publishToMavenLocal

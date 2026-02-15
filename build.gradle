@@ -39,6 +39,42 @@ subprojects {
 
 
 
+    // ========================================================================
+    // CONFIGURACIÓN DE ENCODING UTF-8 (Soluciona errores en Windows)
+    // ========================================================================
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+
+        // Mostrar warnings de unchecked operations y deprecations
+        options.compilerArgs << '-Xlint:unchecked' << '-Xlint:deprecation'
+    }
+
+    // ========================================================================
+    // CONFIGURACIÓN SSL PARA JAVADOC (usa truststore del framework)
+    // ========================================================================
+    def trustStorePath = file("${rootProject.projectDir}/common/ssl/myTrustStore.jks")
+    tasks.withType(Javadoc) {
+        if (trustStorePath.exists()) {
+            // Normalizar ruta para Windows (convertir \ a / para evitar problemas con espacios en paths)
+            def normalizedPath = trustStorePath.absolutePath.replace('\\', '/')
+
+            // Configurar JVM args para SSL (correcta forma de pasar -D properties)
+            options.jFlags(
+                "-Djavax.net.ssl.trustStore=${normalizedPath}",
+                "-Djavax.net.ssl.trustStorePassword=changeit",
+                "-Djavax.net.ssl.trustStoreType=PKCS12"
+            )
+
+            // Configurar para que no falle en links externos
+            options.addBooleanOption('Xdoclint:none', true)
+            options.addStringOption('Xmaxwarns', '1')
+
+            println "✅ [${project.name}] Javadoc configurado con SSL truststore (Windows-safe)"
+        } else {
+            println "⚠️  [${project.name}] myTrustStore.jks no encontrado en common/ssl/"
+        }
+    }
+
     tasks.withType(Test) {
         useJUnitPlatform()
 
@@ -46,11 +82,11 @@ subprojects {
         // CONFIGURACIÓN CENTRALIZADA DE LOGGING PARA TESTS
         // ═══════════════════════════════════════════════════════════════════
 
-        // Forzar uso del logback-test.xml centralizado
-        systemProperty 'logback.configurationFile',
-                      rootProject.file('config/logback-test.xml').absolutePath
+        // Normalizar ruta de logback para Windows (evita problemas con backslashes)
+        def logbackPath = rootProject.file('config/logback-test.xml').absolutePath.replace('\\', '/')
+        systemProperty 'logback.configurationFile', logbackPath
 
-        // Habilitar colores ANSI en consola (Jansi)
+        // Habilitar colores ANSI en consola (Jansi - funciona en Windows)
         systemProperty 'jansi.force', 'true'
         systemProperty 'jansi.passthrough', 'false'  // false para que Gradle no interfiera
 
@@ -131,15 +167,55 @@ subprojects {
                 }
                 repositories {
                     // ═══════════════════════════════════════════════════════════════
-                    // PUBLICACIÓN: Solo mavenLocal
+                    // PUBLICACIÓN: mavenLocal o Artifactory
                     // ═══════════════════════════════════════════════════════════════
-                    // Uso: ./gradlew publishToMavenLocal
+                    // Detecta automáticamente si se está usando Jenkins/CI
+                    // mediante las propiedades -PartifactoryUrl, -PartifactoryUser, -PartifactoryPassword
+                    //
+                    // USO LOCAL:
+                    //   ./gradlew publishToMavenLocal
                     //   → Publica en ~/.m2/repository/com/scotia/qa/
                     //
-                    // NOTA: No hay publicación en Artifactory (sin permisos de escritura)
-                    //       Infra publica manualmente los artefactos generados
+                    // USO CI/CD (Jenkins):
+                    //   ./gradlew publish -PartifactoryUrl=... -PartifactoryUser=... -PartifactoryPassword=...
+                    //   → Publica en Artifactory
                     // ═══════════════════════════════════════════════════════════════
+
+                    // Publicación local (por defecto)
                     mavenLocal()
+
+                    // Publicación a Artifactory (si se proporcionan credenciales)
+                    if (project.hasProperty('artifactoryUrl') &&
+                        project.hasProperty('artifactoryUser') &&
+                        project.hasProperty('artifactoryPassword')) {
+
+                        maven {
+                            name = 'Artifactory'
+                            url = project.property('artifactoryUrl')
+
+                            credentials {
+                                username = project.property('artifactoryUser')
+                                password = project.property('artifactoryPassword')
+                            }
+
+                            // ═══════════════════════════════════════════════════════════
+                            // PROTECCIÓN CONTRA SOBRESCRITURA
+                            // ═══════════════════════════════════════════════════════════
+                            // SNAPSHOTS: Se pueden sobrescribir (desarrollo continuo)
+                            // RELEASES: NO se pueden sobrescribir (inmutabilidad)
+                            //
+                            // Artifactory rechazará automáticamente duplicados de release
+                            // con error 409 (Conflict) si ya existe la versión
+                            // ═══════════════════════════════════════════════════════════
+
+                            // Configuración de seguridad
+                            allowInsecureProtocol = false
+
+                            // Configuración Maven específica para manejo de duplicados
+                            // Nota: Artifactory maneja esto en el lado del servidor,
+                            // pero esta configuración previene intentos innecesarios
+                        }
+                    }
                 }
             }
         }

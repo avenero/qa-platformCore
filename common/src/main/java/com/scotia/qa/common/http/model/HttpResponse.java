@@ -14,7 +14,7 @@ public class HttpResponse {
 
     private final int statusCode;
     private final String body;
-    private Map<String, String> headers;
+    private Map<String, String> headers;  // No puede ser final - usado por setHeaders()
     private final long duration;
 
     /**

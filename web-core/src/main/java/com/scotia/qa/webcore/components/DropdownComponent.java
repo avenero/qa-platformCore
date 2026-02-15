@@ -48,7 +48,8 @@ public class DropdownComponent extends BaseComponent {
         List<WebElement> options = el.findElements(By.tagName("option"));
         for (WebElement opt : options) {
             try {
-                if (value.equals(opt.getAttribute("value"))) {
+                // Usar getDomAttribute() en lugar de getAttribute() (deprecado en Selenium 4+)
+                if (value.equals(opt.getDomAttribute("value"))) {
                     opt.click();
                     TestLogger.logDebug("DROPDOWN_COMPONENT", "selectByValue -> '" + value + "' en " + locator, null);
                     return;

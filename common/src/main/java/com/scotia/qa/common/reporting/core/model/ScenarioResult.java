@@ -30,7 +30,8 @@ public class ScenarioResult {
     private long durationMs;       // NUEVO: duración en milisegundos (más fácil de usar)
 
     // Detalles de fallo (si aplica)
-    private String errorMessage;
+    private String errorMessage;        // Mensaje técnico completo (para developers)
+    private String businessMessage;     // Mensaje amigable (para PO/PM)
     private String stackTrace;
 
     // Información de steps (resumen)
@@ -38,6 +39,9 @@ public class ScenarioResult {
     private int passedSteps;
     private int failedSteps;
     private int skippedSteps;
+
+    // Detalle de cada step
+    private List<StepResult> steps;
 
     // Metadata adicional
     private List<String> tags;
@@ -55,6 +59,14 @@ public class ScenarioResult {
         this.screenshots = new ArrayList<>();
         this.logs = new ArrayList<>();
         this.metadata = new HashMap<>();
+        this.steps = new ArrayList<>();
+    }
+
+    /**
+     * Agrega un step al scenario
+     */
+    public void addStep(StepResult step) {
+        this.steps.add(step);
     }
 
     /**
@@ -146,6 +158,14 @@ public class ScenarioResult {
         this.errorMessage = errorMessage;
     }
 
+    public String getBusinessMessage() {
+        return businessMessage;
+    }
+
+    public void setBusinessMessage(String businessMessage) {
+        this.businessMessage = businessMessage;
+    }
+
     public String getStackTrace() {
         return stackTrace;
     }
@@ -184,6 +204,14 @@ public class ScenarioResult {
 
     public void setSkippedSteps(int skippedSteps) {
         this.skippedSteps = skippedSteps;
+    }
+
+    public List<StepResult> getSteps() {
+        return steps;
+    }
+
+    public void setSteps(List<StepResult> steps) {
+        this.steps = steps;
     }
 
     public List<String> getTags() {

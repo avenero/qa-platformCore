@@ -27,22 +27,14 @@ public class TestExecutionResult {
     // Resultados de scenarios individuales
     private List<ScenarioResult> scenarios;
 
-    // Estadísticas
-    private TestStatistics statistics;
-
-    // NUEVO: Metadata extendida
-    private ExecutionMetadata metadata;
-
-    // NUEVO: Evidencias/Attachments
+    // Evidencias/Attachments
     private List<Attachment> attachments;
 
-    // NUEVO: Información del entorno
+    // Información del entorno
     private EnvironmentInfo environmentInfo;
 
     public TestExecutionResult() {
-        this.statistics = new TestStatistics();
         this.attachments = new ArrayList<>();
-        this.metadata = new ExecutionMetadata();
         this.environmentInfo = new EnvironmentInfo();
     }
 
@@ -100,18 +92,9 @@ public class TestExecutionResult {
 
     public void setScenarios(List<ScenarioResult> scenarios) {
         this.scenarios = scenarios;
-        updateStatistics();
     }
 
-    public TestStatistics getStatistics() {
-        return statistics;
-    }
-
-    public void setStatistics(TestStatistics statistics) {
-        this.statistics = statistics;
-    }
-
-    // NUEVO: Getters y Setters para campos extendidos
+    // Getters y Setters para campos extendidos
 
     public String getProjectKey() {
         return projectKey;
@@ -121,13 +104,6 @@ public class TestExecutionResult {
         this.projectKey = projectKey;
     }
 
-    public ExecutionMetadata getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(ExecutionMetadata metadata) {
-        this.metadata = metadata;
-    }
 
     public List<Attachment> getAttachments() {
         return attachments;
@@ -145,19 +121,12 @@ public class TestExecutionResult {
         this.environmentInfo = environmentInfo;
     }
 
-    private void updateStatistics() {
-        if (scenarios != null) {
-            statistics.calculateFromScenarios(scenarios);
-        }
-    }
-
     @Override
     public String toString() {
         return "TestExecutionResult{" +
                 "testExecutionKey='" + testExecutionKey + '\'' +
                 ", projectKey='" + projectKey + '\'' +
                 ", scenarios=" + (scenarios != null ? scenarios.size() : 0) +
-                ", statistics=" + statistics +
                 ", attachments=" + (attachments != null ? attachments.size() : 0) +
                 '}';
     }

@@ -2,6 +2,7 @@ package com.scotia.qa.common.reporting.jira.client;
 
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.common.reporting.core.config.JiraConfig;
+import com.scotia.qa.common.ssl.SSLUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -15,7 +16,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
 import java.io.File;
@@ -23,6 +23,16 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+/**
+ * Cliente HTTP para interactuar con Jira/Xray REST API.
+ *
+ * <p>Configurado automáticamente con SSL usando el truststore del framework
+ * a través de {@link SSLUtils}.</p>
+ *
+ * @author Abel Venero
+ * @version 1.0.0
+ * @since 1.0.0
+ */
 public class JiraHttpClient {
 
     private final JiraConfig config;
@@ -32,22 +42,23 @@ public class JiraHttpClient {
     public JiraHttpClient(JiraConfig config) {
         this.config = config;
 
+        // Configurar credenciales HTTP Basic
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(
             AuthScope.ANY,
             new UsernamePasswordCredentials(config.getUser(), config.getPassword())
         );
 
-        this.httpClient = HttpClients.custom()
-            .setDefaultCredentialsProvider(credentialsProvider)
-            .build();
+        // Crear HttpClient con SSL configurado usando SSLUtils
+        this.httpClient = SSLUtils.createSecureHttpClient(credentialsProvider);
 
+        // Preparar Authorization header
         String auth = config.getUser() + ":" + config.getPassword();
         this.authHeader = "Basic " + Base64.getEncoder().encodeToString(
             auth.getBytes(StandardCharsets.UTF_8)
         );
 
-        TestLogger.logDebug("JIRA_CLIENT", "JiraHttpClient inicializado", null);
+        TestLogger.logDebug("JIRA_CLIENT", "JiraHttpClient inicializado con SSL del framework", null);
     }
 
     public String get(String endpoint) throws IOException {

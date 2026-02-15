@@ -105,12 +105,149 @@ db.pool.size=10
 reporting.enabled=true
 reporting.output.dir=target/reports
 
-# Jira/Xray integration
-jira.enabled=false
+# Extent Reports
+extent.enabled=true
+extent.outputPath=build/reports/extent/
+extent.reportName=execution-report.html
+extent.theme=STANDARD                    # STANDARD o DARK
+
+# Jira/Xray Integration
+jira.enabled=true
 jira.url=${JIRA_URL}
 jira.user=${JIRA_USER}
 jira.password=${JIRA_PASSWORD}
-jira.project.key=QA
+
+# Test Execution Strategy
+jira.projectKey=QAAUY
+jira.testExecutionId=${TEST_EXECUTION_ID}  # ej: QAAUY-640 (pre-existente)
+jira.autoCreateExecution=false             # true = crear automáticamente
+
+# Control Granular
+jira.updateStatus=true                     # ¿Actualizar PASS/FAIL?
+jira.uploadReport=true                     # ¿Subir HTML?
+jira.includeEvidences=true                 # ¿Adjuntar screenshots?
+jira.maxAttachmentSizeMb=10
+jira.failOnError=false                     # Continuar si Jira falla
+jira.updateMode=BATCH                      # SINGLE o BATCH
+jira.testEnvironment=QA
+```
+
+---
+
+### 📋 Jira/Xray: Estrategias de Test Execution
+
+El framework soporta **2 estrategias** para gestionar Test Executions:
+
+#### **Estrategia 1: Test Execution PRE-EXISTENTE** (Recomendada)
+
+```properties
+jira.autoCreateExecution=false
+jira.testExecutionId=QAAUY-640  # Ya existe en Jira
+```
+
+**Flujo:**
+1. ✅ Creas manualmente un Test Execution en Jira (QAAUY-640)
+2. ✅ Asocias tests al execution (QAAUY-123, QAAUY-124...)
+3. ✅ Ejecutas tests → El framework actualiza status automáticamente
+
+**Ventajas:**
+- Control total sobre qué tests incluir
+- No requiere permisos de creación de issues
+- Ideal para sprints planificados
+
+---
+
+#### **Estrategia 2: AUTO-CREAR Test Execution** (Automática)
+
+```properties
+jira.autoCreateExecution=true
+jira.projectKey=QAAUY
+jira.testEnvironment=QA
+# No necesitas testExecutionId
+```
+
+**Flujo:**
+1. ❌ **NO** proporcionas `testExecutionId`
+2. ✅ El framework **crea automáticamente** un Test Execution:
+   - Summary: "Automated Test Execution - 2025-12-19 15:30"
+   - Tests incluidos: Todos los del `cucumber.json`
+3. ✅ Execution ID se loguea para futuras referencias
+
+**Ventajas:**
+- Totalmente automático (ideal para CI/CD)
+- No requiere preparación manual
+
+**Desventajas:**
+- Requiere permisos de creación de issues
+- Crea un nuevo execution cada ejecución
+
+---
+
+### 🏷️ Tags de Cucumber para Jira
+
+**Ejemplo de feature:**
+```gherkin
+@QAAUY-123 @smoke @web
+Scenario: Login exitoso
+  Given usuario ingresa credenciales válidas
+  When hace clic en Login
+  Then debería ver el dashboard
+```
+
+**Funcionamiento:**
+- El framework busca tags con pattern: `@([A-Z]{2,10}-\\d+)`
+- En este caso: `@QAAUY-123` → Este es el **Test ID en Jira**
+- ❌ Sin tag válido = No se reporta a Jira
+
+---
+
+### 📊 Modos de Actualización Jira
+
+#### **BATCH Mode** (Recomendado)
+```properties
+jira.updateMode=BATCH
+```
+- Envía todos los tests en **un solo request**
+- Más rápido
+- Si falla, afecta todos los tests
+
+#### **SINGLE Mode**
+```properties
+jira.updateMode=SINGLE
+```
+- Envía cada test en un **request separado**
+- Más lento
+- Tolerante a fallos (un test no afecta otros)
+
+---
+
+### 🔧 Configuración por Caso de Uso
+
+#### **Desarrollo Local (Solo HTML)**
+```properties
+jira.updateStatus=false
+jira.uploadReport=false
+extent.enabled=true
+```
+
+#### **CI/CD con Execution Pre-creado**
+```properties
+jira.updateStatus=true
+jira.uploadReport=true
+jira.autoCreateExecution=false
+jira.testExecutionId=${TEST_EXECUTION_ID}  # Variable de Jenkins
+```
+
+#### **CI/CD Totalmente Automático**
+```properties
+jira.updateStatus=true
+jira.uploadReport=true
+jira.autoCreateExecution=true
+jira.projectKey=QAAUY
+jira.testEnvironment=${ENV}  # Variable de Jenkins
+```
+
+**📚 Más información**: Ver `/common/src/main/java/com/scotia/qa/common/reporting/README.md`
 ```
 
 ---

@@ -33,13 +33,13 @@ dependencies {
     api 'com.networknt:json-schema-validator:1.0.87'
 
     // JSON Path para consultas avanzadas
-    api 'com.jayway.jsonpath:json-path:2.8.0'
+    api 'com.jayway.jsonpath:json-path:2.9.0'  // Actualizado para resolver CVE-2023-51074
 
     // JSON comparison para assertions
     api 'org.skyscreamer:jsonassert:1.5.1'
 
     // ===== ASSERTION LIBRARIES (para validaciones API) =====
-    api 'org.assertj:assertj-core:3.24.2'
+    api 'org.assertj:assertj-core:3.27.7'  // Actualizado para resolver CVE-2026-24400 (XXE vulnerability)
     api 'org.hamcrest:hamcrest:2.2'
 
     // ===== CUCUMBER PARA BDD (versiones específicas para API testing) =====
