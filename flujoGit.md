@@ -858,6 +858,290 @@ git commit -m "fix"
 
 ---
 
+## 🔍 CÓMO VERIFICAR SI DEVELOP Y MASTER REMOTAS ESTÁN SINCRONIZADAS
+
+### **COMANDO 1: Ver diferencias entre develop y master remotas**
+
+```bash
+# Actualizar referencias remotas primero
+git fetch origin
+
+# Ver commits que están en develop pero NO en master
+git log origin/master..origin/develop --oneline
+
+# Ver commits que están en master pero NO en develop
+git log origin/develop..origin/master --oneline
+```
+
+**✅ Si ambos comandos NO muestran nada:**
+```
+# (vacío) - Sin output
+```
+**→ Las ramas están SINCRONIZADAS** ✅
+
+**❌ Si el primer comando muestra commits:**
+```
+abc123 feat: nueva funcionalidad
+def456 fix: corregir bug
+```
+**→ develop tiene commits que master NO tiene** (develop está adelante)
+
+**❌ Si el segundo comando muestra commits:**
+```
+xyz789 fix: hotfix en master
+```
+**→ master tiene commits que develop NO tiene** (master está adelante)
+
+---
+
+### **COMANDO 2: Comparar último commit de cada rama**
+
+```bash
+# Ver último commit de develop remota
+git fetch origin
+git log origin/develop --oneline -1
+
+# Ver último commit de master remota
+git log origin/master --oneline -1
+```
+
+**✅ Si muestran el MISMO commit hash:**
+```
+abc123 (origin/develop, origin/master) fix: último cambio
+```
+**→ Están EXACTAMENTE iguales** ✅
+
+**❌ Si muestran commits diferentes:**
+```
+abc123 (origin/develop) fix: cambio en develop
+xyz789 (origin/master) fix: cambio en master
+```
+**→ NO están sincronizadas** ❌
+
+---
+
+### **COMANDO 3: Ver estado visual de las ramas**
+
+```bash
+# Actualizar referencias remotas
+git fetch origin
+
+# Ver grafo de commits
+git log --oneline --graph --all --decorate -10
+```
+
+**✅ Resultado si están sincronizadas:**
+```
+* abc123 (HEAD -> develop, origin/master, origin/develop, master) fix: último cambio
+* def456 feat: funcionalidad anterior
+* xyz789 fix: corrección
+```
+
+**Nota:** `origin/master` y `origin/develop` apuntan al **mismo commit** (abc123).
+
+**❌ Resultado si NO están sincronizadas:**
+```
+* abc123 (HEAD -> develop, origin/develop) fix: cambio solo en develop
+| * xyz789 (origin/master, master) fix: cambio solo en master
+|/
+* def456 feat: ancestro común
+```
+
+**Nota:** `origin/master` y `origin/develop` apuntan a commits **diferentes**.
+
+---
+
+### **COMANDO 4: Comparación detallada de archivos**
+
+```bash
+# Ver TODOS los archivos diferentes entre develop y master remotas
+git fetch origin
+git diff origin/master..origin/develop --name-only
+```
+
+**✅ Si NO muestra nada:**
+```
+# (vacío)
+```
+**→ No hay diferencias de archivos** ✅
+
+**❌ Si muestra archivos:**
+```
+archivo1.java
+archivo2.java
+build.gradle
+```
+**→ Estos archivos son diferentes entre develop y master** ❌
+
+---
+
+### **COMANDO 5: Ver diferencias de código línea por línea**
+
+```bash
+# Ver diferencias completas de código
+git fetch origin
+git diff origin/master..origin/develop
+```
+
+**✅ Si NO muestra nada:**
+```
+# (vacío)
+```
+**→ Ramas idénticas** ✅
+
+**❌ Si muestra diferencias:**
+```diff
+diff --git a/build.gradle b/build.gradle
+index abc123..def456 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -10,3 +10,5 @@
+ version = "1.0.0"
++// Nuevo cambio solo en develop
+```
+**→ Hay cambios en develop que no están en master** ❌
+
+---
+
+### **COMANDO 6: Estadísticas de diferencias**
+
+```bash
+# Ver resumen estadístico
+git fetch origin
+git diff --stat origin/master..origin/develop
+```
+
+**✅ Si NO muestra nada:**
+```
+# (vacío)
+```
+**→ Sin diferencias** ✅
+
+**❌ Si muestra estadísticas:**
+```
+ archivo1.java | 10 +++++-----
+ archivo2.java |  5 +++++
+ 2 files changed, 15 insertions(+), 5 deletions(-)
+```
+**→ 2 archivos diferentes** ❌
+
+---
+
+## 🎯 COMANDO RÁPIDO TODO-EN-UNO
+
+```bash
+# Verificación completa en un solo comando
+git fetch origin && \
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
+echo "📊 COMPARACIÓN DEVELOP vs MASTER (remotas)" && \
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
+echo "" && \
+echo "🔹 Último commit en DEVELOP:" && \
+git log origin/develop --oneline -1 && \
+echo "" && \
+echo "🔹 Último commit en MASTER:" && \
+git log origin/master --oneline -1 && \
+echo "" && \
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
+echo "📋 Commits en DEVELOP que NO están en MASTER:" && \
+git log origin/master..origin/develop --oneline || echo "(ninguno)" && \
+echo "" && \
+echo "📋 Commits en MASTER que NO están en DEVELOP:" && \
+git log origin/develop..origin/master --oneline || echo "(ninguno)" && \
+echo "" && \
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" && \
+echo "📁 Archivos diferentes:" && \
+git diff --name-only origin/master..origin/develop || echo "(ninguno)" && \
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+```
+
+**Interpretación del resultado:**
+
+**✅ Ramas sincronizadas:**
+```
+🔹 Último commit en DEVELOP:
+abc123 fix: último cambio
+
+🔹 Último commit en MASTER:
+abc123 fix: último cambio
+
+📋 Commits en DEVELOP que NO están en MASTER:
+(ninguno)
+
+📋 Commits en MASTER que NO están en DEVELOP:
+(ninguno)
+
+📁 Archivos diferentes:
+(ninguno)
+```
+
+**❌ Ramas desincronizadas:**
+```
+🔹 Último commit en DEVELOP:
+abc123 fix: cambio en develop
+
+🔹 Último commit en MASTER:
+xyz789 fix: cambio en master
+
+📋 Commits en DEVELOP que NO están en MASTER:
+abc123 fix: cambio en develop
+
+📋 Commits en MASTER que NO están en DEVELOP:
+xyz789 fix: cambio en master
+
+📁 Archivos diferentes:
+build.gradle
+archivo1.java
+```
+
+---
+
+## 🛠️ COMANDOS PARA SINCRONIZAR
+
+### **Si develop está adelante de master:**
+
+```bash
+# Llevar cambios de develop a master
+git checkout master
+git pull origin master
+git merge origin/develop
+./gradlew clean test
+git push origin master
+
+# Sincronizar develop también
+git checkout develop
+git pull origin develop
+```
+
+---
+
+### **Si master está adelante de develop:**
+
+```bash
+# Llevar cambios de master a develop
+git checkout develop
+git pull origin develop
+git merge origin/master
+git push origin develop
+```
+
+---
+
+### **Si ambas tienen cambios diferentes:**
+
+```bash
+# Decidir cuál tiene prioridad (normalmente master)
+git checkout develop
+git pull origin develop
+git merge origin/master
+# Resolver conflictos si los hay
+git add .
+git commit -m "merge: sincronizar master → develop"
+git push origin develop
+```
+
+---
+
 ## 📖 GLOSARIO
 
 - **Working Directory:** Archivos modificados sin agregar al staging area (sin `git add`)
@@ -867,6 +1151,8 @@ git commit -m "fix"
 - **Merge:** Integrar commits de una rama a otra
 - **Fast-forward:** Merge sin conflictos (solo avanza el puntero)
 - **Tag:** Marca permanente en un commit específico (ej: v1.0.1)
+- **origin/develop:** Referencia local a la rama develop remota
+- **origin/master:** Referencia local a la rama master remota
 
 ---
 

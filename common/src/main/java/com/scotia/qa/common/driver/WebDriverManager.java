@@ -12,8 +12,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * Gestor simplificado de WebDrivers con estrategia dual.
@@ -285,60 +283,35 @@ public class WebDriverManager {
         // 1. Construir URL de Artifactory
         String artifactoryUrl = buildArtifactoryUrl(driverName, version);
 
-        // 2. Descargar driver
-        Path downloadedZip = downloadDriverZip(artifactoryUrl, driverName, version);
-
-        // 3. Extraer driver
-        Path extractedDriver = extractDriver(downloadedZip, driverName);
+        // 2. Descargar driver ejecutable directo (NO ZIP - estructura nueva de Artifactory)
+        Path downloadedDriver = downloadDriverExecutable(artifactoryUrl, driverName);
 
         TestLogger.logInfo("DRIVER_MANAGER",
-            String.format("✅ Driver descargado y extraído: %s %s", driverName, version),
-            Map.of("path", extractedDriver.toString()));
+            String.format("✅ Driver descargado: %s %s", driverName, version),
+            Map.of("path", downloadedDriver.toString()));
 
-        return extractedDriver;
+        return downloadedDriver;
     }
 
     /**
-     * Construye la URL completa de Artifactory para descargar el driver.
+     * Descarga el driver ejecutable directamente desde Artifactory (sin ZIP).
      *
-     * @param driverName Nombre del driver
-     * @param version Versión del driver
-     * @return URL completa de descarga
-     */
-    private static String buildArtifactoryUrl(String driverName, String version) {
-        String baseUrl = config.get("driver.artifactory.base.url");
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            throw new IllegalStateException(
-                "driver.artifactory.base.url no configurado. Verifica config-scotia.properties y .env.local");
-        }
-
-        String os = detectOS();
-
-        // Formato: {base-url}/{driver}/{version}/{os}/{driver}.zip
-        return String.format("%s/%s/%s/%s/%s.zip",
-            baseUrl.replaceAll("/$", ""),
-            driverName,
-            version,
-            os,
-            driverName);
-    }
-
-    /**
-     * Descarga el archivo zip del driver desde Artifactory.
+     * <p>Nuevo método para estructura de Artifactory corporativo que almacena
+     * ejecutables directos en lugar de archivos ZIP.</p>
      *
-     * @param url URL de descarga
+     * @param url URL completa del driver en Artifactory
      * @param driverName Nombre del driver
-     * @param version Versión del driver
-     * @return Path al archivo zip descargado
+     * @return Path al driver descargado en ~/.cache/qa-drivers/
      * @throws IOException Si falla la descarga
      */
-    private static Path downloadDriverZip(String url, String driverName, String version) throws IOException {
+    private static Path downloadDriverExecutable(String url, String driverName) throws IOException {
         String user = config.get("driver.artifactory.user");
         String token = config.get("driver.artifactory.token");
 
         if (user == null || token == null || user.isEmpty() || token.isEmpty()) {
             throw new IOException(
-                "Credenciales de Artifactory no configuradas. Verifica ARTIFACTORY_USER y ARTIFACTORY_TOKEN en .env.local");
+                "Credenciales de Artifactory no configuradas. " +
+                "Verifica ARTIFACTORY_USER y ARTIFACTORY_TOKEN en .env.local");
         }
 
         int timeout = config.getInt("driver.artifactory.timeout", 60) * 1000;
@@ -354,7 +327,7 @@ public class WebDriverManager {
                 HttpURLConnection conn = (HttpURLConnection) java.net.URI.create(url).toURL().openConnection();
                 conn.setConnectTimeout(timeout);
                 conn.setReadTimeout(timeout);
-                conn.setRequestProperty("User-Agent", "Scotia-QA-Framework/1.0.0");
+                conn.setRequestProperty("User-Agent", "Scotia-QA-Framework/2.0.0");
 
                 // Autenticación Basic
                 String auth = user + ":" + token;
@@ -364,22 +337,44 @@ public class WebDriverManager {
                 int status = conn.getResponseCode();
 
                 if (status == 200) {
-                    Path tempDir = Files.createTempDirectory("driver-download-");
-                    Path zipPath = tempDir.resolve(driverName + "-" + version + ".zip");
+                    // Crear directorio de cache (~/.cache/qa-drivers/)
+                    Path cacheDir = Paths.get(System.getProperty("user.home"), ".cache", "qa-drivers");
+                    Files.createDirectories(cacheDir);
+
+                    // Descargar ejecutable directamente
+                    String executableName = getExecutableName(driverName);
+                    Path driverPath = cacheDir.resolve(executableName);
 
                     try (InputStream in = conn.getInputStream()) {
-                        Files.copy(in, zipPath, StandardCopyOption.REPLACE_EXISTING);
+                        Files.copy(in, driverPath, StandardCopyOption.REPLACE_EXISTING);
+                    }
+
+                    // Hacer ejecutable (Unix/Mac/Linux)
+                    boolean executable = driverPath.toFile().setExecutable(true, false);
+                    if (!executable) {
+                        TestLogger.logWarning("DRIVER_MANAGER",
+                            "⚠️ No se pudieron establecer permisos de ejecución", null);
                     }
 
                     TestLogger.logInfo("DRIVER_MANAGER",
-                        String.format("✓ Driver descargado (intento %d/%d)", attempt, maxRetries),
-                        Map.of("size", Files.size(zipPath) + " bytes"));
+                        String.format("✓ Driver descargado exitosamente (intento %d/%d)", attempt, maxRetries),
+                        Map.of(
+                            "size", Files.size(driverPath) + " bytes",
+                            "path", driverPath.toString(),
+                            "executable", executableName
+                        ));
 
-                    return zipPath;
+                    return driverPath;
+
                 } else if (status == 401) {
-                    throw new IOException("Credenciales de Artifactory inválidas (HTTP 401)");
+                    throw new IOException(
+                        "Credenciales de Artifactory inválidas (HTTP 401). " +
+                        "Verifica ARTIFACTORY_USER y ARTIFACTORY_TOKEN");
                 } else if (status == 404) {
-                    throw new IOException(String.format("Driver no encontrado en Artifactory (HTTP 404): %s", url));
+                    throw new IOException(String.format(
+                        "Driver no encontrado en Artifactory (HTTP 404).\n" +
+                        "URL: %s\n" +
+                        "Verifica que el driver existe en esa ruta en Artifactory.", url));
                 } else {
                     throw new IOException(String.format("Error descargando driver (HTTP %d)", status));
                 }
@@ -388,7 +383,8 @@ public class WebDriverManager {
                 lastException = e;
                 if (attempt < maxRetries && retryEnabled) {
                     TestLogger.logWarning("DRIVER_MANAGER",
-                        String.format("⚠️ Reintentando descarga (%d/%d): %s", attempt, maxRetries, e.getMessage()),
+                        String.format("⚠️ Reintentando descarga (%d/%d): %s",
+                            attempt, maxRetries, e.getMessage()),
                         null);
                     try {
                         Thread.sleep(2000L * attempt);
@@ -401,74 +397,77 @@ public class WebDriverManager {
             }
         }
 
-        throw new IOException("Descarga fallida después de " + attempt + " intentos", lastException);
+        throw new IOException(
+            String.format("Descarga fallida después de %d intentos. URL: %s", attempt, url),
+            lastException);
     }
 
     /**
-     * Extrae el driver del zip.
+     * Construye la URL completa de Artifactory para descargar el driver.
      *
-     * @param zipPath Path al archivo zip descargado
-     * @param driverName Nombre del driver
-     * @return Path al ejecutable extraído
-     * @throws IOException Si falla la extracción
+     * <p>Formato usado en Artifactory corporativo:</p>
+     * <pre>
+     * {base-url}/external/qa-drivers/{driver}-{os}/{driver}[.exe]
+     * </pre>
+     *
+     * <p>Ejemplos de URLs generadas:</p>
+     * <ul>
+     *   <li>Windows: .../external/qa-drivers/chromedriver-win/chromedriver.exe</li>
+     *   <li>Mac: .../external/qa-drivers/chromedriver-mac/chromedriver</li>
+     *   <li>Linux: .../external/qa-drivers/geckodriver-linux/geckodriver</li>
+     * </ul>
+     *
+     * @param driverName Nombre del driver (chromedriver, geckodriver, edgedriver)
+     * @param version Versión del driver (solo para logging, NO se usa en URL)
+     * @return URL completa de descarga
      */
-    private static Path extractDriver(Path zipPath, String driverName) throws IOException {
-        Path tempDir = Files.createTempDirectory("qa-driver-");
-        Path extractedDriver = null;
-        String executableName = getExecutableName(driverName);
-
-        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zipPath))) {
-            ZipEntry entry;
-            while ((entry = zis.getNextEntry()) != null) {
-                String fileName = Paths.get(entry.getName()).getFileName().toString();
-
-                if (!entry.isDirectory() && fileName.equalsIgnoreCase(executableName)) {
-                    extractedDriver = tempDir.resolve(executableName);
-                    Files.copy(zis, extractedDriver, StandardCopyOption.REPLACE_EXISTING);
-                    break;
-                }
-            }
+    private static String buildArtifactoryUrl(String driverName, String version) {
+        String baseUrl = config.get("driver.artifactory.base.url");
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            throw new IllegalStateException(
+                "driver.artifactory.base.url no configurado. Verifica config-scotia.properties y .env.local");
         }
 
-        if (extractedDriver == null || !Files.exists(extractedDriver)) {
-            throw new IOException(String.format("No se encontró %s dentro del zip", executableName));
-        }
+        String os = detectOSForArtifactory();  // "win", "mac", "linux"
+        String executableName = getExecutableName(driverName);  // "chromedriver.exe" o "chromedriver"
 
-        // Hacer ejecutable (Unix/Linux/Mac)
-        try {
-            boolean success = extractedDriver.toFile().setExecutable(true, false);
-            if (!success) {
-                TestLogger.logWarning("DRIVER_MANAGER",
-                    "⚠️ No se pudieron establecer permisos de ejecución", null);
-            }
-        } catch (Exception e) {
-            TestLogger.logWarning("DRIVER_MANAGER",
-                "⚠️ Error estableciendo permisos: " + e.getMessage(), null);
-        }
+        // Formato REAL de Artifactory corporativo (sin versión en ruta, sin ZIP):
+        // {base-url}/external/qa-drivers/{driver}-{os}/{driver}[.exe]
+        String url = String.format("%s/external/qa-drivers/%s-%s/%s",
+            baseUrl.replaceAll("/$", ""),
+            driverName,      // "chromedriver", "geckodriver", "edgedriver"
+            os,              // "win", "mac", "linux"
+            executableName); // "chromedriver.exe" (Windows) o "chromedriver" (Mac/Linux)
 
-        // Limpiar zip temporal
-        try {
-            Files.deleteIfExists(zipPath);
-        } catch (Exception ignored) {}
+        TestLogger.logDebug("DRIVER_MANAGER",
+            String.format("📍 URL Artifactory generada: %s", url),
+            Map.of("driver", driverName, "os", os, "executable", executableName));
 
-        return extractedDriver;
+        return url;
     }
 
     /**
-     * Detecta el sistema operativo y retorna el identificador para Artifactory.
+     * Detecta el sistema operativo y retorna el sufijo para URLs de Artifactory.
+     * Formato usado en Artifactory: chromedriver-{os}
      *
-     * @return "linux64", "mac64", "mac_arm64", o "win32"
+     * <p>Ejemplos de rutas generadas:</p>
+     * <ul>
+     *   <li>Windows: external/qa-drivers/chromedriver-win/chromedriver.exe</li>
+     *   <li>Mac: external/qa-drivers/chromedriver-mac/chromedriver</li>
+     *   <li>Linux: external/qa-drivers/chromedriver-linux/chromedriver</li>
+     * </ul>
+     *
+     * @return "win", "mac", o "linux" (sufijo para nomenclatura Artifactory)
      */
-    private static String detectOS() {
+    private static String detectOSForArtifactory() {
         String os = System.getProperty("os.name").toLowerCase();
-        String arch = System.getProperty("os.arch").toLowerCase();
 
         if (os.contains("win")) {
-            return "win32";
+            return "win";      // chromedriver-win
         } else if (os.contains("mac")) {
-            return arch.contains("aarch64") || arch.contains("arm") ? "mac_arm64" : "mac64";
+            return "mac";      // chromedriver-mac (Intel y ARM usan el mismo)
         } else {
-            return "linux64";
+            return "linux";    // chromedriver-linux
         }
     }
 

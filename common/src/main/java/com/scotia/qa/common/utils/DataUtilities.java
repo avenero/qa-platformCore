@@ -1744,7 +1744,22 @@ public class DataUtilities {
         return SecurityUtilities.generateRandomString(length, letters, numbers, special);
     }
 
-    private static String capitalize(String str) {
+    /**
+     * Capitaliza la primera letra de un string.
+     *
+     * <p><b>Ejemplos:</b></p>
+     * <pre>
+     * capitalize("hello")  → "Hello"
+     * capitalize("HELLO")  → "HELLO"
+     * capitalize("h")      → "H"
+     * capitalize("")       → ""
+     * capitalize(null)     → null
+     * </pre>
+     *
+     * @param str String a capitalizar
+     * @return String con primera letra en mayúscula, o input original si es null/vacío
+     */
+    public static String capitalize(String str) {
         if (str == null || str.isEmpty()) {
             return str;
         }

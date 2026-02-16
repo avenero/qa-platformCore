@@ -233,6 +233,75 @@ public class ConfigManager {
     }
 
     /**
+     * Obtiene configuración con prioridad de fuentes múltiples.
+     *
+     * <p>Orden de precedencia (de mayor a menor prioridad):</p>
+     * <ol>
+     *   <li><b>System Property</b> - {@code -Dkey=value} (máxima prioridad)</li>
+     *   <li><b>Variable de Entorno</b> - {@code KEY_UPPER}</li>
+     *   <li><b>Archivo de configuración</b> - {@code config-scotia.properties}</li>
+     *   <li><b>Valor por defecto</b> - parámetro {@code defaultValue} (mínima prioridad)</li>
+     * </ol>
+     *
+     * <p><b>Casos de uso:</b></p>
+     * <ul>
+     *   <li>Parametrizar navegador: {@code getWithPriority("web.browser", "chrome")}</li>
+     *   <li>Override desde Jenkins: {@code -Dweb.browser=firefox}</li>
+     *   <li>Override desde variables: {@code export WEB_BROWSER=edge}</li>
+     * </ul>
+     *
+     * <p><b>Ejemplo:</b></p>
+     * <pre>{@code
+     * // Configuración en config-scotia.properties:
+     * web.browser=chrome
+     *
+     * // Ejecución:
+     * ./gradlew test -Dweb.browser=firefox
+     *
+     * // Resultado:
+     * String browser = config.getWithPriority("web.browser", "chrome");
+     * // → "firefox" (System Property tiene prioridad sobre config file)
+     * }</pre>
+     *
+     * <p><b>Conversión de nombres:</b></p>
+     * <pre>
+     * Key: "web.browser"        → Env Var: "WEB_BROWSER"
+     * Key: "driver.chrome.version" → Env Var: "DRIVER_CHROME_VERSION"
+     * </pre>
+     *
+     * @param key Clave de configuración (ej: "web.browser", "web.headless")
+     * @param defaultValue Valor por defecto si no se encuentra en ninguna fuente
+     * @return Valor resuelto según orden de prioridad
+     */
+    public String getWithPriority(String key, String defaultValue) {
+        // 1. System Property (-Dkey=value) - PRIORIDAD MÁXIMA
+        String sysProp = System.getProperty(key);
+        if (sysProp != null && !sysProp.isEmpty()) {
+            log.debug("✓ [{}] Usando System Property: {}", key, sysProp);
+            return sysProp;
+        }
+
+        // 2. Variable de entorno (KEY → KEY_UPPER)
+        String envKey = key.toUpperCase().replace('.', '_');
+        String envVar = System.getenv(envKey);
+        if (envVar != null && !envVar.isEmpty()) {
+            log.debug("✓ [{}] Usando variable de entorno {}: {}", key, envKey, envVar);
+            return envVar;
+        }
+
+        // 3. Archivo de configuración (config-scotia.properties)
+        String configValue = get(key);
+        if (configValue != null && !configValue.isEmpty()) {
+            log.debug("✓ [{}] Usando config file: {}", key, configValue);
+            return configValue;
+        }
+
+        // 4. Valor por defecto
+        log.debug("✓ [{}] Usando default: {}", key, defaultValue);
+        return defaultValue;
+    }
+
+    /**
      * Obtiene un valor long de configuración.
      *
      * @param key clave de configuración

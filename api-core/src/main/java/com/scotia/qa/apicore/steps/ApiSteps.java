@@ -1424,8 +1424,8 @@ public class ApiSteps {
     Class<?> clazz = object.getClass();
 
     // Intentar getter method
-    String getterName = "get" + capitalize(fieldName);
-    String booleanGetterName = "is" + capitalize(fieldName);
+    String getterName = "get" + DataUtilities.capitalize(fieldName);
+    String booleanGetterName = "is" + DataUtilities.capitalize(fieldName);
 
     try {
       try {
@@ -1448,13 +1448,6 @@ public class ApiSteps {
     }
   }
 
-  /** Capitaliza la primera letra de un string. */
-  private String capitalize(String str) {
-    if (str == null || str.isEmpty()) {
-      return str;
-    }
-    return str.substring(0, 1).toUpperCase() + str.substring(1);
-  }
 
   /**
    * Busca un objeto por nombre en la estructura de un objeto complejo. Navega recursivamente por
