@@ -1076,14 +1076,16 @@ pipeline {
                 echo '🧹 Limpiando workspace...'
             }
 
-            // Limpiar workspace al finalizar
-            cleanWs(
-                deleteDirs: true,
-                patterns: [
-                    [pattern: '**/build/**', type: 'INCLUDE'],
-                    [pattern: '**/.gradle/**', type: 'INCLUDE']
-                ]
-            )
+            // cleanWs requiere un nodo, así que lo envolvemos
+            node('jslave1') {
+                cleanWs(
+                    deleteDirs: true,
+                    patterns: [
+                        [pattern: '**/build/**', type: 'INCLUDE'],
+                        [pattern: '**/.gradle/**', type: 'INCLUDE']
+                    ]
+                )
+            }
 
             script {
                 echo '✅ Workspace limpio'
