@@ -1,34 +1,18 @@
-#!/usr/bin/env groovy
-
-/**
- * ============================================================================
- * JENKINS PIPELINE: qa-scotia-frameworks
- * ============================================================================
- * Proyecto: Framework QA Automatización (Common, API, Web, Mobile)
- * Estrategia: Construcción incremental (MVP → Features avanzadas)
- * Fase actual: 1 - MVP (Minimum Viable Pipeline)
- *
- * Features implementadas:
- * ✅ Build básico (clean + build)
- * ✅ Tests con reportes
- * ✅ Generación de artefactos (jar, javadoc, sources)
- * ✅ Post actions básicas
- *
- * Pendientes (fases futuras):
- * ⏳ Parámetros (SKIP_TESTS, PUBLISH_TO_MAVEN_LOCAL, etc.)
- * ⏳ Versionado inteligente
- * ⏳ Publicación a Artifactory
- * ⏳ Coverage y Quality Gates
- * ============================================================================
- */
-
+#!groovy
+@Library('pipeline-utils') _
+def customImage
 pipeline {
-
-    // ========================================================================
-    // CONFIGURACIÓN DEL AGENTE
-    // ========================================================================
-    agent {
-        any  // Ejecutar en cualquier agente disponible
+    agent { label 'jslave1'}
+    options {
+        ansiColor('xterm')
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+    tools {
+        jdk 'OpenJDK 21'
+        gradle 'Gradle 8.5'
     }
 
     // ========================================================================
