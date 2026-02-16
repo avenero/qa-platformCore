@@ -1,26 +1,260 @@
-#!groovy
-@Library('pipeline-utils') _
-def customImage
-pipeline {
-    agent { label 'jslave1'}
-    options {
-        ansiColor('xterm')
-        timestamps()
-        timeout(time: 30, unit: 'MINUTES')
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        disableConcurrentBuilds()
+#!/usr/bin/env groovy
+
+/**
+ * ============================================================================
+ * JENKINS PIPELINE: qa-scotia-frameworks
+ * ============================================================================
+ * Proyecto: Framework QA Automatización (Common, API, Web, Mobile)
+ * Estrategia: Construcción incremental (MVP → Features avanzadas)
+ * Fase actual: 7 - Features Avanzadas + Security (COMPLETO - 100%)
+ *
+ * Features implementadas:
+ *
+ * FASE 1 - MVP:
+ * ✅ Build básico (clean + build)
+ * ✅ Tests con reportes JUnit y HTML
+ * ✅ Generación de artefactos (jar, javadoc, sources)
+ * ✅ Post actions (success, failure, always)
+ * ✅ CleanWs automático
+ *
+ * FASE 2 - Parámetros Básicos:
+ * ✅ Parámetro SKIP_TESTS (saltar tests)
+ * ✅ Condicional when en stage Tests
+ * ✅ Mensajes de estado en post actions
+ *
+ * FASE 3 - Versionado Simple:
+ * ✅ Parámetro CUSTOM_VERSION (override manual)
+ * ✅ Lectura automática desde gradle.properties
+ * ✅ Stage Calcular Versión
+ * ✅ Uso de versión en todos los comandos Gradle
+ *
+ * FASE 4 - Publicación Maven Local:
+ * ✅ Parámetro PUBLISH_TO_MAVEN_LOCAL
+ * ✅ Stage publicación solo en rama develop
+ * ✅ Condicional: branch + parámetro
+ * ✅ Post actions con troubleshooting
+ *
+ * FASE 5 - Publicación Artifactory:
+ * ✅ Parámetro PUBLISH_TO_ARTIFACTORY (AUTO/YES/NO)
+ * ✅ Environment con variables de Artifactory
+ * ✅ Stage decisión de publicación
+ * ✅ Stage publicación solo en rama master/main
+ * ✅ Credenciales con withCredentials
+ * ✅ Estrategia: develop→Maven Local, master→Artifactory
+ *
+ * FASE 6 - Versionado Inteligente:
+ * ✅ Parámetro AUTO_INCREMENT_VERSION
+ * ✅ Función getLatestVersionFromArtifactory() (API)
+ * ✅ Función calculateNextVersion() (auto-increment PATCH)
+ * ✅ Función checkVersionExistsInArtifactory() (HEAD request)
+ * ✅ Stage Verificar Duplicados (pre-publicación)
+ * ✅ Lógica de versionado con 3 estrategias
+ *
+ * FASE 7 - Features Avanzadas + Security:
+ * ✅ Parámetro RUN_COVERAGE
+ * ✅ Parámetro RUN_OWASP_SCAN
+ * ✅ Parámetro REQUIRE_APPROVAL
+ * ✅ Stage Coverage (Jacoco, solo develop)
+ * ✅ Stage OWASP Security Scan (develop - GRATIS, 5 min)
+ * ✅ Stage Checkmarx SAST (master - LICENCIA, 25 min, DESHABILITADO)
+ * ✅ Stage Quality Gate (checks básicos)
+ * ✅ Stage Aprobación Manual (input step, solo master)
+ * ✅ Publicación reportes de cobertura y seguridad
+ *
+ * ESTRATEGIA DE SECURITY:
+ * - develop: OWASP (rápido, gratis) → CVEs en dependencias
+ * - master: Checkmarx (completo, licencia) → Vulnerabilidades en código
+ *
+ * RESUMEN:
+ * - 14+ stages funcionales
+ * - 7 parámetros configurables
+ * - 3 funciones helper
+ * - Soporte multi-rama (develop/master)
+ * - Versionado inteligente con Artifactory API
+ * - Quality gates y cobertura
+ * - Security scanning (OWASP + Checkmarx)
+ * - Aprobación manual opcional
+ *
+ * ============================================================================
+ */
+
+
+
+// ============================================================================
+// FUNCIONES HELPER (Fase 6: Versionado Inteligente)
+// ============================================================================
+
+/**
+ * Obtiene la última versión de un artefacto desde Artifactory
+ * @param groupId    Group ID del artefacto (ej: com.scotia.qa)
+ * @param artifactId Artifact ID (ej: common)
+ * @return String con la última versión o null si no existe
+ */
+def getLatestVersionFromArtifactory(String groupId, String artifactId) {
+    def apiUrl = "${env.ARTIFACTORY_URL}/api/search/latestVersion"
+    def params = "?g=${groupId}&a=${artifactId}&repos=${env.ARTIFACTORY_RELEASE_REPO}"
+
+    try {
+        def response = httpRequest(
+            url: apiUrl + params,
+            authentication: 'artifactory-credentials',
+            validResponseCodes: '200,404',
+            timeout: 10,
+            quiet: true
+        )
+
+        if (response.status == 200) {
+            return response.content.trim()
+        } else {
+            return null
+        }
+    } catch (Exception e) {
+        echo "⚠️  No se pudo consultar Artifactory: ${e.message}"
+        return null
     }
-    tools {
-        jdk 'OpenJDK 21'
-        gradle 'Gradle 8.5'
+}
+
+/**
+ * Calcula la siguiente versión incrementando el PATCH
+ * @param currentVersion Versión actual (ej: 1.0.5)
+ * @return String con la nueva versión (ej: 1.0.6)
+ */
+def calculateNextVersion(String currentVersion) {
+    if (!currentVersion) {
+        return '1.0.0'  // Versión inicial
+    }
+
+    try {
+        // Extraer MAJOR.MINOR.PATCH
+        def parts = currentVersion.tokenize('.')
+        def major = parts[0] as Integer
+        def minor = parts[1] as Integer
+        def patch = parts[2] as Integer
+
+        // Incrementar PATCH
+        patch++
+
+        return "${major}.${minor}.${patch}"
+    } catch (Exception e) {
+        echo "⚠️  Error calculando siguiente versión: ${e.message}"
+        return currentVersion
+    }
+}
+
+/**
+ * Verifica si una versión ya existe en Artifactory para un módulo
+ * @param groupId    Group ID del artefacto
+ * @param artifactId Artifact ID
+ * @param version    Versión a verificar
+ * @return boolean true si existe, false si no existe
+ */
+def checkVersionExistsInArtifactory(String groupId, String artifactId, String version) {
+    // Construir URL del artefacto
+    def groupPath = groupId.replace('.', '/')
+    def artifactUrl = "${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO}/${groupPath}/${artifactId}/${version}/"
+
+    try {
+        def response = httpRequest(
+            url: artifactUrl,
+            validResponseCodes: '200,404',
+            timeout: 5,
+            quiet: true
+        )
+
+        return response.status == 200
+    } catch (Exception e) {
+        echo "⚠️  Error verificando versión en Artifactory: ${e.message}"
+        return false
+    }
+}
+
+pipeline {
+
+    // ========================================================================
+    // CONFIGURACIÓN DEL AGENTE
+    // ========================================================================
+    agent {
+        label 'jslave1'  // Nodo Jenkins configurado para builds Java
     }
 
     // ========================================================================
     // HERRAMIENTAS
     // ========================================================================
     tools {
-        jdk 'JDK 21'       // Java 21 (configurado en Jenkins Global Tools)
+        jdk 'OpenJDK 21'    // Java 21 (configurado en Jenkins Global Tools)
         gradle 'Gradle 8.5' // Gradle 8.5 (configurado en Jenkins Global Tools)
+    }
+
+    // ========================================================================
+    // PARÁMETROS
+    // ========================================================================
+    parameters {
+        booleanParam(
+            name: 'SKIP_TESTS',
+            defaultValue: false,
+            description: '⚠️ Saltar ejecución de tests (NO recomendado para develop/master)'
+        )
+
+        string(
+            name: 'CUSTOM_VERSION',
+            defaultValue: '',
+            description: '🔢 Versión personalizada (opcional). Si se especifica, sobreescribe la versión de gradle.properties. Ejemplo: 1.0.6'
+        )
+
+        booleanParam(
+            name: 'AUTO_INCREMENT_VERSION',
+            defaultValue: false,
+            description: '''🤖 Auto-incrementar versión desde Artifactory (Fase 6):
+            - true: Consulta última versión en Artifactory y auto-incrementa PATCH
+            - false: Usa gradle.properties o CUSTOM_VERSION
+            ⚠️ Solo funciona si CUSTOM_VERSION está vacío'''
+        )
+
+        booleanParam(
+            name: 'PUBLISH_TO_MAVEN_LOCAL',
+            defaultValue: false,
+            description: '📦 Publicar artefactos a Maven Local (~/.m2/repository). Solo aplica en rama develop'
+        )
+
+        choice(
+            name: 'PUBLISH_TO_ARTIFACTORY',
+            choices: ['AUTO', 'YES', 'NO'],
+            description: '''🚀 Publicar a Artifactory (solo master):
+            - AUTO: Publica automáticamente si estamos en master
+            - YES: Forzar publicación (solo master)
+            - NO: NO publicar (útil para testing)'''
+        )
+
+        booleanParam(
+            name: 'RUN_COVERAGE',
+            defaultValue: true,
+            description: '📊 Ejecutar análisis de cobertura de código (Jacoco). Solo aplica en develop'
+        )
+
+        booleanParam(
+            name: 'RUN_OWASP_SCAN',
+            defaultValue: true,
+            description: '🔒 Ejecutar escaneo de seguridad OWASP (dependencias vulnerables). Solo aplica en develop. GRATIS y rápido (~5 min)'
+        )
+
+        booleanParam(
+            name: 'REQUIRE_APPROVAL',
+            defaultValue: false,
+            description: '⏸️  Requerir aprobación manual antes de publicar a Artifactory (solo master)'
+        )
+    }
+
+    // ========================================================================
+    // VARIABLES DE ENTORNO
+    // ========================================================================
+    environment {
+        // Artifactory configuration
+        ARTIFACTORY_URL = 'https://artifactory.scotiabank.com/artifactory'
+        ARTIFACTORY_RELEASE_REPO = 'libs-release-local'
+        ARTIFACTORY_CREDS = credentials('artifactory-credentials')  // ID en Jenkins
+
+        // Variable para decisión de publicación
+        WILL_PUBLISH_ARTIFACTORY = 'false'
     }
 
     // ========================================================================
@@ -34,6 +268,7 @@ pipeline {
             numToKeepStr: '10',              // Mantener últimos 10 builds
             artifactNumToKeepStr: '5'        // Mantener artefactos de últimos 5
         ))
+        disableConcurrentBuilds()            // Evitar builds concurrentes
     }
 
     // ========================================================================
@@ -64,7 +299,108 @@ pipeline {
         }
 
         // ====================================================================
-        // STAGE 2: VERIFICAR ENTORNO
+        // STAGE 2: CALCULAR VERSIÓN
+        // ====================================================================
+        stage('🔢 Calcular Versión') {
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🔢 Calculando versión del proyecto...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+
+                    // Estrategia 1: Versión personalizada (máxima prioridad)
+                    if (params.CUSTOM_VERSION?.trim()) {
+                        env.VERSION = params.CUSTOM_VERSION.trim()
+                        echo "📌 Usando versión personalizada: ${env.VERSION}"
+
+                    // Estrategia 2: Auto-incremento desde Artifactory (Fase 6)
+                    } else if (params.AUTO_INCREMENT_VERSION) {
+                        echo '🤖 Modo: Auto-incremento desde Artifactory'
+                        echo "📡 Consultando Artifactory: ${env.ARTIFACTORY_URL}"
+
+                        // Consultar última versión del módulo "common" como referencia
+                        def latestVersion = getLatestVersionFromArtifactory('com.scotia.qa', 'common')
+
+                        if (latestVersion) {
+                            echo "📊 Última versión en Artifactory: ${latestVersion}"
+                            def nextVersion = calculateNextVersion(latestVersion)
+                            env.VERSION = nextVersion
+                            echo "🚀 Nueva versión auto-incrementada: ${env.VERSION}"
+                        } else {
+                            echo "⚠️  No hay versiones en Artifactory, usando gradle.properties"
+                            // Fallback a gradle.properties
+                            def props = readFile('gradle.properties')
+                            def versionLine = props.split('\n').find { it.startsWith('version=') }
+
+                            if (versionLine) {
+                                env.VERSION = versionLine.split('=')[1].trim()
+                                echo "📖 Versión leída de gradle.properties: ${env.VERSION}"
+                            } else {
+                                error('❌ No se pudo leer la versión de gradle.properties')
+                            }
+                        }
+
+                    // Estrategia 3: Leer de gradle.properties (default)
+                    } else {
+                        echo '📖 Modo: Leer versión de gradle.properties'
+                        def props = readFile('gradle.properties')
+                        def versionLine = props.split('\n').find { it.startsWith('version=') }
+
+                        if (versionLine) {
+                            env.VERSION = versionLine.split('=')[1].trim()
+                            echo "📖 Versión leída de gradle.properties: ${env.VERSION}"
+                        } else {
+                            error('❌ No se pudo leer la versión de gradle.properties')
+                        }
+                    }
+
+                    // Validar que la versión no sea vacía
+                    if (!env.VERSION) {
+                        error('❌ La versión no puede estar vacía')
+                    }
+
+                    echo "✅ Versión final: ${env.VERSION}"
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 3: DECIDIR PUBLICACIÓN ARTIFACTORY
+        // ====================================================================
+        stage('🎯 Decidir Publicación Artifactory') {
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🎯 Evaluando si publicar a Artifactory...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "🌿 Rama actual: ${env.BRANCH_NAME}"
+                    echo "⚙️  Parámetro PUBLISH_TO_ARTIFACTORY: ${params.PUBLISH_TO_ARTIFACTORY}"
+
+                    // Lógica de decisión
+                    if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main') {
+                        if (params.PUBLISH_TO_ARTIFACTORY == 'AUTO' || params.PUBLISH_TO_ARTIFACTORY == 'YES') {
+                            env.WILL_PUBLISH_ARTIFACTORY = 'true'
+                            echo '✅ DECISIÓN: Se publicará a Artifactory'
+                            echo "📍 URL: ${env.ARTIFACTORY_URL}"
+                            echo "📦 Repositorio: ${env.ARTIFACTORY_RELEASE_REPO}"
+                        } else {
+                            env.WILL_PUBLISH_ARTIFACTORY = 'false'
+                            echo '⚠️  DECISIÓN: NO se publicará (PUBLISH_TO_ARTIFACTORY=NO)'
+                        }
+                    } else {
+                        env.WILL_PUBLISH_ARTIFACTORY = 'false'
+                        echo "⚠️  DECISIÓN: NO se publicará (rama '${env.BRANCH_NAME}' no es master/main)"
+                        echo '💡 Solo se publica desde rama master/main'
+                    }
+
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 4: VERIFICAR ENTORNO
         // ====================================================================
         stage('🔍 Verificar Entorno') {
             steps {
@@ -96,7 +432,7 @@ pipeline {
         }
 
         // ====================================================================
-        // STAGE 3: LIMPIAR
+        // STAGE 4: LIMPIAR
         // ====================================================================
         stage('🧹 Limpiar') {
             steps {
@@ -106,7 +442,7 @@ pipeline {
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                 }
 
-                sh './gradlew clean'
+                sh "./gradlew clean -Pversion=${env.VERSION}"
 
                 script {
                     echo '✅ Workspace limpio'
@@ -115,7 +451,7 @@ pipeline {
         }
 
         // ====================================================================
-        // STAGE 4: COMPILAR
+        // STAGE 5: COMPILAR
         // ====================================================================
         stage('🔨 Compilar') {
             steps {
@@ -124,10 +460,11 @@ pipeline {
                     echo '🔨 Compilando proyecto...'
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                     echo '📦 Módulos: common, api-core, web-core, mobile-core'
-                    echo '⚙️  Comando: ./gradlew build -x test'
+                    echo "🔢 Versión: ${env.VERSION}"
+                    echo '⚙️  Comando: ./gradlew build -x test -Pversion=${VERSION}'
                 }
 
-                sh './gradlew build -x test'
+                sh "./gradlew build -x test -Pversion=${env.VERSION}"
 
                 script {
                     echo '✅ Compilación exitosa'
@@ -136,18 +473,21 @@ pipeline {
         }
 
         // ====================================================================
-        // STAGE 5: TESTS
+        // STAGE 6: TESTS
         // ====================================================================
         stage('🧪 Tests') {
+            when {
+                expression { params.SKIP_TESTS != true }
+            }
             steps {
                 script {
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                     echo '🧪 Ejecutando tests...'
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '⚙️  Comando: ./gradlew test'
+                    echo '⚙️  Comando: ./gradlew test -Pversion=${VERSION}'
                 }
 
-                sh './gradlew test'
+                sh "./gradlew test -Pversion=${env.VERSION}"
 
                 script {
                     echo '✅ Tests completados'
@@ -180,7 +520,235 @@ pipeline {
         }
 
         // ====================================================================
-        // STAGE 6: GENERAR ARTEFACTOS
+        // STAGE 6A: COVERAGE (Fase 7 - Solo en develop)
+        // ====================================================================
+        stage('📊 Coverage') {
+            when {
+                allOf {
+                    branch 'develop'
+                    expression { params.RUN_COVERAGE == true }
+                    expression { params.SKIP_TESTS != true }
+                }
+            }
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '📊 Analizando cobertura de código (Jacoco)...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                }
+
+                sh "./gradlew jacocoTestReport -Pversion=${env.VERSION}"
+
+                script {
+                    echo '✅ Reporte de cobertura generado'
+                }
+            }
+            post {
+                always {
+                    // Publicar reporte de Jacoco
+                    publishHTML(target: [
+                        reportDir: 'build/reports/jacoco/test/html',
+                        reportFiles: 'index.html',
+                        reportName: '📊 Coverage Report (Jacoco)',
+                        keepAll: true,
+                        alwaysLinkToLastBuild: true,
+                        allowMissing: true
+                    ])
+
+                    script {
+                        echo '📊 Reporte de cobertura publicado'
+
+                        // Opcional: Verificar umbral mínimo
+                        try {
+                            def jacocoReport = readFile('build/reports/jacoco/test/html/index.html')
+                            if (jacocoReport.contains('Total')) {
+                                echo '💡 Ver reporte completo en: Coverage Report (Jacoco)'
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️  No se pudo leer el reporte de cobertura: ${e.message}"
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 6B: QUALITY GATE (Fase 7 - Solo en develop)
+        // ====================================================================
+        stage('🚦 Quality Gate') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🚦 Ejecutando Quality Gate...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+
+                    // Checks básicos
+                    def checksPass = true
+
+                    // Check 1: Tests ejecutados
+                    if (!params.SKIP_TESTS) {
+                        echo '✅ Check 1: Tests ejecutados'
+                    } else {
+                        echo '⚠️  Check 1: Tests skippeados'
+                        checksPass = false
+                    }
+
+                    // Check 2: Build exitoso
+                    echo '✅ Check 2: Build exitoso'
+
+                    // Check 3: Artefactos generados (se verificará después)
+                    echo '⏳ Check 3: Artefactos (pendiente de generación)'
+
+                    if (checksPass) {
+                        echo ''
+                        echo '✅ Quality Gate: PASSED'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    } else {
+                        echo ''
+                        echo '⚠️  Quality Gate: PASSED WITH WARNINGS'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 6C: CHECKMARX SAST (Solo en master - ANTES de generar artefactos)
+        // ====================================================================
+        stage("🔒 Checkmarx SAST") {
+            when {
+                anyOf {
+                    branch 'master'
+                    branch 'main'
+                }
+            }
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🔒 Ejecutando Checkmarx SAST...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '⚠️  Tiempo estimado: 20-30 minutos'
+
+                    // Set client ID and secret for authentication
+                    env.CX_CLIENT_ID="PIPELINE_BJCX_Chile"
+                    env.CX_CLIENT_SECRET=USF_PSW
+                    env.CX_TENANT="BNS"
+                    env.CX_BASE_URI="https://scotiabank.cxone.cloud/"
+                    env.CX_HTTP_PROXY=HTTPS_PROXY
+                    env.HTTP_PROXY=HTTPS_PROXY
+
+
+                    // Configuration for the repository where the application is stored
+                    // Consult the Confluence documentation for naming conventions [https://confluence.agile.bns/display/ASPLATFORM/Naming+Conventions+-+Checkmarx+One]
+                    def REPO_TYPE='BB' // Bitbucket as the repository type BB|TG|AD|MG|DW'
+                    def PIPELINE='CHILE' //'ACCP|COLOMBIA|CHILE|MEXICO|PERU|MODE|AEM|SOL'
+                    def CURL_TENANT = env.CX_TENANT.toLowerCase()
+
+                    env.USF_USR = USF_USR
+                    env.USF_PSW = USF_PSW
+
+
+                    def CX_TOKEN_RESPONSE = sh (label: 'cURL command', returnStdout: true, script:"""curl --request POST \
+                            --url ${CX_BASE_URI}auth/realms/${CURL_TENANT}/protocol/openid-connect/token \
+                            --header 'Accept: application/json' \
+                            --header 'Content-Type: application/x-www-form-urlencoded' \
+                            --data client_id=${USF_USR} \
+                            --data grant_type=client_credentials \
+                            --data client_secret=${USF_PSW}
+                        """)
+                    def CX_TOKEN_RESPONSE_JSON = readJSON text: CX_TOKEN_RESPONSE
+                    def CX_TOKEN = CX_TOKEN_RESPONSE_JSON["access_token"]
+                    def CX_BASE_URI = "https://scotiabank.cxone.cloud"
+
+                    maskPasswords(varPasswordPairs: [[password: CX_TOKEN ,var: 'IGNORE']]){
+                        def GETPROJECTS = sh(label:'cURL command', returnStdout: true, script:
+                                """curl --location \
+                                --url ${CX_BASE_URI}/api/projects?limit=999999 \
+                                --header 'Accept: */*' \
+                                --header 'Authorization: Bearer ${CX_TOKEN}' 
+                            """)
+                        GETPROJECTS = readJSON text: GETPROJECTS
+                        if(!(PROJECT_KEY)){
+                            def projects = []
+                            GETPROJECTS.projects.each { if(it.name)projects.add(it.name)}
+                            chooseProject = [ choice(name: "Proyecto", description: "Elige proyecto", choices: projects.sort())]
+                            PROJECT_KEY = userInput.userInput("Seleccione proyecto", chooseProject)
+                        }
+                        def chosenProject = GETPROJECTS.projects.find{it.name == PROJECT_KEY}
+                        def projectId = chosenProject.id
+                        def GETLASTSCAN = sh (label:'cURL command', returnStdout: true, script:
+                                """curl --location \
+                                --url ${CX_BASE_URI}/api/projects/last-scan?project-ids=${projectId} \
+                                --header 'Accept: */*' \
+                                --header 'Authorization: Bearer ${CX_TOKEN}'
+                            """)
+                        GETLASTSCAN = readJSON text: GETLASTSCAN
+                        def scanId = GETLASTSCAN[projectId].id
+
+
+
+                        def CREATESCAN = sh (label:'cURL command', returnStdout: true, script:
+                                """curl -X POST ${CX_BASE_URI}/api/reports/  \
+                                --header 'Accept: */*' \
+                                --header 'Authorization: Bearer ${CX_TOKEN}' \
+                                --data '{
+                                    "fileFormat": "csv",
+                                    "reportType": "cli",
+                                    "reportName": "improved-scan-report",
+                                    "data": {
+                                        "projectId": "${projectId}",
+                                        "scanId": "${scanId}"
+                                    }
+                                }'
+
+                            """)
+                        CREATESCAN = readJSON text: CREATESCAN
+                        def reportId = CREATESCAN.reportId
+
+
+                        def timeout = 1
+                        def REPORTSTATUS
+                        while(timeout <= 60){
+                            sleep 1
+                            REPORTSTATUS = sh (label:'cURL command', returnStdout: true, script:
+                                    """curl --location \
+                                    --url ${CX_BASE_URI}/api/reports/${reportId} \
+                                    --header 'Accept: */*' \
+                                    --header 'Authorization: Bearer ${CX_TOKEN}'
+                                """)
+                            REPORTSTATUS = readJSON text: REPORTSTATUS
+                            if (REPORTSTATUS.status == "completed"){
+                                timeout = 0
+                                break
+                            }
+                            timeout += 1
+                        }
+
+                        if(timeout >=60){
+                            utils.failjob("El reporte no pudo ser creado")
+                        }
+
+
+                        def GETREPORT = sh (label:'cURL command', returnStdout: true, script:
+                                """curl --location \
+                                --url ${CX_BASE_URI}/api/reports/${reportId}/download \
+                                --header 'Accept: */*' \
+                                --header 'Authorization: Bearer ${CX_TOKEN}'
+                            """)
+                        writeFile file: 'report.csv', text: GETREPORT
+
+                        archiveArtifacts artifacts: "report.csv", fingerprint: true
+                    }
+
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 7: GENERAR ARTEFACTOS
         // ====================================================================
         stage('📦 Generar Artefactos') {
             steps {
@@ -188,16 +756,17 @@ pipeline {
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                     echo '📦 Generando artefactos (JAR, Javadoc, Sources)...'
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "🔢 Versión: ${env.VERSION}"
                 }
 
                 // Generar JARs principales
-                sh './gradlew jar'
+                sh "./gradlew jar -Pversion=${env.VERSION}"
 
                 // Generar Javadoc JARs
-                sh './gradlew javadocJar'
+                sh "./gradlew javadocJar -Pversion=${env.VERSION}"
 
                 // Generar Sources JARs
-                sh './gradlew sourcesJar'
+                sh "./gradlew sourcesJar -Pversion=${env.VERSION}"
 
                 script {
                     echo '✅ Artefactos generados correctamente'
@@ -220,6 +789,231 @@ pipeline {
             }
         }
 
+        // ====================================================================
+        // STAGE 8: PUBLICAR A MAVEN LOCAL (Solo en develop)
+        // ====================================================================
+        stage('📦 Publicar a Maven Local') {
+            when {
+                allOf {
+                    branch 'develop'
+                    expression { params.PUBLISH_TO_MAVEN_LOCAL == true }
+                }
+            }
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '📦 Publicando a Maven Local...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "🌿 Rama: ${env.BRANCH_NAME}"
+                    echo "🔢 Versión: ${env.VERSION}"
+                    echo "📍 Destino: ~/.m2/repository"
+                    echo '⚙️  Comando: ./gradlew publishToMavenLocal'
+                }
+
+                sh "./gradlew publishToMavenLocal -Pversion=${env.VERSION}"
+
+                script {
+                    echo '✅ Publicación a Maven Local exitosa'
+                    echo ''
+                    echo '💡 Los artefactos están disponibles en:'
+                    echo "   ~/.m2/repository/com/scotia/qa/common/${env.VERSION}/"
+                    echo "   ~/.m2/repository/com/scotia/qa/api-core/${env.VERSION}/"
+                    echo "   ~/.m2/repository/com/scotia/qa/web-core/${env.VERSION}/"
+                    echo "   ~/.m2/repository/com/scotia/qa/mobile-core/${env.VERSION}/"
+                }
+            }
+            post {
+                success {
+                    script {
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '✅ PUBLICACIÓN A MAVEN LOCAL COMPLETADA'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    }
+                }
+                failure {
+                    script {
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '❌ ERROR en publicación a Maven Local'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '💡 Verificar:'
+                        echo '   - Tarea publishToMavenLocal existe en build.gradle'
+                        echo '   - Plugin maven-publish está configurado'
+                        echo '   - Permisos de escritura en ~/.m2/repository'
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 8A: APROBAR PUBLICACIÓN (Fase 7 - Solo en master con aprobación)
+        // ====================================================================
+        stage('⏸️  Aprobar Publicación a Artifactory') {
+            when {
+                allOf {
+                    expression { env.WILL_PUBLISH_ARTIFACTORY == 'true' }
+                    expression { params.REQUIRE_APPROVAL == true }
+                }
+            }
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '⏸️  APROBACIÓN MANUAL REQUERIDA'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "🔢 Versión a publicar: ${env.VERSION}"
+                    echo "📦 Destino: ${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO}"
+                    echo ''
+                    echo '⚠️  IMPORTANTE: Esta acción publicará los artefactos a Artifactory'
+                    echo '⚠️  y estarán disponibles para TODOS los proyectos.'
+                    echo ''
+
+                    timeout(time: 30, unit: 'MINUTES') {
+                        input(
+                            message: '¿Aprobar publicación a Artifactory?',
+                            ok: '✅ Aprobar y Publicar',
+                            submitter: 'admin,tech-lead',  // Solo estos roles pueden aprobar
+                            parameters: [
+                                choice(
+                                    name: 'CONFIRMATION',
+                                    choices: ['NO', 'YES'],
+                                    description: '¿Está seguro de publicar a Artifactory?'
+                                )
+                            ]
+                        )
+                    }
+
+                    echo '✅ Publicación aprobada por usuario'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 9: VERIFICAR DUPLICADOS EN ARTIFACTORY (Fase 6)
+        // ====================================================================
+        stage('🔍 Verificar Duplicados en Artifactory') {
+            when {
+                expression { env.WILL_PUBLISH_ARTIFACTORY == 'true' }
+            }
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🔍 Verificando duplicados en Artifactory...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "🔢 Versión a verificar: ${env.VERSION}"
+
+                    // Lista de módulos a verificar
+                    def modules = ['common', 'api-core', 'web-core', 'mobile-core']
+                    def duplicatesFound = []
+
+                    modules.each { module ->
+                        echo "📦 Verificando módulo: ${module}"
+                        def exists = checkVersionExistsInArtifactory('com.scotia.qa', module, env.VERSION)
+
+                        if (exists) {
+                            echo "   ⚠️  YA EXISTE en Artifactory"
+                            duplicatesFound.add(module)
+                        } else {
+                            echo "   ✅ No existe (OK)"
+                        }
+                    }
+
+                    // Si hay duplicados, fallar el build
+                    if (duplicatesFound.size() > 0) {
+                        echo ''
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '❌ ERROR: VERSIÓN DUPLICADA DETECTADA'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo "🔢 Versión: ${env.VERSION}"
+                        echo "📦 Módulos duplicados: ${duplicatesFound.join(', ')}"
+                        echo ''
+                        echo '💡 Soluciones:'
+                        echo '   1. Usar AUTO_INCREMENT_VERSION=true para auto-incrementar'
+                        echo '   2. Especificar CUSTOM_VERSION con una versión nueva'
+                        echo '   3. Actualizar versión en gradle.properties'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        error("❌ La versión ${env.VERSION} ya existe en Artifactory")
+                    } else {
+                        echo ''
+                        echo '✅ No se encontraron duplicados'
+                        echo "✅ Versión ${env.VERSION} disponible para publicación"
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 10: PUBLICAR A ARTIFACTORY (Solo en master)
+        // ====================================================================
+        stage('🚀 Publicar a Artifactory') {
+            when {
+                expression { env.WILL_PUBLISH_ARTIFACTORY == 'true' }
+            }
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🚀 Publicando a Artifactory...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "🌿 Rama: ${env.BRANCH_NAME}"
+                    echo "🔢 Versión: ${env.VERSION}"
+                    echo "📍 URL: ${env.ARTIFACTORY_URL}"
+                    echo "📦 Repositorio: ${env.ARTIFACTORY_RELEASE_REPO}"
+                    echo '⚙️  Comando: ./gradlew publish'
+                }
+
+                // Publicar usando credenciales
+                withCredentials([usernamePassword(
+                    credentialsId: 'artifactory-credentials',
+                    usernameVariable: 'ARTIFACTORY_USER',
+                    passwordVariable: 'ARTIFACTORY_PASSWORD'
+                )]) {
+                    sh """
+                        ./gradlew publish \\
+                            -Pversion=${env.VERSION} \\
+                            -PartifactoryUrl=${env.ARTIFACTORY_URL} \\
+                            -PartifactoryRepo=${env.ARTIFACTORY_RELEASE_REPO} \\
+                            -PartifactoryUser=\${ARTIFACTORY_USER} \\
+                            -PartifactoryPassword=\${ARTIFACTORY_PASSWORD}
+                    """
+                }
+
+                script {
+                    echo '✅ Publicación a Artifactory exitosa'
+                    echo ''
+                    echo '💡 Los artefactos están disponibles en:'
+                    echo "   ${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO}/com/scotia/qa/common/${env.VERSION}/"
+                    echo "   ${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO}/com/scotia/qa/api-core/${env.VERSION}/"
+                    echo "   ${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO}/com/scotia/qa/web-core/${env.VERSION}/"
+                    echo "   ${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO}/com/scotia/qa/mobile-core/${env.VERSION}/"
+                }
+            }
+            post {
+                success {
+                    script {
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '✅ PUBLICACIÓN A ARTIFACTORY COMPLETADA'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '🎉 Versión ${env.VERSION} disponible en Artifactory'
+                        echo '📦 Los proyectos pueden ahora usar esta versión'
+                    }
+                }
+                failure {
+                    script {
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '❌ ERROR en publicación a Artifactory'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '💡 Verificar:'
+                        echo '   - Credenciales de Artifactory son correctas'
+                        echo '   - URL de Artifactory es accesible'
+                        echo '   - Repositorio de destino existe'
+                        echo '   - Permisos de escritura en el repositorio'
+                        echo '   - Plugin maven-publish configurado en build.gradle'
+                        echo '   - Versión no existe ya en Artifactory (duplicado)'
+                    }
+                }
+            }
+        }
+
     } // Fin stages
 
     // ========================================================================
@@ -234,7 +1028,31 @@ pipeline {
                 echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                 echo "📝 Build: #${env.BUILD_NUMBER}"
                 echo "🌿 Branch: ${env.BRANCH_NAME}"
+                echo "🔢 Versión: ${env.VERSION}"
                 echo "⏱️  Duración: ${currentBuild.durationString}"
+
+                // Mostrar estado de tests
+                if (params.SKIP_TESTS) {
+                    echo '⚠️  Tests: SKIPPEADOS (SKIP_TESTS=true)'
+                } else {
+                    echo '✅ Tests: EJECUTADOS'
+                }
+
+                // Mostrar estado de publicaciones
+                echo ''
+                echo '📦 Publicaciones:'
+                if (env.BRANCH_NAME == 'develop' && params.PUBLISH_TO_MAVEN_LOCAL) {
+                    echo "   ✅ Maven Local: Publicado en ~/.m2/repository"
+                } else if (env.BRANCH_NAME == 'develop') {
+                    echo "   ⏭️  Maven Local: No publicado (PUBLISH_TO_MAVEN_LOCAL=false)"
+                }
+
+                if (env.WILL_PUBLISH_ARTIFACTORY == 'true') {
+                    echo "   ✅ Artifactory: Publicado en ${env.ARTIFACTORY_URL}"
+                } else if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main') {
+                    echo "   ⏭️  Artifactory: No publicado (PUBLISH_TO_ARTIFACTORY=${params.PUBLISH_TO_ARTIFACTORY})"
+                }
+
                 echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
             }
         }

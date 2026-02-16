@@ -2,6 +2,7 @@
 group = "com.scotia.qa"
 version = "1.0.0"  // Versión inicial estable con todas las mejoras implementadas
 
+
 // ========================================================================
 // CONFIGURACIÓN SSL GLOBAL PARA GRADLE (antes de subprojects)
 // ========================================================================
@@ -236,3 +237,4 @@ subprojects {
         }
     }
 }
+
