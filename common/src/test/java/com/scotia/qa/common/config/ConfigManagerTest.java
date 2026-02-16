@@ -705,7 +705,7 @@ class ConfigManagerTest {
         @Test
         @DisplayName("Debe cargar valores desde archivo de configuración")
         void testLoadConfigFile() {
-            // When - Valores definidos en config-test.properties
+            // When - Valores definidos en config-scotia.properties
             String stringValue = config.get("test.string.simple");
             String dbName = config.get("db.name");
 
