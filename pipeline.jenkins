@@ -1,84 +1,5 @@
 #!/usr/bin/env groovy
-
-/**
- * ============================================================================
- * JENKINS PIPELINE: qa-scotia-frameworks
- * ============================================================================
- * Proyecto: Framework QA Automatización (Common, API, Web, Mobile)
- * Estrategia: Construcción incremental (MVP → Features avanzadas)
- * Fase actual: 7 - Features Avanzadas + Security (COMPLETO - 100%)
- *
- * Features implementadas:
- *
- * FASE 1 - MVP:
- * ✅ Build básico (clean + build)
- * ✅ Tests con reportes JUnit y HTML
- * ✅ Generación de artefactos (jar, javadoc, sources)
- * ✅ Post actions (success, failure, always)
- * ✅ CleanWs automático
- *
- * FASE 2 - Parámetros Básicos:
- * ✅ Parámetro SKIP_TESTS (saltar tests)
- * ✅ Condicional when en stage Tests
- * ✅ Mensajes de estado en post actions
- *
- * FASE 3 - Versionado Simple:
- * ✅ Parámetro CUSTOM_VERSION (override manual)
- * ✅ Lectura automática desde gradle.properties
- * ✅ Stage Calcular Versión
- * ✅ Uso de versión en todos los comandos Gradle
- *
- * FASE 4 - Publicación Maven Local:
- * ✅ Parámetro PUBLISH_TO_MAVEN_LOCAL
- * ✅ Stage publicación solo en rama develop
- * ✅ Condicional: branch + parámetro
- * ✅ Post actions con troubleshooting
- *
- * FASE 5 - Publicación Artifactory:
- * ✅ Parámetro PUBLISH_TO_ARTIFACTORY (AUTO/YES/NO)
- * ✅ Environment con variables de Artifactory
- * ✅ Stage decisión de publicación
- * ✅ Stage publicación solo en rama master/main
- * ✅ Credenciales con withCredentials
- * ✅ Estrategia: develop→Maven Local, master→Artifactory
- *
- * FASE 6 - Versionado Inteligente:
- * ✅ Parámetro AUTO_INCREMENT_VERSION
- * ✅ Función getLatestVersionFromArtifactory() (API)
- * ✅ Función calculateNextVersion() (auto-increment PATCH)
- * ✅ Función checkVersionExistsInArtifactory() (HEAD request)
- * ✅ Stage Verificar Duplicados (pre-publicación)
- * ✅ Lógica de versionado con 3 estrategias
- *
- * FASE 7 - Features Avanzadas + Security:
- * ✅ Parámetro RUN_COVERAGE
- * ✅ Parámetro RUN_OWASP_SCAN
- * ✅ Parámetro REQUIRE_APPROVAL
- * ✅ Stage Coverage (Jacoco, solo develop)
- * ✅ Stage OWASP Security Scan (develop - GRATIS, 5 min)
- * ✅ Stage Checkmarx SAST (master - LICENCIA, 25 min, DESHABILITADO)
- * ✅ Stage Quality Gate (checks básicos)
- * ✅ Stage Aprobación Manual (input step, solo master)
- * ✅ Publicación reportes de cobertura y seguridad
- *
- * ESTRATEGIA DE SECURITY:
- * - develop: OWASP (rápido, gratis) → CVEs en dependencias
- * - master: Checkmarx (completo, licencia) → Vulnerabilidades en código
- *
- * RESUMEN:
- * - 14+ stages funcionales
- * - 7 parámetros configurables
- * - 3 funciones helper
- * - Soporte multi-rama (develop/master)
- * - Versionado inteligente con Artifactory API
- * - Quality gates y cobertura
- * - Security scanning (OWASP + Checkmarx)
- * - Aprobación manual opcional
- *
- * ============================================================================
- */
-
-
+@Library('pipeline-utils') _
 
 // ============================================================================
 // FUNCIONES HELPER (Fase 6: Versionado Inteligente)
@@ -249,10 +170,8 @@ pipeline {
     // ========================================================================
     environment {
         // Artifactory configuration
-        ARTIFACTORY_URL = 'https://artifactory.scotiabank.com/artifactory'
-        ARTIFACTORY_RELEASE_REPO = 'libs-release-local'
-        ARTIFACTORY_CREDS = credentials('artifactory-credentials')  // ID en Jenkins
-
+        ARTIFACTORY = credentials('Artifactory')
+        ARTIFACTORYREPOKEY = 'libs-release-thirdparty'
         // Variable para decisión de publicación
         WILL_PUBLISH_ARTIFACTORY = 'false'
     }
@@ -1076,16 +995,14 @@ pipeline {
                 echo '🧹 Limpiando workspace...'
             }
 
-            // cleanWs requiere un nodo, así que lo envolvemos
-            node('jslave1') {
-                cleanWs(
-                    deleteDirs: true,
-                    patterns: [
-                        [pattern: '**/build/**', type: 'INCLUDE'],
-                        [pattern: '**/.gradle/**', type: 'INCLUDE']
-                    ]
-                )
-            }
+            // Limpiar workspace al finalizar
+            cleanWs(
+                deleteDirs: true,
+                patterns: [
+                    [pattern: '**/build/**', type: 'INCLUDE'],
+                    [pattern: '**/.gradle/**', type: 'INCLUDE']
+                ]
+            )
 
             script {
                 echo '✅ Workspace limpio'

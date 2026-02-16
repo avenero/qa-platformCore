@@ -311,9 +311,15 @@ agent { label 'master' }  // O el label disponible
 Configurar en: Manage Jenkins → Global Tool Configuration
 
 ### **Error: "Credentials artifactory-credentials not found"**
-Crear en: Manage Jenkins → Credentials → Add
+Cambiar a usar el ID correcto. Ya está configurado como:
+```groovy
+ARTIFACTORY = credentials('Artifactory')  // ID: Artifactory (no artifactory-credentials)
 ```
-ID: artifactory-credentials
+
+Si el error persiste, crear credential:
+```
+Manage Jenkins → Credentials → Add
+ID: Artifactory
 Username: [tu-usuario]
 Password: [tu-password]
 ```
@@ -408,21 +414,42 @@ com/scotia/qa/
 
 ### **En Jenkins (Manage Credentials):**
 
-**1. artifactory-credentials**
+**1. Artifactory** (nombre exacto del ID)
 ```
 Kind: Username with password
 Username: [tu-usuario-artifactory]
 Password: [tu-password-artifactory]
-ID: artifactory-credentials
+ID: Artifactory  ← IMPORTANTE: usar este ID exacto
 ```
 
-**2. checkmarx-credentials (opcional, cuando las obtengas)**
+**Nota:** El pipeline usa `credentials('Artifactory')` que carga automáticamente:
+- `ARTIFACTORY_USR` (username)
+- `ARTIFACTORY_PSW` (password)
+
+**2. Variables de Checkmarx** (opcional):
 ```
-Kind: Username with password
-Username: [CX_CLIENT_ID propio]
-Password: [CX_CLIENT_SECRET propio]
-ID: checkmarx-credentials
+Las credenciales USF_USR y USF_PSW deben existir como:
+- Variables de entorno globales en Jenkins
+- O como credentials binding en el pipeline
 ```
+
+---
+
+## ⚙️ CONFIGURACIÓN DE ENVIRONMENT
+
+### **Variables configuradas:**
+```groovy
+environment {
+    ARTIFACTORY = credentials('Artifactory')  // Carga USR y PSW
+    ARTIFACTORYREPOKEY = 'libs-release-thirdparty'
+    WILL_PUBLISH_ARTIFACTORY = 'false'
+}
+```
+
+**Disponibles en el pipeline:**
+- `env.ARTIFACTORY_USR` → Username
+- `env.ARTIFACTORY_PSW` → Password
+- `env.ARTIFACTORYREPOKEY` → Repositorio destino
 
 ---
 
