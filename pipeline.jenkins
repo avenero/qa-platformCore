@@ -1,435 +1,297 @@
-#!groovy
-@Library('pipeline-utils') _
+#!/usr/bin/env groovy
+
+/**
+ * ============================================================================
+ * JENKINS PIPELINE: qa-scotia-frameworks
+ * ============================================================================
+ * Proyecto: Framework QA Automatización (Common, API, Web, Mobile)
+ * Estrategia: Construcción incremental (MVP → Features avanzadas)
+ * Fase actual: 1 - MVP (Minimum Viable Pipeline)
+ *
+ * Features implementadas:
+ * ✅ Build básico (clean + build)
+ * ✅ Tests con reportes
+ * ✅ Generación de artefactos (jar, javadoc, sources)
+ * ✅ Post actions básicas
+ *
+ * Pendientes (fases futuras):
+ * ⏳ Parámetros (SKIP_TESTS, PUBLISH_TO_MAVEN_LOCAL, etc.)
+ * ⏳ Versionado inteligente
+ * ⏳ Publicación a Artifactory
+ * ⏳ Coverage y Quality Gates
+ * ============================================================================
+ */
 
 pipeline {
-    agent { label 'jslave1'}
 
+    // ========================================================================
+    // CONFIGURACIÓN DEL AGENTE
+    // ========================================================================
+    agent {
+        any  // Ejecutar en cualquier agente disponible
+    }
+
+    // ========================================================================
+    // HERRAMIENTAS
+    // ========================================================================
     tools {
-        jdk 'OpenJDK 21'
-        gradle 'Gradle 8.5'
+        jdk 'JDK 21'       // Java 21 (configurado en Jenkins Global Tools)
+        gradle 'Gradle 8.5' // Gradle 8.5 (configurado en Jenkins Global Tools)
     }
 
-    parameters {
-        choice(
-            name: 'PUBLISH_TO_ARTIFACTORY',
-            choices: ['AUTO', 'YES', 'NO'],
-            description: '''Publicar a Artifactory:
-• AUTO: Solo si es rama main/master
-• YES: Forzar publicación ⚠️
-• NO: Solo compilar y testear'''
-        )
-        string(
-            name: 'CUSTOM_VERSION',
-            defaultValue: '',
-            description: '''Versión personalizada (OPCIONAL):
-• Dejar VACÍO para cálculo automático (recomendado)
-• Llenar solo para: hotfixes, RCs, testing
-• Ejemplo: 1.2.0-hotfix, 1.0.0-rc1'''
-        )
-        booleanParam(
-            name: 'SKIP_TESTS',
-            defaultValue: false,
-            description: '⚠️ Saltar tests'
-        )
-    }
     // ========================================================================
-    // VARIABLES DE ENTORNO
-    // ========================================================================
-    environment {
-        // Artifactory
-        ARTIFACTORY_URL = 'https://artifactory.cldevops.chl.bns/artifactory'
-        ARTIFACTORY_RELEASE_REPO = 'libs-release-thirdparty'  // ⚠️ Verificar: libs-release-local o libs-release-thirdparty
-        ARTIFACTORY_CREDS = credentials('Artifactory')  // ✅ Credencial existente reutilizada
-        // Teams
-        // TEAMS_WEBHOOK = credentials('teams-webhook-qa-framework')  // ⚠️ TODO: Crear esta credencial
-        // Proyecto
-        PROJECT_GROUP = 'com.scotia.qa'
-        PROJECT_NAME = 'qa-scotia-frameworks'
-        MODULES = 'common,api-core,web-core,mobile-core'
-        // Quality Gates
-        MIN_CODE_COVERAGE = '70'
-        // Runtime
-        VERSION = ''
-        WILL_PUBLISH = 'false'
-    }
-    // ========================================================================
-    // TRIGGERS
-    // ========================================================================
-    triggers {
-        pollSCM(env.BRANCH_NAME in ['main', 'master'] ? 'H/5 * * * *' : '')
-    }
-    // ========================================================================
-    // OPCIONES
+    // OPCIONES GLOBALES
     // ========================================================================
     options {
-        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
-        timeout(time: 30, unit: 'MINUTES')
-        timestamps()
-        disableConcurrentBuilds()
-        skipDefaultCheckout()
-        ansiColor('xterm')
+        timeout(time: 30, unit: 'MINUTES')  // Timeout máximo del pipeline
+        timestamps()                         // Agregar timestamps a logs
+        ansiColor('xterm')                   // Colores en logs
+        buildDiscarder(logRotator(
+            numToKeepStr: '10',              // Mantener últimos 10 builds
+            artifactNumToKeepStr: '5'        // Mantener artefactos de últimos 5
+        ))
     }
 
     // ========================================================================
     // STAGES
     // ========================================================================
     stages {
-        stage('🔽 Checkout') {
+
+        // ====================================================================
+        // STAGE 1: CHECKOUT
+        // ====================================================================
+        stage('📥 Checkout') {
             steps {
                 script {
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '📥 Checkout código fuente...'
+                    echo '📥 Obteniendo código fuente...'
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "📂 Workspace: ${env.WORKSPACE}"
+                    echo "🌿 Branch: ${env.BRANCH_NAME}"
+                    echo "📝 Build: #${env.BUILD_NUMBER}"
                 }
+
                 checkout scm
+
                 script {
-                    env.GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    env.GIT_COMMIT_MSG = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
-                    env.GIT_AUTHOR = sh(script: 'git log -1 --pretty=%an', returnStdout: true).trim()
-                    echo "📌 Branch: ${env.BRANCH_NAME}"
-                    echo "📌 Commit: ${env.GIT_COMMIT_SHORT}"
-                    echo "📌 Autor: ${env.GIT_AUTHOR}"
+                    echo '✅ Código descargado exitosamente'
                 }
             }
         }
-        stage('🔢 Calcular Versión') {
-            steps {
-                script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '🔢 Calculando versión...'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    def shouldPublish = false
-                    if (params.PUBLISH_TO_ARTIFACTORY == 'AUTO') {
-                        shouldPublish = (env.BRANCH_NAME in ['main', 'master'])
-                        echo "🤖 AUTO: ${shouldPublish ? 'Publicará' : 'NO publicará'}"
-                    } else if (params.PUBLISH_TO_ARTIFACTORY == 'YES') {
-                        shouldPublish = true
-                    } else {
-                        shouldPublish = false
-                    }
-                    env.WILL_PUBLISH = shouldPublish.toString()
 
-                    // Calcular versión con manejo correcto de string vacío
-                    if (params.CUSTOM_VERSION && params.CUSTOM_VERSION.trim() != '') {
-                        // Usuario especificó versión manualmente
-                        env.VERSION = params.CUSTOM_VERSION.trim()
-                        echo "✅ Versión manual: ${env.VERSION}"
-                    } else {
-                        // Versión automática: leer de gradle.properties o Git tag
-                        def baseVersion = '1.0.0'  // Fallback por defecto
-
-                        // Intentar leer de gradle.properties
-                        try {
-                            def propsFile = readFile('gradle.properties')
-                            def matcher = (propsFile =~ /version=(.+)/)
-                            if (matcher.find()) {
-                                baseVersion = matcher.group(1).trim()
-                                echo "📄 Versión de gradle.properties: ${baseVersion}"
-                            }
-                        } catch (Exception e) {
-                            echo "⚠️  Error leyendo gradle.properties: ${e.message}"
-                            echo "⚠️  Usando versión por defecto: ${baseVersion}"
-                        }
-
-                        // Asignar INMEDIATAMENTE para evitar problemas de scope
-                        env.VERSION = baseVersion
-                        echo "✅ Versión base asignada: ${env.VERSION}"
-
-                        // Buscar Git Tag (tiene prioridad sobre gradle.properties y puede sobrescribir)
-                        try {
-                            def gitTag = sh(script: 'git describe --tags --exact-match 2>/dev/null || echo ""', returnStdout: true).trim()
-                            if (gitTag && gitTag != '') {
-                                env.VERSION = gitTag.startsWith('v') ? gitTag.substring(1) : gitTag
-                                echo "🏷️  Git tag encontrado, sobrescribiendo: ${env.VERSION}"
-                            }
-                        } catch (Exception e) {
-                            echo "⚠️  No hay Git tag (normal si no se usa versionado por tags)"
-                        }
-                    }
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "📦 VERSIÓN: ${env.VERSION}"
-                    echo "🚀 PUBLICAR: ${env.WILL_PUBLISH == 'true' ? 'SÍ' : 'NO'}"
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-                    // Validar que la versión no sea null o vacía
-                    if (!env.VERSION || env.VERSION == 'null' || env.VERSION.trim() == '') {
-                        error("❌ ERROR: No se pudo determinar la versión. Verifica gradle.properties o especifica CUSTOM_VERSION")
-                    }
-                }
-            }
-        }
-        stage('🔍 Verificar Duplicados') {
-            when {
-                expression { env.WILL_PUBLISH == 'true' }
-            }
-            steps {
-                script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo "🔍 Verificando versión ${env.VERSION} en Artifactory..."
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    def versionExists = false
-                    def modulosExistentes = []
-                    env.MODULES.split(',').each { module ->
-                        def moduleTrimmed = module.trim()
-                        def artifactPath = "${env.PROJECT_GROUP.replace('.', '/')}/${moduleTrimmed}/${env.VERSION}"
-                        def checkUrl = "${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO}/${artifactPath}/${moduleTrimmed}-${env.VERSION}.jar"
-                        echo "🔎 Verificando: ${moduleTrimmed}..."
-                        try {
-                            def response = httpRequest(
-                                httpMode: 'HEAD',
-                                url: checkUrl,
-                                authentication: 'Artifactory',  // ✅ ID de credencial existente
-                                validResponseCodes: '100:599',
-                                quiet: true
-                            )
-                            if (response.status == 200) {
-                                versionExists = true
-                                modulosExistentes.add(moduleTrimmed)
-                                echo "   ⚠️  ${moduleTrimmed} v${env.VERSION} YA EXISTE"
-                            } else {
-                                echo "   ✅ ${moduleTrimmed} v${env.VERSION} NO existe"
-                            }
-                        } catch (Exception e) {
-                            echo "   ✅ ${moduleTrimmed} v${env.VERSION} NO existe"
-                        }
-                    }
-                    if (versionExists) {
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                        echo '❌ ERROR: VERSIÓN DUPLICADA'
-                        echo ''
-                        echo 'Módulos existentes:'
-                        modulosExistentes.each { m -> echo "   - ${m} v${env.VERSION}" }
-                        echo ''
-                        echo 'Soluciones:'
-                        echo '  1. Incrementar versión en gradle.properties'
-                        echo '  2. Crear nuevo tag Git'
-                        echo '  3. Usar CUSTOM_VERSION'
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                        error("❌ Versión ${env.VERSION} ya existe")
-                    } else {
-                        echo "✅ Versión ${env.VERSION} disponible"
-                    }
-                }
-            }
-        }
+        // ====================================================================
+        // STAGE 2: VERIFICAR ENTORNO
+        // ====================================================================
         stage('🔍 Verificar Entorno') {
             steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🔍 Verificando herramientas instaladas...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                }
+
+                // Verificar Java
                 sh '''
-                    echo "☕ Java:"
+                    echo "☕ Java Version:"
                     java -version
                     echo ""
-                    echo "🐘 Gradle:"
-                    gradle --version || ./gradlew --version
+                    echo "📍 JAVA_HOME: $JAVA_HOME"
                 '''
+
+                // Verificar Gradle
+                sh '''
+                    echo ""
+                    echo "🐘 Gradle Version:"
+                    gradle --version
+                '''
+
+                script {
+                    echo '✅ Entorno verificado correctamente'
+                }
             }
         }
+
+        // ====================================================================
+        // STAGE 3: LIMPIAR
+        // ====================================================================
         stage('🧹 Limpiar') {
             steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🧹 Limpiando builds anteriores...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                }
+
                 sh './gradlew clean'
+
+                script {
+                    echo '✅ Workspace limpio'
+                }
             }
         }
+
+        // ====================================================================
+        // STAGE 4: COMPILAR
+        // ====================================================================
         stage('🔨 Compilar') {
             steps {
                 script {
-                    echo "🔨 Compilando módulos: ${env.MODULES}"
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🔨 Compilando proyecto...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '📦 Módulos: common, api-core, web-core, mobile-core'
+                    echo '⚙️  Comando: ./gradlew build -x test'
                 }
-                sh "./gradlew build -x test -Pversion=${env.VERSION}"
+
+                sh './gradlew build -x test'
+
+                script {
+                    echo '✅ Compilación exitosa'
+                }
             }
         }
+
+        // ====================================================================
+        // STAGE 5: TESTS
+        // ====================================================================
         stage('🧪 Tests') {
-            when {
-                expression { params.SKIP_TESTS == false }
-            }
             steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '🧪 Ejecutando tests...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '⚙️  Comando: ./gradlew test'
+                }
+
                 sh './gradlew test'
+
+                script {
+                    echo '✅ Tests completados'
+                }
             }
             post {
                 always {
-                    junit(allowEmptyResults: true, testResults: '**/build/test-results/test/*.xml')
-                }
-            }
-        }
-        stage('📊 Coverage') {
-            when {
-                expression { params.SKIP_TESTS == false }
-            }
-            steps {
-                sh './gradlew jacocoTestReport'
-                jacoco(
-                    execPattern: '**/build/jacoco/*.exec',
-                    classPattern: '**/build/classes/java/main',
-                    sourcePattern: '**/src/main/java',
-                    minimumLineCoverage: env.MIN_CODE_COVERAGE
-                )
-            }
-        }
-        stage('🚦 Quality Gate') {
-            when {
-                expression { env.WILL_PUBLISH == 'true' }
-            }
-            steps {
-                script {
-                    if (currentBuild.result == 'FAILURE' || currentBuild.result == 'UNSTABLE') {
-                        error('❌ Quality Gate falló')
+                    // Publicar resultados de tests en formato JUnit
+                    junit(
+                        testResults: '**/build/test-results/test/*.xml',
+                        allowEmptyResults: true,
+                        skipPublishingChecks: true
+                    )
+
+                    // Publicar reporte HTML de tests
+                    publishHTML(target: [
+                        reportDir: 'build/reports/tests/test',
+                        reportFiles: 'index.html',
+                        reportName: '📊 Test Report',
+                        keepAll: true,
+                        alwaysLinkToLastBuild: true,
+                        allowMissing: true
+                    ])
+
+                    script {
+                        echo '📊 Reportes de tests publicados'
                     }
-                    echo '✅ Quality Gate: PASSED'
                 }
             }
         }
-        stage('📦 Artefactos') {
+
+        // ====================================================================
+        // STAGE 6: GENERAR ARTEFACTOS
+        // ====================================================================
+        stage('📦 Generar Artefactos') {
             steps {
-                sh "./gradlew jar javadocJar sourcesJar -Pversion=${env.VERSION}"
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '📦 Generando artefactos (JAR, Javadoc, Sources)...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                }
+
+                // Generar JARs principales
+                sh './gradlew jar'
+
+                // Generar Javadoc JARs
+                sh './gradlew javadocJar'
+
+                // Generar Sources JARs
+                sh './gradlew sourcesJar'
+
+                script {
+                    echo '✅ Artefactos generados correctamente'
+                }
             }
             post {
-                always {
-                    archiveArtifacts(artifacts: '**/build/libs/*.jar', allowEmptyArchive: true, fingerprint: true)
+                success {
+                    // Archivar artefactos en Jenkins
+                    archiveArtifacts(
+                        artifacts: '**/build/libs/*.jar',
+                        fingerprint: true,
+                        allowEmptyArchive: true
+                    )
+
+                    script {
+                        echo '📦 Artefactos archivados en Jenkins'
+                        echo '💡 Disponibles en: Build Artifacts'
+                    }
                 }
             }
         }
-        stage('🚀 Publicar') {
-            when {
-                expression { env.WILL_PUBLISH == 'true' }
-            }
-            steps {
-                script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo "🚀 Publicando versión ${env.VERSION} a Artifactory..."
-                    echo "📁 Repositorio: ${env.ARTIFACTORY_RELEASE_REPO}"
-                    echo "🌐 URL: ${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO}"
-                    echo '⚠️  RELEASE = INMUTABLE (no se puede sobrescribir)'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                }
-                sh """
-                    ./gradlew publish \
-                        -Pversion=${env.VERSION} \
-                        -PartifactoryUrl=${env.ARTIFACTORY_URL}/${env.ARTIFACTORY_RELEASE_REPO} \
-                        -PartifactoryUser=${env.ARTIFACTORY_CREDS_USR} \
-                        -PartifactoryPassword=${env.ARTIFACTORY_CREDS_PSW}
-                """
-                script {
-                    echo '✅ PUBLICACIÓN EXITOSA'
-                    echo "📦 Versión ${env.VERSION} en Artifactory"
-                    echo '🔒 Versión INMUTABLE'
-                }
-            }
-        }
-    }
+
+    } // Fin stages
+
     // ========================================================================
     // POST ACTIONS
     // ========================================================================
     post {
+
         success {
             script {
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                 echo '✅ BUILD EXITOSO'
-
-                // ═══════════════════════════════════════════════════════════════
-                // NOTIFICACIONES TEAMS (DESHABILITADO)
-                // ═══════════════════════════════════════════════════════════════
-                // TODO: Descomentar cuando se cree la credencial 'teams-webhook-qa-framework'
-                // ═══════════════════════════════════════════════════════════════
-                /*
-                try {
-                    def publishStatus = env.WILL_PUBLISH == 'true' ? 'SÍ ✅' : 'NO ⚠️'
-                    def publishedInfo = ''
-
-                    if (env.WILL_PUBLISH == 'true') {
-                        publishedInfo = "Publicado: ${env.VERSION} (INMUTABLE)"
-                    } else {
-                        publishedInfo = "NO publicado (rama: ${env.BRANCH_NAME})"
-                    }
-
-                    def payload = [
-                        '@type': 'MessageCard',
-                        '@context': 'https://schema.org/extensions',
-                        summary: 'Build Exitoso',
-                        themeColor: '00FF00',
-                        title: "✅ Build Exitoso - ${env.PROJECT_NAME}",
-                        sections: [[
-                            activityTitle: "Build #${env.BUILD_NUMBER}",
-                            facts: [
-                                [name: '📌 Branch', value: env.BRANCH_NAME],
-                                [name: '📦 Versión', value: env.VERSION],
-                                [name: '🚀 Publicado', value: publishStatus],
-                                [name: '👤 Autor', value: env.GIT_AUTHOR],
-                                [name: '💬 Commit', value: env.GIT_COMMIT_MSG]
-                            ],
-                            text: publishedInfo
-                        ]],
-                        potentialAction: [[
-                            '@type': 'OpenUri',
-                            name: 'Ver Build',
-                            targets: [[os: 'default', uri: env.BUILD_URL]]
-                        ]]
-                    ]
-
-                    httpRequest(
-                        httpMode: 'POST',
-                        contentType: 'APPLICATION_JSON',
-                        requestBody: groovy.json.JsonOutput.toJson(payload),
-                        url: env.TEAMS_WEBHOOK,
-                        validResponseCodes: '200:299'
-                    )
-                    echo '✅ Notificación Teams enviada'
-                } catch (Exception e) {
-                    echo "⚠️  Teams falló: ${e.message}"
-                }
-                */
-                echo '📧 Notificaciones Teams deshabilitadas (falta credencial)'
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo "📝 Build: #${env.BUILD_NUMBER}"
+                echo "🌿 Branch: ${env.BRANCH_NAME}"
+                echo "⏱️  Duración: ${currentBuild.durationString}"
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
             }
         }
+
         failure {
             script {
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                 echo '❌ BUILD FALLIDO'
-
-                // ═══════════════════════════════════════════════════════════════
-                // NOTIFICACIONES TEAMS (DESHABILITADO)
-                // ═══════════════════════════════════════════════════════════════
-                // TODO: Descomentar cuando se cree la credencial 'teams-webhook-qa-framework'
-                // ═══════════════════════════════════════════════════════════════
-                /*
-                try {
-                    def payload = [
-                        '@type': 'MessageCard',
-                        '@context': 'https://schema.org/extensions',
-                        summary: 'Build Fallido',
-                        themeColor: 'FF0000',
-                        title: "❌ Build Fallido - ${env.PROJECT_NAME}",
-                        sections: [[
-                            activityTitle: "Build #${env.BUILD_NUMBER}",
-                            facts: [
-                                [name: '📌 Branch', value: env.BRANCH_NAME],
-                                [name: '📦 Versión', value: env.VERSION ?: 'N/A'],
-                                [name: '👤 Autor', value: env.GIT_AUTHOR ?: 'N/A']
-                            ],
-                            text: '⚠️ Build falló. Revisar logs.'
-                        ]],
-                        potentialAction: [[
-                            '@type': 'OpenUri',
-                            name: 'Ver Logs',
-                            targets: [[os: 'default', uri: "${env.BUILD_URL}console"]]
-                        ]]
-                    ]
-
-                    httpRequest(
-                        httpMode: 'POST',
-                        contentType: 'APPLICATION_JSON',
-                        requestBody: groovy.json.JsonOutput.toJson(payload),
-                        url: env.TEAMS_WEBHOOK,
-                        validResponseCodes: '200:299'
-                    )
-                } catch (Exception e) {
-                    echo "⚠️  Teams falló: ${e.message}"
-                }
-                */
-                echo '📧 Notificaciones Teams deshabilitadas (falta credencial)'
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo "📝 Build: #${env.BUILD_NUMBER}"
+                echo "🌿 Branch: ${env.BRANCH_NAME}"
+                echo "⏱️  Duración: ${currentBuild.durationString}"
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo '💡 Revisar logs para más detalles'
             }
         }
+
         always {
             script {
-                echo "⏱️  Duración: ${currentBuild.durationString}"
+                echo ''
+                echo '🧹 Limpiando workspace...'
             }
-            // Limpiar workspace como en tu Jenkinsfile existente
-            cleanWs()
+
+            // Limpiar workspace al finalizar
+            cleanWs(
+                deleteDirs: true,
+                patterns: [
+                    [pattern: '**/build/**', type: 'INCLUDE'],
+                    [pattern: '**/.gradle/**', type: 'INCLUDE']
+                ]
+            )
+
+            script {
+                echo '✅ Workspace limpio'
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo '🏁 Pipeline finalizado'
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+            }
         }
-    }
-}
+
+    } // Fin post
+
+} // Fin pipeline
+
