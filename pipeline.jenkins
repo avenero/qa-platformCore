@@ -679,7 +679,7 @@ pipeline {
                     // ============================================================
                     try {
                         def buildLog = currentBuild.rawBuild.getLog(10000).join('\n')
-                        def deprecationWarnings = (buildLog =~ /deprecated/).count
+                        def deprecationWarnings = (buildLog =~ /deprecated/).size()
 
                         if (deprecationWarnings > 50) {
                             echo "⚠️  Check 11: ${deprecationWarnings} warnings de deprecación (máximo: 50)"
@@ -696,7 +696,7 @@ pipeline {
                     // ============================================================
                     try {
                         def buildLog = currentBuild.rawBuild.getLog(10000).join('\n')
-                        def javadocErrors = (buildLog =~ /javadoc.*error/i).size()
+                        def javadocErrors = (buildLog =~ /(?i)javadoc.*error/).size()
 
                         if (javadocErrors > 0) {
                             echo "❌ Check 12: ${javadocErrors} errores de Javadoc encontrados"
