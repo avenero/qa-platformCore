@@ -852,49 +852,41 @@ pipeline {
                     )
 
                     script {
-                        echo '📦 Artefactos archivados en Jenkins'
-                        echo '💡 Disponibles en: Build Artifacts'
+                        echo 'Artifacts archived in Jenkins'
 
-                        // ============================================================
-                        // CHECK 7: Artefactos generados (12 JARs = 4 módulos × 3 tipos)
-                        // ============================================================
+                        // CHECK 7: Artefactos generados
                         echo ''
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                        echo '📊 Validando artefactos generados...'
+                        echo 'Validating artifacts generated...'
 
                         def jarFiles = findFiles(glob: '**/build/libs/*.jar')
-                        def expectedJars = 12  // 4 módulos × 3 tipos (jar, javadoc, sources)
+                        def expectedJars = 12  // 4 modules x 3 types (jar, javadoc, sources)
 
                         if (jarFiles.length < expectedJars) {
-                            echo "⚠️  Check 7: Solo ${jarFiles.length} JARs generados (esperado: ${expectedJars})"
-                            echo '💡 Verificar que todos los módulos compilaron correctamente'
+                            echo "[WARN] Check 7: Only ${jarFiles.length} JARs (expected: ${expectedJars})"
                         } else {
-                            echo "✅ Check 7: ${jarFiles.length} artefactos generados correctamente"
+                            echo "[OK] Check 7: ${jarFiles.length} artifacts generated"
                         }
 
-                        // ============================================================
-                        // CHECK 8: Tamaño de artefactos razonable (> 10 KB cada uno)
-                        // ============================================================
+                        // CHECK 8: Tamaño de artefactos
                         echo ''
-                        echo '📊 Validando tamaño de artefactos...'
+                        echo 'Validating artifact sizes...'
 
                         def invalidSizes = []
                         jarFiles.each { file ->
                             def sizeKB = file.length / 1024
                             if (sizeKB < 10) {
-                                invalidSizes.add("${file.name}: ${sizeKB.round(2)} KB (muy pequeño)")
-                                echo "⚠️  ${file.name}: ${sizeKB.round(2)} KB (mínimo: 10 KB)"
+                                def formattedSize = String.format("%.2f", sizeKB)
+                                invalidSizes.add("${file.name}: ${formattedSize} KB (muy pequeno)")
+                                echo "[WARN] ${file.name}: ${formattedSize} KB (min: 10 KB)"
                             }
                         }
 
                         if (invalidSizes.size() > 0) {
-                            echo "⚠️  Check 8: ${invalidSizes.size()} artefactos sospechosamente pequeños"
-                            invalidSizes.each { echo "   - ${it}" }
+                            echo "[WARN] Check 8: ${invalidSizes.size()} artifacts suspiciously small"
+                            invalidSizes.each { echo "  - ${it}" }
                         } else {
-                            echo "✅ Check 8: Todos los artefactos tienen tamaño válido (> 10 KB)"
+                            echo "[OK] Check 8: All artifacts have valid size (>10 KB)"
                         }
-
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                     }
                 }
             }
