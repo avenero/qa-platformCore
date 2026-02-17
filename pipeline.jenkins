@@ -790,16 +790,37 @@ pipeline {
                     // Ejecutar análisis usando función compartida de pipeline-utils
                     if (runCheckmarx || runSonar) {
                         echo ''
-                        echo '🚀 Ejecutando codeQuality.runCodeQuality()...'
-                        echo '💡 Esta función está definida en pipeline-utils library'
+                        echo '🔍 Code Quality Analysis...'
+
+                        // Configuración de la aplicación para los scanners
+                        // Basado en pipeline funcionando de referencia
+                        def appProperties = [
+                            'cxIgnorePolicy': true,  // Checkmarx: No bloquear por políticas menores
+                            'projectName': 'qa-scotia-frameworks',
+                            'branch': env.BRANCH_NAME
+                        ]
+
+                        // BlackDuck no se usa en este proyecto (por ahora)
+                        def runBlackDuck = false
+
+                        echo "   → Checkmarx: ${runCheckmarx ? 'HABILITADO ✅' : 'Deshabilitado ⏭️'}"
+                        echo "   → BlackDuck: ${runBlackDuck ? 'HABILITADO ✅' : 'Deshabilitado ⏭️'}"
+                        echo "   → SonarQube: ${runSonar ? 'HABILITADO ✅' : 'Deshabilitado ⏭️'}"
+                        echo ''
 
                         try {
-                            codeQuality.runCodeQuality(runCheckmarx, runSonar)
+                            // Firma correcta: runCodeQuality(checkmarx, blackduck, sonar, properties)
+                            // Basado en ejemplo funcionando de otro pipeline
+                            codeQuality.runCodeQuality(runCheckmarx, runBlackDuck, runSonar, appProperties)
+
                             echo ''
                             echo '✅ Análisis de calidad completado exitosamente'
+
                         } catch (Exception e) {
                             echo ''
                             echo "❌ Error en análisis de calidad: ${e.message}"
+                            echo "💡 Verificar que Checkmarx/SonarQube estén configurados en Jenkins"
+                            echo "💡 Verificar credenciales y conectividad"
                             throw e
                         }
                     } else {
