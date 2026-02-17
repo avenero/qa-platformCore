@@ -28,6 +28,9 @@ import static org.assertj.core.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class LoggingConfigurationTest {
 
+    // Usar directorio temporal del sistema para evitar crear basura ✅
+    private static final String TEMP_LOG_DIR = System.getProperty("java.io.tmpdir") + "/qa-framework-test-logs";
+
     // =========================================================================
     // DEFAULT CONFIGURATION TESTS
     // =========================================================================
@@ -110,7 +113,7 @@ class LoggingConfigurationTest {
             // Given
             LoggingConfiguration.LoggingConfig config = LoggingConfiguration.LoggingConfig.builder()
                 .framework("API")
-                .baseLogDirectory("custom-logs")
+                .baseLogDirectory(TEMP_LOG_DIR)
                 .enableConsoleLogging(true)
                 .enableFileLogging(false)
                 .logLevel("DEBUG")
@@ -127,7 +130,7 @@ class LoggingConfigurationTest {
             // Given
             LoggingConfiguration.LoggingConfig config = LoggingConfiguration.LoggingConfig.builder()
                 .framework("WEB")
-                .baseLogDirectory("logs/web")
+                .baseLogDirectory(TEMP_LOG_DIR + "/web")
                 .enableConsoleLogging(true)
                 .enableFileLogging(true)
                 .enableStructuredLogging(true)
@@ -148,7 +151,7 @@ class LoggingConfigurationTest {
             // Given
             LoggingConfiguration.LoggingConfig config = LoggingConfiguration.LoggingConfig.builder()
                 .framework("MOBILE")
-                .baseLogDirectory("logs")
+                .baseLogDirectory(TEMP_LOG_DIR)
                 .enableConsoleLogging(false)
                 .enableFileLogging(false)
                 .logLevel("ERROR")
@@ -165,7 +168,7 @@ class LoggingConfigurationTest {
             // Given
             LoggingConfiguration.LoggingConfig config = LoggingConfiguration.LoggingConfig.builder()
                 .framework("API")
-                .baseLogDirectory("logs")
+                .baseLogDirectory(TEMP_LOG_DIR)
                 .logLevel("INFO")
                 .build();
 

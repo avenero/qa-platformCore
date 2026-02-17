@@ -1,8 +1,0 @@
-{
-  "endpoint": "/api/users",
-  "timestamp": "2026-02-17_12-29-55-080",
-  "statusCode": 200,
-  "responseBody": "{\"result\":\"ok\"}",
-  "method": "GET",
-  "requestBody": "{\"test\":\"data\"}"
-}

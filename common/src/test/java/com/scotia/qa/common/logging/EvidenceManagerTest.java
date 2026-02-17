@@ -22,6 +22,12 @@ import static org.assertj.core.api.Assertions.*;
  *   <li>Creación de paths de evidencia</li>
  * </ul>
  *
+ * <p><b>Mejoras:</b>
+ * <ul>
+ *   <li>Usa directorio temporal del sistema para evitar basura</li>
+ *   <li>No crea directorios en el proyecto</li>
+ * </ul>
+ *
  * @author Abel Venero
  * @since 1.0.0
  */
@@ -29,16 +35,23 @@ import static org.assertj.core.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class EvidenceManagerTest {
 
+    // Usar directorio temporal del sistema ✅
+    private static final String TEMP_EVIDENCE_DIR = System.getProperty("java.io.tmpdir") + "/qa-framework-test-evidences";
+
     @BeforeEach
     void setUp() {
         // Limpiar contexto antes de cada test
         EvidenceManager.clearTestContext();
+
+        // Usar directorio temporal en lugar de directorios del proyecto ✅
+        EvidenceManager.setBaseEvidenceDirectory(TEMP_EVIDENCE_DIR);
     }
 
     @AfterEach
     void tearDown() {
         // Limpiar contexto después de cada test
         EvidenceManager.clearTestContext();
+        // Los archivos quedan en /tmp y el SO los limpia eventualmente ✅
     }
 
     // =========================================================================
