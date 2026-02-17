@@ -2,7 +2,7 @@
 // PLUGINS
 // ========================================================================
 plugins {
-    id "org.sonarqube" version "4.4.1.3373" apply false
+    id "org.sonarqube" version "4.4.1.3373" apply true
 }
 
 // Configuración del proyecto raíz qa-framework

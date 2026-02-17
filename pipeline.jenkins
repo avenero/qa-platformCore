@@ -95,7 +95,7 @@ pipeline {
     // CONFIGURACIÓN DEL AGENTE
     // ========================================================================
     agent {
-        label 'jslave1'  // Nodo Jenkins configurado para builds Java
+        label 'any'  // Nodo Jenkins configurado para builds Java
     }
 
     // ========================================================================
@@ -702,57 +702,11 @@ pipeline {
                     branch 'main'
                 }
             }
+
             steps {
                 script {
-                    echo '== Code Quality & Security Analysis =='
-                    echo "Branch: ${env.BRANCH_NAME}"
-
-                    // SonarQube - Acceso directo (NO requiere registro en project.json)
-                    if (params.Sonar) {
-                        echo ''
-                        echo 'Ejecutando SonarQube...'
-
-                        try {
-                            withSonarQubeEnv('SonarQube') {
-                                sh """
-                                    ./gradlew sonarqube \
-                                        -Dsonar.projectKey=qa-scotia-frameworks \
-                                        -Dsonar.projectName='QA Scotia Automation Framework' \
-                                        -Dsonar.branch.name=${env.BRANCH_NAME}
-                                """
-                            }
-
-                            echo 'SonarQube scan enviado'
-                            echo 'Esperando resultado del Quality Gate...'
-
-                            timeout(time: 5, unit: 'MINUTES') {
-                                def qg = waitForQualityGate()
-                                if (qg.status != 'OK') {
-                                    echo "SonarQube Quality Gate: ${qg.status}"
-                                    error "SonarQube Quality Gate failed: ${qg.status}"
-                                } else {
-                                    echo 'SonarQube Quality Gate: PASSED'
-                                }
-                            }
-
-                        } catch (Exception e) {
-                            echo "WARN: SonarQube failed: ${e.message}"
-                            echo "Pipeline continua (SonarQube no es bloqueante en develop)"
-                            // No lanzar error en develop, solo advertir
-                            if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main') {
-                                throw e  // En master SI es bloqueante
-                            }
-                        }
-                    } else {
-                        echo 'SonarQube: Skipped (parameter disabled)'
-                    }
-
-                    // Checkmarx - Requiere codeQuality.runCodeQuality() (deshabilitado)
-                    if (params.Checkmarx) {
-                        echo ''
-                        echo 'Checkmarx: SKIPPED (requiere registro en project.json)'
-                        echo 'Para habilitar: Crear ticket en https://confluence.agile.bns/x/UtdRJ'
-                    }
+                    appProperties = [    'cxIgnorePolicy': true]
+                    codeQuality.runCodeQuality(false, false, params.Sonar,appProperties)
                 }
             }
             post {
@@ -790,32 +744,6 @@ pipeline {
                 }
             }
         }
-
-        // ====================================================================
-        // STAGE 6D: CHECKMARX SAST MANUAL (COMENTADO - BACKUP)
-        // ====================================================================
-        // ⚠️ ESTE STAGE ESTÁ COMENTADO (BACKUP)
-        // Usamos codeQuality.runCodeQuality() en Stage 6C
-        // Para habilitar: Descomentar este bloque y agregar parámetro USE_MANUAL_CHECKMARX
-        // ====================================================================
-        /*
-        stage("🔒 Checkmarx SAST (Manual)") {
-            when {
-                allOf {
-                    anyOf { branch 'master'; branch 'main' }
-                    expression { params.USE_MANUAL_CHECKMARX == true }
-                }
-            }
-            steps {
-                script {
-                    echo 'Ejecutando Checkmarx via API REST...'
-                    // ... código comentado ...
-                    // (130+ líneas de configuración manual)
-                    // Ver historial de git si necesitas restaurarlo
-                }
-            }
-        }
-        */
 
         // ====================================================================
         // STAGE 7: GENERAR ARTEFACTOS
