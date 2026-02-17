@@ -1,0 +1,9 @@
+{
+  "scenario": "TestScenario",
+  "framework": "API",
+  "timestamp": "2026-02-17_12-21-18-482",
+  "stackTrace": "at com.test.Class.method(Class.java:10)",
+  "message": "Object reference not set",
+  "feature": "TestFeature",
+  "errorType": "NullPointerException"
+}

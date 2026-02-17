@@ -527,13 +527,17 @@ pipeline {
             }
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '🚦 Ejecutando Quality Gate (11 checks)...'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo '🚦 Ejecutando Quality Gate (9 checks)...'
+                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo ''
+                echo '📝 NOTA: Checks 11-12 (Warnings y Javadoc) fueron removidos'
+                echo '   Requerían permisos especiales de Jenkins (getLog) y no son críticos'
+                echo ''
 
-                    def checksPass = true
-                    def warnings = []
-                    def errors = []
+                def checksPass = true
+                def warnings = []
+                def errors = []
 
                     // ============================================================
                     // CHECK 1: Tests ejecutados
@@ -584,13 +588,14 @@ pipeline {
 
                             if (totalTests > 0) {
                                 def passRate = ((totalTests - failedTests) / totalTests) * 100
+                                def passRateFormatted = String.format("%.2f", passRate)
 
                                 if (passRate < 95) {
-                                    echo "❌ Check 4: Tasa de éxito ${passRate.round(2)}% (mínimo: 95%)"
-                                    errors.add("Tasa de éxito baja: ${passRate.round(2)}%")
+                                    echo "❌ Check 4: Tasa de éxito ${passRateFormatted}% (mínimo: 95%)"
+                                    errors.add("Tasa de éxito baja: ${passRateFormatted}%")
                                     checksPass = false
                                 } else {
-                                    echo "✅ Check 4: Tasa de éxito ${passRate.round(2)}% (mínimo: 95%)"
+                                    echo "✅ Check 4: Tasa de éxito ${passRateFormatted}% (mínimo: 95%)"
                                 }
                             }
                         } catch (Exception e) {
@@ -675,56 +680,21 @@ pipeline {
                     echo '⏭️  Check 10: Checkmarx HIGH (solo en master, después de Code Quality)'
 
                     // ============================================================
-                    // CHECK 11: Warnings de compilación <= 50
-                    // ============================================================
-                    try {
-                        def buildLog = currentBuild.rawBuild.getLog(10000).join('\n')
-                        def deprecationWarnings = (buildLog =~ /deprecated/).size()
-
-                        if (deprecationWarnings > 50) {
-                            echo "⚠️  Check 11: ${deprecationWarnings} warnings de deprecación (máximo: 50)"
-                            warnings.add("Demasiados warnings: ${deprecationWarnings}")
-                        } else {
-                            echo "✅ Check 11: ${deprecationWarnings} warnings de deprecación (máximo: 50)"
-                        }
-                    } catch (Exception e) {
-                        echo "⚠️  Check 11: No se pudo contar warnings: ${e.message}"
-                    }
-
-                    // ============================================================
-                    // CHECK 12: Sin errores de Javadoc
-                    // ============================================================
-                    try {
-                        def buildLog = currentBuild.rawBuild.getLog(10000).join('\n')
-                        def javadocErrors = (buildLog =~ /(?i)javadoc.*error/).size()
-
-                        if (javadocErrors > 0) {
-                            echo "❌ Check 12: ${javadocErrors} errores de Javadoc encontrados"
-                            errors.add("Errores en Javadoc: ${javadocErrors}")
-                            checksPass = false
-                        } else {
-                            echo "✅ Check 12: Sin errores de Javadoc"
-                        }
-                    } catch (Exception e) {
-                        echo "⚠️  Check 12: No se pudo verificar Javadoc: ${e.message}"
-                    }
-
-                    // ============================================================
-                    // CHECK 13: Versión sigue formato SemVer (MAJOR.MINOR.PATCH)
+                    // CHECK 11: Versión sigue formato SemVer (MAJOR.MINOR.PATCH)
                     // ============================================================
                     if (env.VERSION ==~ /\d+\.\d+\.\d+(-.*)?/) {
-                        echo "✅ Check 13: Versión sigue SemVer (${env.VERSION})"
+                        echo "✅ Check 11: Versión sigue SemVer (${env.VERSION})"
                     } else {
-                        echo "❌ Check 13: Versión NO sigue SemVer: ${env.VERSION}"
+                        echo "❌ Check 11: Versión NO sigue SemVer: ${env.VERSION}"
                         errors.add("Versión inválida: ${env.VERSION}")
                         checksPass = false
                     }
 
                     // ============================================================
-                    // CHECK 14: Sin duplicados en Artifactory
+                    // CHECK 12: Sin duplicados en Artifactory
                     // ============================================================
                     // Este check se ejecuta en stage dedicado (Stage 9)
-                    echo '⏭️  Check 14: Duplicados Artifactory (verificado en Stage 9)'
+                    echo '⏭️  Check 12: Duplicados Artifactory (verificado en Stage 9)'
 
                     // ============================================================
                     // RESUMEN DE QUALITY GATE
