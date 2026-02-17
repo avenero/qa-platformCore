@@ -52,3 +52,12 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Test artifacts (created during test execution) ###
+**/custom-evidences/
+**/test-evidences/
+**/custom-logs/
+**/logs/
+*.log
+test-output/
+allure-results/

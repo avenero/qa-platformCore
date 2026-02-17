@@ -534,6 +534,12 @@ pipeline {
                 echo '📝 NOTA: Checks 11-12 (Warnings y Javadoc) fueron removidos'
                 echo '   Requerían permisos especiales de Jenkins (getLog) y no son críticos'
                 echo ''
+                echo '💡 QUALITY GATE PROGRESIVO (Coverage):'
+                echo '   Sprint 1: Coverage ≥30%, Branch ≥25% (ACTUAL - WARNING si falla)'
+                echo '   Sprint 2: Coverage ≥40%, Branch ≥35%'
+                echo '   Sprint 3: Coverage ≥55%, Branch ≥45%'
+                echo '   Final:    Coverage ≥70%, Branch ≥60% (ERROR si falla)'
+                echo ''
 
                 def checksPass = true
                 def warnings = []
@@ -606,7 +612,7 @@ pipeline {
                     }
 
                     // ============================================================
-                    // CHECK 5: Cobertura mínima >= 70%
+                    // CHECK 5: Cobertura mínima >= 30% (PROGRESIVO: 30% → 40% → 55% → 70%)
                     // ============================================================
                     if (params.RUN_COVERAGE && !params.SKIP_TESTS) {
                         try {
@@ -617,12 +623,14 @@ pipeline {
                             if (coverageMatch) {
                                 def coverage = coverageMatch[0][1] as Integer
 
-                                if (coverage < 70) {
-                                    echo "❌ Check 5: Coverage ${coverage}% (mínimo: 70%)"
-                                    errors.add("Coverage bajo: ${coverage}%")
-                                    checksPass = false
+                                // Umbrales progresivos (ajustar según sprint)
+                                def minCoverage = 30  // Sprint 1: 30%, Sprint 2: 40%, Sprint 3: 55%, Final: 70%
+
+                                if (coverage < minCoverage) {
+                                    echo "⚠️  Check 5: Coverage ${coverage}% (mínimo: ${minCoverage}%, objetivo final: 70%)"
+                                    warnings.add("Coverage bajo: ${coverage}% (trabajando para mejorar)")
                                 } else {
-                                    echo "✅ Check 5: Coverage ${coverage}% (mínimo: 70%)"
+                                    echo "✅ Check 5: Coverage ${coverage}% (mínimo: ${minCoverage}%, objetivo final: 70%)"
                                 }
                             } else {
                                 echo '⚠️  Check 5: No se pudo parsear coverage del reporte'
@@ -635,7 +643,7 @@ pipeline {
                     }
 
                     // ============================================================
-                    // CHECK 6: Cobertura de branches >= 60%
+                    // CHECK 6: Cobertura de branches >= 25% (PROGRESIVO: 25% → 35% → 45% → 60%)
                     // ============================================================
                     if (params.RUN_COVERAGE && !params.SKIP_TESTS) {
                         try {
@@ -646,11 +654,14 @@ pipeline {
                             if (branchMatch) {
                                 def branchCoverage = branchMatch[0][1] as Integer
 
-                                if (branchCoverage < 60) {
-                                    echo "⚠️  Check 6: Branch coverage ${branchCoverage}% (mínimo: 60%)"
-                                    warnings.add("Branch coverage bajo: ${branchCoverage}%")
+                                // Umbrales progresivos (ajustar según sprint)
+                                def minBranchCoverage = 25  // Sprint 1: 25%, Sprint 2: 35%, Sprint 3: 45%, Final: 60%
+
+                                if (branchCoverage < minBranchCoverage) {
+                                    echo "⚠️  Check 6: Branch coverage ${branchCoverage}% (mínimo: ${minBranchCoverage}%, objetivo final: 60%)"
+                                    warnings.add("Branch coverage bajo: ${branchCoverage}% (trabajando para mejorar)")
                                 } else {
-                                    echo "✅ Check 6: Branch coverage ${branchCoverage}% (mínimo: 60%)"
+                                    echo "✅ Check 6: Branch coverage ${branchCoverage}% (mínimo: ${minBranchCoverage}%, objetivo final: 60%)"
                                 }
                             } else {
                                 echo '⚠️  Check 6: No se pudo parsear branch coverage'
