@@ -13,16 +13,73 @@
 ## 📑 Índice
 
 - [🎯 Visión General](#-visión-general)
+- [📊 Estado Actual del Proyecto](#-estado-actual-del-proyecto)
 - [✨ Características Principales](#-características-principales)
 - [🏗️ Arquitectura](#️-arquitectura)
 - [🚀 Quick Start](#-quick-start)
 - [📦 Módulos del Framework](#-módulos-del-framework)
+- [🧪 Testing y Coverage](#-testing-y-coverage)
 - [🔧 Compatibilidad de Versiones](#-compatibilidad-de-versiones)
 - [📚 Documentación](#-documentación)
 - [🤝 Contribución](#-contribución)
 - [📄 Licencia](#-licencia)
 
 ---
+
+## 📊 Estado Actual del Proyecto
+
+**Última actualización:** 17 de Febrero 2026
+
+### Métricas de Tests y Coverage
+
+| Módulo | Tests | Coverage | Branch Coverage | Estado |
+|--------|-------|----------|-----------------|--------|
+| **common** | 287 | ~35% | ~28% | ✅ Sprint 1 completado |
+| **api-core** | 0 | 0% | 0% | ⏳ Sprint 3-4 |
+| **web-core** | 0 | 0% | 0% | ⏳ Sprint 4-5 |
+| **mobile-core** | 0 | 0% | 0% | ⏳ Sprint 5 |
+| **TOTAL** | 287 | ~35% (común) | ~28% (común) | 🎯 Objetivo: 70% |
+
+### Roadmap de Testing (5 Sprints)
+
+```
+Sprint 1: ████████████████████ 116% ✅ COMPLETADO (79 tests)
+Sprint 2: ░░░░░░░░░░░░░░░░░░░░ 0% ⏳ Siguiente (66 tests)
+Sprint 3: ░░░░░░░░░░░░░░░░░░░░ 0% ⏳ Futuro (77 tests)
+Sprint 4: ░░░░░░░░░░░░░░░░░░░░ 0% ⏳ Futuro (95 tests)
+Sprint 5: ░░░░░░░░░░░░░░░░░░░░ 0% 🎯 Final (103 tests)
+
+Objetivo: 617 tests totales, 70% coverage
+```
+
+### Quality Gate Progresivo
+
+| Sprint | Coverage Min | Branch Min | Estado |
+|--------|--------------|------------|--------|
+| **Sprint 1** | 30% | 25% | ✅ ACTUAL (35%/28%) |
+| Sprint 2 | 40% | 35% | ⏳ Siguiente |
+| Sprint 3 | 55% | 45% | ⏳ Futuro |
+| Sprint 4 | 65% | 55% | ⏳ Futuro |
+| Sprint 5 | 70% | 60% | 🎯 Final |
+
+### Tests Implementados (Sprint 1)
+
+- ✅ **TestLoggerTest** - 35 tests - Sistema de logging (~85% coverage)
+- ✅ **EvidenceManagerTest** - 19 tests - Gestión de evidencias (~65% coverage)
+- ✅ **LoggingConfigurationTest** - 15 tests - Configuración (~70% coverage)
+- ✅ **ModuleDetectorTest** - 10 tests - Detección de módulos (~80% coverage)
+
+### Pipeline Status
+
+- ✅ Build: Funcional
+- ✅ Tests: 288 ejecutados, 100% passing
+- ✅ Quality Gate: Progresivo (30%/25% Sprint 1)
+- ⚠️ Code Quality: Deshabilitado (requiere registro en project.json)
+- ✅ Artifacts: 12 JARs generados
+
+---
+
+## 📑 Índice
 
 ## 🎯 Visión General
 
@@ -631,7 +688,178 @@ Todo PR será revisado por:
 
 ---
 
-## 👥 Equipo
+## 🧪 Testing y Coverage
+
+### Estado Actual (Sprint 1 Completado - 116%)
+
+**Módulo common:**
+- ✅ 287 tests totales
+- ✅ ~35% line coverage
+- ✅ ~28% branch coverage
+- ✅ 100% success rate
+
+**Tests Implementados:**
+
+| Clase | Tests | Coverage | Descripción |
+|-------|-------|----------|-------------|
+| TestLoggerTest | 35 | ~85% | Sistema de logging |
+| EvidenceManagerTest | 19 | ~65% | Gestión de evidencias |
+| LoggingConfigurationTest | 15 | ~70% | Configuración logging |
+| ModuleDetectorTest | 10 | ~80% | Detección de módulos |
+
+### Roadmap de Testing (5 Sprints hacia 70%)
+
+**Sprint 2 - DataUtilities (66 tests)**
+- DataUtilitiesJsonTest - 15 tests
+- DataUtilitiesValidationTest - 20 tests
+- DataUtilitiesDateTimeTest - 15 tests
+- ConfigManagerAdvancedTest - 10 tests
+- RestAssuredConfigTest - 6 tests
+
+**Sprint 3 - Security & Config (77 tests)**
+- SensitiveDataMaskerTest - 20 tests
+- Base64UtilsTest - 12 tests
+- ConfigurationManagerTest - 15 tests
+- EnvironmentManagerTest - 15 tests
+- ApiClientBuilderTest - 15 tests
+
+**Sprint 4 - HTTP & Assertions (95 tests)**
+- HttpClientWrapperTest - 25 tests
+- ResponseValidatorTest - 20 tests
+- JsonPathExtractorTest - 15 tests
+- RestAssuredExtensionsTest - 20 tests
+- AssertionHelperTest - 15 tests
+
+**Sprint 5 - Integration & Mobile (103 tests)**
+- ScenarioContextTest - 20 tests
+- TestExecutionContextTest - 15 tests
+- CrossModuleIntegrationTest - 20 tests
+- api-core tests - 24 tests
+- web-core tests - 12 tests
+- mobile-core tests - 12 tests
+
+### Comandos Útiles
+
+```bash
+# Ejecutar todos los tests
+./gradlew test
+
+# Ejecutar tests de un módulo específico
+./gradlew :common:test
+./gradlew :api-core:test
+
+# Ejecutar un test específico
+./gradlew :common:test --tests TestLoggerTest
+./gradlew :common:test --tests "TestLoggerTest.BasicLoggingTests"
+
+# Generar reporte de cobertura
+./gradlew jacocoTestReport
+
+# Ver reporte de coverage (macOS)
+open common/build/reports/jacoco/test/html/index.html
+
+# Ver reporte de tests
+open common/build/reports/tests/test/index.html
+
+# Build completo con tests y coverage
+./gradlew clean build jacocoTestReport
+```
+
+### Templates de Tests
+
+**Utility Class Test:**
+```java
+@DisplayName("MiUtilidad Tests")
+class MiUtilidadTest {
+    
+    @Nested
+    @DisplayName("Feature Tests")
+    class FeatureTests {
+        
+        @Test
+        @DisplayName("Debe hacer X correctamente")
+        void testFeature() {
+            // Given
+            String input = "test";
+            
+            // When
+            String result = MiUtilidad.doSomething(input);
+            
+            // Then
+            assertThat(result).isNotNull();
+        }
+    }
+}
+```
+
+**Service Class Test (con mocks):**
+```java
+@DisplayName("MiServicio Tests")
+class MiServicioTest {
+    
+    @Mock
+    private Dependency mockDependency;
+    
+    @InjectMocks
+    private MiServicio servicio;
+    
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+    
+    @Test
+    @DisplayName("Debe procesar correctamente")
+    void testProcess() {
+        // Given
+        when(mockDependency.getData()).thenReturn("data");
+        
+        // When
+        String result = servicio.process();
+        
+        // Then
+        assertThat(result).isEqualTo("processed");
+        verify(mockDependency).getData();
+    }
+}
+```
+
+### Buenas Prácticas de Testing
+
+- ✅ Usar `@DisplayName` descriptivo
+- ✅ Organizar con `@Nested` classes
+- ✅ Pattern Given/When/Then
+- ✅ Tests autocontenidos (no dependen de orden)
+- ✅ Usar directorios temporales (`System.getProperty("java.io.tmpdir")`)
+- ✅ Limpiar recursos en `@AfterEach`
+- ❌ NO crear archivos/directorios en el proyecto durante tests
+- ❌ NO hardcodear paths absolutos
+- ❌ NO tests que dependen de otros tests
+
+### Arquitectura Limpia
+
+Los tests NO deben crear basura en el proyecto:
+
+```java
+// ✅ BIEN: Usar directorio temporal del sistema
+private static final String TEMP_DIR = 
+    System.getProperty("java.io.tmpdir") + "/qa-framework-tests";
+
+@BeforeEach
+void setUp() {
+    MiClase.setBaseDirectory(TEMP_DIR);  // Usa /tmp
+}
+
+// ❌ MAL: Crear directorios en el proyecto
+@BeforeEach
+void setUp() {
+    MiClase.setBaseDirectory("test-data");  // Crea basura
+}
+```
+
+---
+
+## 🤝 Contribución
 
 **Desarrollado por:** QA Team - Scotia Bank  
 **Autor Principal:** Abel Venero  

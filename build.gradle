@@ -1,7 +1,13 @@
+// ========================================================================
+// PLUGINS
+// ========================================================================
+plugins {
+    id "org.sonarqube" version "4.4.1.3373" apply false
+}
+
 // Configuración del proyecto raíz qa-framework
 group = "com.scotia.qa"
 version = "1.0.0"  // Versión inicial estable con todas las mejoras implementadas
-
 
 // ========================================================================
 // CONFIGURACIÓN SSL GLOBAL PARA GRADLE (antes de subprojects)
@@ -29,9 +35,15 @@ if (trustStorePath.exists()) {
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
+    apply plugin: 'jacoco'
+    apply plugin: 'org.sonarqube'  // Plugin de SonarQube
 
     group = "com.scotia.qa"
     version = "1.0.0"
+
+    // Aplicar configuración de SonarQube y coverage
+    apply from: "${rootProject.projectDir}/config/conf.codeCoverage.gradle"
+
 
     repositories {
         // ═══════════════════════════════════════════════════════════════════

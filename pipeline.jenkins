@@ -527,224 +527,165 @@ pipeline {
             }
             steps {
                 script {
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                echo '🚦 Ejecutando Quality Gate (9 checks)...'
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                echo ''
-                echo '📝 NOTA: Checks 11-12 (Warnings y Javadoc) fueron removidos'
-                echo '   Requerían permisos especiales de Jenkins (getLog) y no son críticos'
-                echo ''
-                echo '💡 QUALITY GATE PROGRESIVO (Coverage):'
-                echo '   Sprint 1: Coverage ≥30%, Branch ≥25% (ACTUAL - WARNING si falla)'
-                echo '   Sprint 2: Coverage ≥40%, Branch ≥35%'
-                echo '   Sprint 3: Coverage ≥55%, Branch ≥45%'
-                echo '   Final:    Coverage ≥70%, Branch ≥60% (ERROR si falla)'
-                echo ''
+                echo '========== Quality Gate (9 checks) =========='
+                echo 'Sprint 1 Target: Coverage >=30%, Branch >=25%'
 
                 def checksPass = true
                 def warnings = []
                 def errors = []
 
-                    // ============================================================
                     // CHECK 1: Tests ejecutados
-                    // ============================================================
                     if (!params.SKIP_TESTS) {
-                        echo '✅ Check 1: Tests ejecutados'
+                        echo '[OK] Check 1: Tests executed'
                     } else {
-                        echo '⚠️  Check 1: Tests skippeados'
-                        warnings.add('Tests skippeados')
+                        echo '[WARN] Check 1: Tests skipped'
+                        warnings.add('Tests skipped')
                         checksPass = false
                     }
 
-                    // ============================================================
                     // CHECK 2: Build exitoso
-                    // ============================================================
-                    echo '✅ Check 2: Build exitoso'
+                    echo '[OK] Check 2: Build successful'
 
-                    // ============================================================
                     // CHECK 3: Mínimo de tests ejecutados
-                    // ============================================================
                     if (!params.SKIP_TESTS) {
                         try {
                             def testResults = junit testResults: '**/build/test-results/test/*.xml', allowEmptyResults: true
                             def totalTests = testResults.totalCount
 
                             if (totalTests < 10) {
-                                echo "⚠️  Check 3: Solo ${totalTests} tests (mínimo: 10)"
-                                warnings.add("Pocos tests: ${totalTests}/10")
+                                echo "[WARN] Check 3: ${totalTests} tests (min: 10)"
+                                warnings.add("Few tests: ${totalTests}/10")
                                 checksPass = false
                             } else {
-                                echo "✅ Check 3: ${totalTests} tests ejecutados (mínimo: 10)"
+                                echo "[OK] Check 3: ${totalTests} tests (min: 10)"
                             }
                         } catch (Exception e) {
-                            echo "⚠️  Check 3: No se pudo contar tests: ${e.message}"
+                            echo "[WARN] Check 3: Could not count tests"
                         }
                     } else {
-                        echo '⏭️  Check 3: Skippeado (SKIP_TESTS=true)'
+                        echo '[SKIP] Check 3'
                     }
 
-                    // ============================================================
-                    // CHECK 4: Tasa de éxito de tests >= 95%
-                    // ============================================================
+                    // CHECK 4: Success rate >= 95%
                     if (!params.SKIP_TESTS) {
                         try {
                             def testResults = junit testResults: '**/build/test-results/test/*.xml', allowEmptyResults: true
-                            def totalTests = testResults.totalCount
-                            def failedTests = testResults.failCount
+                            def passRate = (testResults.totalCount > 0) ?
+                                ((testResults.totalCount - testResults.failCount) / testResults.totalCount * 100) : 0
 
-                            if (totalTests > 0) {
-                                def passRate = ((totalTests - failedTests) / totalTests) * 100
-                                def passRateFormatted = String.format("%.2f", passRate)
-
-                                if (passRate < 95) {
-                                    echo "❌ Check 4: Tasa de éxito ${passRateFormatted}% (mínimo: 95%)"
-                                    errors.add("Tasa de éxito baja: ${passRateFormatted}%")
-                                    checksPass = false
-                                } else {
-                                    echo "✅ Check 4: Tasa de éxito ${passRateFormatted}% (mínimo: 95%)"
-                                }
+                            if (passRate < 95) {
+                                echo "[ERROR] Check 4: Success rate ${String.format("%.2f", passRate)}% (min: 95%)"
+                                errors.add("Low success rate: ${String.format("%.2f", passRate)}%")
+                                checksPass = false
+                            } else {
+                                echo "[OK] Check 4: Success rate ${String.format("%.2f", passRate)}%"
                             }
                         } catch (Exception e) {
-                            echo "⚠️  Check 4: No se pudo calcular tasa de éxito: ${e.message}"
+                            echo "[WARN] Check 4: Could not calculate success rate"
                         }
                     } else {
-                        echo '⏭️  Check 4: Skippeado (SKIP_TESTS=true)'
+                        echo '[SKIP] Check 4'
                     }
 
-                    // ============================================================
-                    // CHECK 5: Cobertura mínima >= 30% (PROGRESIVO: 30% → 40% → 55% → 70%)
-                    // ============================================================
+                    // CHECK 5: Cobertura mínima >= 30% (PROGRESIVO)
                     if (params.RUN_COVERAGE && !params.SKIP_TESTS) {
                         try {
-                            // Intentar leer reporte de common (módulo principal)
                             def jacocoReport = readFile('common/build/reports/jacoco/test/html/index.html')
                             def coverageMatch = (jacocoReport =~ /Total.*?(\d+)%/)
 
                             if (coverageMatch) {
                                 def coverage = coverageMatch[0][1] as Integer
-
-                                // Umbrales progresivos (ajustar según sprint)
                                 def minCoverage = 30  // Sprint 1: 30%, Sprint 2: 40%, Sprint 3: 55%, Final: 70%
 
                                 if (coverage < minCoverage) {
-                                    echo "⚠️  Check 5: Coverage ${coverage}% (mínimo: ${minCoverage}%, objetivo final: 70%)"
-                                    warnings.add("Coverage bajo: ${coverage}% (trabajando para mejorar)")
+                                    echo "[WARN] Check 5: Coverage ${coverage}% (min: ${minCoverage}%, target: 70%)"
+                                    warnings.add("Low coverage: ${coverage}%")
                                 } else {
-                                    echo "✅ Check 5: Coverage ${coverage}% (mínimo: ${minCoverage}%, objetivo final: 70%)"
+                                    echo "[OK] Check 5: Coverage ${coverage}% (min: ${minCoverage}%)"
                                 }
                             } else {
-                                echo '⚠️  Check 5: No se pudo parsear coverage del reporte'
+                                echo '[WARN] Check 5: Could not parse coverage'
                             }
                         } catch (Exception e) {
-                            echo "⚠️  Check 5: No se pudo leer reporte de coverage: ${e.message}"
+                            echo "[WARN] Check 5: Could not read coverage report"
                         }
                     } else {
-                        echo '⏭️  Check 5: Skippeado (RUN_COVERAGE=false o SKIP_TESTS=true)'
+                        echo '[SKIP] Check 5'
                     }
 
-                    // ============================================================
-                    // CHECK 6: Cobertura de branches >= 25% (PROGRESIVO: 25% → 35% → 45% → 60%)
-                    // ============================================================
+                    // CHECK 6: Cobertura de branches >= 25% (PROGRESIVO)
                     if (params.RUN_COVERAGE && !params.SKIP_TESTS) {
                         try {
                             def jacocoReport = readFile('common/build/reports/jacoco/test/html/index.html')
-                            // Buscar: <td>Branches</td><td class="ctr2">60%</td>
                             def branchMatch = (jacocoReport =~ /Branches<\/td>.*?(\d+)%/)
 
                             if (branchMatch) {
                                 def branchCoverage = branchMatch[0][1] as Integer
-
-                                // Umbrales progresivos (ajustar según sprint)
                                 def minBranchCoverage = 25  // Sprint 1: 25%, Sprint 2: 35%, Sprint 3: 45%, Final: 60%
 
                                 if (branchCoverage < minBranchCoverage) {
-                                    echo "⚠️  Check 6: Branch coverage ${branchCoverage}% (mínimo: ${minBranchCoverage}%, objetivo final: 60%)"
-                                    warnings.add("Branch coverage bajo: ${branchCoverage}% (trabajando para mejorar)")
+                                    echo "[WARN] Check 6: Branch coverage ${branchCoverage}% (min: ${minBranchCoverage}%, target: 60%)"
+                                    warnings.add("Low branch coverage: ${branchCoverage}%")
                                 } else {
-                                    echo "✅ Check 6: Branch coverage ${branchCoverage}% (mínimo: ${minBranchCoverage}%, objetivo final: 60%)"
+                                    echo "[OK] Check 6: Branch coverage ${branchCoverage}%"
                                 }
                             } else {
-                                echo '⚠️  Check 6: No se pudo parsear branch coverage'
+                                echo '[WARN] Check 6: Could not parse branch coverage'
                             }
                         } catch (Exception e) {
-                            echo "⚠️  Check 6: No se pudo verificar branch coverage: ${e.message}"
+                            echo "[WARN] Check 6: Could not verify branch coverage"
                         }
                     } else {
-                        echo '⏭️  Check 6: Skippeado (RUN_COVERAGE=false o SKIP_TESTS=true)'
+                        echo '[SKIP] Check 6'
                     }
 
-                    // ============================================================
-                    // CHECK 7: Artefactos generados (12 JARs = 4 módulos × 3 tipos)
-                    // ============================================================
-                    echo '⏳ Check 7: Artefactos (se verificará después de generación)'
+                    // CHECK 7: Artefactos generados
+                    echo '[PENDING] Check 7: Artifacts (verified after generation)'
 
-                    // ============================================================
-                    // CHECK 8: Tamaño de artefactos razonable (> 10 KB cada uno)
-                    // ============================================================
-                    echo '⏳ Check 8: Tamaño artefactos (se verificará después de generación)'
+                    // CHECK 8: Tamaño de artefactos
+                    echo '[PENDING] Check 8: Artifact size (verified after generation)'
 
-                    // ============================================================
-                    // CHECK 10: Checkmarx sin vulnerabilidades HIGH (solo master)
-                    // ============================================================
-                    // Este check se ejecutará en master después de Code Quality
-                    // Si codeQuality.runCodeQuality() encuentra HIGH → Falla automáticamente
-                    echo '⏭️  Check 10: Checkmarx HIGH (solo en master, después de Code Quality)'
+                    // CHECK 10: Checkmarx HIGH
+                    echo '[SKIP] Check 10: Checkmarx (master only, after Code Quality)'
 
-                    // ============================================================
-                    // CHECK 11: Versión sigue formato SemVer (MAJOR.MINOR.PATCH)
-                    // ============================================================
+                    // CHECK 11: Versión SemVer
                     if (env.VERSION ==~ /\d+\.\d+\.\d+(-.*)?/) {
-                        echo "✅ Check 11: Versión sigue SemVer (${env.VERSION})"
+                        echo "[OK] Check 11: Version ${env.VERSION} follows SemVer"
                     } else {
-                        echo "❌ Check 11: Versión NO sigue SemVer: ${env.VERSION}"
-                        errors.add("Versión inválida: ${env.VERSION}")
+                        echo "[ERROR] Check 11: Invalid version: ${env.VERSION}"
+                        errors.add("Invalid version: ${env.VERSION}")
                         checksPass = false
                     }
 
-                    // ============================================================
                     // CHECK 12: Sin duplicados en Artifactory
-                    // ============================================================
-                    // Este check se ejecuta en stage dedicado (Stage 9)
-                    echo '⏭️  Check 12: Duplicados Artifactory (verificado en Stage 9)'
+                    echo '[PENDING] Check 12: Artifactory duplicates (Stage 9)'
 
-                    // ============================================================
-                    // RESUMEN DE QUALITY GATE
-                    // ============================================================
+                    // RESUMEN
                     echo ''
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '📊 RESUMEN QUALITY GATE:'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========== Quality Gate Summary =========='
 
                     if (errors.size() > 0) {
-                        echo "❌ ERRORES CRÍTICOS (${errors.size()}):"
-                        errors.each { echo "   - ${it}" }
+                        echo "ERRORS (${errors.size()}):"
+                        errors.each { echo "  - ${it}" }
                     }
 
                     if (warnings.size() > 0) {
-                        echo "⚠️  ADVERTENCIAS (${warnings.size()}):"
-                        warnings.each { echo "   - ${it}" }
+                        echo "WARNINGS (${warnings.size()}):"
+                        warnings.each { echo "  - ${it}" }
                     }
 
-                    echo ''
-
                     if (!checksPass) {
-                        echo '❌ Quality Gate: FAILED'
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                         echo ''
-                        echo '💡 Acciones requeridas:'
-                        echo '   1. Corregir errores críticos listados arriba'
-                        echo '   2. Mejorar warnings si es posible'
-                        echo '   3. Re-ejecutar el build'
-                        echo ''
-                        error('❌ Quality Gate no pasó - Build fallido')
+                        echo 'Quality Gate: FAILED'
+                        echo 'Fix critical errors above'
+                        error '❌ Quality Gate no pasó - Build fallido'
                     } else if (warnings.size() > 0) {
-                        echo '⚠️  Quality Gate: PASSED WITH WARNINGS'
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                        echo '💡 Considera mejorar los warnings en futuras versiones'
+                        echo ''
+                        echo 'Quality Gate: PASSED WITH WARNINGS'
+                        echo 'Consider improving warnings in future versions'
                     } else {
-                        echo '✅ Quality Gate: PASSED'
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                        echo '🎉 Todos los checks pasaron sin warnings'
+                        echo ''
+                        echo 'Quality Gate: PASSED'
                     }
                 }
             }
@@ -763,68 +704,54 @@ pipeline {
             }
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '📊 Ejecutando análisis de calidad y seguridad...'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo "🌿 Rama: ${env.BRANCH_NAME}"
+                    echo '== Code Quality & Security Analysis =='
+                    echo "Branch: ${env.BRANCH_NAME}"
 
-                    // Configuración para la función compartida
-                    appProperties = [
-                        'cxIgnorePolicy': true
-                    ]
-
-                    // Determinar qué herramientas ejecutar
-                    def runSonar = params.Sonar ?: true
-                    // ESTRATEGIA A: Ejecutar Checkmarx EN DEVELOP Y MASTER
-                    // Validar TODO en develop para que master solo sea re-validación + publicación
-                    def runCheckmarx = params.Checkmarx ?: true
-
-                    echo "⚙️  Configuración:"
-                    echo "   - SonarQube: ${runSonar ? '✅ Habilitado' : '⏭️ Deshabilitado'}"
-                    echo "   - Checkmarx: ${runCheckmarx ? '✅ Habilitado (develop Y master)' : '⏭️ Deshabilitado'}"
-                    echo ''
-                    echo '💡 ESTRATEGIA: Validación completa en develop + Re-validación en master'
-                    echo '   → develop: Detectar problemas ANTES del merge'
-                    echo '   → master: Confirmar que todo sigue OK antes de publicar'
-
-                    // Ejecutar análisis usando función compartida de pipeline-utils
-                    if (runCheckmarx || runSonar) {
+                    // SonarQube - Acceso directo (NO requiere registro en project.json)
+                    if (params.Sonar) {
                         echo ''
-                        echo '🔍 Code Quality Analysis...'
-
-                        // Configuración de la aplicación para los scanners
-                        // Basado en pipeline funcionando de referencia
-                        def appProperties = [
-                            'cxIgnorePolicy': true,  // Checkmarx: No bloquear por políticas menores
-                            'projectName': 'qa-scotia-frameworks',
-                            'branch': env.BRANCH_NAME
-                        ]
-
-                        // BlackDuck no se usa en este proyecto (por ahora)
-                        def runBlackDuck = false
-
-                        echo "   → Checkmarx: ${runCheckmarx ? 'HABILITADO ✅' : 'Deshabilitado ⏭️'}"
-                        echo "   → BlackDuck: ${runBlackDuck ? 'HABILITADO ✅' : 'Deshabilitado ⏭️'}"
-                        echo "   → SonarQube: ${runSonar ? 'HABILITADO ✅' : 'Deshabilitado ⏭️'}"
-                        echo ''
+                        echo 'Ejecutando SonarQube...'
 
                         try {
-                            // Firma correcta: runCodeQuality(checkmarx, blackduck, sonar, properties)
-                            // Basado en ejemplo funcionando de otro pipeline
-                            codeQuality.runCodeQuality(runCheckmarx, runBlackDuck, runSonar, appProperties)
+                            withSonarQubeEnv('SonarQube') {
+                                sh """
+                                    ./gradlew sonarqube \
+                                        -Dsonar.projectKey=qa-scotia-frameworks \
+                                        -Dsonar.projectName='QA Scotia Automation Framework' \
+                                        -Dsonar.branch.name=${env.BRANCH_NAME}
+                                """
+                            }
 
-                            echo ''
-                            echo '✅ Análisis de calidad completado exitosamente'
+                            echo 'SonarQube scan enviado'
+                            echo 'Esperando resultado del Quality Gate...'
+
+                            timeout(time: 5, unit: 'MINUTES') {
+                                def qg = waitForQualityGate()
+                                if (qg.status != 'OK') {
+                                    echo "SonarQube Quality Gate: ${qg.status}"
+                                    error "SonarQube Quality Gate failed: ${qg.status}"
+                                } else {
+                                    echo 'SonarQube Quality Gate: PASSED'
+                                }
+                            }
 
                         } catch (Exception e) {
-                            echo ''
-                            echo "❌ Error en análisis de calidad: ${e.message}"
-                            echo "💡 Verificar que Checkmarx/SonarQube estén configurados en Jenkins"
-                            echo "💡 Verificar credenciales y conectividad"
-                            throw e
+                            echo "WARN: SonarQube failed: ${e.message}"
+                            echo "Pipeline continua (SonarQube no es bloqueante en develop)"
+                            // No lanzar error en develop, solo advertir
+                            if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main') {
+                                throw e  // En master SI es bloqueante
+                            }
                         }
                     } else {
-                        echo '⏭️  Code Quality skippeado (ambos parámetros deshabilitados)'
+                        echo 'SonarQube: Skipped (parameter disabled)'
+                    }
+
+                    // Checkmarx - Requiere codeQuality.runCodeQuality() (deshabilitado)
+                    if (params.Checkmarx) {
+                        echo ''
+                        echo 'Checkmarx: SKIPPED (requiere registro en project.json)'
+                        echo 'Para habilitar: Crear ticket en https://confluence.agile.bns/x/UtdRJ'
                     }
                 }
             }
