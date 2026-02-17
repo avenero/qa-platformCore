@@ -123,7 +123,7 @@ pipeline {
         booleanParam(
             name: 'AUTO_INCREMENT_VERSION',
             defaultValue: false,
-            description: '''🤖 Auto-incrementar versión desde Artifactory (Fase 6):
+            description: '''🤖 Auto-incrementar versión desde Artifactory:
             - true: Consulta última versión en Artifactory y auto-incrementa PATCH
             - false: Usa gradle.properties o CUSTOM_VERSION
             ⚠️ Solo funciona si CUSTOM_VERSION está vacío'''
@@ -154,11 +154,7 @@ pipeline {
             name: 'Sonar',
             defaultValue: true,
             description: '''📊 Ejecutar SonarQube (análisis de calidad):
-            - Código duplicado, comentado, complejidad
-            - Code smells y best practices
-            - Coverage integrado
-            - Security básica
-            ⏱️ Tiempo: ~5 minutos'''
+            - Código duplicado, comentado, complejidad'''
         )
 
         booleanParam(
@@ -167,15 +163,13 @@ pipeline {
             description: '''🔒 Ejecutar Checkmarx SAST (análisis de seguridad):
             - Vulnerabilidades: SQL Injection, XSS, etc.
             - Hardcoded secrets
-            - Security avanzada
-            - Solo ejecuta en master/main
-            ⏱️ Tiempo: ~20-30 minutos'''
+            - Security avanzada'''
         )
 
         booleanParam(
             name: 'RUN_OWASP_SCAN',
             defaultValue: true,
-            description: '🔒 Ejecutar escaneo de seguridad OWASP (dependencias vulnerables). Solo aplica en develop. GRATIS y rápido (~5 min)'
+            description: '🔒 Ejecutar escaneo de seguridad OWASP (dependencias vulnerables).'
         )
 
         booleanParam(
@@ -703,8 +697,8 @@ pipeline {
 
             steps {
                 script {
-                    appProperties = [    'cxIgnorePolicy': true]
-                    codeQuality.runCodeQuality(false, false, params.Sonar,appProperties)
+                    def appProperties = ['cxIgnorePolicy': true]
+                    codeQuality.runCodeQuality(false, false, true, appProperties)
                 }
             }
             post {
