@@ -2,6 +2,17 @@
 
 ## ⚠️ CONCEPTO CLAVE - SIEMPRE COMMIT ANTES DE MERGE
 
+
+# Eliminar artefactos de com.scotia.qa
+rm -rf ~/.m2/repository/com/scotia/qa/common
+rm -rf ~/.m2/repository/com/scotia/qa/api-core
+rm -rf ~/.m2/repository/com/scotia/qa/web-core
+rm -rf ~/.m2/repository/com/scotia/qa/mobile-core
+
+# Verificar eliminación
+ls ~/.m2/repository/com/scotia/qa/
+# Debe estar vacío o no existir 
+
 ### **❌ ERROR COMÚN:**
 ```bash
 # Estás en feature/mi-funcionalidad con cambios SIN commitear

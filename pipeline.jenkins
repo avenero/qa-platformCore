@@ -696,7 +696,7 @@ pipeline {
                     // ============================================================
                     try {
                         def buildLog = currentBuild.rawBuild.getLog(10000).join('\n')
-                        def javadocErrors = (buildLog =~ /javadoc.*error/i).count
+                        def javadocErrors = (buildLog =~ /javadoc.*error/i).size()
 
                         if (javadocErrors > 0) {
                             echo "❌ Check 12: ${javadocErrors} errores de Javadoc encontrados"
