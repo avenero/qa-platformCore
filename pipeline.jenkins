@@ -153,6 +153,28 @@ pipeline {
         )
 
         booleanParam(
+            name: 'Sonar',
+            defaultValue: true,
+            description: '''📊 Ejecutar SonarQube (análisis de calidad):
+            - Código duplicado, comentado, complejidad
+            - Code smells y best practices
+            - Coverage integrado
+            - Security básica
+            ⏱️ Tiempo: ~5 minutos'''
+        )
+
+        booleanParam(
+            name: 'Checkmarx',
+            defaultValue: true,
+            description: '''🔒 Ejecutar Checkmarx SAST (análisis de seguridad):
+            - Vulnerabilidades: SQL Injection, XSS, etc.
+            - Hardcoded secrets
+            - Security avanzada
+            - Solo ejecuta en master/main
+            ⏱️ Tiempo: ~20-30 minutos'''
+        )
+
+        booleanParam(
             name: 'RUN_OWASP_SCAN',
             defaultValue: true,
             description: '🔒 Ejecutar escaneo de seguridad OWASP (dependencias vulnerables). Solo aplica en develop. GRATIS y rápido (~5 min)'
@@ -439,12 +461,11 @@ pipeline {
         }
 
         // ====================================================================
-        // STAGE 6A: COVERAGE (Fase 7 - Solo en develop)
+        // STAGE 6A: COVERAGE (Jacoco - develop Y master)
         // ====================================================================
         stage('📊 Coverage') {
             when {
                 allOf {
-                    branch 'develop'
                     expression { params.RUN_COVERAGE == true }
                     expression { params.SKIP_TESTS != true }
                 }
@@ -454,6 +475,7 @@ pipeline {
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                     echo '📊 Analizando cobertura de código (Jacoco)...'
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "🌿 Rama: ${env.BRANCH_NAME}"
                 }
 
                 sh "./gradlew jacocoTestReport -Pversion=${env.VERSION}"
@@ -464,82 +486,41 @@ pipeline {
             }
             post {
                 always {
-                    // Publicar reporte de Jacoco
-                    publishHTML(target: [
-                        reportDir: 'build/reports/jacoco/test/html',
-                        reportFiles: 'index.html',
-                        reportName: '📊 Coverage Report (Jacoco)',
-                        keepAll: true,
-                        alwaysLinkToLastBuild: true,
-                        allowMissing: true
-                    ])
+                    // Publicar reportes de Jacoco para cada módulo
+                    script {
+                        def modules = ['common', 'api-core', 'web-core', 'mobile-core']
+                        modules.each { module ->
+                            def reportPath = "${module}/build/reports/jacoco/test/html"
+                            if (fileExists("${reportPath}/index.html")) {
+                                publishHTML(target: [
+                                    reportDir: reportPath,
+                                    reportFiles: 'index.html',
+                                    reportName: "📊 Coverage Report - ${module}",
+                                    keepAll: true,
+                                    alwaysLinkToLastBuild: true,
+                                    allowMissing: false
+                                ])
+                                echo "✅ Reporte de coverage publicado: ${module}"
+                            } else {
+                                echo "⚠️  No hay reporte de coverage para: ${module}"
+                            }
+                        }
+                    }
 
                     script {
-                        echo '📊 Reporte de cobertura publicado'
-
-                        // Opcional: Verificar umbral mínimo
-                        try {
-                            def jacocoReport = readFile('build/reports/jacoco/test/html/index.html')
-                            if (jacocoReport.contains('Total')) {
-                                echo '💡 Ver reporte completo en: Coverage Report (Jacoco)'
-                            }
-                        } catch (Exception e) {
-                            echo "⚠️  No se pudo leer el reporte de cobertura: ${e.message}"
-                        }
+                        echo '📊 Reportes de cobertura procesados'
                     }
                 }
             }
         }
 
         // ====================================================================
-        // STAGE 6B: QUALITY GATE (Fase 7 - Solo en develop)
+        // STAGE 6B: QUALITY GATE (Completo con métricas exigentes - develop Y master)
         // ====================================================================
         stage('🚦 Quality Gate') {
             when {
-                branch 'develop'
-            }
-            steps {
-                script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '🚦 Ejecutando Quality Gate...'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-
-                    // Checks básicos
-                    def checksPass = true
-
-                    // Check 1: Tests ejecutados
-                    if (!params.SKIP_TESTS) {
-                        echo '✅ Check 1: Tests ejecutados'
-                    } else {
-                        echo '⚠️  Check 1: Tests skippeados'
-                        checksPass = false
-                    }
-
-                    // Check 2: Build exitoso
-                    echo '✅ Check 2: Build exitoso'
-
-                    // Check 3: Artefactos generados (se verificará después)
-                    echo '⏳ Check 3: Artefactos (pendiente de generación)'
-
-                    if (checksPass) {
-                        echo ''
-                        echo '✅ Quality Gate: PASSED'
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    } else {
-                        echo ''
-                        echo '⚠️  Quality Gate: PASSED WITH WARNINGS'
-                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    }
-                }
-            }
-        }
-
-        // ====================================================================
-        // STAGE 6C: CHECKMARX SAST (Solo en master - ANTES de generar artefactos)
-        // ====================================================================
-        stage("🔒 Checkmarx SAST") {
-            when {
                 anyOf {
+                    branch 'develop'
                     branch 'master'
                     branch 'main'
                 }
@@ -547,124 +528,365 @@ pipeline {
             steps {
                 script {
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '🔒 Ejecutando Checkmarx SAST...'
+                    echo '🚦 Ejecutando Quality Gate (11 checks)...'
                     echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '⚠️  Tiempo estimado: 20-30 minutos'
 
-                    // Set client ID and secret for authentication
-                    env.CX_CLIENT_ID="PIPELINE_BJCX_Chile"
-                    env.CX_CLIENT_SECRET=USF_PSW
-                    env.CX_TENANT="BNS"
-                    env.CX_BASE_URI="https://scotiabank.cxone.cloud/"
-                    env.CX_HTTP_PROXY=HTTPS_PROXY
-                    env.HTTP_PROXY=HTTPS_PROXY
+                    def checksPass = true
+                    def warnings = []
+                    def errors = []
 
-
-                    // Configuration for the repository where the application is stored
-                    // Consult the Confluence documentation for naming conventions [https://confluence.agile.bns/display/ASPLATFORM/Naming+Conventions+-+Checkmarx+One]
-                    def REPO_TYPE='BB' // Bitbucket as the repository type BB|TG|AD|MG|DW'
-                    def PIPELINE='CHILE' //'ACCP|COLOMBIA|CHILE|MEXICO|PERU|MODE|AEM|SOL'
-                    def CURL_TENANT = env.CX_TENANT.toLowerCase()
-
-                    env.USF_USR = USF_USR
-                    env.USF_PSW = USF_PSW
-
-
-                    def CX_TOKEN_RESPONSE = sh (label: 'cURL command', returnStdout: true, script:"""curl --request POST \
-                            --url ${CX_BASE_URI}auth/realms/${CURL_TENANT}/protocol/openid-connect/token \
-                            --header 'Accept: application/json' \
-                            --header 'Content-Type: application/x-www-form-urlencoded' \
-                            --data client_id=${USF_USR} \
-                            --data grant_type=client_credentials \
-                            --data client_secret=${USF_PSW}
-                        """)
-                    def CX_TOKEN_RESPONSE_JSON = readJSON text: CX_TOKEN_RESPONSE
-                    def CX_TOKEN = CX_TOKEN_RESPONSE_JSON["access_token"]
-                    def CX_BASE_URI = "https://scotiabank.cxone.cloud"
-
-                    maskPasswords(varPasswordPairs: [[password: CX_TOKEN ,var: 'IGNORE']]){
-                        def GETPROJECTS = sh(label:'cURL command', returnStdout: true, script:
-                                """curl --location \
-                                --url ${CX_BASE_URI}/api/projects?limit=999999 \
-                                --header 'Accept: */*' \
-                                --header 'Authorization: Bearer ${CX_TOKEN}' 
-                            """)
-                        GETPROJECTS = readJSON text: GETPROJECTS
-                        if(!(PROJECT_KEY)){
-                            def projects = []
-                            GETPROJECTS.projects.each { if(it.name)projects.add(it.name)}
-                            chooseProject = [ choice(name: "Proyecto", description: "Elige proyecto", choices: projects.sort())]
-                            PROJECT_KEY = userInput.userInput("Seleccione proyecto", chooseProject)
-                        }
-                        def chosenProject = GETPROJECTS.projects.find{it.name == PROJECT_KEY}
-                        def projectId = chosenProject.id
-                        def GETLASTSCAN = sh (label:'cURL command', returnStdout: true, script:
-                                """curl --location \
-                                --url ${CX_BASE_URI}/api/projects/last-scan?project-ids=${projectId} \
-                                --header 'Accept: */*' \
-                                --header 'Authorization: Bearer ${CX_TOKEN}'
-                            """)
-                        GETLASTSCAN = readJSON text: GETLASTSCAN
-                        def scanId = GETLASTSCAN[projectId].id
-
-
-
-                        def CREATESCAN = sh (label:'cURL command', returnStdout: true, script:
-                                """curl -X POST ${CX_BASE_URI}/api/reports/  \
-                                --header 'Accept: */*' \
-                                --header 'Authorization: Bearer ${CX_TOKEN}' \
-                                --data '{
-                                    "fileFormat": "csv",
-                                    "reportType": "cli",
-                                    "reportName": "improved-scan-report",
-                                    "data": {
-                                        "projectId": "${projectId}",
-                                        "scanId": "${scanId}"
-                                    }
-                                }'
-
-                            """)
-                        CREATESCAN = readJSON text: CREATESCAN
-                        def reportId = CREATESCAN.reportId
-
-
-                        def timeout = 1
-                        def REPORTSTATUS
-                        while(timeout <= 60){
-                            sleep 1
-                            REPORTSTATUS = sh (label:'cURL command', returnStdout: true, script:
-                                    """curl --location \
-                                    --url ${CX_BASE_URI}/api/reports/${reportId} \
-                                    --header 'Accept: */*' \
-                                    --header 'Authorization: Bearer ${CX_TOKEN}'
-                                """)
-                            REPORTSTATUS = readJSON text: REPORTSTATUS
-                            if (REPORTSTATUS.status == "completed"){
-                                timeout = 0
-                                break
-                            }
-                            timeout += 1
-                        }
-
-                        if(timeout >=60){
-                            utils.failjob("El reporte no pudo ser creado")
-                        }
-
-
-                        def GETREPORT = sh (label:'cURL command', returnStdout: true, script:
-                                """curl --location \
-                                --url ${CX_BASE_URI}/api/reports/${reportId}/download \
-                                --header 'Accept: */*' \
-                                --header 'Authorization: Bearer ${CX_TOKEN}'
-                            """)
-                        writeFile file: 'report.csv', text: GETREPORT
-
-                        archiveArtifacts artifacts: "report.csv", fingerprint: true
+                    // ============================================================
+                    // CHECK 1: Tests ejecutados
+                    // ============================================================
+                    if (!params.SKIP_TESTS) {
+                        echo '✅ Check 1: Tests ejecutados'
+                    } else {
+                        echo '⚠️  Check 1: Tests skippeados'
+                        warnings.add('Tests skippeados')
+                        checksPass = false
                     }
 
+                    // ============================================================
+                    // CHECK 2: Build exitoso
+                    // ============================================================
+                    echo '✅ Check 2: Build exitoso'
+
+                    // ============================================================
+                    // CHECK 3: Mínimo de tests ejecutados
+                    // ============================================================
+                    if (!params.SKIP_TESTS) {
+                        try {
+                            def testResults = junit testResults: '**/build/test-results/test/*.xml', allowEmptyResults: true
+                            def totalTests = testResults.totalCount
+
+                            if (totalTests < 10) {
+                                echo "⚠️  Check 3: Solo ${totalTests} tests (mínimo: 10)"
+                                warnings.add("Pocos tests: ${totalTests}/10")
+                                checksPass = false
+                            } else {
+                                echo "✅ Check 3: ${totalTests} tests ejecutados (mínimo: 10)"
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️  Check 3: No se pudo contar tests: ${e.message}"
+                        }
+                    } else {
+                        echo '⏭️  Check 3: Skippeado (SKIP_TESTS=true)'
+                    }
+
+                    // ============================================================
+                    // CHECK 4: Tasa de éxito de tests >= 95%
+                    // ============================================================
+                    if (!params.SKIP_TESTS) {
+                        try {
+                            def testResults = junit testResults: '**/build/test-results/test/*.xml', allowEmptyResults: true
+                            def totalTests = testResults.totalCount
+                            def failedTests = testResults.failCount
+
+                            if (totalTests > 0) {
+                                def passRate = ((totalTests - failedTests) / totalTests) * 100
+
+                                if (passRate < 95) {
+                                    echo "❌ Check 4: Tasa de éxito ${passRate.round(2)}% (mínimo: 95%)"
+                                    errors.add("Tasa de éxito baja: ${passRate.round(2)}%")
+                                    checksPass = false
+                                } else {
+                                    echo "✅ Check 4: Tasa de éxito ${passRate.round(2)}% (mínimo: 95%)"
+                                }
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️  Check 4: No se pudo calcular tasa de éxito: ${e.message}"
+                        }
+                    } else {
+                        echo '⏭️  Check 4: Skippeado (SKIP_TESTS=true)'
+                    }
+
+                    // ============================================================
+                    // CHECK 5: Cobertura mínima >= 70%
+                    // ============================================================
+                    if (params.RUN_COVERAGE && !params.SKIP_TESTS) {
+                        try {
+                            // Intentar leer reporte de common (módulo principal)
+                            def jacocoReport = readFile('common/build/reports/jacoco/test/html/index.html')
+                            def coverageMatch = (jacocoReport =~ /Total.*?(\d+)%/)
+
+                            if (coverageMatch) {
+                                def coverage = coverageMatch[0][1] as Integer
+
+                                if (coverage < 70) {
+                                    echo "❌ Check 5: Coverage ${coverage}% (mínimo: 70%)"
+                                    errors.add("Coverage bajo: ${coverage}%")
+                                    checksPass = false
+                                } else {
+                                    echo "✅ Check 5: Coverage ${coverage}% (mínimo: 70%)"
+                                }
+                            } else {
+                                echo '⚠️  Check 5: No se pudo parsear coverage del reporte'
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️  Check 5: No se pudo leer reporte de coverage: ${e.message}"
+                        }
+                    } else {
+                        echo '⏭️  Check 5: Skippeado (RUN_COVERAGE=false o SKIP_TESTS=true)'
+                    }
+
+                    // ============================================================
+                    // CHECK 6: Cobertura de branches >= 60%
+                    // ============================================================
+                    if (params.RUN_COVERAGE && !params.SKIP_TESTS) {
+                        try {
+                            def jacocoReport = readFile('common/build/reports/jacoco/test/html/index.html')
+                            // Buscar: <td>Branches</td><td class="ctr2">60%</td>
+                            def branchMatch = (jacocoReport =~ /Branches<\/td>.*?(\d+)%/)
+
+                            if (branchMatch) {
+                                def branchCoverage = branchMatch[0][1] as Integer
+
+                                if (branchCoverage < 60) {
+                                    echo "⚠️  Check 6: Branch coverage ${branchCoverage}% (mínimo: 60%)"
+                                    warnings.add("Branch coverage bajo: ${branchCoverage}%")
+                                } else {
+                                    echo "✅ Check 6: Branch coverage ${branchCoverage}% (mínimo: 60%)"
+                                }
+                            } else {
+                                echo '⚠️  Check 6: No se pudo parsear branch coverage'
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️  Check 6: No se pudo verificar branch coverage: ${e.message}"
+                        }
+                    } else {
+                        echo '⏭️  Check 6: Skippeado (RUN_COVERAGE=false o SKIP_TESTS=true)'
+                    }
+
+                    // ============================================================
+                    // CHECK 7: Artefactos generados (12 JARs = 4 módulos × 3 tipos)
+                    // ============================================================
+                    echo '⏳ Check 7: Artefactos (se verificará después de generación)'
+
+                    // ============================================================
+                    // CHECK 8: Tamaño de artefactos razonable (> 10 KB cada uno)
+                    // ============================================================
+                    echo '⏳ Check 8: Tamaño artefactos (se verificará después de generación)'
+
+                    // ============================================================
+                    // CHECK 10: Checkmarx sin vulnerabilidades HIGH (solo master)
+                    // ============================================================
+                    // Este check se ejecutará en master después de Code Quality
+                    // Si codeQuality.runCodeQuality() encuentra HIGH → Falla automáticamente
+                    echo '⏭️  Check 10: Checkmarx HIGH (solo en master, después de Code Quality)'
+
+                    // ============================================================
+                    // CHECK 11: Warnings de compilación <= 50
+                    // ============================================================
+                    try {
+                        def buildLog = currentBuild.rawBuild.getLog(10000).join('\n')
+                        def deprecationWarnings = (buildLog =~ /deprecated/).count
+
+                        if (deprecationWarnings > 50) {
+                            echo "⚠️  Check 11: ${deprecationWarnings} warnings de deprecación (máximo: 50)"
+                            warnings.add("Demasiados warnings: ${deprecationWarnings}")
+                        } else {
+                            echo "✅ Check 11: ${deprecationWarnings} warnings de deprecación (máximo: 50)"
+                        }
+                    } catch (Exception e) {
+                        echo "⚠️  Check 11: No se pudo contar warnings: ${e.message}"
+                    }
+
+                    // ============================================================
+                    // CHECK 12: Sin errores de Javadoc
+                    // ============================================================
+                    try {
+                        def buildLog = currentBuild.rawBuild.getLog(10000).join('\n')
+                        def javadocErrors = (buildLog =~ /javadoc.*error/i).count
+
+                        if (javadocErrors > 0) {
+                            echo "❌ Check 12: ${javadocErrors} errores de Javadoc encontrados"
+                            errors.add("Errores en Javadoc: ${javadocErrors}")
+                            checksPass = false
+                        } else {
+                            echo "✅ Check 12: Sin errores de Javadoc"
+                        }
+                    } catch (Exception e) {
+                        echo "⚠️  Check 12: No se pudo verificar Javadoc: ${e.message}"
+                    }
+
+                    // ============================================================
+                    // CHECK 13: Versión sigue formato SemVer (MAJOR.MINOR.PATCH)
+                    // ============================================================
+                    if (env.VERSION ==~ /\d+\.\d+\.\d+(-.*)?/) {
+                        echo "✅ Check 13: Versión sigue SemVer (${env.VERSION})"
+                    } else {
+                        echo "❌ Check 13: Versión NO sigue SemVer: ${env.VERSION}"
+                        errors.add("Versión inválida: ${env.VERSION}")
+                        checksPass = false
+                    }
+
+                    // ============================================================
+                    // CHECK 14: Sin duplicados en Artifactory
+                    // ============================================================
+                    // Este check se ejecuta en stage dedicado (Stage 9)
+                    echo '⏭️  Check 14: Duplicados Artifactory (verificado en Stage 9)'
+
+                    // ============================================================
+                    // RESUMEN DE QUALITY GATE
+                    // ============================================================
+                    echo ''
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '📊 RESUMEN QUALITY GATE:'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+
+                    if (errors.size() > 0) {
+                        echo "❌ ERRORES CRÍTICOS (${errors.size()}):"
+                        errors.each { echo "   - ${it}" }
+                    }
+
+                    if (warnings.size() > 0) {
+                        echo "⚠️  ADVERTENCIAS (${warnings.size()}):"
+                        warnings.each { echo "   - ${it}" }
+                    }
+
+                    echo ''
+
+                    if (!checksPass) {
+                        echo '❌ Quality Gate: FAILED'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo ''
+                        echo '💡 Acciones requeridas:'
+                        echo '   1. Corregir errores críticos listados arriba'
+                        echo '   2. Mejorar warnings si es posible'
+                        echo '   3. Re-ejecutar el build'
+                        echo ''
+                        error('❌ Quality Gate no pasó - Build fallido')
+                    } else if (warnings.size() > 0) {
+                        echo '⚠️  Quality Gate: PASSED WITH WARNINGS'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '💡 Considera mejorar los warnings en futuras versiones'
+                    } else {
+                        echo '✅ Quality Gate: PASSED'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '🎉 Todos los checks pasaron sin warnings'
+                    }
                 }
             }
         }
+
+        // ====================================================================
+        // STAGE 6C: CODE QUALITY (Sonar + Checkmarx - Función compartida)
+        // ====================================================================
+        stage('📊 Code Quality') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'master'
+                    branch 'main'
+                }
+            }
+            steps {
+                script {
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '📊 Ejecutando análisis de calidad y seguridad...'
+                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo "🌿 Rama: ${env.BRANCH_NAME}"
+
+                    // Configuración para la función compartida
+                    appProperties = [
+                        'cxIgnorePolicy': true
+                    ]
+
+                    // Determinar qué herramientas ejecutar
+                    def runSonar = params.Sonar ?: true
+                    // ESTRATEGIA A: Ejecutar Checkmarx EN DEVELOP Y MASTER
+                    // Validar TODO en develop para que master solo sea re-validación + publicación
+                    def runCheckmarx = params.Checkmarx ?: true
+
+                    echo "⚙️  Configuración:"
+                    echo "   - SonarQube: ${runSonar ? '✅ Habilitado' : '⏭️ Deshabilitado'}"
+                    echo "   - Checkmarx: ${runCheckmarx ? '✅ Habilitado (develop Y master)' : '⏭️ Deshabilitado'}"
+                    echo ''
+                    echo '💡 ESTRATEGIA: Validación completa en develop + Re-validación en master'
+                    echo '   → develop: Detectar problemas ANTES del merge'
+                    echo '   → master: Confirmar que todo sigue OK antes de publicar'
+
+                    // Ejecutar análisis usando función compartida de pipeline-utils
+                    if (runCheckmarx || runSonar) {
+                        echo ''
+                        echo '🚀 Ejecutando codeQuality.runCodeQuality()...'
+                        echo '💡 Esta función está definida en pipeline-utils library'
+
+                        try {
+                            codeQuality.runCodeQuality(runCheckmarx, runSonar)
+                            echo ''
+                            echo '✅ Análisis de calidad completado exitosamente'
+                        } catch (Exception e) {
+                            echo ''
+                            echo "❌ Error en análisis de calidad: ${e.message}"
+                            throw e
+                        }
+                    } else {
+                        echo '⏭️  Code Quality skippeado (ambos parámetros deshabilitados)'
+                    }
+                }
+            }
+            post {
+                success {
+                    script {
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '✅ CODE QUALITY: PASSED'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        if (params.Sonar ?: true) {
+                            echo '💡 Ver resultados de SonarQube en:'
+                            echo '   → Dashboard SonarQube (link en Jenkins UI)'
+                        }
+                        if ((env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main') && (params.Checkmarx ?: params.RUN_CHECKMARX_SCAN ?: true)) {
+                            echo '💡 Ver resultados de Checkmarx en:'
+                            echo '   → Checkmarx Dashboard'
+                            echo '   → O reportes en Jenkins UI'
+                        }
+                    }
+                }
+                failure {
+                    script {
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '❌ CODE QUALITY: FAILED'
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '⚠️  Se encontraron problemas críticos de calidad o seguridad'
+                        echo ''
+                        echo '💡 Posibles causas:'
+                        echo '   1. SonarQube Quality Gate no pasó'
+                        echo '   2. Checkmarx encontró vulnerabilidades HIGH'
+                        echo '   3. Error de configuración o credenciales'
+                        echo ''
+                        echo '📊 Revisar reportes en Jenkins UI para más detalles'
+                        echo '🚫 La publicación de artefactos está BLOQUEADA'
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // STAGE 6D: CHECKMARX SAST MANUAL (COMENTADO - BACKUP)
+        // ====================================================================
+        // ⚠️ ESTE STAGE ESTÁ COMENTADO (BACKUP)
+        // Usamos codeQuality.runCodeQuality() en Stage 6C
+        // Para habilitar: Descomentar este bloque y agregar parámetro USE_MANUAL_CHECKMARX
+        // ====================================================================
+        /*
+        stage("🔒 Checkmarx SAST (Manual)") {
+            when {
+                allOf {
+                    anyOf { branch 'master'; branch 'main' }
+                    expression { params.USE_MANUAL_CHECKMARX == true }
+                }
+            }
+            steps {
+                script {
+                    echo 'Ejecutando Checkmarx via API REST...'
+                    // ... código comentado ...
+                    // (130+ líneas de configuración manual)
+                    // Ver historial de git si necesitas restaurarlo
+                }
+            }
+        }
+        */
 
         // ====================================================================
         // STAGE 7: GENERAR ARTEFACTOS
@@ -703,6 +925,47 @@ pipeline {
                     script {
                         echo '📦 Artefactos archivados en Jenkins'
                         echo '💡 Disponibles en: Build Artifacts'
+
+                        // ============================================================
+                        // CHECK 7: Artefactos generados (12 JARs = 4 módulos × 3 tipos)
+                        // ============================================================
+                        echo ''
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                        echo '📊 Validando artefactos generados...'
+
+                        def jarFiles = findFiles(glob: '**/build/libs/*.jar')
+                        def expectedJars = 12  // 4 módulos × 3 tipos (jar, javadoc, sources)
+
+                        if (jarFiles.length < expectedJars) {
+                            echo "⚠️  Check 7: Solo ${jarFiles.length} JARs generados (esperado: ${expectedJars})"
+                            echo '💡 Verificar que todos los módulos compilaron correctamente'
+                        } else {
+                            echo "✅ Check 7: ${jarFiles.length} artefactos generados correctamente"
+                        }
+
+                        // ============================================================
+                        // CHECK 8: Tamaño de artefactos razonable (> 10 KB cada uno)
+                        // ============================================================
+                        echo ''
+                        echo '📊 Validando tamaño de artefactos...'
+
+                        def invalidSizes = []
+                        jarFiles.each { file ->
+                            def sizeKB = file.length / 1024
+                            if (sizeKB < 10) {
+                                invalidSizes.add("${file.name}: ${sizeKB.round(2)} KB (muy pequeño)")
+                                echo "⚠️  ${file.name}: ${sizeKB.round(2)} KB (mínimo: 10 KB)"
+                            }
+                        }
+
+                        if (invalidSizes.size() > 0) {
+                            echo "⚠️  Check 8: ${invalidSizes.size()} artefactos sospechosamente pequeños"
+                            invalidSizes.each { echo "   - ${it}" }
+                        } else {
+                            echo "✅ Check 8: Todos los artefactos tienen tamaño válido (> 10 KB)"
+                        }
+
+                        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
                     }
                 }
             }
@@ -960,16 +1223,23 @@ pipeline {
                 // Mostrar estado de publicaciones
                 echo ''
                 echo '📦 Publicaciones:'
-                if (env.BRANCH_NAME == 'develop' && params.PUBLISH_TO_MAVEN_LOCAL) {
-                    echo "   ✅ Maven Local: Publicado en ~/.m2/repository"
-                } else if (env.BRANCH_NAME == 'develop') {
-                    echo "   ⏭️  Maven Local: No publicado (PUBLISH_TO_MAVEN_LOCAL=false)"
-                }
 
-                if (env.WILL_PUBLISH_ARTIFACTORY == 'true') {
-                    echo "   ✅ Artifactory: Publicado en ${env.ARTIFACTORY_URL}"
-                } else if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main') {
-                    echo "   ⏭️  Artifactory: No publicado (PUBLISH_TO_ARTIFACTORY=${params.PUBLISH_TO_ARTIFACTORY})"
+                if (!params.ENABLE_PUBLISHING) {
+                    echo '   ⏭️  NO habilitadas (ENABLE_PUBLISHING=false)'
+                } else {
+                    echo "   ⚙️  Target: ${params.PUBLISH_TARGET}"
+
+                    if (env.WILL_PUBLISH_MAVEN_LOCAL == 'true') {
+                        echo "   ✅ Maven Local: Publicado en ~/.m2/repository"
+                    } else {
+                        echo "   ⏭️  Maven Local: No publicado"
+                    }
+
+                    if (env.WILL_PUBLISH_ARTIFACTORY == 'true') {
+                        echo "   ✅ Artifactory: Publicado en ${env.ARTIFACTORYREPOKEY}"
+                    } else if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main') {
+                        echo "   ⏭️  Artifactory: No publicado (PUBLISH_TARGET=${params.PUBLISH_TARGET})"
+                    }
                 }
 
                 echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
