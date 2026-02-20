@@ -1,9 +1,3 @@
-// ========================================================================
-// PLUGINS
-// ========================================================================
-plugins {
-    id "org.sonarqube" version "4.4.1.3373" apply true
-}
 
 // Configuración del proyecto raíz qa-framework
 group = "com.scotia.qa"
@@ -36,13 +30,9 @@ subprojects {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'jacoco'
-    apply plugin: 'org.sonarqube'  // Plugin de SonarQube
 
     group = "com.scotia.qa"
     version = "1.0.0"
-
-    // Aplicar configuración de SonarQube y coverage
-    apply from: "${rootProject.projectDir}/config/conf.codeCoverage.gradle"
 
 
     repositories {

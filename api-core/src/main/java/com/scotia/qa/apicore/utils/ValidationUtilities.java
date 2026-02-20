@@ -741,4 +741,28 @@ public class ValidationUtilities {
     if (content.length() <= maxLength) return content;
     return content.substring(0, maxLength) + "...";
   }
+
+  // =================================================================================
+  // UTILIDADES DE TIPOS DE DATOS
+  // =================================================================================
+
+  /**
+   * Verifica si una clase es primitiva o wrapper.
+   * Útil para validaciones de tipos y serialización.
+   *
+   * @param clazz clase a verificar
+   * @return true si es primitiva o wrapper, false en caso contrario
+   */
+  public static boolean isPrimitiveOrWrapper(Class<?> clazz) {
+    return clazz.isPrimitive()
+        || clazz.equals(String.class)
+        || clazz.equals(Boolean.class)
+        || clazz.equals(Integer.class)
+        || clazz.equals(Long.class)
+        || clazz.equals(Double.class)
+        || clazz.equals(Float.class)
+        || clazz.equals(Short.class)
+        || clazz.equals(Byte.class)
+        || clazz.equals(Character.class);
+  }
 }

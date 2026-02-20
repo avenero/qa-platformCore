@@ -54,20 +54,35 @@ abstract class BaseConnector implements DatabaseConnector {
     }
 
     protected void validateProperties(String jdbcUrl, String username, String password) {
+        // Validar URL siempre (obligatorio)
         if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
             throw new IllegalArgumentException(
                 connectorType.toLowerCase() + ".db.url no configurada"
             );
         }
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException(
-                connectorType.toLowerCase() + ".db.username no configurada"
-            );
-        }
-        if (password == null) {
-            throw new IllegalArgumentException(
-                connectorType.toLowerCase() + ".db.password no configurada"
-            );
+
+        // Detectar Windows Authentication de SQL Server
+        boolean isWindowsAuth = jdbcUrl.toLowerCase().contains("integratedsecurity=true");
+
+        if (!isWindowsAuth) {
+            // Autenticación SQL estándar: validar credenciales
+            if (username == null || username.trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                    connectorType.toLowerCase() + ".db.username no configurada. " +
+                    "Si usas SQL Server con Windows Authentication, " +
+                    "agrega 'integratedSecurity=true' a la URL JDBC"
+                );
+            }
+            if (password == null) {
+                throw new IllegalArgumentException(
+                    connectorType.toLowerCase() + ".db.password no configurada"
+                );
+            }
+        } else {
+            // Windows Authentication detectada
+            TestLogger.logInfo(connectorType + "_CONNECTOR",
+                "✅ Windows Authentication detectada en URL JDBC (integratedSecurity=true)",
+                Map.of("info", "Username/Password no requeridos"));
         }
     }
 }

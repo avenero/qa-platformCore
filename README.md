@@ -892,6 +892,52 @@ void setUp() {
 
 ---
 
+## 🎯 Steps Genéricos Disponibles
+
+**Última actualización:** 18 de Febrero 2026  
+**Total de steps implementados:** 30 steps genéricos
+
+El framework ahora incluye **30 steps genéricos reutilizables** para validaciones comunes en Web testing:
+
+### Categorías de Steps:
+
+| Categoría | Steps | Descripción |
+|-----------|-------|-------------|
+| **Tipo de Dato** | 5 | Validar números, letras, email, teléfono |
+| **Formato** | 4 | Validar espacios, separadores, patrones regex |
+| **Longitud** | 3 | Validar longitud mínima, máxima, exacta |
+| **Valores Numéricos** | 2 | Validar rangos mínimo y máximo |
+| **Opciones** | 3 | Validar dropdowns y selección |
+| **Estado** | 4 | Validar botones activos/inactivos |
+| **Placeholders/Tooltips** | 2 | Validar textos de ayuda |
+| **Mensajes** | 3 | Validar mensajes visibles/ocultos |
+| **Visibilidad** | 4 | Validar elementos visibles/vacíos |
+
+### Ejemplos de Uso:
+
+```gherkin
+# Validaciones de tipo de dato
+Then el campo "nombre" debe aceptar solo letras
+And el campo "edad" debe aceptar solo números
+And el campo "email" debe tener formato de email válido
+
+# Validaciones de longitud
+And el campo "nombre" debe tener una longitud mínima de 2
+And el campo "password" debe tener exactamente 8 caracteres
+
+# Validaciones con patrones (cualquier país)
+And el campo "telefono" debe tener formato de teléfono con prefijo "09" y 9 dígitos totales
+And el campo "documento" debe tener el formato con patrón "^\d\.\d{3}\.\d{3}-\d$"
+
+# Validaciones de mensajes
+And el mensaje "error_email" debe estar visible
+And el mensaje "error_email" debe contener el texto "formato inválido"
+```
+
+**Ver inventario completo:** [INVENTARIO_STEPS_GENERICOS.md](./INVENTARIO_STEPS_GENERICOS.md)
+
+---
+
 ## 📞 Soporte
 
 ¿Necesitas ayuda?

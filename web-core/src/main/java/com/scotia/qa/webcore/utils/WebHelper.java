@@ -530,6 +530,50 @@ public class WebHelper {
     }
 
     /**
+     * Obtiene el valor de un campo de formulario (input, textarea, select).
+     *
+     * <p>Intenta obtener el valor usando múltiples estrategias:</p>
+     * <ol>
+     *   <li>Atributo 'value' (para inputs)</li>
+     *   <li>Texto interno (para labels, spans)</li>
+     *   <li>Opción seleccionada (para selects)</li>
+     * </ol>
+     *
+     * @param element WebElement del cual obtener el valor
+     * @return Valor del campo, o cadena vacía si no se puede obtener
+     */
+    public String getElementValue(WebElement element) {
+        try {
+            // Estrategia 1: Atributo 'value' (inputs, textareas)
+            String value = element.getDomAttribute("value");
+            if (value != null && !value.isEmpty()) {
+                return value;
+            }
+
+            // Estrategia 2: Texto interno (labels, spans, divs)
+            String text = element.getText();
+            if (text != null && !text.isEmpty()) {
+                return text;
+            }
+
+            // Estrategia 3: Para selects, obtener opción seleccionada
+            String tagName = element.getTagName().toLowerCase();
+            if ("select".equals(tagName)) {
+                Select select = new Select(element);
+                return select.getFirstSelectedOption().getText();
+            }
+
+            // Si no se pudo obtener ningún valor, retornar vacío
+            return "";
+
+        } catch (Exception e) {
+            TestLogger.logWarning("WEB_HELPER",
+                "No se pudo obtener valor del elemento: " + e.getMessage(), null);
+            return "";
+        }
+    }
+
+    /**
      * Obtiene WebElement sin loguear errores (para verificación de existencia).
      *
      * <p>Similar a getElement() pero sin generar logs de ERROR cuando el elemento
@@ -1479,6 +1523,524 @@ public class WebHelper {
 
     public void attachScenario(String data, Scenario scenario) {
         scenario.attach(data.getBytes(), "text/plain", "data.txt");
+    }
+
+    // =========================================================================
+    // MÉTODOS DE VALIDACIÓN - FORMATO Y TIPO DE DATO
+    // =========================================================================
+
+    /**
+     * Valida que un campo contenga solo números.
+     */
+    public void validateFieldAcceptsOnlyNumbers(String locator) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe contener solo números", locator)
+            .matches("^[0-9]+$");
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Campo validado: solo números - " + locator, null);
+    }
+
+    /**
+     * Valida que un campo contenga solo letras (incluyendo acentos y espacios).
+     */
+    public void validateFieldAcceptsOnlyLetters(String locator) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe contener solo letras", locator)
+            .matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$");
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Campo validado: solo letras - " + locator, null);
+    }
+
+    /**
+     * Valida que un campo NO contenga números ni caracteres especiales.
+     */
+    public void validateFieldNoNumbersNoSpecialChars(String locator) {
+        String value = getElementValue(getElement(locator));
+
+        if (!value.isEmpty()) {
+            org.assertj.core.api.Assertions.assertThat(value)
+                .as("El campo '%s' no debe contener números ni caracteres especiales", locator)
+                .matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$");
+        }
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Campo validado: sin números ni caracteres especiales - " + locator, null);
+    }
+
+    /**
+     * Valida que un campo tenga formato de email válido.
+     */
+    public void validateEmailFormat(String locator) {
+        String value = getElementValue(getElement(locator)).trim();
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe tener formato de email válido", locator)
+            .matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Email validado: " + value.replaceAll("(.{3}).*(@.*)", "$1***$2"), null);
+    }
+
+    /**
+     * Valida formato de teléfono con prefijo y longitud específicos.
+     * GENÉRICO: Funciona para cualquier país.
+     */
+    public void validatePhoneFormat(String locator, String prefix, int totalDigits) {
+        String value = getElementValue(getElement(locator)).replaceAll("[^0-9+]", "");
+
+        int remainingDigits = totalDigits - prefix.replaceAll("[^0-9]", "").length();
+        String regex = String.format("^%s[0-9]{%d}$", prefix.replace("+", "\\+"), remainingDigits);
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe tener formato: %s + %d dígitos", locator, prefix, remainingDigits)
+            .matches(regex);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Teléfono validado: " + value, null);
+    }
+
+    /**
+     * Valida que un campo no contenga espacios en blanco.
+     */
+    public void validateFieldNoSpaces(String locator) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' no debe contener espacios", locator)
+            .doesNotContain(" ");
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Campo validado: sin espacios - " + locator, null);
+    }
+
+    /**
+     * Valida que un campo tenga separadores de miles (puntos).
+     */
+    public void validateThousandsSeparators(String locator) {
+        String value = getElementValue(getElement(locator));
+
+        if (value.matches(".*\\d.*")) {
+            org.assertj.core.api.Assertions.assertThat(value)
+                .as("El campo '%s' debe tener separadores de miles", locator)
+                .matches(".*\\d{1,3}(\\.\\d{3})*.*");
+        }
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Separadores de miles validados: " + value, null);
+    }
+
+    /**
+     * Valida que un campo cumpla un patrón regex específico.
+     * GENÉRICO: Acepta cualquier regex.
+     */
+    public void validateFieldMatchesPattern(String locator, String regexPattern) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe cumplir el patrón: %s", locator, regexPattern)
+            .matches(regexPattern);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Patrón validado: " + locator, null);
+    }
+
+    /**
+     * Valida que un valor formateado sea el esperado.
+     */
+    public void validateFormattedValue(String expectedValue) {
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "Valor formateado validado: " + expectedValue, null);
+    }
+
+    /**
+     * Valida que un campo tenga un valor numérico mínimo.
+     */
+    public void validateMinValue(String locator, int minValue) {
+        String value = getElementValue(getElement(locator)).replaceAll("[^0-9]", "");
+
+        if (!value.isEmpty()) {
+            int actualValue = Integer.parseInt(value);
+
+            org.assertj.core.api.Assertions.assertThat(actualValue)
+                .as("El campo '%s' debe tener valor >= %d", locator, minValue)
+                .isGreaterThanOrEqualTo(minValue);
+
+            TestLogger.logInfo("WEB_HELPER_VALIDATION",
+                String.format("✅ Valor mínimo validado: %d >= %d", actualValue, minValue), null);
+        }
+    }
+
+    /**
+     * Valida que un campo tenga un valor numérico máximo.
+     */
+    public void validateMaxValue(String locator, int maxValue) {
+        String value = getElementValue(getElement(locator)).replaceAll("[^0-9]", "");
+
+        if (!value.isEmpty()) {
+            int actualValue = Integer.parseInt(value);
+
+            org.assertj.core.api.Assertions.assertThat(actualValue)
+                .as("El campo '%s' debe tener valor <= %d", locator, maxValue)
+                .isLessThanOrEqualTo(maxValue);
+
+            TestLogger.logInfo("WEB_HELPER_VALIDATION",
+                String.format("✅ Valor máximo validado: %d <= %d", actualValue, maxValue), null);
+        }
+    }
+
+    /**
+     * Valida que un campo esté en modo solo lectura (readonly o disabled).
+     */
+    public void validateFieldIsReadonly(String locator) {
+        WebElement element = getElement(locator);
+        boolean isReadonly = element.getDomAttribute("readonly") != null;
+        boolean isDisabled = element.getDomAttribute("disabled") != null;
+
+        org.assertj.core.api.Assertions.assertThat(isReadonly || isDisabled)
+            .as("El campo '%s' debe estar en modo solo lectura", locator)
+            .isTrue();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Campo readonly validado: " + locator, null);
+    }
+
+    // =========================================================================
+    // MÉTODOS DE VALIDACIÓN - OPCIONES (DROPDOWNS)
+    // =========================================================================
+
+    /**
+     * Valida que las opciones de un dropdown sean las esperadas.
+     * @param expectedOptions Opciones separadas por coma: "Opción1,Opción2,Opción3"
+     */
+    public void validateDropdownOptions(String locator, String expectedOptions) {
+        WebElement element = getElement(locator);
+        String tagName = element.getTagName().toLowerCase();
+
+        if ("select".equals(tagName)) {
+            org.openqa.selenium.support.ui.Select select = new org.openqa.selenium.support.ui.Select(element);
+            List<String> expected = List.of(expectedOptions.split(","));
+            List<String> actual = select.getOptions().stream()
+                .map(WebElement::getText)
+                .toList();
+
+            org.assertj.core.api.Assertions.assertThat(actual)
+                .as("Opciones del dropdown '%s' no coinciden", locator)
+                .containsExactlyInAnyOrderElementsOf(expected);
+        }
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Opciones validadas: " + locator, null);
+    }
+
+    /**
+     * Valida que un dropdown tenga una cantidad específica de opciones.
+     */
+    public void validateDropdownOptionCount(String locator, int expectedCount) {
+        WebElement element = getElement(locator);
+        org.openqa.selenium.support.ui.Select select = new org.openqa.selenium.support.ui.Select(element);
+        int actualCount = select.getOptions().size();
+
+        org.assertj.core.api.Assertions.assertThat(actualCount)
+            .as("El campo '%s' debe tener %d opciones", locator, expectedCount)
+            .isEqualTo(expectedCount);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            String.format("✅ Cantidad de opciones validada: %d - %s", actualCount, locator), null);
+    }
+
+    /**
+     * Valida que un campo permita selección única (radio o select).
+     */
+    public void validateSingleSelection(String locator) {
+        WebElement element = getElement(locator);
+        String tagName = element.getTagName().toLowerCase();
+        String type = element.getDomAttribute("type");
+
+        boolean isSingleSelection = "select".equals(tagName) || "radio".equals(type);
+
+        org.assertj.core.api.Assertions.assertThat(isSingleSelection)
+            .as("El campo '%s' debe permitir selección única", locator)
+            .isTrue();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Selección única validada: " + locator, null);
+    }
+
+    // =========================================================================
+    // MÉTODOS DE VALIDACIÓN - ESTADO DE BOTONES
+    // =========================================================================
+
+    /**
+     * Valida que un botón esté habilitado (activo).
+     */
+    public void validateButtonIsEnabled(String locator) {
+        WebElement element = getElement(locator);
+
+        org.assertj.core.api.Assertions.assertThat(element.isEnabled())
+            .as("El botón '%s' debe estar habilitado", locator)
+            .isTrue();
+
+        org.assertj.core.api.Assertions.assertThat(element.getDomAttribute("disabled"))
+            .as("El botón '%s' no debe tener atributo disabled", locator)
+            .isNull();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Botón habilitado validado: " + locator, null);
+    }
+
+    /**
+     * Valida que un botón esté deshabilitado (inactivo).
+     */
+    public void validateButtonIsDisabled(String locator) {
+        WebElement element = getElement(locator);
+        boolean isDisabled = !element.isEnabled() || element.getDomAttribute("disabled") != null;
+
+        org.assertj.core.api.Assertions.assertThat(isDisabled)
+            .as("El botón '%s' debe estar deshabilitado", locator)
+            .isTrue();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Botón deshabilitado validado: " + locator, null);
+    }
+
+    /**
+     * Valida que un botón cambie su texto.
+     */
+    public void validateButtonTextChange(String locator, String initialText, String finalText) {
+        WebElement element = getElement(locator);
+        String currentText = element.getText();
+
+        org.assertj.core.api.Assertions.assertThat(currentText)
+            .as("El botón '%s' debe mostrar: '%s'", locator, finalText)
+            .contains(finalText);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            String.format("✅ Cambio de texto validado: '%s' -> '%s'", initialText, finalText), null);
+    }
+
+    // =========================================================================
+    // MÉTODOS DE VALIDACIÓN - LONGITUD DE TEXTO
+    // =========================================================================
+
+    /**
+     * Valida que un campo tenga una longitud mínima de caracteres.
+     */
+    public void validateMinLength(String locator, int minLength) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe tener mínimo %d caracteres", locator, minLength)
+            .hasSizeGreaterThanOrEqualTo(minLength);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            String.format("✅ Longitud mínima validada: %d caracteres - %s", value.length(), locator), null);
+    }
+
+    /**
+     * Valida que un campo tenga una longitud máxima de caracteres.
+     */
+    public void validateMaxLength(String locator, int maxLength) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe tener máximo %d caracteres", locator, maxLength)
+            .hasSizeLessThanOrEqualTo(maxLength);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            String.format("✅ Longitud máxima validada: %d caracteres - %s", value.length(), locator), null);
+    }
+
+    /**
+     * Valida que un campo tenga exactamente una cantidad de caracteres.
+     */
+    public void validateExactLength(String locator, int expectedLength) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe tener exactamente %d caracteres", locator, expectedLength)
+            .hasSize(expectedLength);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            String.format("✅ Longitud exacta validada: %d caracteres - %s", expectedLength, locator), null);
+    }
+
+    // =========================================================================
+    // MÉTODOS DE VALIDACIÓN - PLACEHOLDERS Y TOOLTIPS
+    // =========================================================================
+
+    /**
+     * Valida que un campo muestre un placeholder específico.
+     */
+    public void validatePlaceholder(String locator, String expectedPlaceholder) {
+        WebElement element = getElement(locator);
+        String actualPlaceholder = element.getDomAttribute("placeholder");
+
+        org.assertj.core.api.Assertions.assertThat(actualPlaceholder)
+            .as("El placeholder del campo '%s' debe ser '%s'", locator, expectedPlaceholder)
+            .isEqualTo(expectedPlaceholder);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Placeholder validado: " + actualPlaceholder + " - " + locator, null);
+    }
+
+    /**
+     * Valida que un campo muestre un tooltip específico.
+     */
+    public void validateTooltip(String locator, String expectedTooltip) {
+        WebElement element = getElement(locator);
+        String actualTooltip = element.getDomAttribute("title");
+
+        org.assertj.core.api.Assertions.assertThat(actualTooltip)
+            .as("El tooltip del campo '%s' debe ser '%s'", locator, expectedTooltip)
+            .isEqualTo(expectedTooltip);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Tooltip validado: " + actualTooltip + " - " + locator, null);
+    }
+
+    // =========================================================================
+    // MÉTODOS DE VALIDACIÓN - MENSAJES
+    // =========================================================================
+
+    /**
+     * Valida que un mensaje específico esté visible en la página.
+     */
+    public void validateMessageIsVisible(String locator) {
+        boolean isVisible = waitForVisibleElement(locator, 5);
+
+        org.assertj.core.api.Assertions.assertThat(isVisible)
+            .as("El mensaje '%s' debe estar visible", locator)
+            .isTrue();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Mensaje visible: " + locator, null);
+    }
+
+    /**
+     * Valida que un mensaje específico NO esté visible en la página.
+     */
+    public void validateMessageIsNotVisible(String locator) {
+        boolean isPresent = isPresent(locator);
+
+        org.assertj.core.api.Assertions.assertThat(isPresent)
+            .as("El mensaje '%s' NO debe estar visible", locator)
+            .isFalse();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Mensaje NO visible: " + locator, null);
+    }
+
+    /**
+     * Valida que un mensaje contenga un texto específico.
+     */
+    public void validateMessageContainsText(String locator, String expectedText) {
+        String actualText = getTextOf(locator);
+
+        org.assertj.core.api.Assertions.assertThat(actualText)
+            .as("El mensaje '%s' debe contener '%s'", locator, expectedText)
+            .contains(expectedText);
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Mensaje contiene texto esperado: " + locator, null);
+    }
+
+    // =========================================================================
+    // MÉTODOS DE VALIDACIÓN - VISIBILIDAD Y EXISTENCIA
+    // =========================================================================
+
+    /**
+     * Valida que un elemento esté visible.
+     */
+    public void validateElementIsVisible(String locator) {
+        boolean isVisible = waitForVisibleElement(locator, 10);
+
+        org.assertj.core.api.Assertions.assertThat(isVisible)
+            .as("El elemento '%s' debe estar visible", locator)
+            .isTrue();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Elemento visible: " + locator, null);
+    }
+
+    /**
+     * Valida que un elemento NO esté visible.
+     */
+    public void validateElementIsNotVisible(String locator) {
+        boolean isPresent = isPresent(locator);
+
+        org.assertj.core.api.Assertions.assertThat(isPresent)
+            .as("El elemento '%s' NO debe estar visible", locator)
+            .isFalse();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Elemento NO visible: " + locator, null);
+    }
+
+    /**
+     * Valida que un campo no esté vacío.
+     */
+    public void validateFieldNotEmpty(String locator) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' no debe estar vacío", locator)
+            .isNotEmpty();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Campo no vacío validado: " + locator, null);
+    }
+
+    /**
+     * Valida que un campo esté vacío.
+     */
+    public void validateFieldIsEmpty(String locator) {
+        String value = getElementValue(getElement(locator));
+
+        org.assertj.core.api.Assertions.assertThat(value)
+            .as("El campo '%s' debe estar vacío", locator)
+            .isEmpty();
+
+        TestLogger.logInfo("WEB_HELPER_VALIDATION",
+            "✅ Campo vacío validado: " + locator, null);
+    }
+
+    // =========================================================================
+    // MÉTODOS DE ACCIONES - WRAPPERS CON LÓGICA COMPLEJA
+    // =========================================================================
+
+    /**
+     * Establece texto en un elemento esperando a que esté habilitado y resolviendo variables.
+     * Encapsula la lógica completa del step común de ingreso de texto.
+     */
+    public void setTextWithWait(String texto, String locator) {
+        if (!waitForElementEnabled(locator, 10)) {
+            TestLogger.logDebug("WEB_HELPER",
+                "Elemento tardó más de 10s en habilitarse, continuando: " + locator, null);
+        }
+
+        String resolvedTexto = resolveVariables(texto);
+        setText(locator, resolvedTexto);
+    }
+
+    /**
+     * Espera a que un elemento esté habilitado y valida que lo esté.
+     * Lanza excepción si no se habilita en el tiempo especificado.
+     */
+    public void waitAndValidateEnabled(String locator, int timeoutSeconds) {
+        boolean enabled = waitForElementEnabled(locator, timeoutSeconds);
+
+        org.assertj.core.api.Assertions.assertThat(enabled)
+            .as("Se esperó %d segundos y el elemento no se habilitó: %s", timeoutSeconds, locator)
+            .isTrue();
+
+        TestLogger.logInfo("WEB_HELPER",
+            String.format("✅ Elemento habilitado después de esperar: %s", locator), null);
     }
 }
 

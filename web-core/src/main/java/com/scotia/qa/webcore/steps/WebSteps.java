@@ -15,6 +15,8 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.assertj.core.api.Assertions;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.Select;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -136,17 +138,8 @@ public class WebSteps {
 
     @When("ingreso el texto {string} en el elemento {string}")
     public void ingresoElTextoEnElElemento(String texto, String locator) {
-        // Esperar a que el elemento esté realmente habilitado y listo
-        if (!helper.waitForElementEnabled(locator, 10)) {
-            TestLogger.logDebug("WEB_STEPS",
-                "Elemento tardó más de 10s en habilitarse, continuando: " + locator, null);
-        }
-
-        // Resolver variables temporales como {full_name}
-        String resolvedTexto = helper.resolveVariables(texto);
-        helper.setText(locator, resolvedTexto);
+        helper.setTextWithWait(texto, locator);
         helper.captureScreen(scenario);
-        // Nota: El logging ya se hace en WebHelper.setText() con masking de datos sensibles
     }
 
     @When("ingreso texto de la variable temporal {string} en elemento {string}")
@@ -183,10 +176,7 @@ public class WebSteps {
 
     @When("espero hasta que elemento {string} este habilitado")
     public void esperarHastaQueElementoEsteHabilitado(String locator) {
-        boolean enabled = helper.waitForElementEnabled(locator, 60);
-        Assertions.assertThat(enabled)
-            .as("Se esperó 10 segundos y el elemento no se mostró habilitado")
-            .isTrue();
+        helper.waitAndValidateEnabled(locator, 60);
     }
 
     @When("espero hasta que elemento {string} no este visible")
@@ -694,5 +684,187 @@ public class WebSteps {
     public void validoUrl(String expectedUrl) {
         helper.urlValid(expectedUrl);
     }
-}
 
+    // =========================================================================
+    // NUEVOS STEPS - VALIDACIONES DE FORMATO Y TIPO DE DATO
+    // =========================================================================
+
+    @Then("el campo {string} debe aceptar solo números")
+    public void elCampoDebeAceptarSoloNumeros(String locator) {
+        helper.validateFieldAcceptsOnlyNumbers(locator);
+    }
+
+    @Then("el campo {string} debe aceptar solo letras")
+    public void elCampoDebeAceptarSoloLetras(String locator) {
+        helper.validateFieldAcceptsOnlyLetters(locator);
+    }
+
+    @Then("el campo {string} no debe aceptar números ni caracteres especiales")
+    public void elCampoNoDebeAceptarNumerosNiCaracteresEspeciales(String locator) {
+        helper.validateFieldNoNumbersNoSpecialChars(locator);
+    }
+
+    @Then("el campo {string} debe tener formato de email válido")
+    public void elCampoDebeTenerFormatoDeEmailValido(String locator) {
+        helper.validateEmailFormat(locator);
+    }
+
+    @Then("el campo {string} debe tener formato de teléfono con prefijo {string} y {int} dígitos totales")
+    public void elCampoDebeTenerFormatoDeTelefonoConPrefijoYDigitos(String locator, String prefix, int totalDigits) {
+        helper.validatePhoneFormat(locator, prefix, totalDigits);
+    }
+
+    @Then("el campo {string} no debe contener espacios en blanco")
+    public void elCampoNoDebeContenerEspaciosEnBlanco(String locator) {
+        helper.validateFieldNoSpaces(locator);
+    }
+
+    @Then("el campo {string} debe agregar separadores de miles automáticamente")
+    public void elCampoDebeAgregarSeparadoresDeMilesAutomaticamente(String locator) {
+        helper.validateThousandsSeparators(locator);
+    }
+
+    @Then("el campo {string} debe tener el formato con patrón {string}")
+    public void elCampoDebeTenerElFormatoConPatron(String locator, String regexPattern) {
+        helper.validateFieldMatchesPattern(locator, regexPattern);
+    }
+
+    @Then("el valor formateado debe ser {string}")
+    public void elValorFormateadoDebeSer(String expectedValue) {
+        helper.validateFormattedValue(expectedValue);
+    }
+
+    @Then("el campo {string} debe tener un valor mínimo de {int}")
+    public void elCampoDebeTenerUnValorMinimoDe(String locator, int minValue) {
+        helper.validateMinValue(locator, minValue);
+    }
+
+    @Then("el campo {string} debe tener un valor máximo de {int}")
+    public void elCampoDebeTenerUnValorMaximoDe(String locator, int maxValue) {
+        helper.validateMaxValue(locator, maxValue);
+    }
+
+    @Then("el campo {string} debe estar en modo solo lectura")
+    public void elCampoDebeEstarEnModoSoloLectura(String locator) {
+        helper.validateFieldIsReadonly(locator);
+    }
+
+    // =========================================================================
+    // VALIDACIONES DE OPCIONES (DROPDOWNS, RADIO BUTTONS)
+    // =========================================================================
+
+    @Then("las opciones del campo {string} deben ser {string}")
+    public void lasOpcionesDelCampoDebenSer(String locator, String expectedOptions) {
+        helper.validateDropdownOptions(locator, expectedOptions);
+    }
+
+    @Then("el campo {string} debe tener {int} opciones")
+    public void elCampoDebeTenerNOpciones(String locator, int expectedCount) {
+        helper.validateDropdownOptionCount(locator, expectedCount);
+    }
+
+    @Then("el campo {string} debe permitir selección única")
+    public void elCampoDebePermitirSeleccionUnica(String locator) {
+        helper.validateSingleSelection(locator);
+    }
+
+    // =========================================================================
+    // VALIDACIONES DE ESTADO DE BOTONES
+    // =========================================================================
+
+    @Then("el botón {string} debe estar activo")
+    public void elBotonDebeEstarActivo(String locator) {
+        helper.validateButtonIsEnabled(locator);
+    }
+
+    @Then("el botón {string} debe estar inactivo")
+    public void elBotonDebeEstarInactivo(String locator) {
+        helper.validateButtonIsDisabled(locator);
+    }
+
+    @Then("el campo {string} debe estar habilitado")
+    public void elCampoDebeEstarHabilitado(String locator) {
+        helper.validateButtonIsEnabled(locator);
+    }
+
+    @Then("el botón {string} debe cambiar de {string} a {string}")
+    public void elBotonDebeCambiarDeTexto(String locator, String initialText, String finalText) {
+        helper.validateButtonTextChange(locator, initialText, finalText);
+    }
+
+    // =========================================================================
+    // VALIDACIONES DE LONGITUD DE TEXTO
+    // =========================================================================
+
+    @Then("el campo {string} debe tener una longitud mínima de {int}")
+    public void elCampoDebeTenerUnaLongitudMinimaDe(String locator, int minLength) {
+        helper.validateMinLength(locator, minLength);
+    }
+
+    @Then("el campo {string} debe tener una longitud máxima de {int}")
+    public void elCampoDebeTenerUnaLongitudMaximaDe(String locator, int maxLength) {
+        helper.validateMaxLength(locator, maxLength);
+    }
+
+    @Then("el campo {string} debe tener exactamente {int} caracteres")
+    public void elCampoDebeTenerExactamenteNCaracteres(String locator, int expectedLength) {
+        helper.validateExactLength(locator, expectedLength);
+    }
+
+    // =========================================================================
+    // VALIDACIONES DE PLACEHOLDERS Y TOOLTIPS
+    // =========================================================================
+
+    @Then("el campo {string} debe mostrar el placeholder {string}")
+    public void elCampoDebeMostrarElPlaceholder(String locator, String expectedPlaceholder) {
+        helper.validatePlaceholder(locator, expectedPlaceholder);
+    }
+
+    @Then("el campo {string} debe mostrar el tooltip {string}")
+    public void elCampoDebeMostrarElTooltip(String locator, String expectedTooltip) {
+        helper.validateTooltip(locator, expectedTooltip);
+    }
+
+    // =========================================================================
+    // VALIDACIONES DE MENSAJES
+    // =========================================================================
+
+    @Then("el mensaje {string} debe estar visible")
+    public void elMensajeDebeEstarVisible(String locator) {
+        helper.validateMessageIsVisible(locator);
+    }
+
+    @Then("el mensaje {string} no debe estar visible")
+    public void elMensajeNoDebeEstarVisible(String locator) {
+        helper.validateMessageIsNotVisible(locator);
+    }
+
+    @Then("el mensaje {string} debe contener el texto {string}")
+    public void elMensajeDebeContenerElTexto(String locator, String expectedText) {
+        helper.validateMessageContainsText(locator, expectedText);
+    }
+
+    // =========================================================================
+    // VALIDACIONES DE VISIBILIDAD Y EXISTENCIA
+    // =========================================================================
+
+    @Then("el elemento {string} debe ser visible")
+    public void elElementoDebeSerVisible(String locator) {
+        helper.validateElementIsVisible(locator);
+    }
+
+    @Then("el elemento {string} no debe ser visible")
+    public void elElementoNoDebeSerVisible(String locator) {
+        helper.validateElementIsNotVisible(locator);
+    }
+
+    @Then("el campo {string} no debe estar vacío")
+    public void elCampoNoDebeEstarVacio(String locator) {
+        helper.validateFieldNotEmpty(locator);
+    }
+
+    @Then("el campo {string} debe estar vacío")
+    public void elCampoDebeEstarVacio(String locator) {
+        helper.validateFieldIsEmpty(locator);
+    }
+}

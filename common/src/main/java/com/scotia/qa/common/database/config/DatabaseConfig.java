@@ -66,9 +66,39 @@ public class DatabaseConfig {
 
             // Configuración de conexión
             config.setJdbcUrl(jdbcUrl);
-            config.setUsername(user);
-            config.setPassword(password);
             config.setDriverClassName(driverClassName);
+
+            // Detectar Windows Authentication (SQL Server)
+            boolean isWindowsAuth = jdbcUrl != null &&
+                jdbcUrl.toLowerCase().contains("integratedsecurity=true");
+
+            if (isWindowsAuth) {
+                // Windows Authentication: NO setear credenciales (usa sesión del SO)
+                TestLogger.logInfo("DATABASE_CONFIG",
+                    "🔐 Modo de autenticación: Windows Authentication (integratedSecurity=true)",
+                    Map.of("jdbcUrl", maskPassword(jdbcUrl)));
+                TestLogger.logInfo("DATABASE_CONFIG",
+                    "   → Username/Password NO configurados (usa credenciales de Windows)", null);
+            } else {
+                // Autenticación SQL estándar: setear credenciales
+                config.setUsername(user);
+                config.setPassword(password);
+
+                // Validar que no estén vacías
+                if (user == null || user.trim().isEmpty()) {
+                    TestLogger.logWarning("DATABASE_CONFIG",
+                        "⚠️ Username vacío. Si usas SQL Server con Windows Auth, " +
+                        "agrega 'integratedSecurity=true' a la URL JDBC", null);
+                }
+                if (password == null || password.trim().isEmpty()) {
+                    TestLogger.logWarning("DATABASE_CONFIG",
+                        "⚠️ Password vacío", null);
+                }
+
+                TestLogger.logInfo("DATABASE_CONFIG",
+                    "🔐 Modo de autenticación: SQL Authentication (usuario/contraseña)",
+                    Map.of("username", user != null ? user : "null"));
+            }
 
             // Configuración del pool
             config.setMaximumPoolSize(maxPoolSize);
@@ -146,5 +176,19 @@ public class DatabaseConfig {
         } else {
             return "SELECT 1"; // Por defecto
         }
+    }
+
+    /**
+     * Enmascara passwords en URLs JDBC para logging seguro.
+     *
+     * @param jdbcUrl URL JDBC completa
+     * @return URL con password enmascarada si existe
+     */
+    private static String maskPassword(String jdbcUrl) {
+        if (jdbcUrl == null) {
+            return "null";
+        }
+        // Enmascarar password=xxx en la URL
+        return jdbcUrl.replaceAll("(?i)password=([^;]+)", "password=***");
     }
 }

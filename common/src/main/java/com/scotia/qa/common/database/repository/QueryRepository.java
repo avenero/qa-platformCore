@@ -146,7 +146,213 @@ public class QueryRepository {
             throw e;
         }
     }
+ /*
+  @When("actualizo los valores en la base de datos DB2 segun la consulta")
+  public void actualizoLosValoresEnLaDBSegunLaConsulta(String arg0) {
+      updateRecordLegacy(arg0);
+  }
 
+  @When("consulto la base de datos segun el parametro {string}")
+  public void consultoLaBaseDeDatosSegunElParametro(String arg0, String arg1) {
+      getRecordByParameter(arg1, arg0);
+  }
+
+  @When("consulto la base de datos {string} segun el parametro {string}")
+  public void consultoLaBaseDeDatosSegunElParametro(String arg0, String arg1, String arg2) {
+      getRecordByParameter(arg0, arg2, arg1);
+  }
+
+  @When("elimino uno o mas registros en {string}")
+  public void eliminoUnoOMasRegistrosEn(String arg0, String arg1) {
+      deleteRecord(arg0, arg1);
+  }
+
+  @When("consulto la base de datos en {string}")
+  public void consultoLaBaseDeDatosEn(String arg0, String arg1) {
+      getRecord(arg0, arg1);
+      // Debugging output
+      System.out.println("------ After getRecord: " + queryResultSet);
+  }
+
+  @When("actualizo el o los registros en la base de datos en {string}")
+  public void actualizoElOLosRegistrosEnLaBaseDeDatosEn(String arg0, String arg1) {
+      updateRecord(arg0, arg1);
+  }
+
+  @When("inserto uno o mas registros en {string}")
+  public void insertoUnoOMasRegistrosEn(String arg0, String arg1) {
+      insertRecord(arg0, arg1);
+  }
+
+  @When("recorro la respuesta buscando que se cumpla que {string} sea igual a {string} y almaceno el valor de {string}")
+  public void recorroLaRespuestaBuscandoQueSeCumplaQueSeaIgualAYAlmacenoElValorDe(String arg0, String arg1, String arg2) {
+      getObjectInArrayResponse(arg0, arg1, arg2);
+  }
+
+
+  @When("adjunto un archivo al scenario con la data")
+  public void adjuntoUnArchivoAlScenarioConLaData(String arg0) {
+      attachScenario(arg0, scenario);
+  }
+
+  @When("espero {string} segundos")
+  public void esperoSegundos(String arg0) {
+      waitForSeconds(arg0);
+  }
+
+
+  // Then
+  @Then("valido que el codigo de respuesta del servicio sea {int}")
+  public void validoQueElCodigoDeRespuestaDelServicioSea(int arg0) {
+      Assert.assertEquals("HttpStatus Error, se esperaba " + arg0 + ", llego " +
+              getHttpStatus() + ". \\nRespuesta del servicio: " + getBodyResponse()  +". \nBody enviado:: " + body, arg0, getHttpStatus());
+  }
+  @Then("valido que el status del response sea {string}")
+  public void validoQueElStatusDelResponseSea(String arg0) {
+      Assert.assertEquals("El Mensaje de status no coincide!", arg0, getStatusHealth());
+  }
+
+  @Then("valido que el valor del campo {string} sea {string}")
+  public void validoQueElValorDeElCampoSea(String arg0, String arg1) {
+      Assert.assertTrue(isRecordValue(arg0, arg1));
+  }
+
+  @Then("valido que el valor almacenado en el campo {string} sea {string}")
+  public void validoQueElValorAlmacenadoEnElCampoSea(String arg0, String arg1) {
+      isFieldEquals(arg0, arg1);
+  }
+
+  @Then("compruebo que se registre correctamente en MIS dado el parametro {string}")
+  public void comprueboQueSeRegistreCorrectamenteEnMISDadoElParametro(String arg0, String arg1) {
+      Assert.assertTrue(recordExist(arg0, arg1));
+  }
+
+  @Then("valido que el cuerpo de la respuesta sea")
+  public void validoQueElCuerpoDeLaRespuestaSea(String arg0) throws IOException {
+      Assert.assertTrue("Valores no coinciden", isEqualJson(arg0));
+  }
+
+  @Then("valido que el valor dentro de la estructura {string} sea {string}")
+  public void validoQueElValorDentroDeLaEstructuraSea(String arg0, String arg1) throws InternalServerExceptionError {
+      Assert.assertTrue(validateJson(arg0, arg1));
+  }
+
+
+  @Then("valido que el cuerpo de la respuesta contenga la siguiente cadena")
+  public void validoQueElResponseConengLaSiguienteCadena(String arg0) {
+      validateStringInResponse(arg0);
+  }
+
+  @Then("valido que el cuerpo de la respuesta no contenga la siguiente cadena")
+  public void validoQueElResponseNoConengLaSiguienteCadena(String arg0) {
+      validateStringNotInResponse(arg0);
+  }
+
+  @Then("valido que el valor de la variable {string} sea {string}")
+  public void validoQueElValorDeLaVariableSea(String arg0, String arg1) {
+      Assert.assertEquals("El valor de las variables no son iguales.", arg0.contains("{{") ? replaceData(arg0) : replaceData("{{"+arg0+"}}"), arg1);
+  }
+
+
+  @Given("actualizo los casos de los escenarios que tienen el tag {string} y codigo de jira {string}")
+  public void actualizarTestEnJira(String arg1, String arg2) throws InternalServerExceptionError {
+      updateTestJira.searchScenariosForTag(arg1, arg2);
+  }
+
+  @Then("valido que la fecha almacenada en el campo {string} sea {string}")
+  public void validoQueElValorAlmacenadoEnElCampoContenga(String arg0, String arg1) {
+      compareDates(arg0,arg1);
+  }
+
+  @Then("valido que lo almacenado en el campo {string} sea nulo")
+  public void validoQueElValorSeaNulo(String arg0){
+      isNull(arg0);
+  }
+
+  @Then("verifico que la consulta este vacia")
+  public void verificoQueLaConsultaEsteVacia() {
+      if (queryResultSet == null || queryResultSet.isEmpty()) {
+          System.out.println("------ La consulta está vacía.");
+      } else {
+          throw new BussinesExceptionError("verificoQueLaConsultaEsteVacia", "Se esperaba que la consulta estuviera vacía, pero se encontraron registros: " + queryResultSet);
+      }
+  }
+
+  @Given("que busco un documento que no exista en la bbdd de homebanking y guardo en {string}")
+  public void buscoDocumentoValidoHb(String nameVariable) throws Exception {
+      validateDocumentHomeBanking(nameVariable);
+  }
+
+  @Then("obtengo el anio y el mes de {string} y lo guardo en las variables anio y mes")
+  public void obtengoElAnioYElMesDe(String arg0) throws InternalServerExceptionError {
+      getMontAndYear(arg0);
+  }
+
+  @Then("obtengo los ultimo {string} digitos de {string} y lo guardo en la variable {string}")
+  public void obtengoLosUltimoDigitosDeYLoGuardoEnLaVariable(String arg0, String arg1, String arg2) throws InternalServerExceptionError {
+      extractLastNDigits(arg1, arg0, arg2);
+  }
+
+  @Given("que busco un documento valido para onboardingUy con el host {string}")
+  public void buscoDocumentoValidoUy(String host) throws Exception {
+      dataJson.put("documentoValidoUruguay", validateDocumentOnboardingUy(host));
+  }
+
+  @Given("busco un documento que tenga un cliente existente en topaz")
+  public void buscoDocumentoCliente() throws InternalServerExceptionError, JsonProcessingException {
+      buscoDocumentoConCliente();
+  }
+
+  @Given("busco un documento que tenga un cliente prospecto")
+  public void buscoDocumentoClienteProspecto() throws InternalServerExceptionError, JsonProcessingException {
+      buscoDocumentoConClienteProspecto();
+  }
+
+  @Given("busco un documento que tenga un cliente casado")
+  public void buscoDocumentoClienteCasado() throws InternalServerExceptionError, JsonProcessingException {
+      buscoDocumentoConCliente(true);
+  }
+
+  @Given("busco un documento que tenga un cliente soltero")
+  public void buscoDocumentoClienteSoltero() throws InternalServerExceptionError, JsonProcessingException {
+      buscoDocumentoConCliente(false);
+  }
+
+  @Then("valido nivel de apertura")
+  public void validoNivelApertura() {
+      validarNivelApertura();
+  }
+
+  //Para modificar json
+  @When("modifico la variable {string} agregando en el path {string} la siguiente data")
+  public void modificoElResponseAgregandoLaSiguienteEstructura(String arg0, String arg1, String arg2) {
+      putVariable(arg0, arg1, arg2);
+  }
+
+  // =================================================================================
+  // DESERIALIZACIÓN DE RESPUESTAS HTTP (NUEVO - v1.1.0)
+  // =================================================================================
+
+  /**
+   * Deserializa la respuesta HTTP completa en un objeto Java tipado.
+   *
+   * <p>Convierte el body JSON de la última respuesta HTTP en un POJO (Plain Old Java Object). El
+   * objeto deserializado se almacena temporalmente para ser guardado con el siguiente step.
+   *
+   * <p><b>Uso típico:</b>
+   *
+   * <pre>
+   * When ejecuto la consulta con el metodo "GET" sin redireccion
+   * Then valido que el codigo de respuesta del servicio sea 200
+   * And serializo la respuesta en la clase "com.module.models.UserResponse"
+   * And guardo el objeto serializado como "currentUser"
+   * </pre>
+   *
+   * @param className nombre de la clase destino (FQCN o nombre simple)
+   * @throws FrameworkBusinessException si no hay respuesta, la clase no existe, o la
+   *     deserialización falla
+   * @since 1.1.0
+   */
     /**
      * Ejecuta una consulta y retorna una lista de Maps.
      * Útil para consultas que retornan múltiples filas.
