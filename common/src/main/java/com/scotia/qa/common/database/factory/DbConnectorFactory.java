@@ -259,27 +259,44 @@ public class DbConnectorFactory {
      * Valida que las propiedades requeridas estén presentes.
      */
     private static void validateProperties(String jdbcUrl, String username, String password, String driver) {
+        // Validar URL (siempre obligatoria)
         if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
             throw new IllegalArgumentException(
                 "Propiedad '" + PROP_DB_URL + "' no configurada. " +
                 "Usa: -D" + PROP_DB_URL + "=jdbc:..."
             );
         }
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException(
-                "Propiedad '" + PROP_DB_USERNAME + "' no configurada"
-            );
-        }
-        if (password == null) {
-            throw new IllegalArgumentException(
-                "Propiedad '" + PROP_DB_PASSWORD + "' no configurada"
-            );
-        }
+
+        // Validar driver (siempre obligatorio)
         if (driver == null || driver.trim().isEmpty()) {
             throw new IllegalArgumentException(
                 "Propiedad '" + PROP_DB_DRIVER + "' no configurada. " +
                 "Ejemplos: oracle.jdbc.OracleDriver, com.microsoft.sqlserver.jdbc.SQLServerDriver"
             );
+        }
+
+        // Detectar Windows Authentication de SQL Server
+        boolean isWindowsAuth = jdbcUrl.toLowerCase().contains("integratedsecurity=true");
+
+        if (!isWindowsAuth) {
+            // Autenticación SQL estándar: validar username/password
+            if (username == null || username.trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                    "Propiedad '" + PROP_DB_USERNAME + "' no configurada. " +
+                    "Si usas SQL Server con Windows Authentication, " +
+                    "agrega 'integratedSecurity=true' a la URL JDBC"
+                );
+            }
+            if (password == null) {
+                throw new IllegalArgumentException(
+                    "Propiedad '" + PROP_DB_PASSWORD + "' no configurada"
+                );
+            }
+        } else {
+            // Windows Authentication detectada - credenciales no requeridas
+            TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                "✅ Windows Authentication detectada (integratedSecurity=true) - " +
+                "Username/Password no requeridos", null);
         }
     }
 
