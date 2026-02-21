@@ -209,6 +209,15 @@ public class DbConnectorFactory {
         String username = config.get("db.username");
         String password = config.get("db.password");
 
+        // Validar que al menos tengamos URL
+        if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                "Propiedad 'db.url' no configurada en config-{env}.properties. " +
+                "Para multi-BD usa: DbConnectorFactory.connectAndCache(\"oracle\") " +
+                "y configura: oracle.db.url, sqlserver.db.url, etc."
+            );
+        }
+
         // Detectar driver automáticamente si no está especificado
         String driver = config.get("db.driver");
 
@@ -220,17 +229,12 @@ public class DbConnectorFactory {
                 TestLogger.logInfo("DB_CONNECTOR_FACTORY",
                     "Driver detectado por db.type",
                     Map.of("dbType", dbType, "driver", driver));
-            } else if (jdbcUrl != null) {
+            } else {
                 // Detectar por URL JDBC
                 driver = detectDriverFromUrl(jdbcUrl);
                 TestLogger.logInfo("DB_CONNECTOR_FACTORY",
                     "Driver detectado por URL JDBC",
                     Map.of("driver", driver));
-            } else {
-                throw new IllegalArgumentException(
-                    "No se pudo determinar el driver de base de datos. " +
-                    "Especifica 'db.driver' o 'db.type' en config-{env}.properties"
-                );
             }
         }
 
