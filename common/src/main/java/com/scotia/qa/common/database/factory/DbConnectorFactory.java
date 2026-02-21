@@ -8,12 +8,12 @@ import com.scotia.qa.common.database.connectors.SQLServerConnector;
 import com.scotia.qa.common.database.interfaces.DatabaseConnector;
 import com.scotia.qa.common.logging.TestLogger;
 import com.zaxxer.hikari.HikariDataSource;
-
 import javax.sql.DataSource;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Factory para crear conectores de base de datos específicos por tipo.
+ * Factory y Manager para crear y gestionar conectores de base de datos.
  *
  * <p>Soporta múltiples tipos de bases de datos:</p>
  * <ul>
@@ -23,44 +23,52 @@ import java.util.Map;
  *   <li>SQL Server - {@link SQLServerConnector}</li>
  * </ul>
  *
- * <p><b>Configuración específica por BD (System Properties):</b></p>
+ * <p><b>⭐ NUEVO (v1.1.0):</b> Gestión de conexiones con cache para uso en Steps de Cucumber</p>
+ *
+ * <p><b>Configuración multi-BD en config-{env}.properties:</b></p>
  * <pre>
  * # Oracle
- * -Doracle.db.url=jdbc:oracle:thin:@//host:port/service
- * -Doracle.db.username=user
- * -Doracle.db.password=pass
+ * oracle.db.url=jdbc:oracle:thin:@//host:port/service
+ * oracle.db.username=${ORACLE_USER}
+ * oracle.db.password=${ORACLE_PASSWORD}
+ *
+ * # SQL Server con Windows Auth
+ * sqlserver.db.url=jdbc:sqlserver://host:port;databaseName=DB;integratedSecurity=true;encrypt=false
+ * sqlserver.db.username=
+ * sqlserver.db.password=
  *
  * # PostgreSQL
- * -Dpostgresql.db.url=jdbc:postgresql://host:port/db
- * -Dpostgresql.db.username=user
- * -Dpostgresql.db.password=pass
- *
- * # MySQL
- * -Dmysql.db.url=jdbc:mysql://host:port/db
- * -Dmysql.db.username=user
- * -Dmysql.db.password=pass
- *
- * # SQL Server
- * -Dsqlserver.db.url=jdbc:sqlserver://host:port;databaseName=db
- * -Dsqlserver.db.username=user
- * -Dsqlserver.db.password=pass
+ * postgresql.db.url=jdbc:postgresql://host:port/db
+ * postgresql.db.username=${PG_USER}
+ * postgresql.db.password=${PG_PASSWORD}
  * </pre>
  *
- * <p><b>Uso:</b></p>
+ * <p><b>Uso en Steps (RECOMENDADO):</b></p>
  * <pre>
- * // Crear conector por tipo (desde System Properties)
+ * // Conectar y cachear (reutiliza si ya existe)
+ * DatabaseConnector oracle = DbConnectorFactory.connectAndCache("oracle");
+ *
+ * // Desconectar cuando termines
+ * DbConnectorFactory.disconnect("oracle");
+ *
+ * // O desconectar todas
+ * DbConnectorFactory.disconnectAll();
+ * </pre>
+ *
+ * <p><b>Uso legacy (sigue funcionando):</b></p>
+ * <pre>
+ * // Desde ConfigManager (db.*)
+ * DatabaseConnector generic = DbConnectorFactory.createFromConfig();
+ *
+ * // Desde System Properties (oracle.db.*)
  * DatabaseConnector oracle = DbConnectorFactory.getConnector("oracle");
- * DatabaseConnector postgres = DbConnectorFactory.getConnector("postgresql");
  *
- * // Crear con parámetros explícitos
- * DatabaseConnector oracle = DbConnectorFactory.getOracleConnector(url, user, pass);
- *
- * // Genérico (compatibilidad hacia atrás)
- * DatabaseConnector generic = DbConnectorFactory.createFromSystemProperties();
+ * // Parámetros explícitos
+ * DatabaseConnector custom = DbConnectorFactory.create(url, user, pass, driver);
  * </pre>
  *
  * @author Abel Venero
- * @version 1.0.2
+ * @version 1.1.0
  * @since 2025-11-26
  */
 public class DbConnectorFactory {
@@ -70,6 +78,16 @@ public class DbConnectorFactory {
     private static final String PROP_DB_PASSWORD = "db.password";
     private static final String PROP_DB_DRIVER = "db.driver";
     private static final String PROP_DB_POOL_SIZE = "db.pool.size";
+
+    // =========================================================================
+    // CACHE DE CONEXIONES (NUEVO v1.1.0)
+    // =========================================================================
+
+    /**
+     * Cache de conectores activos por tipo de BD.
+     * Permite reutilizar conexiones en múltiples steps sin recrearlas.
+     */
+    private static final Map<String, DatabaseConnector> activeConnectors = new HashMap<>();
 
     /**
      * Crea un conector basado en el tipo de base de datos.
@@ -254,6 +272,211 @@ public class DbConnectorFactory {
                                           String driverClassName, int maxPoolSize) {
         return new GenericDatabaseConnector(jdbcUrl, username, password, driverClassName, maxPoolSize);
     }
+
+    // =========================================================================
+    // GESTIÓN DE CONEXIONES CON CACHE (NUEVO v1.1.0)
+    // =========================================================================
+
+    /**
+     * Conecta a una BD y cachea la conexión para reutilización.
+     *
+     * <p><b>⭐ MÉTODO RECOMENDADO para Steps de Cucumber</b></p>
+     *
+     * <p>Lee configuración desde config-{env}.properties usando el prefijo {dbType}.db.*
+     * Si ya existe una conexión activa para ese tipo, la reutiliza.</p>
+     *
+     * <p><b>Configuración requerida en config-{env}.properties:</b></p>
+     * <pre>
+     * # Oracle
+     * oracle.db.url=jdbc:oracle:thin:@//servidor:1521/DB
+     * oracle.db.username=${ORACLE_USER}
+     * oracle.db.password=${ORACLE_PASSWORD}
+     *
+     * # SQL Server con Windows Auth
+     * sqlserver.db.url=jdbc:sqlserver://servidor:1433;databaseName=DB;integratedSecurity=true;encrypt=false
+     * sqlserver.db.username=
+     * sqlserver.db.password=
+     * </pre>
+     *
+     * <p><b>Uso en Steps:</b></p>
+     * <pre>
+     * &#64;Given("establezco conexion a base de datos {string}")
+     * public void establecerConexion(String dbType) {
+     *     DatabaseConnector connector = DbConnectorFactory.connectAndCache(dbType);
+     *     ScenarioContext.set("currentDbConnector", connector);
+     * }
+     * </pre>
+     *
+     * @param dbType Tipo de BD: "oracle", "sqlserver", "postgresql", "mysql"
+     * @return DatabaseConnector configurado y cacheado
+     * @throws IllegalArgumentException Si faltan configuraciones o tipo no soportado
+     */
+    public static DatabaseConnector connectAndCache(String dbType) {
+        if (dbType == null || dbType.trim().isEmpty()) {
+            throw new IllegalArgumentException("dbType no puede ser null o vacío");
+        }
+
+        String type = dbType.toLowerCase().trim();
+
+        // Reutilizar si ya existe
+        if (activeConnectors.containsKey(type)) {
+            TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                "♻️ Reutilizando conexión cacheada: " + type, null);
+            return activeConnectors.get(type);
+        }
+
+        TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+            "🔌 Conectando a base de datos: " + type, null);
+
+        // Crear nuevo conector
+        DatabaseConnector connector = getConnectorFromConfigManager(type);
+
+        // Cachear
+        activeConnectors.put(type, connector);
+
+        TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+            "✅ Conexión establecida y cacheada: " + type, null);
+
+        return connector;
+    }
+
+    /**
+     * Obtiene el conector activo de un tipo de BD desde el cache.
+     *
+     * @param dbType Tipo de BD
+     * @return Conector activo o null si no está conectado
+     */
+    public static DatabaseConnector getCachedConnector(String dbType) {
+        if (dbType == null || dbType.trim().isEmpty()) {
+            return null;
+        }
+        return activeConnectors.get(dbType.toLowerCase().trim());
+    }
+
+    /**
+     * Desconecta de una BD específica y la remueve del cache.
+     *
+     * @param dbType Tipo de BD a desconectar
+     */
+    public static void disconnect(String dbType) {
+        if (dbType == null || dbType.trim().isEmpty()) {
+            return;
+        }
+
+        String type = dbType.toLowerCase().trim();
+        DatabaseConnector connector = activeConnectors.remove(type);
+
+        if (connector != null) {
+            try {
+                connector.close();
+                TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                    "✅ Desconectado de: " + type, null);
+            } catch (Exception e) {
+                TestLogger.logError("DB_CONNECTOR_FACTORY",
+                    "Error desconectando de " + type + ": " + e.getMessage(), null);
+            }
+        }
+    }
+
+    /**
+     * Desconecta de todas las BDs activas y limpia el cache.
+     *
+     * <p><b>Uso típico en hooks:</b></p>
+     * <pre>
+     * &#64;After
+     * public void cerrarConexiones() {
+     *     DbConnectorFactory.disconnectAll();
+     * }
+     * </pre>
+     */
+    public static void disconnectAll() {
+        if (activeConnectors.isEmpty()) {
+            return;
+        }
+
+        TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+            "🧹 Cerrando todas las conexiones activas (" + activeConnectors.size() + ")...", null);
+
+        activeConnectors.forEach((type, connector) -> {
+            try {
+                connector.close();
+                TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                    "✅ Cerrado: " + type, null);
+            } catch (Exception e) {
+                TestLogger.logError("DB_CONNECTOR_FACTORY",
+                    "Error cerrando " + type + ": " + e.getMessage(), null);
+            }
+        });
+
+        activeConnectors.clear();
+    }
+
+    // =========================================================================
+    // MÉTODOS PRIVADOS - LECTURA DE CONFIGURACIÓN
+    // =========================================================================
+
+    /**
+     * Crea un conector leyendo configuración desde ConfigManager.
+     *
+     * <p>Lee {dbType}.db.url, {dbType}.db.username, {dbType}.db.password</p>
+     *
+     * @param dbType Tipo de BD
+     * @return DatabaseConnector configurado
+     */
+    private static DatabaseConnector getConnectorFromConfigManager(String dbType) {
+        com.scotia.qa.common.config.ConfigManager config =
+            com.scotia.qa.common.config.ConfigManager.getInstance();
+
+        String urlKey = dbType + ".db.url";
+        String usernameKey = dbType + ".db.username";
+        String passwordKey = dbType + ".db.password";
+
+        String jdbcUrl = config.get(urlKey);
+        String username = config.get(usernameKey);
+        String password = config.get(passwordKey);
+
+        // Validar URL (obligatoria)
+        if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                String.format("Propiedad '%s' no configurada en config-{env}.properties. " +
+                    "Ejemplo: %s=jdbc:oracle:thin:@//servidor:1521/DB", urlKey, urlKey)
+            );
+        }
+
+        // Detectar driver automáticamente por URL
+        String driver = detectDriverFromUrl(jdbcUrl);
+
+        TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+            "Driver detectado automáticamente",
+            Map.of("type", dbType, "driver", driver));
+
+        // Detectar Windows Authentication
+        boolean isWindowsAuth = jdbcUrl.toLowerCase().contains("integratedsecurity=true");
+
+        if (isWindowsAuth) {
+            TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                "✅ Windows Authentication detectada para " + dbType,
+                Map.of("info", "Username/Password no requeridos"));
+        } else {
+            // Validar credenciales para SQL Auth
+            if (username == null || username.trim().isEmpty()) {
+                TestLogger.logWarning("DB_CONNECTOR_FACTORY",
+                    String.format("⚠️ Username vacío para %s. " +
+                        "Si usas Windows Auth, agrega 'integratedSecurity=true' a %s",
+                        dbType, urlKey), null);
+            }
+        }
+
+        // Obtener pool size (default 10)
+        int poolSize = config.getInt(dbType + ".db.pool.size.max", 10);
+
+        // Crear conector
+        return create(jdbcUrl, username, password, driver, poolSize);
+    }
+
+    // =========================================================================
+    // VALIDACIONES Y UTILIDADES
+    // =========================================================================
 
     /**
      * Valida que las propiedades requeridas estén presentes.

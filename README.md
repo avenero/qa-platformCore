@@ -446,6 +446,8 @@ Then verifico si existe el elemento "dashboard"
 
 | Documento | Descripción |
 |-----------|-------------|
+| **[PIPELINE-GUIA-COMPLETA.md](./PIPELINE-GUIA-COMPLETA.md)** | 🚀 Jenkins Pipeline completo: Quality Gate, SonarQube, Checkmarx |
+| **[GUIA_CONEXIONES_BD.md](./GUIA_CONEXIONES_BD.md)** | 🗄️ Conexiones multi-BD: Oracle, SQL Server, PostgreSQL, MySQL |
 | **[config/](./config/)** | 📦 Configuración: Templates, Artifactory, Drivers, SSL |
 | **[web-core/TROUBLESHOOTING-TIMEOUT.md](./web-core/TROUBLESHOOTING-TIMEOUT.md)** | 🐛 Solución problemas timeouts |
 | **[web-core/WEBDRIVER-SETUP-GUIDE.md](./web-core/WEBDRIVER-SETUP-GUIDE.md)** | 🚗 Configuración WebDrivers |

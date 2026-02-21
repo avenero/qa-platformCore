@@ -137,16 +137,21 @@ common/
 │   │   ├── config/
 │   │   │   └── DatabaseConfig.java      # Config HikariCP
 │   │   ├── connectors/
+│   │   │   ├── BaseConnector.java       # Clase base
 │   │   │   ├── OracleConnector.java     # Conector Oracle
-│   │   │   ├── PostgresConnector.java   # Conector PostgreSQL
+│   │   │   ├── PostgreSQLConnector.java # Conector PostgreSQL
 │   │   │   ├── MySQLConnector.java      # Conector MySQL
 │   │   │   └── SQLServerConnector.java  # Conector SQL Server
 │   │   ├── factory/
-│   │   │   └── DbConnectorFactory.java  # Factory para crear conectores
+│   │   │   └── DbConnectorFactory.java  # Factory + Manager (cache)
+│   │   ├── helpers/
+│   │   │   └── DatabaseHelper.java      # 🆕 Helper para lógica SQL
 │   │   ├── interfaces/
 │   │   │   └── DatabaseConnector.java   # Interface base
-│   │   └── repository/
-│   │       └── QueryRepository.java     # Ejecución de queries genéricas
+│   │   ├── repository/
+│   │   │   └── QueryRepository.java     # Queries genéricas (sin steps)
+│   │   └── steps/
+│   │       └── DatabaseConnectionSteps.java # 🆕 Steps Cucumber BD
 │   │
 │   ├── http/                      # 📁 Cliente HTTP Base
 │   │   ├── BaseHttpClient.java          # Cliente Unirest genérico
@@ -679,33 +684,76 @@ API_TOKEN=your_token_here
 
 ### Componentes
 
-#### 1. DbConnectorFactory
+#### 1. DbConnectorFactory (Factory + Manager)
 
-Factory para crear conectores de BD.
+Factory y Manager para crear y gestionar conectores de BD con cache.
+
+**⭐ NUEVO (v1.1.0):** Gestión de conexiones con cache para uso en Steps de Cucumber
 
 ```java
-// Crear conector desde ConfigManager
-DatabaseConnector connector = DbConnectorFactory.createFromConfig();
+// ⭐ RECOMENDADO: Conectar con cache (para Steps)
+DatabaseConnector oracle = DbConnectorFactory.connectAndCache("oracle");
+DatabaseConnector sqlserver = DbConnectorFactory.connectAndCache("sqlserver");
 
-// Crear conector con parámetros directos
-DatabaseConnector connector = DbConnectorFactory.create(
-    "jdbc:oracle:thin:@//localhost:1521/XE",
-    "user",
-    "password",
-    "oracle.jdbc.OracleDriver"
-);
+// Desconectar
+DbConnectorFactory.disconnect("oracle");
+DbConnectorFactory.disconnectAll();
+
+// Legacy: Crear sin cache (compatibilidad)
+DatabaseConnector connector = DbConnectorFactory.createFromConfig();
+DatabaseConnector connector = DbConnectorFactory.create(url, user, pass, driver);
+```
+
+**Configuración multi-BD en config-{env}.properties:**
+
+```properties
+# Oracle
+oracle.db.url=jdbc:oracle:thin:@//servidor:1521/DB
+oracle.db.username=${ORACLE_USER}
+oracle.db.password=${ORACLE_PASSWORD}
+
+# SQL Server con Windows Authentication
+sqlserver.db.url=jdbc:sqlserver://servidor:1433;databaseName=DB;integratedSecurity=true;encrypt=false
+sqlserver.db.username=
+sqlserver.db.password=
+
+# PostgreSQL
+postgresql.db.url=jdbc:postgresql://servidor:5432/db
+postgresql.db.username=${PG_USER}
+postgresql.db.password=${PG_PASSWORD}
 ```
 
 #### 2. Conectores Específicos
 
 - `OracleConnector` - Oracle DB
-- `PostgresConnector` - PostgreSQL
+- `PostgreSQLConnector` - PostgreSQL
 - `MySQLConnector` - MySQL
-- `SQLServerConnector` - SQL Server
+- `SQLServerConnector` - SQL Server (con soporte Windows Authentication)
+- `BaseConnector` - Clase base compartida
 
-#### 3. QueryRepository
+#### 3. DatabaseHelper
 
-Ejecuta queries genéricas.
+Helper para operaciones de BD. Encapsula toda la lógica SQL.
+
+```java
+// Ejecutar query
+Map<String, Object> result = DatabaseHelper.executeQuery(connector, "SELECT * FROM users WHERE id = ?", "12345");
+
+// Ejecutar sentencia
+int rows = DatabaseHelper.executeStatement(connector, "UPDATE users SET status = ?", "ACTIVE");
+
+// Obtener valor de columna
+Object value = DatabaseHelper.getColumnValue(queryResult, "balance");
+
+// Validaciones
+DatabaseHelper.validateHasResults(queryResult);
+DatabaseHelper.validateNoResults(queryResult);
+DatabaseHelper.validateColumnValue(queryResult, "status", "ACTIVE");
+```
+
+#### 4. QueryRepository
+
+Repositorio genérico para ejecutar queries SQL (sin steps de Cucumber).
 
 ```java
 QueryRepository repo = new QueryRepository(connector);
@@ -715,6 +763,53 @@ Map<String, Object> result = repo.queryForMap("SELECT * FROM users WHERE id = ?"
 
 // Query que retorna lista
 List<Map<String, Object>> results = repo.queryForList("SELECT * FROM users WHERE status = ?", "ACTIVE");
+
+// Contar registros
+Long count = repo.count("SELECT COUNT(*) FROM users WHERE status = 'ACTIVE'");
+
+// Ejecutar modificaciones
+int rows = repo.execute("UPDATE users SET status = ? WHERE id = ?", "ACTIVE", "12345");
+```
+
+#### 5. DatabaseConnectionSteps (NUEVO)
+
+Steps genéricos de Cucumber para conexiones BD.
+
+```gherkin
+# Conectar
+Given establezco conexion a base de datos "oracle"
+Given establezco conexion a base de datos "sqlserver"
+
+# Ejecutar consultas
+When ejecuto la consulta "SELECT * FROM users"
+When ejecuto la consulta "SELECT * FROM users WHERE user_id = ?" con parametros "12345"
+
+# Ejecutar sentencias
+When ejecuto la sentencia "UPDATE users SET status = ?" con parametros "ACTIVE"
+
+# Validaciones y extracción
+Then obtengo el valor de la columna "balance" y lo almaceno en "saldo"
+Then valido que la consulta retorne resultados
+Then valido que la consulta no retorne resultados
+Then valido que la columna "status" tenga el valor "ACTIVE"
+```
+
+**Ejemplo completo:**
+
+```gherkin
+Feature: Consultas multi-BD
+
+  Scenario: Comparar datos entre Oracle y SQL Server
+    Given establezco conexion a base de datos "oracle"
+    When ejecuto la consulta "SELECT balance FROM accounts WHERE user_id = ?" con parametros "12345"
+    Then valido que la consulta retorne resultados
+    And obtengo el valor de la columna "balance" y lo almaceno en "balanceOracle"
+    
+    Given establezco conexion a base de datos "sqlserver"
+    When ejecuto la consulta "SELECT balance FROM accounts WHERE user_id = ?" con parametros "12345"
+    And obtengo el valor de la columna "balance" y lo almaceno en "balanceSqlServer"
+    
+    Then valido que "{{balanceOracle}}" sea igual a "{{balanceSqlServer}}"
 ```
 
 ### Pool de Conexiones
@@ -726,6 +821,16 @@ db.pool.size.min=2
 db.pool.size.max=10
 db.pool.connectionTimeout=30000
 ```
+
+### Ventajas de la Nueva Arquitectura
+
+- ✅ Multi-BD en el mismo test
+- ✅ Cache automático de conexiones
+- ✅ Detección automática de driver por URL
+- ✅ Soporte Windows Authentication para SQL Server
+- ✅ Steps súper limpios sin lógica (3-7 líneas cada uno)
+- ✅ Configuración declarativa en properties
+- ✅ 100% compatible con código legacy
 
 ---
 
