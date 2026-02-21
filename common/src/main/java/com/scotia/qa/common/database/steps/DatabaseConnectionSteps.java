@@ -132,7 +132,7 @@ public class DatabaseConnectionSteps {
      *
      * <p><b>Ejemplo:</b></p>
      * <pre>
-     * When ejecuto la sentencia "DELETE FROM temp_data WHERE created_date < '2025-01-01'"
+     * When ejecuto la sentencia "DELETE FROM temp_data WHERE created_date &lt; '2025-01-01'"
      * </pre>
      *
      * @param sql Sentencia SQL
