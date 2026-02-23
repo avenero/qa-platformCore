@@ -53,6 +53,12 @@ web-core
 
 Web-Core proporciona **+50 steps** listos para usar:
 
+#### ⭐ Configuración de Driver (NUEVO v1.2.0)
+- `Given configuro el driver del navegador "chrome" en modo headless "false"`
+- Soporta: Chrome, Firefox, Edge, Safari
+- Configurable: headless true/false, yes/no, si/no, 1/0
+- Versión y estrategia (Artifactory/local) desde config
+
 #### Navegación
 - `Dado que navego a la URL "..."`
 - `Cuando hago clic en el elemento "..."`
@@ -259,7 +265,47 @@ Escenario: Login
 
 ## Ejemplos de Uso
 
-### Ejemplo 1: Login Simple
+### Ejemplo 1: ⭐ Configuración de Navegador (NUEVO v1.2.0)
+
+```gherkin
+@web
+Feature: Cross-browser login testing
+
+  # Desarrollo local - Ver navegador
+  Scenario: Login en Chrome (desarrollo)
+    Given configuro el driver del navegador "chrome" en modo headless "false"
+    When navego a la URL "https://app.com/login"
+    And ingreso "user@mail.com" en el campo "email"
+    And ingreso "Pass123" en el campo "password"
+    And hago click en el boton "loginButton"
+    Then debo ver el elemento "dashboard"
+
+  # Pipeline CI/CD - Sin UI
+  Scenario: Login en Firefox (CI/CD)
+    Given configuro el driver del navegador "firefox" en modo headless "true"
+    When navego a la URL "https://app.com/login"
+    And ingreso "user@mail.com" en el campo "email"
+    And hago click en el boton "loginButton"
+    Then debo ver el elemento "dashboard"
+
+  # Cross-browser testing
+  Scenario Outline: Login en <browser>
+    Given configuro el driver del navegador "<browser>" en modo headless "true"
+    When navego a la URL "https://app.com/login"
+    Then debo ver el elemento "loginForm"
+    
+    Examples:
+      | browser |
+      | chrome  |
+      | firefox |
+      | edge    |
+```
+
+**💡 NOTA:** Si NO usas el step, usa el navegador por defecto (config-qa.properties).
+
+---
+
+### Ejemplo 2: Login Simple
 
 ```gherkin
 @web @test
@@ -272,7 +318,7 @@ Escenario: Login exitoso
   Y el texto del elemento "userDisplay" debe contener "testuser"
 ```
 
-### Ejemplo 2: Formulario Completo
+### Ejemplo 3: Formulario Completo
 
 ```gherkin
 @web @test

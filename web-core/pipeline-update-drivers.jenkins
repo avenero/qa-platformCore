@@ -1,0 +1,381 @@
+#!groovy
+
+/**
+ * Pipeline: Actualizacion Automatica de WebDrivers en Artifactory
+ *
+ * Proposito:
+ *   - Mantener drivers sincronizados con ultimas versiones de navegadores
+ *   - Evitar errores "ChromeDriver only supports Chrome version X"
+ *   - Reducir mantenimiento manual
+ *
+ * Frecuencia: Semanal (Lunes 2AM) o manual
+ * Duracion: ~5 minutos
+ *
+ * @author Abel Venero
+ * @version 1.0.0
+ */
+
+pipeline {
+    agent { label 'jslave1' }
+
+    options {
+        timestamps()
+        timeout(time: 15, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+        disableConcurrentBuilds()
+    }
+
+    triggers {
+        cron('H 2 * * 1')  // Lunes 2AM
+    }
+
+    parameters {
+        booleanParam(
+            name: 'UPDATE_CHROME',
+            defaultValue: true,
+            description: 'Actualizar ChromeDriver'
+        )
+        booleanParam(
+            name: 'UPDATE_FIREFOX',
+            defaultValue: true,
+            description: 'Actualizar GeckoDriver (Firefox)'
+        )
+        booleanParam(
+            name: 'DRY_RUN',
+            defaultValue: false,
+            description: 'Modo prueba - NO sube a Artifactory'
+        )
+    }
+
+    environment {
+        ARTIFACTORY_URL = 'https://artifactory.cl-devops-infra.chl.bns/artifactory'
+        ARTIFACTORY_REPO = 'libs-release-thirdparty/external/qa-drivers'
+        WORK_DIR = "${WORKSPACE}/drivers-download"
+        CHROME_API = 'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json'
+        FIREFOX_API = 'https://api.github.com/repos/mozilla/geckodriver/releases/latest'
+    }
+
+    stages {
+
+        stage('Preparacion') {
+            steps {
+                script {
+                    echo "Pipeline: Actualizacion de Drivers"
+                    echo "Fecha: ${new Date()}"
+                    echo "Build: #${env.BUILD_NUMBER}"
+
+                    sh "rm -rf ${WORK_DIR}"
+                    sh "mkdir -p ${WORK_DIR}"
+                }
+            }
+        }
+
+        stage('Detectar Versiones') {
+            steps {
+                script {
+                    echo "Detectando ultimas versiones..."
+
+                    if (params.UPDATE_CHROME) {
+                        def chromeJson = sh(
+                            script: "curl -s ${CHROME_API}",
+                            returnStdout: true
+                        ).trim()
+
+                        def chromeVersions = readJSON text: chromeJson
+                        env.CHROME_VERSION = chromeVersions.channels.Stable.version
+
+                        echo "Chrome Stable: ${env.CHROME_VERSION}"
+                    }
+
+                    if (params.UPDATE_FIREFOX) {
+                        def firefoxJson = sh(
+                            script: "curl -s ${FIREFOX_API}",
+                            returnStdout: true
+                        ).trim()
+
+                        def firefoxRelease = readJSON text: firefoxJson
+                        env.FIREFOX_VERSION = firefoxRelease.tag_name.replace('v', '')
+
+                        echo "GeckoDriver: ${env.FIREFOX_VERSION}"
+                    }
+                }
+            }
+        }
+
+        stage('Descargar Drivers') {
+            parallel {
+
+                stage('Chrome Mac') {
+                    when { expression { params.UPDATE_CHROME } }
+                    steps {
+                        script {
+                            echo "Descargando ChromeDriver ${env.CHROME_VERSION} Mac ARM64..."
+                            sh """
+                                cd ${WORK_DIR}
+                                curl -L -o chromedriver-mac.zip \
+                                  "https://storage.googleapis.com/chrome-for-testing-public/${env.CHROME_VERSION}/mac-arm64/chromedriver-mac-arm64.zip"
+                                unzip -o chromedriver-mac.zip
+                                chmod +x chromedriver-mac-arm64/chromedriver
+                                echo "ChromeDriver Mac listo"
+                            """
+                        }
+                    }
+                }
+
+                stage('Chrome Win') {
+                    when { expression { params.UPDATE_CHROME } }
+                    steps {
+                        script {
+                            echo "Descargando ChromeDriver ${env.CHROME_VERSION} Windows..."
+                            sh """
+                                cd ${WORK_DIR}
+                                curl -L -o chromedriver-win.zip \
+                                  "https://storage.googleapis.com/chrome-for-testing-public/${env.CHROME_VERSION}/win64/chromedriver-win64.zip"
+                                unzip -o chromedriver-win.zip
+                                echo "ChromeDriver Windows listo"
+                            """
+                        }
+                    }
+                }
+
+                stage('Chrome Linux') {
+                    when { expression { params.UPDATE_CHROME } }
+                    steps {
+                        script {
+                            echo "Descargando ChromeDriver ${env.CHROME_VERSION} Linux..."
+                            sh """
+                                cd ${WORK_DIR}
+                                curl -L -o chromedriver-linux.zip \
+                                  "https://storage.googleapis.com/chrome-for-testing-public/${env.CHROME_VERSION}/linux64/chromedriver-linux64.zip"
+                                unzip -o chromedriver-linux.zip
+                                chmod +x chromedriver-linux64/chromedriver
+                                echo "ChromeDriver Linux listo"
+                            """
+                        }
+                    }
+                }
+
+                stage('Firefox Mac') {
+                    when { expression { params.UPDATE_FIREFOX } }
+                    steps {
+                        script {
+                            echo "Descargando GeckoDriver ${env.FIREFOX_VERSION} Mac..."
+                            sh """
+                                cd ${WORK_DIR}
+                                curl -L -o geckodriver-mac.tar.gz \
+                                  "https://github.com/mozilla/geckodriver/releases/download/v${env.FIREFOX_VERSION}/geckodriver-v${env.FIREFOX_VERSION}-macos-aarch64.tar.gz"
+                                tar -xzf geckodriver-mac.tar.gz
+                                mv geckodriver geckodriver-mac
+                                chmod +x geckodriver-mac
+                                echo "GeckoDriver Mac listo"
+                            """
+                        }
+                    }
+                }
+
+                stage('Firefox Win') {
+                    when { expression { params.UPDATE_FIREFOX } }
+                    steps {
+                        script {
+                            echo "Descargando GeckoDriver ${env.FIREFOX_VERSION} Windows..."
+                            sh """
+                                cd ${WORK_DIR}
+                                curl -L -o geckodriver-win.zip \
+                                  "https://github.com/mozilla/geckodriver/releases/download/v${env.FIREFOX_VERSION}/geckodriver-v${env.FIREFOX_VERSION}-win64.zip"
+                                unzip -o geckodriver-win.zip
+                                mv geckodriver.exe geckodriver-win.exe
+                                echo "GeckoDriver Windows listo"
+                            """
+                        }
+                    }
+                }
+
+                stage('Firefox Linux') {
+                    when { expression { params.UPDATE_FIREFOX } }
+                    steps {
+                        script {
+                            echo "Descargando GeckoDriver ${env.FIREFOX_VERSION} Linux..."
+                            sh """
+                                cd ${WORK_DIR}
+                                curl -L -o geckodriver-linux.tar.gz \
+                                  "https://github.com/mozilla/geckodriver/releases/download/v${env.FIREFOX_VERSION}/geckodriver-v${env.FIREFOX_VERSION}-linux64.tar.gz"
+                                tar -xzf geckodriver-linux.tar.gz
+                                mv geckodriver geckodriver-linux
+                                chmod +x geckodriver-linux
+                                echo "GeckoDriver Linux listo"
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Subir a Artifactory') {
+            when {
+                expression { !params.DRY_RUN }
+            }
+            steps {
+                withCredentials([
+                    string(credentialsId: 'artifactory-write-token', variable: 'ARTIFACTORY_TOKEN')
+                ]) {
+                    script {
+                        echo "Subiendo drivers a Artifactory..."
+
+                        def uploadResults = []
+
+                        if (params.UPDATE_CHROME) {
+                            echo "Subiendo ChromeDriver ${env.CHROME_VERSION}..."
+
+                            def macResult = sh(
+                                script: """
+                                    curl -u s2994840:\${ARTIFACTORY_TOKEN} \
+                                      -X PUT \
+                                      "${ARTIFACTORY_URL}/${ARTIFACTORY_REPO}/chromedriver-mac/chromedriver" \
+                                      -T ${WORK_DIR}/chromedriver-mac-arm64/chromedriver \
+                                      -w "%{http_code}" -s -o /dev/null
+                                """,
+                                returnStdout: true
+                            ).trim()
+
+                            uploadResults << (macResult == "201" || macResult == "200" ?
+                                "chromedriver-mac: OK" : "chromedriver-mac: FAILED (${macResult})")
+
+                            def winResult = sh(
+                                script: """
+                                    curl -u s2994840:\${ARTIFACTORY_TOKEN} \
+                                      -X PUT \
+                                      "${ARTIFACTORY_URL}/${ARTIFACTORY_REPO}/chromedriver-win/chromedriver.exe" \
+                                      -T ${WORK_DIR}/chromedriver-win64/chromedriver.exe \
+                                      -w "%{http_code}" -s -o /dev/null
+                                """,
+                                returnStdout: true
+                            ).trim()
+
+                            uploadResults << (winResult == "201" || winResult == "200" ?
+                                "chromedriver-win: OK" : "chromedriver-win: FAILED (${winResult})")
+
+                            def linuxResult = sh(
+                                script: """
+                                    curl -u s2994840:\${ARTIFACTORY_TOKEN} \
+                                      -X PUT \
+                                      "${ARTIFACTORY_URL}/${ARTIFACTORY_REPO}/chromedriver-linux/chromedriver" \
+                                      -T ${WORK_DIR}/chromedriver-linux64/chromedriver \
+                                      -w "%{http_code}" -s -o /dev/null
+                                """,
+                                returnStdout: true
+                            ).trim()
+
+                            uploadResults << (linuxResult == "201" || linuxResult == "200" ?
+                                "chromedriver-linux: OK" : "chromedriver-linux: FAILED (${linuxResult})")
+                        }
+
+                        if (params.UPDATE_FIREFOX) {
+                            echo "Subiendo GeckoDriver ${env.FIREFOX_VERSION}..."
+
+                            def macResult = sh(
+                                script: """
+                                    curl -u s2994840:\${ARTIFACTORY_TOKEN} \
+                                      -X PUT \
+                                      "${ARTIFACTORY_URL}/${ARTIFACTORY_REPO}/geckodriver-mac/geckodriver" \
+                                      -T ${WORK_DIR}/geckodriver-mac \
+                                      -w "%{http_code}" -s -o /dev/null
+                                """,
+                                returnStdout: true
+                            ).trim()
+
+                            uploadResults << (macResult == "201" || macResult == "200" ?
+                                "geckodriver-mac: OK" : "geckodriver-mac: FAILED (${macResult})")
+                        }
+
+                        echo "RESUMEN SUBIDAS:"
+                        uploadResults.each { echo "  ${it}" }
+
+                        env.UPLOAD_SUMMARY = uploadResults.join('\n   ')
+                    }
+                }
+            }
+        }
+
+        stage('Verificar Subida') {
+            when {
+                expression { !params.DRY_RUN }
+            }
+            steps {
+                script {
+                    echo "Verificando acceso a drivers..."
+
+                    if (params.UPDATE_CHROME) {
+                        def testUrl = "${ARTIFACTORY_URL}/${ARTIFACTORY_REPO}/chromedriver-mac/chromedriver"
+                        def headResult = sh(
+                            script: "curl -I -s '${testUrl}' | head -1",
+                            returnStdout: true
+                        ).trim()
+
+                        echo (headResult.contains("200") ?
+                            "chromedriver-mac accesible" : "chromedriver-mac NO accesible")
+                    }
+                }
+            }
+        }
+
+        stage('Notificar') {
+            when {
+                expression { !params.DRY_RUN }
+            }
+            steps {
+                script {
+                    def notification = """
+ACTUALIZACION DRIVERS - COMPLETADA
+
+Fecha: ${new Date()}
+Build: #${env.BUILD_NUMBER}
+
+VERSIONES:
+   ${env.UPLOAD_SUMMARY}
+
+Artifactory:
+   ${ARTIFACTORY_URL}/${ARTIFACTORY_REPO}/
+
+Los tests usaran estas versiones automaticamente.
+                    """
+
+                    echo notification
+
+                    try {
+                        emailext(
+                            subject: "Drivers actualizados - Chrome ${env.CHROME_VERSION}",
+                            body: notification,
+                            to: 'abel.venero@scotia.com',
+                            mimeType: 'text/plain'
+                        )
+                    } catch (Exception e) {
+                        echo "No se pudo enviar email"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+
+        success {
+            script {
+                echo "Drivers actualizados exitosamente"
+            }
+        }
+
+        failure {
+            script {
+                echo "Pipeline fallo - Revisar logs"
+                echo "Causas posibles:"
+                echo "  1. Sin permisos WRITE en Artifactory"
+                echo "  2. Firewall bloqueando Google CDN"
+                echo "  3. Credenciales incorrectas"
+            }
+        }
+    }
+}
+

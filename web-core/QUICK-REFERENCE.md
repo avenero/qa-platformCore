@@ -6,12 +6,136 @@
 
 ## 📑 Índice Rápido
 
+- [Configuración de Driver](#configuración-de-driver) ⭐ NUEVO
 - [Navegación](#navegación)
 - [Interacciones](#interacciones)
 - [Esperas](#esperas)
 - [Validaciones](#validaciones)
 - [Variables](#variables)
 - [Screenshots](#screenshots)
+
+---
+
+## Configuración de Driver
+
+### ⭐ NUEVO (v1.2.0): Configurar navegador desde Gherkin
+
+```gherkin
+# Configurar navegador y modo headless
+Given configuro el driver del navegador "chrome" en modo headless "false"
+Given configuro el driver del navegador "firefox" en modo headless "true"
+Given configuro el driver del navegador "edge" en modo headless "false"
+
+# Navegadores soportados: chrome, firefox, edge, safari
+# Headless: true/false, yes/no, si/no, 1/0
+
+# Si NO usas este step, usa el navegador por defecto (config-qa.properties)
+```
+
+**💡 Casos de uso:**
+
+```gherkin
+# Desarrollo local - Ver UI
+Given configuro el driver del navegador "chrome" en modo headless "false"
+
+# Pipeline CI/CD - Sin UI
+Given configuro el driver del navegador "chrome" en modo headless "true"
+
+# Cross-browser testing
+Scenario Outline: Login en <browser>
+  Given configuro el driver del navegador "<browser>" en modo headless "true"
+  When navego a la URL "https://app.com"
+  
+  Examples:
+    | browser |
+    | chrome  |
+    | firefox |
+    | edge    |
+```
+
+**🔧 Configuración (config-qa.properties):**
+
+```properties
+# Navegador por defecto (si no usas el step)
+web.browser=chrome
+
+# Headless por defecto
+web.headless=false
+
+# Versión de drivers (automático)
+driver.chrome.version=143.0.7499.41
+driver.firefox.version=0.35.0
+driver.edge.version=130.0.2849.68
+
+# Estrategia de descarga
+driver.strategy=artifactory  # o "local"
+```
+
+---
+
+## Configuración de Driver
+
+### ⭐ NUEVO (v1.2.0): Configurar navegador desde Gherkin
+
+```gherkin
+# Configurar navegador y modo headless
+Given configuro el driver del navegador "chrome" en modo headless "false"
+Given configuro el driver del navegador "firefox" en modo headless "true"
+Given configuro el driver del navegador "edge" en modo headless "false"
+
+# Navegadores soportados: chrome, firefox, edge, safari
+# Headless: true/false, yes/no, si/no, 1/0
+```
+
+**💡 Casos de uso:**
+
+```gherkin
+# Desarrollo local - Ver UI
+@web
+Scenario: Login visual
+  Given configuro el driver del navegador "chrome" en modo headless "false"
+  When navego a la URL "https://app.com/login"
+  And ingreso "user@mail.com" en el campo "email"
+
+# Pipeline CI/CD - Sin UI
+@web
+Scenario: Login automatizado
+  Given configuro el driver del navegador "chrome" en modo headless "true"
+  When navego a la URL "https://app.com/login"
+
+# Cross-browser testing
+@web
+Scenario Outline: Login en <browser>
+  Given configuro el driver del navegador "<browser>" en modo headless "true"
+  When navego a la URL "https://app.com"
+  
+  Examples:
+    | browser |
+    | chrome  |
+    | firefox |
+    | edge    |
+```
+
+**📋 Configuración (config-qa.properties):**
+
+```properties
+# Navegador por defecto (si no usas el step)
+web.browser=chrome
+
+# Headless por defecto
+web.headless=false
+
+# Versión de drivers (automático desde Artifactory)
+driver.chrome.version=143.0.7499.41
+driver.firefox.version=0.35.0
+driver.edge.version=130.0.2849.68
+
+# Estrategia de descarga
+driver.strategy=artifactory  # o "local"
+driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}
+driver.artifactory.user=${ARTIFACTORY_USER}
+driver.artifactory.token=${ARTIFACTORY_TOKEN}
+```
 
 ---
 

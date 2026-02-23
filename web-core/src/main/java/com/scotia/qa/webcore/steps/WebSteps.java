@@ -1,5 +1,8 @@
 package com.scotia.qa.webcore.steps;
 
+import com.scotia.qa.common.config.ConfigManager;
+import com.scotia.qa.common.cucumber.context.ScenarioContext;
+import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.webcore.driver.DriverManager;
 import com.scotia.qa.webcore.driver.WebDriverFactory;
@@ -61,25 +64,29 @@ public class WebSteps {
      * Tags soportados: @web, @ui, @selenium, @browser
      */
     @Before(value = "@web or @ui or @selenium or @browser", order = 100)
-    public void beforeScenario(Scenario scenario) {
+    public void beforeScenario(Scenario scenario) throws FrameworkBusinessException {
         this.scenario = scenario;
 
-        // Validar consistencia de tags del scenario
         com.scotia.qa.common.cucumber.validators.HookValidator.validateWebScenario(scenario);
 
-        // Detectar nombre del módulo dinámicamente (ej: BANKING, AUTOS, etc.)
         String moduleName = com.scotia.qa.common.logging.ModuleDetector.detectModuleName();
         TestLogger.setFramework(moduleName);
 
         // Inicializar driver si no existe
         if (!DriverManager.isDriverInitialized()) {
-            WebDriver driver = WebDriverFactory.createDriver(BrowserType.CHROME, false);
+            BrowserType browser = getBrowserForScenario();
+            boolean headless = getHeadlessModeForScenario();
+
+            WebDriver driver = WebDriverFactory.createDriver(browser, headless);
             DriverManager.setDriver(driver);
+
+            TestLogger.logInfo("WEB_STEPS",
+                "Driver inicializado",
+                java.util.Map.of("browser", browser.name(), "headless", headless));
         }
 
         WebDriver driver = DriverManager.getDriver();
 
-        // Navegar a host configurado
         String host = helper.getConfigProperty("host", "about:blank");
         driver.navigate().to(host);
         driver.manage().window().maximize();
@@ -119,14 +126,68 @@ public class WebSteps {
     }
 
     // =========================================================================
-    // GIVEN STEPS
+    // GIVEN STEPS - CONFIGURACIÓN
+    // =========================================================================
+
+    /**
+     * Step: Configura el navegador y modo headless para el scenario.
+     *
+     * <p><b>⭐ NUEVO (v1.2.0):</b> Permite configurar navegador y headless desde Gherkin</p>
+     *
+     * <p><b>Navegadores soportados:</b></p>
+     * <ul>
+     *   <li>"chrome" - Google Chrome</li>
+     *   <li>"firefox" - Mozilla Firefox</li>
+     *   <li>"edge" - Microsoft Edge</li>
+     *   <li>"safari" - Safari (solo Mac)</li>
+     * </ul>
+     *
+     * <p><b>Modo headless:</b></p>
+     * <ul>
+     *   <li>"true" / "yes" / "si" / "1" - Sin UI (para CI/CD)</li>
+     *   <li>"false" / "no" / "0" - Con UI (para desarrollo)</li>
+     * </ul>
+     *
+     * <p><b>Versión y estrategia:</b> Se leen desde config-{env}.properties</p>
+     * <pre>
+     * driver.chrome.version=143.0.7499.41
+     * driver.strategy=artifactory
+     * </pre>
+     *
+     * <p><b>Ejemplo:</b></p>
+     * <pre>
+     * Given configuro el driver del navegador "firefox" en modo headless "false"
+     * When navego a la URL "https://google.com"
+     * </pre>
+     *
+     * <p><b>💡 TIP:</b> Si no usas este step, el navegador por defecto es Chrome.</p>
+     *
+     * @param browserName Nombre del navegador: chrome, firefox, edge, safari
+     * @param headlessStr Modo headless: true/false, yes/no, si/no, 1/0
+     */
+    @Given("configuro el driver del navegador {string} en modo headless {string}")
+    public void configurarDriverDelNavegador(String browserName, String headlessStr)
+            throws FrameworkBusinessException {
+        BrowserType browser = helper.parseBrowserType(browserName);
+        boolean headless = helper.parseBoolean(headlessStr);
+
+        ScenarioContext.set("web.browser.type", browser);
+        ScenarioContext.set("web.headless.override", headless);
+
+        TestLogger.logInfo("WEB_STEPS",
+            "Navegador configurado para este scenario",
+            java.util.Map.of("browser", browser.name(), "headless", headless));
+    }
+
+    // =========================================================================
+    // GIVEN STEPS - NAVEGACIÓN
     // =========================================================================
 
     @Given("actualizo URL en el navegador {string}")
     public void actualizo_url_en_el_navegador(String url) {
         WebDriver driver = DriverManager.getDriver();
         driver.navigate().to(url);
-        WaitUtils.waitForPageReady(); // Espera inteligente en lugar de sleep fijo
+        WaitUtils.waitForPageReady();
         TestLogger.logInfo("WEB_STEPS", "🌐 URL actualizada: " + url, null);
     }
 
@@ -866,5 +927,47 @@ public class WebSteps {
     @Then("el campo {string} debe estar vacío")
     public void elCampoDebeEstarVacio(String locator) {
         helper.validateFieldIsEmpty(locator);
+    }
+
+    // =========================================================================
+    // MÉTODOS AUXILIARES - CONFIGURACIÓN DE DRIVER
+    // =========================================================================
+
+    /**
+     * Determina qué navegador usar para este scenario.
+     * Prioridad:
+     * 1. ScenarioContext (step "configuro el driver del navegador")
+     * 2. System Property (-Dweb.browser=firefox)
+     * 3. ConfigManager (config-{env}.properties)
+     * 4. Default (Chrome)
+     */
+    private BrowserType getBrowserForScenario() throws FrameworkBusinessException {
+        BrowserType browserFromContext = (BrowserType) ScenarioContext.get("web.browser.type");
+        if (browserFromContext != null) {
+            return browserFromContext;
+        }
+
+        ConfigManager config = ConfigManager.getInstance();
+        String browserStr = config.getWithPriority("web.browser", "chrome");
+
+        return helper.parseBrowserType(browserStr);
+    }
+
+    /**
+     * Determina modo headless.
+     * Prioridad:
+     * 1. ScenarioContext (step con headless específico)
+     * 2. System Property (-Dweb.headless=true)
+     * 3. ConfigManager (web.headless del properties)
+     * 4. false (default)
+     */
+    private boolean getHeadlessModeForScenario() throws FrameworkBusinessException {
+        Boolean headlessOverride = (Boolean) ScenarioContext.get("web.headless.override");
+        if (headlessOverride != null) {
+            return headlessOverride;
+        }
+
+        ConfigManager config = ConfigManager.getInstance();
+        return config.getBoolean("web.headless", false);
     }
 }

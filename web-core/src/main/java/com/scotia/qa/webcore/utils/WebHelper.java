@@ -4,7 +4,9 @@ import com.scotia.qa.common.cucumber.context.ScenarioContext;
 import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.webcore.driver.DriverManager;
+import com.scotia.qa.webcore.driver.WebDriverFactory;
 import io.cucumber.java.Scenario;
+import org.assertj.core.api.Assertions;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -552,7 +554,7 @@ public class WebHelper {
 
             // Estrategia 2: Texto interno (labels, spans, divs)
             String text = element.getText();
-            if (text != null && !text.isEmpty()) {
+            if (!text.isEmpty()) {
                 return text;
             }
 
@@ -1337,7 +1339,7 @@ public class WebHelper {
      *
      * <p><b>Ejemplo:</b></p>
      * <pre>
-     * ScenarioContext.set("usuario", "Juan");
+     * ¡ScenarioContext! ¡Set("usuario", "Juan");
      * String resultado = resolveVariables("Hola {usuario}!");
      * // resultado = "Hola Juan!"
      * </pre>
@@ -1352,7 +1354,7 @@ public class WebHelper {
 
         String result = text;
         // Patrón para encontrar {variableName}
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{([^}]+)}");
         java.util.regex.Matcher matcher = pattern.matcher(text);
 
         while (matcher.find()) {
@@ -1535,7 +1537,7 @@ public class WebHelper {
     public void validateFieldAcceptsOnlyNumbers(String locator) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe contener solo números", locator)
             .matches("^[0-9]+$");
 
@@ -1549,7 +1551,7 @@ public class WebHelper {
     public void validateFieldAcceptsOnlyLetters(String locator) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe contener solo letras", locator)
             .matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$");
 
@@ -1564,7 +1566,7 @@ public class WebHelper {
         String value = getElementValue(getElement(locator));
 
         if (!value.isEmpty()) {
-            org.assertj.core.api.Assertions.assertThat(value)
+            Assertions.assertThat(value)
                 .as("El campo '%s' no debe contener números ni caracteres especiales", locator)
                 .matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$");
         }
@@ -1579,7 +1581,7 @@ public class WebHelper {
     public void validateEmailFormat(String locator) {
         String value = getElementValue(getElement(locator)).trim();
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe tener formato de email válido", locator)
             .matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
 
@@ -1597,7 +1599,7 @@ public class WebHelper {
         int remainingDigits = totalDigits - prefix.replaceAll("[^0-9]", "").length();
         String regex = String.format("^%s[0-9]{%d}$", prefix.replace("+", "\\+"), remainingDigits);
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe tener formato: %s + %d dígitos", locator, prefix, remainingDigits)
             .matches(regex);
 
@@ -1611,7 +1613,7 @@ public class WebHelper {
     public void validateFieldNoSpaces(String locator) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' no debe contener espacios", locator)
             .doesNotContain(" ");
 
@@ -1626,7 +1628,7 @@ public class WebHelper {
         String value = getElementValue(getElement(locator));
 
         if (value.matches(".*\\d.*")) {
-            org.assertj.core.api.Assertions.assertThat(value)
+            Assertions.assertThat(value)
                 .as("El campo '%s' debe tener separadores de miles", locator)
                 .matches(".*\\d{1,3}(\\.\\d{3})*.*");
         }
@@ -1642,7 +1644,7 @@ public class WebHelper {
     public void validateFieldMatchesPattern(String locator, String regexPattern) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe cumplir el patrón: %s", locator, regexPattern)
             .matches(regexPattern);
 
@@ -1667,7 +1669,7 @@ public class WebHelper {
         if (!value.isEmpty()) {
             int actualValue = Integer.parseInt(value);
 
-            org.assertj.core.api.Assertions.assertThat(actualValue)
+            Assertions.assertThat(actualValue)
                 .as("El campo '%s' debe tener valor >= %d", locator, minValue)
                 .isGreaterThanOrEqualTo(minValue);
 
@@ -1685,7 +1687,7 @@ public class WebHelper {
         if (!value.isEmpty()) {
             int actualValue = Integer.parseInt(value);
 
-            org.assertj.core.api.Assertions.assertThat(actualValue)
+            Assertions.assertThat(actualValue)
                 .as("El campo '%s' debe tener valor <= %d", locator, maxValue)
                 .isLessThanOrEqualTo(maxValue);
 
@@ -1702,7 +1704,7 @@ public class WebHelper {
         boolean isReadonly = element.getDomAttribute("readonly") != null;
         boolean isDisabled = element.getDomAttribute("disabled") != null;
 
-        org.assertj.core.api.Assertions.assertThat(isReadonly || isDisabled)
+        Assertions.assertThat(isReadonly || isDisabled)
             .as("El campo '%s' debe estar en modo solo lectura", locator)
             .isTrue();
 
@@ -1729,7 +1731,7 @@ public class WebHelper {
                 .map(WebElement::getText)
                 .toList();
 
-            org.assertj.core.api.Assertions.assertThat(actual)
+            Assertions.assertThat(actual)
                 .as("Opciones del dropdown '%s' no coinciden", locator)
                 .containsExactlyInAnyOrderElementsOf(expected);
         }
@@ -1746,7 +1748,7 @@ public class WebHelper {
         org.openqa.selenium.support.ui.Select select = new org.openqa.selenium.support.ui.Select(element);
         int actualCount = select.getOptions().size();
 
-        org.assertj.core.api.Assertions.assertThat(actualCount)
+        Assertions.assertThat(actualCount)
             .as("El campo '%s' debe tener %d opciones", locator, expectedCount)
             .isEqualTo(expectedCount);
 
@@ -1764,7 +1766,7 @@ public class WebHelper {
 
         boolean isSingleSelection = "select".equals(tagName) || "radio".equals(type);
 
-        org.assertj.core.api.Assertions.assertThat(isSingleSelection)
+        Assertions.assertThat(isSingleSelection)
             .as("El campo '%s' debe permitir selección única", locator)
             .isTrue();
 
@@ -1782,11 +1784,11 @@ public class WebHelper {
     public void validateButtonIsEnabled(String locator) {
         WebElement element = getElement(locator);
 
-        org.assertj.core.api.Assertions.assertThat(element.isEnabled())
+        Assertions.assertThat(element.isEnabled())
             .as("El botón '%s' debe estar habilitado", locator)
             .isTrue();
 
-        org.assertj.core.api.Assertions.assertThat(element.getDomAttribute("disabled"))
+        Assertions.assertThat(element.getDomAttribute("disabled"))
             .as("El botón '%s' no debe tener atributo disabled", locator)
             .isNull();
 
@@ -1801,7 +1803,7 @@ public class WebHelper {
         WebElement element = getElement(locator);
         boolean isDisabled = !element.isEnabled() || element.getDomAttribute("disabled") != null;
 
-        org.assertj.core.api.Assertions.assertThat(isDisabled)
+        Assertions.assertThat(isDisabled)
             .as("El botón '%s' debe estar deshabilitado", locator)
             .isTrue();
 
@@ -1816,7 +1818,7 @@ public class WebHelper {
         WebElement element = getElement(locator);
         String currentText = element.getText();
 
-        org.assertj.core.api.Assertions.assertThat(currentText)
+        Assertions.assertThat(currentText)
             .as("El botón '%s' debe mostrar: '%s'", locator, finalText)
             .contains(finalText);
 
@@ -1834,7 +1836,7 @@ public class WebHelper {
     public void validateMinLength(String locator, int minLength) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe tener mínimo %d caracteres", locator, minLength)
             .hasSizeGreaterThanOrEqualTo(minLength);
 
@@ -1848,7 +1850,7 @@ public class WebHelper {
     public void validateMaxLength(String locator, int maxLength) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe tener máximo %d caracteres", locator, maxLength)
             .hasSizeLessThanOrEqualTo(maxLength);
 
@@ -1862,7 +1864,7 @@ public class WebHelper {
     public void validateExactLength(String locator, int expectedLength) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe tener exactamente %d caracteres", locator, expectedLength)
             .hasSize(expectedLength);
 
@@ -1881,7 +1883,7 @@ public class WebHelper {
         WebElement element = getElement(locator);
         String actualPlaceholder = element.getDomAttribute("placeholder");
 
-        org.assertj.core.api.Assertions.assertThat(actualPlaceholder)
+        Assertions.assertThat(actualPlaceholder)
             .as("El placeholder del campo '%s' debe ser '%s'", locator, expectedPlaceholder)
             .isEqualTo(expectedPlaceholder);
 
@@ -1896,7 +1898,7 @@ public class WebHelper {
         WebElement element = getElement(locator);
         String actualTooltip = element.getDomAttribute("title");
 
-        org.assertj.core.api.Assertions.assertThat(actualTooltip)
+        Assertions.assertThat(actualTooltip)
             .as("El tooltip del campo '%s' debe ser '%s'", locator, expectedTooltip)
             .isEqualTo(expectedTooltip);
 
@@ -1914,7 +1916,7 @@ public class WebHelper {
     public void validateMessageIsVisible(String locator) {
         boolean isVisible = waitForVisibleElement(locator, 5);
 
-        org.assertj.core.api.Assertions.assertThat(isVisible)
+        Assertions.assertThat(isVisible)
             .as("El mensaje '%s' debe estar visible", locator)
             .isTrue();
 
@@ -1928,7 +1930,7 @@ public class WebHelper {
     public void validateMessageIsNotVisible(String locator) {
         boolean isPresent = isPresent(locator);
 
-        org.assertj.core.api.Assertions.assertThat(isPresent)
+        Assertions.assertThat(isPresent)
             .as("El mensaje '%s' NO debe estar visible", locator)
             .isFalse();
 
@@ -1942,7 +1944,7 @@ public class WebHelper {
     public void validateMessageContainsText(String locator, String expectedText) {
         String actualText = getTextOf(locator);
 
-        org.assertj.core.api.Assertions.assertThat(actualText)
+        Assertions.assertThat(actualText)
             .as("El mensaje '%s' debe contener '%s'", locator, expectedText)
             .contains(expectedText);
 
@@ -1960,7 +1962,7 @@ public class WebHelper {
     public void validateElementIsVisible(String locator) {
         boolean isVisible = waitForVisibleElement(locator, 10);
 
-        org.assertj.core.api.Assertions.assertThat(isVisible)
+        Assertions.assertThat(isVisible)
             .as("El elemento '%s' debe estar visible", locator)
             .isTrue();
 
@@ -1974,7 +1976,7 @@ public class WebHelper {
     public void validateElementIsNotVisible(String locator) {
         boolean isPresent = isPresent(locator);
 
-        org.assertj.core.api.Assertions.assertThat(isPresent)
+        Assertions.assertThat(isPresent)
             .as("El elemento '%s' NO debe estar visible", locator)
             .isFalse();
 
@@ -1988,7 +1990,7 @@ public class WebHelper {
     public void validateFieldNotEmpty(String locator) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' no debe estar vacío", locator)
             .isNotEmpty();
 
@@ -2002,7 +2004,7 @@ public class WebHelper {
     public void validateFieldIsEmpty(String locator) {
         String value = getElementValue(getElement(locator));
 
-        org.assertj.core.api.Assertions.assertThat(value)
+        Assertions.assertThat(value)
             .as("El campo '%s' debe estar vacío", locator)
             .isEmpty();
 
@@ -2035,12 +2037,60 @@ public class WebHelper {
     public void waitAndValidateEnabled(String locator, int timeoutSeconds) {
         boolean enabled = waitForElementEnabled(locator, timeoutSeconds);
 
-        org.assertj.core.api.Assertions.assertThat(enabled)
+        Assertions.assertThat(enabled)
             .as("Se esperó %d segundos y el elemento no se habilitó: %s", timeoutSeconds, locator)
             .isTrue();
 
         TestLogger.logInfo("WEB_HELPER",
             String.format("✅ Elemento habilitado después de esperar: %s", locator), null);
+    }
+
+    // =========================================================================
+    // MÉTODOS AUXILIARES - PARSEO DE CONFIGURACIÓN
+    // =========================================================================
+
+    /**
+     * Parsea string de navegador a BrowserType enum.
+     * Soporta múltiples variaciones de nombres.
+     *
+     * @param browserName Nombre del navegador (case-insensitive)
+     * @return BrowserType correspondiente
+     * @throws IllegalArgumentException si el navegador no es soportado
+     */
+    public WebDriverFactory.BrowserType parseBrowserType(String browserName) {
+        return switch (browserName.toLowerCase().trim()) {
+            case "chrome", "google chrome", "chromium" ->
+                WebDriverFactory.BrowserType.CHROME;
+            case "firefox", "mozilla", "ff" ->
+                WebDriverFactory.BrowserType.FIREFOX;
+            case "edge", "microsoft edge", "msedge" ->
+                WebDriverFactory.BrowserType.EDGE;
+            case "safari" ->
+                WebDriverFactory.BrowserType.SAFARI;
+            default -> throw new IllegalArgumentException(
+                "Navegador no soportado: " + browserName + ". " +
+                "Valores válidos: chrome, firefox, edge, safari"
+            );
+        };
+    }
+
+    /**
+     * Parsea string a boolean.
+     * Soporta múltiples formatos: true/false, yes/no, si/no, 1/0
+     *
+     * @param value String a parsear (case-insensitive)
+     * @return boolean correspondiente
+     * @throws IllegalArgumentException si el valor no es reconocido
+     */
+    public boolean parseBoolean(String value) {
+        return switch (value.toLowerCase().trim()) {
+            case "true", "yes", "si", "1", "enabled" -> true;
+            case "false", "no", "0", "disabled" -> false;
+            default -> throw new IllegalArgumentException(
+                "Valor boolean inválido: " + value + ". " +
+                "Valores válidos: true/false, yes/no, si/no, 1/0"
+            );
+        };
     }
 }
 

@@ -12,9 +12,9 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.safari.SafariDriver;
 import org.openqa.selenium.safari.SafariOptions;
-
 import java.net.URL;
 import java.time.Duration;
+
 
 /**
  * Factory para la creación y configuración de WebDrivers del Framework Scotia QA.
@@ -139,8 +139,13 @@ public class WebDriverFactory {
      * Crea un WebDriver con configuración completa.
      */
     public static WebDriver createDriver(DriverConfig config) {
+        com.scotia.qa.common.config.ConfigManager configManager =
+            com.scotia.qa.common.config.ConfigManager.getInstance();
+        String driverStrategy = configManager.get("driver.strategy", "auto");
+
         TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                "Creando WebDriver: " + config.getBrowserType() + " en modo " + config.getExecutionMode(), null);
+                String.format("Creando WebDriver: %s (execution=%s, driver.strategy=%s)",
+                    config.getBrowserType(), config.getExecutionMode(), driverStrategy), null);
 
         WebDriver driver;
 
@@ -516,130 +521,38 @@ public class WebDriverFactory {
     }
 
     /**
-     * Construye mensaje de error descriptivo con soluciones específicas por SO.
+     * Construye mensaje de error descriptivo simplificado.
      *
      * @param driverName Nombre del driver (chromedriver, geckodriver, etc.)
      * @param propertyName System property key
      * @param browserName Nombre del navegador
      */
     private static String buildDriverNotFoundError(String driverName, String propertyName, String browserName) {
-        String os = System.getProperty("os.name").toLowerCase();
         String downloadUrl = getDriverDownloadUrl(browserName);
 
-        StringBuilder error = new StringBuilder();
-        error.append(String.format("\n\n❌ No se pudo configurar %s automáticamente.\n\n", driverName));
-        error.append("📋 SOLUCIONES:\n\n");
-
-        // Solución 0: Usar estrategias del framework
-        error.append("0️⃣ USAR ESTRATEGIAS DEL FRAMEWORK (Recomendado):\n\n");
-        error.append("   A) LOCAL PATH - Driver manual en tu máquina:\n");
-        error.append("      ➤ Descargar driver desde: ").append(downloadUrl).append("\n");
-        error.append("      ➤ Configurar en .env.local:\n");
-        if (os.contains("win")) {
-            error.append("         DRIVER_LOCAL_PATH=C:/drivers\n");
-            error.append("      ➤ Crear estructura: C:/drivers/chromedriver/114.0.5735.90/chromedriver.exe\n");
-        } else {
-            error.append("         DRIVER_LOCAL_PATH=~/drivers\n");
-            error.append("      ➤ Crear estructura: ~/drivers/chromedriver/114.0.5735.90/chromedriver\n");
-        }
-        error.append("      ➤ En config-scotia.properties:\n");
-        error.append("         driver.local.enabled=true\n");
-        error.append("         driver.local.base.path=${DRIVER_LOCAL_PATH}\n");
-        error.append("         driver.chrome.version=114.0.5735.90\n\n");
-
-        error.append("   B) ARTIFACTORY - Descarga automática desde repositorio corporativo:\n");
-        error.append("      ➤ Configurar en .env.local:\n");
-        error.append("         ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers\n");
-        error.append("         ARTIFACTORY_USER=tu_usuario\n");
-        error.append("         ARTIFACTORY_TOKEN=tu_token\n");
-        error.append("      ➤ En config-scotia.properties:\n");
-        error.append("         driver.artifactory.enabled=true\n\n");
-
-        // Solución 1: Descarga manual
-        error.append("1️⃣ DESCARGA MANUAL + SYSTEM PROPERTY:\n");
-        error.append(String.format("   ➤ Descargar desde: %s\n", downloadUrl));
-        error.append(String.format("   ➤ Versión debe coincidir con %s instalado\n", browserName));
-
-        if (os.contains("win")) {
-            error.append(String.format("   ➤ Extraer %s.exe a: C:\\webdrivers\\\n", driverName));
-            error.append(String.format("   ➤ Agregar property: -D%s=C:\\webdrivers\\%s.exe\n\n", propertyName, driverName));
-        } else if (os.contains("mac")) {
-            error.append(String.format("   ➤ Extraer %s a: /usr/local/bin/\n", driverName));
-            error.append(String.format("   ➤ Dar permisos: chmod +x /usr/local/bin/%s\n", driverName));
-            error.append(String.format("   ➤ O agregar property: -D%s=/usr/local/bin/%s\n\n", propertyName, driverName));
-        } else {
-            error.append(String.format("   ➤ Extraer %s a: /usr/local/bin/\n", driverName));
-            error.append(String.format("   ➤ Dar permisos: sudo chmod +x /usr/local/bin/%s\n", driverName));
-            error.append(String.format("   ➤ O agregar property: -D%s=/usr/local/bin/%s\n\n", propertyName, driverName));
-        }
-
-        // Solución 2: Contacto
-        error.append("2️⃣ PEDIR AYUDA:\n");
-        error.append("   ➤ Contactar al equipo de QA o Infra\n");
-        error.append(String.format("   ➤ Solicitar %s preconfigurado o acceso a Artifactory\n\n", driverName));
-
-        return error.toString();
+        return String.format(
+            "No se pudo configurar %s. Verifica: (1) driver.strategy en config, " +
+            "(2) DRIVER_LOCAL_PATH o ARTIFACTORY_BASE_URL, (3) Descarga manual desde %s",
+            driverName, downloadUrl);
     }
 
     /**
      * Construye mensaje de error para estrategia LOCAL.
      */
     private static String buildDriverNotFoundErrorLocal(String driverName, String propertyName, String browserName, String errorDetail) {
-        String os = System.getProperty("os.name").toLowerCase();
         String downloadUrl = getDriverDownloadUrl(browserName);
-
-        StringBuilder error = new StringBuilder();
-        error.append(String.format("\n\n❌ ESTRATEGIA LOCAL: No se encontró %s en path local.\n\n", driverName));
-        error.append("🔍 Error: ").append(errorDetail).append("\n\n");
-
-        error.append("📋 SOLUCIONES:\n\n");
-        error.append("1️⃣ Descargar y configurar driver manualmente:\n");
-        error.append(String.format("   ➤ Descargar desde: %s\n", downloadUrl));
-        error.append("   ➤ Configurar en .env.local:\n");
-
-        if (os.contains("win")) {
-            error.append("      DRIVER_LOCAL_PATH=C:/drivers\n");
-            error.append(String.format("   ➤ Crear estructura: C:/drivers/%s/VERSION/%s.exe\n", driverName, driverName));
-        } else {
-            error.append("      DRIVER_LOCAL_PATH=~/drivers\n");
-            error.append(String.format("   ➤ Crear estructura: ~/drivers/%s/VERSION/%s\n", driverName, driverName));
-        }
-
-        error.append("   ➤ En config-scotia.properties:\n");
-        error.append("      driver.local.base.path=${DRIVER_LOCAL_PATH}\n");
-        error.append(String.format("      driver.%s.version=114.0.5735.90\n\n", driverName.replace("driver", "")));
-
-        error.append("2️⃣ Cambiar a estrategia FALLBACK o ARTIFACTORY:\n");
-        error.append("   ➤ En config-scotia.properties:\n");
-        error.append("      driver.strategy=fallback\n\n");
-
-        return error.toString();
+        return String.format(
+            "ESTRATEGIA LOCAL: %s no encontrado. Error: %s. Descarga desde: %s",
+            driverName, errorDetail, downloadUrl);
     }
 
     /**
      * Construye mensaje de error para estrategia ARTIFACTORY.
      */
     private static String buildDriverNotFoundErrorArtifactory(String driverName, String propertyName, String browserName, String errorDetail) {
-
-        String error = String.format("\n\n❌ ESTRATEGIA ARTIFACTORY: No se pudo obtener %s desde repositorio corporativo.\n\n", driverName) +
-                "🔍 Error: " + errorDetail + "\n\n" +
-                "📋 SOLUCIONES:\n\n" +
-                "1️⃣ Verificar configuración de Artifactory:\n" +
-                "   ➤ En .env.local:\n" +
-                "      ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers\n" +
-                "      ARTIFACTORY_USER=tu_usuario\n" +
-                "      ARTIFACTORY_TOKEN=tu_token\n" +
-                "   ➤ En config-scotia.properties:\n" +
-                "      driver.artifactory.enabled=true\n" +
-                "      driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}\n\n" +
-                "2️⃣ Verificar conectividad de red:\n" +
-                "   ➤ Probar: curl https://artifactory.corp.com/qa-drivers\n" +
-                "   ➤ Revisar firewall/proxy corporativo\n\n" +
-                "3️⃣ Cambiar a estrategia LOCAL:\n" +
-                "   ➤ Descargar driver manualmente\n" +
-                "   ➤ En config-scotia.properties: driver.strategy=local\n\n";
-
-        return error;
+        return String.format(
+            "ESTRATEGIA ARTIFACTORY: Error descargando %s: %s. Verifica URL base y conectividad",
+            driverName, errorDetail);
     }
 
     /**
