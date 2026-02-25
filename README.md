@@ -28,7 +28,14 @@
 
 ## 📊 Estado Actual del Proyecto
 
-**Última actualización:** 17 de Febrero 2026
+**Última actualización:** 22 de Febrero 2026
+
+### ⭐ Novedades v1.2.0
+
+- ✅ **WebDriver configurable desde Gherkin** - Navegador y headless configurables por scenario
+- ✅ **Soporte Artifactory** - Descarga automática de drivers desde repositorio corporativo
+- ✅ **Cross-browser testing** - Mismo test en Chrome, Firefox, Edge
+- ✅ **Pipeline ready** - Compatible con Jenkins y ejecución local
 
 ### Métricas de Tests y Coverage
 

@@ -3,8 +3,6 @@ package com.scotia.qa.common.logging;
 import com.scotia.qa.common.http.exceptions.FrameworkTechnicalException;
 import org.junit.jupiter.api.*;
 
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.*;
 
 /**

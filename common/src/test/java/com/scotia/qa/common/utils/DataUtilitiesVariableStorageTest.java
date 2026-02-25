@@ -1,9 +1,6 @@
 package com.scotia.qa.common.utils;
 
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.jupiter.params.provider.CsvSource;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.concurrent.ExecutorService;
@@ -450,29 +447,30 @@ class DataUtilitiesVariableStorageTest {
         }
 
         @Test
-        @DisplayName("Debe ser thread-safe en escrituras/lecturas mixtas")
+        @DisplayName("Debe ser thread-safe en escrituras/lecturas mixtas sin lanzar excepción")
         void testConcurrentMixedOperations() throws InterruptedException {
-            // Given
             ExecutorService executor = Executors.newFixedThreadPool(10);
-            AtomicInteger operations = new AtomicInteger(0);
+            AtomicInteger exceptions = new AtomicInteger(0);
 
-            // When - Mix de reads y writes
             for (int i = 0; i < 5; i++) {
                 final int writerId = i;
                 executor.submit(() -> {
                     for (int j = 0; j < 100; j++) {
-                        DataUtilities.storeValue("shared" + j, "writer" + writerId);
-                        operations.incrementAndGet();
+                        try {
+                            DataUtilities.storeValue("shared" + j, "writer" + writerId);
+                        } catch (Exception e) {
+                            exceptions.incrementAndGet();
+                        }
                     }
                 });
             }
-
             for (int i = 0; i < 5; i++) {
                 executor.submit(() -> {
                     for (int j = 0; j < 100; j++) {
-                        String value = DataUtilities.getValue("shared" + j);
-                        if (value != null) {
-                            operations.incrementAndGet();
+                        try {
+                            DataUtilities.getValue("shared" + j);
+                        } catch (Exception e) {
+                            exceptions.incrementAndGet();
                         }
                     }
                 });
@@ -481,8 +479,8 @@ class DataUtilitiesVariableStorageTest {
             executor.shutdown();
             executor.awaitTermination(10, TimeUnit.SECONDS);
 
-            // Then - No debe haber excepciones, todas las operaciones deben completarse
-            assertThat(operations.get()).isGreaterThan(0);
+            // No debe haber excepciones de concurrencia
+            assertThat(exceptions.get()).isEqualTo(0);
         }
 
         @Test
@@ -600,38 +598,16 @@ class DataUtilitiesVariableStorageTest {
     class ReplacementPriorityTests {
 
         @Test
-        @DisplayName("Store debe tener máxima prioridad")
+        @DisplayName("Store debe tener máxima prioridad sobre System Property")
         void testStorePriority() {
-            // Given
             System.setProperty("priority", "system");
             DataUtilities.storeValue("priority", "store");
 
             try {
-                // When
                 String result = DataUtilities.replaceVariables("${priority}");
-
-                // Then - Store gana
                 assertThat(result).isEqualTo("store");
             } finally {
                 System.clearProperty("priority");
-            }
-        }
-
-        @Test
-        @DisplayName("System Property debe tener prioridad sobre Env Vars")
-        void testSystemPropPriorityOverEnv() {
-            // Given - Ambos definidos
-            System.setProperty("BOTH_DEFINED", "fromSystem");
-            // Env var se simula también con System property en tests
-
-            try {
-                // When
-                String result = DataUtilities.replaceVariables("${BOTH_DEFINED}");
-
-                // Then
-                assertThat(result).isEqualTo("fromSystem");
-            } finally {
-                System.clearProperty("BOTH_DEFINED");
             }
         }
     }

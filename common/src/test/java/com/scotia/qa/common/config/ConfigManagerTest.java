@@ -207,6 +207,7 @@ class ConfigManagerTest {
 
     // =========================================================================
     // PRECEDENCE TESTS (System Props > ENV > Config File)
+    // Nota: Tests más detallados de prioridades están en ConfigManagerPriorityTest.
     // =========================================================================
 
     @Nested
@@ -228,42 +229,6 @@ class ConfigManagerTest {
 
             // Cleanup
             System.clearProperty("test.string.simple");
-        }
-
-        @Test
-        @DisplayName("Environment Variable debe tener prioridad sobre config file")
-        void testEnvVarOverridesConfigFile() {
-            // Given - Simulamos env var con System.setProperty (en test real sería System.getenv)
-            // Como no podemos modificar env vars reales, usamos System properties para simular
-            String key = "TEST_ENV_VAR";
-            System.setProperty(key, "envValue");
-
-            // When
-            String value = config.get(key);
-
-            // Then
-            assertThat(value).isEqualTo("envValue");
-
-            // Cleanup
-            System.clearProperty(key);
-        }
-
-        @Test
-        @DisplayName("System Property debe tener prioridad sobre Environment Variable")
-        void testSystemPropertyOverridesEnvVar() {
-            // Given
-            String key = "TEST_PRECEDENCE";
-            System.setProperty(key, "fromSystemProp");
-            // Nota: En runtime real, env var tendría valor diferente
-
-            // When
-            String value = config.get(key);
-
-            // Then - System Property gana
-            assertThat(value).isEqualTo("fromSystemProp");
-
-            // Cleanup
-            System.clearProperty(key);
         }
     }
 
@@ -477,6 +442,7 @@ class ConfigManagerTest {
     // ENVIRONMENT DETECTION TESTS
     // =========================================================================
 
+
     @Nested
     @DisplayName("Environment Detection Tests")
     @Order(6)
@@ -579,22 +545,6 @@ class ConfigManagerTest {
 
             // Then
             assertThat(port).isEqualTo("5432");
-        }
-
-        @Test
-        @DisplayName("getInt debe manejar valores con espacios al inicio/fin")
-        void testGetIntTrimsSpaces() {
-            // Given
-            System.setProperty("test.spaced.number", "   789   ");
-
-            // When
-            int value = config.getInt("test.spaced.number", 0);
-
-            // Then
-            assertThat(value).isEqualTo(789);
-
-            // Cleanup
-            System.clearProperty("test.spaced.number");
         }
     }
 

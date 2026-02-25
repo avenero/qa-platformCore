@@ -2,7 +2,10 @@ package com.scotia.qa.common.driver;
 
 import com.scotia.qa.common.config.ConfigManager;
 import com.scotia.qa.common.logging.TestLogger;
+import com.scotia.qa.common.ssl.SSLUtils;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -44,7 +47,7 @@ import java.util.Map;
  *
  * # .env.local
  * DRIVER_LOCAL_PATH=/Users/tu_usuario/drivers  (Mac/Linux) o C:/drivers (Windows)
- * ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers
+ * ARTIFACTORY_BASE_URL=<a href="https://artifactory.corp.com/qa-drivers">...</a>
  * ARTIFACTORY_USER=tu_usuario
  * ARTIFACTORY_TOKEN=tu_token
  * </pre>
@@ -89,18 +92,13 @@ public class WebDriverManager {
                 driverName, version, strategy.toUpperCase()),
             Map.of("driver", driverName, "version", version, "strategy", strategy));
 
-        switch (strategy) {
-            case "local":
-                return getDriverFromLocalStrategy(driverName, version);
-
-            case "artifactory":
-                return getDriverFromArtifactoryStrategy(driverName, version);
-
-            default:
-                throw new DriverNotFoundException(
+        return switch (strategy) {
+            case "local" -> getDriverFromLocalStrategy(driverName, version);
+            case "artifactory" -> getDriverFromArtifactoryStrategy(driverName, version);
+            default -> throw new DriverNotFoundException(
                     String.format("Estrategia '%s' no válida. Valores permitidos: 'local', 'artifactory'",
-                        strategy));
-        }
+                            strategy));
+        };
     }
 
     /**
@@ -130,14 +128,8 @@ public class WebDriverManager {
         // No encontrado → error descriptivo
         String basePath = config.get("driver.local.base.path", "NO_CONFIGURADO");
         throw new DriverNotFoundException(
-            String.format("❌ Driver %s %s no encontrado en LOCAL PATH: %s\n\n" +
-                "📋 SOLUCIÓN:\n" +
-                "1. Descargar driver desde: %s\n" +
-                "2. Copiar a: %s/%s/%s/%s\n" +
-                "3. Verificar permisos de ejecución",
-                driverName, version, basePath,
-                getDriverDownloadUrl(driverName),
-                basePath, driverName, version, getExecutableName(driverName)));
+            String.format("Driver %s no encontrado en LOCAL PATH: %s/%s/%s",
+                driverName, basePath, driverName, getExecutableName(driverName)));
     }
 
     /**
@@ -159,13 +151,8 @@ public class WebDriverManager {
         } catch (IOException e) {
             String baseUrl = config.get("driver.artifactory.base.url", "NO_CONFIGURADO");
             throw new DriverNotFoundException(
-                String.format("❌ Error descargando %s %s desde Artifactory: %s\n\n" +
-                    "📋 SOLUCIÓN:\n" +
-                    "1. Verificar URL: %s\n" +
-                    "2. Verificar credenciales (ARTIFACTORY_USER, ARTIFACTORY_TOKEN)\n" +
-                    "3. Verificar conectividad de red\n" +
-                    "4. Considerar cambiar a estrategia 'local'",
-                    driverName, version, e.getMessage(), baseUrl));
+                String.format("Error descargando %s desde Artifactory: %s (URL: %s)",
+                    driverName, e.getMessage(), baseUrl));
         }
     }
 
@@ -276,21 +263,15 @@ public class WebDriverManager {
      * @throws IOException Si falla la descarga
      */
     private static Path downloadFromArtifactory(String driverName, String version) throws IOException {
-        TestLogger.logInfo("DRIVER_MANAGER",
-            String.format("⬇️  Descargando driver desde Artifactory: %s %s", driverName, version),
-            null);
-
         // 1. Construir URL de Artifactory
         String artifactoryUrl = buildArtifactoryUrl(driverName, version);
 
-        // 2. Descargar driver ejecutable directo (NO ZIP - estructura nueva de Artifactory)
-        Path downloadedDriver = downloadDriverExecutable(artifactoryUrl, driverName);
-
         TestLogger.logInfo("DRIVER_MANAGER",
-            String.format("✅ Driver descargado: %s %s", driverName, version),
-            Map.of("path", downloadedDriver.toString()));
+            String.format("📥 Descargando %s desde Artifactory...", driverName),
+            Map.of("url", artifactoryUrl));
 
-        return downloadedDriver;
+        // 2. Descargar driver ejecutable directo
+        return downloadDriverExecutable(artifactoryUrl, driverName);
     }
 
     /**
@@ -305,14 +286,35 @@ public class WebDriverManager {
      * @throws IOException Si falla la descarga
      */
     private static Path downloadDriverExecutable(String url, String driverName) throws IOException {
+        // VALIDACIÓN DE CACHE: Verificar si ya existe antes de descargar
+        Path cacheDir = Paths.get(System.getProperty("user.home"), ".cache", "qa-drivers");
+        String executableName = getExecutableName(driverName);
+        Path cachedDriverPath = cacheDir.resolve(executableName);
+
+        if (Files.exists(cachedDriverPath)) {
+            long cachedSize = Files.size(cachedDriverPath);
+            boolean isExecutable = Files.isExecutable(cachedDriverPath);
+
+            // Validar que sea un driver válido (>100KB y ejecutable)
+            if (cachedSize > 100_000 && isExecutable) {
+                TestLogger.logInfo("DRIVER_MANAGER",
+                    String.format("✅ Driver encontrado en cache: %s (%.1f MB) - Reutilizando",
+                        driverName, cachedSize / (1024.0 * 1024.0)),
+                    Map.of("path", cachedDriverPath.toString(), "size", cachedSize + " bytes"));
+                return cachedDriverPath;
+            } else {
+                TestLogger.logWarning("DRIVER_MANAGER",
+                    String.format("⚠️ Driver en cache inválido (size=%d, executable=%s) - Descargando nuevo",
+                        cachedSize, isExecutable),
+                    null);
+            }
+        }
+
+        // No existe en cache o está corrupto → Descargar
         String user = config.get("driver.artifactory.user");
         String token = config.get("driver.artifactory.token");
 
-        if (user == null || token == null || user.isEmpty() || token.isEmpty()) {
-            throw new IOException(
-                "Credenciales de Artifactory no configuradas. " +
-                "Verifica ARTIFACTORY_USER y ARTIFACTORY_TOKEN en .env.local");
-        }
+        boolean useAuth = (user != null && !user.isEmpty() && token != null && !token.isEmpty());
 
         int timeout = config.getInt("driver.artifactory.timeout", 60) * 1000;
         int maxRetries = config.getInt("driver.artifactory.retry.max", 3);
@@ -325,46 +327,74 @@ public class WebDriverManager {
             attempt++;
             try {
                 HttpURLConnection conn = (HttpURLConnection) java.net.URI.create(url).toURL().openConnection();
+
+                // Configurar SSL usando el truststore del framework (si es HTTPS)
+                if (conn instanceof HttpsURLConnection) {
+                    SSLContext sslContext = SSLUtils.loadFrameworkSSLContext();
+                    if (sslContext != null) {
+                        ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
+                    }
+                }
+
                 conn.setConnectTimeout(timeout);
                 conn.setReadTimeout(timeout);
                 conn.setRequestProperty("User-Agent", "Scotia-QA-Framework/2.0.0");
 
-                // Autenticación Basic
-                String auth = user + ":" + token;
-                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-                conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+                // Autenticación Basic (solo si hay credenciales)
+                if (useAuth) {
+                    String auth = user + ":" + token;
+                    String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+                    conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
+                }
 
                 int status = conn.getResponseCode();
 
                 if (status == 200) {
-                    // Crear directorio de cache (~/.cache/qa-drivers/)
-                    Path cacheDir = Paths.get(System.getProperty("user.home"), ".cache", "qa-drivers");
+                    // Validar Content-Type (debe ser binario, NO text/html)
+                    String contentType = conn.getContentType();
+                    TestLogger.logDebug("DRIVER_MANAGER",
+                        String.format("Response: HTTP %d, Content-Type: %s", status, contentType),
+                        null);
+
+                    if (contentType != null && contentType.contains("text/html")) {
+                        throw new IOException(String.format(
+                            "Artifactory retornó HTML en lugar de binario. " +
+                            "URL probablemente incorrecta o acceso denegado.\n" +
+                            "URL: %s\nContent-Type: %s",
+                            url, contentType));
+                    }
+
+                    // Descargar ejecutable (sobrescribir el que ya existe en cache)
                     Files.createDirectories(cacheDir);
 
-                    // Descargar ejecutable directamente
-                    String executableName = getExecutableName(driverName);
-                    Path driverPath = cacheDir.resolve(executableName);
-
                     try (InputStream in = conn.getInputStream()) {
-                        Files.copy(in, driverPath, StandardCopyOption.REPLACE_EXISTING);
+                        Files.copy(in, cachedDriverPath, StandardCopyOption.REPLACE_EXISTING);
+                    }
+
+                    // VALIDACIÓN CRÍTICA: Verificar tamaño del archivo
+                    long fileSize = Files.size(cachedDriverPath);
+                    if (fileSize < 100_000) {  // 100KB mínimo - drivers reales pesan >20MB
+                        String errorContent = Files.readString(cachedDriverPath).substring(0, Math.min(500, (int)fileSize));
+                        throw new IOException(String.format(
+                            "Archivo descargado muy pequeño (%d bytes). Probablemente es HTML de error.\n" +
+                            "URL: %s\n" +
+                            "Contenido: %s...",
+                            fileSize, url, errorContent));
                     }
 
                     // Hacer ejecutable (Unix/Mac/Linux)
-                    boolean executable = driverPath.toFile().setExecutable(true, false);
+                    boolean executable = cachedDriverPath.toFile().setExecutable(true, false);
                     if (!executable) {
                         TestLogger.logWarning("DRIVER_MANAGER",
                             "⚠️ No se pudieron establecer permisos de ejecución", null);
                     }
 
-                    TestLogger.logInfo("DRIVER_MANAGER",
-                        String.format("✓ Driver descargado exitosamente (intento %d/%d)", attempt, maxRetries),
-                        Map.of(
-                            "size", Files.size(driverPath) + " bytes",
-                            "path", driverPath.toString(),
-                            "executable", executableName
-                        ));
+                    TestLogger.logDebug("DRIVER_MANAGER",
+                        String.format("Driver descargado exitosamente (%d MB)",
+                            fileSize / (1024 * 1024)),
+                        null);
 
-                    return driverPath;
+                    return cachedDriverPath;
 
                 } else if (status == 401) {
                     throw new IOException(
@@ -372,9 +402,10 @@ public class WebDriverManager {
                         "Verifica ARTIFACTORY_USER y ARTIFACTORY_TOKEN");
                 } else if (status == 404) {
                     throw new IOException(String.format(
-                        "Driver no encontrado en Artifactory (HTTP 404).\n" +
-                        "URL: %s\n" +
-                        "Verifica que el driver existe en esa ruta en Artifactory.", url));
+                            """
+                                    Driver no encontrado en Artifactory (HTTP 404).
+                                    URL: %s
+                                    Verifica que el driver existe en esa ruta en Artifactory.""", url));
                 } else {
                     throw new IOException(String.format("Error descargando driver (HTTP %d)", status));
                 }
