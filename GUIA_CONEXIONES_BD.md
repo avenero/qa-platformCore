@@ -208,10 +208,14 @@ oracle.db.password=${ORACLE_PASSWORD}
 oracle.db.pool.size.max=10
 
 # SQL Server con Windows Authentication
-sqlserver.db.url=jdbc:sqlserver://servidor:1433;databaseName=MiDB;integratedSecurity=true;encrypt=false;trustServerCertificate=true
+# ⚠️ IMPORTANTE (Solo Windows): Requiere DLL nativa (ver sección Troubleshooting)
+sqlserver.db.url=jdbc:sqlserver://servidor:1433;databaseName=NombreBaseDatos;integratedSecurity=true;encrypt=false;trustServerCertificate=false
 sqlserver.db.username=
 sqlserver.db.password=
 sqlserver.db.pool.size.max=10
+
+# Ejemplo REAL: Scotia QA (instancia nombrada SQL4)
+# sqlserver.db.url=jdbc:sqlserver://uycqvidvds4150:278;databaseName=uyevalautos;integratedSecurity=true;encrypt=false;trustServerCertificate=false
 
 # SQL Server con SQL Authentication (alternativa)
 #sqlserver.db.url=jdbc:sqlserver://servidor:1433;databaseName=MiDB;encrypt=false;trustServerCertificate=true
@@ -483,16 +487,84 @@ oracle.db.password=${ORACLE_PASSWORD}
 
 ---
 
-### ❌ Error: "Login failed for user ''" (SQL Server)
+### ❌ Error: "This driver is not configured for integrated authentication" (SQL Server)
 
-**Causa:** Windows Authentication mal configurada
+**Causa 1:** Nombre de base de datos incorrecto en la URL
 
-**Solución:** Agregar `integratedSecurity=true` a la URL:
+**Solución:** Verificar que `databaseName` apunte a la base de datos real, NO a la instancia:
+
 ```properties
-sqlserver.db.url=jdbc:sqlserver://servidor:1433;databaseName=DB;integratedSecurity=true;encrypt=false
-sqlserver.db.username=
-sqlserver.db.password=
+# ❌ INCORRECTO: SQL4 es la instancia, no la BD
+sqlserver.db.url=jdbc:sqlserver://servidor\\SQL4:278;databaseName=SQL4;integratedSecurity=true;...
+
+# ✅ CORRECTO: uyevalautos es la base de datos real
+sqlserver.db.url=jdbc:sqlserver://servidor:278;databaseName=uyevalautos;integratedSecurity=true;encrypt=false;trustServerCertificate=false
 ```
+
+**Causa 2:** Falta DLL nativa de Windows Authentication (solo en Windows)
+
+**Solución: Instalar DLL del driver JDBC**
+
+#### **📥 Paso 1: Descargar DLL**
+
+**Link:** https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc_auth/12.8.2/
+
+**Archivo a descargar:**
+- **Windows 64-bit:** `mssql-jdbc_auth-12.8.2.x64.dll` ← Más común
+- **Windows 32-bit:** `mssql-jdbc_auth-12.8.2.x86.dll`
+
+#### **📂 Paso 2: Copiar DLL a carpeta del JDK (RECOMENDADO)**
+
+```powershell
+# 1. Encontrar tu JDK
+java -XshowSettings:properties -version 2>&1 | findstr "java.home"
+
+# Ejemplo de salida:
+# java.home = C:\Users\usuario\.jdks\ms-21.0.9
+
+# 2. Copiar DLL a la carpeta bin del JDK
+copy mssql-jdbc_auth-12.8.2.x64.dll "C:\Users\usuario\.jdks\ms-21.0.9\bin\"
+```
+
+**✅ VENTAJA:** No necesitas configurar gradle.properties ni PATH.
+
+#### **📂 Alternativa: Carpeta custom + gradle.properties**
+
+Si NO tienes permisos para copiar al JDK:
+
+```powershell
+# 1. Crear carpeta
+mkdir C:\Users\usuario\jdbc-libs
+
+# 2. Copiar DLL
+copy mssql-jdbc_auth-12.8.2.x64.dll C:\Users\usuario\jdbc-libs\
+```
+
+**Configurar en gradle.properties del proyecto:**
+```properties
+org.gradle.jvmargs=-Djava.library.path=C:/Users/usuario/jdbc-libs
+```
+
+**⚠️ Usa `/` (forward slash), NO `\` (backslash)**
+
+#### **✅ Paso 3: Verificar instalación**
+
+```powershell
+where mssql-jdbc_auth-12.8.2.x64.dll
+```
+
+**Salida esperada:**
+```
+C:\Users\usuario\.jdks\ms-21.0.9\bin\mssql-jdbc_auth-12.8.2.x64.dll
+```
+
+#### **🔄 Paso 4: Reiniciar IDE**
+
+- Cerrar IntelliJ/Eclipse completamente
+- Abrir IntelliJ/Eclipse nuevamente
+- Ejecutar el test
+
+**⚠️ NO necesitas reiniciar la PC, solo el IDE.**
 
 ---
 

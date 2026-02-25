@@ -143,110 +143,65 @@ public class ApiHelper {
      * Encapsula try-catch y logging.
      */
     public void validateResponseStatusCode(int expectedCode) throws FrameworkBusinessException {
-        try {
-            HttpResponse lastResponse = httpClient.getLastResponse();
-            ValidationUtilities.validateStatusCode(lastResponse, expectedCode);
-            TestLogger.logInfo("API_HELPER_VALIDATION",
-                String.format("✅ Status code validado: %d", expectedCode), null);
-        } catch (Exception e) {
-            TestLogger.logError("API_HELPER_VALIDATION",
-                "❌ Error validando status code: " + e.getMessage(), null);
-            throw new FrameworkBusinessException("validateResponseStatusCode",
-                "Error validando código de respuesta: " + e.getMessage());
-        }
+        HttpResponse lastResponse = httpClient.getLastResponse();
+        ValidationUtilities.validateStatusCode(lastResponse, expectedCode);
+        TestLogger.logInfo("API_HELPER_VALIDATION",
+            String.format("Status code validado: %d", expectedCode), null);
     }
 
     /**
      * Valida que la respuesta contenga un texto específico.
      */
     public void validateResponseContainsText(String expectedText) throws FrameworkBusinessException {
-        try {
-            HttpResponse lastResponse = httpClient.getLastResponse();
-            String responseBody = lastResponse.getBody();
+        HttpResponse lastResponse = httpClient.getLastResponse();
+        String responseBody = lastResponse.getBody();
 
-            if (responseBody == null || !responseBody.contains(expectedText)) {
-                throw new FrameworkBusinessException("validateResponseContainsText",
-                    String.format("El texto '%s' no fue encontrado en la respuesta", expectedText));
-            }
-
-            TestLogger.logInfo("API_HELPER_VALIDATION",
-                String.format("✅ Texto validado en respuesta: %s", expectedText), null);
-        } catch (Exception e) {
-            TestLogger.logError("API_HELPER_VALIDATION",
-                "❌ Error validando texto en respuesta: " + e.getMessage(), null);
+        if (responseBody == null || !responseBody.contains(expectedText)) {
             throw new FrameworkBusinessException("validateResponseContainsText",
-                "Error validando texto en respuesta: " + e.getMessage());
+                String.format("Texto '%s' no encontrado en la respuesta", expectedText));
         }
+
+        TestLogger.logInfo("API_HELPER_VALIDATION",
+            String.format("Texto validado en respuesta: %s", expectedText), null);
     }
 
     /**
      * Valida que la respuesta cumpla con un esquema JSON.
      */
     public void validateResponseSchema(String schemaOrPath) throws FrameworkBusinessException {
-        try {
-            HttpResponse lastResponse = httpClient.getLastResponse();
-            ValidationUtilities.validateJsonSchema(lastResponse, schemaOrPath);
-            TestLogger.logInfo("API_HELPER_VALIDATION",
-                "✅ Esquema JSON validado exitosamente", null);
-        } catch (FrameworkBusinessException e) {
-            TestLogger.logError("API_HELPER_VALIDATION",
-                "❌ Error en validación de esquema JSON: " + e.getMessage(), null);
-            throw e;
-        } catch (Exception e) {
-            throw new FrameworkBusinessException("validateResponseSchema",
-                "Error inesperado validando esquema JSON: " + e.getMessage());
-        }
+        HttpResponse lastResponse = httpClient.getLastResponse();
+        ValidationUtilities.validateJsonSchema(lastResponse, schemaOrPath);
+        TestLogger.logInfo("API_HELPER_VALIDATION", "Esquema JSON validado exitosamente", null);
     }
 
     /**
      * Valida un campo JSON usando JSONPath.
      */
     public void validateJsonField(String jsonPath, Object expectedValue) throws FrameworkBusinessException {
-        try {
-            HttpResponse lastResponse = httpClient.getLastResponse();
-            ValidationUtilities.validateJsonPath(lastResponse, jsonPath, expectedValue);
-            TestLogger.logInfo("API_HELPER_VALIDATION",
-                String.format("✅ Campo JSON validado: %s = %s", jsonPath, expectedValue), null);
-        } catch (Exception e) {
-            TestLogger.logError("API_HELPER_VALIDATION",
-                "❌ Error validando campo JSON: " + e.getMessage(), null);
-            throw new FrameworkBusinessException("validateJsonField",
-                "Error validando campo JSON: " + e.getMessage());
-        }
+        HttpResponse lastResponse = httpClient.getLastResponse();
+        ValidationUtilities.validateJsonPath(lastResponse, jsonPath, expectedValue);
+        TestLogger.logInfo("API_HELPER_VALIDATION",
+            String.format("Campo JSON validado: %s = %s", jsonPath, expectedValue), null);
     }
 
     /**
      * Valida que un campo JSON exista.
      */
     public void validateJsonFieldExists(String jsonPath) throws FrameworkBusinessException {
-        try {
-            HttpResponse lastResponse = httpClient.getLastResponse();
-            ValidationUtilities.validateJsonPathExists(lastResponse, jsonPath);
-            TestLogger.logInfo("API_HELPER_VALIDATION",
-                String.format("✅ Campo JSON existe: %s", jsonPath), null);
-        } catch (Exception e) {
-            TestLogger.logError("API_HELPER_VALIDATION",
-                "❌ Error validando existencia de campo JSON: " + e.getMessage(), null);
-            throw new FrameworkBusinessException("validateJsonFieldExists",
-                "Error validando existencia de campo JSON: " + e.getMessage());
-        }
+        HttpResponse lastResponse = httpClient.getLastResponse();
+        ValidationUtilities.validateJsonPathExists(lastResponse, jsonPath);
+        TestLogger.logInfo("API_HELPER_VALIDATION",
+            String.format("Campo JSON existe: %s", jsonPath), null);
     }
 
     /**
      * Valida el tipo de un campo JSON.
      */
     public void validateJsonFieldType(String jsonPath, String expectedType) throws FrameworkBusinessException {
-        try {
-            HttpResponse lastResponse = httpClient.getLastResponse();
-            ValidationUtilities.validateJsonType(lastResponse, jsonPath, expectedType);
-            TestLogger.logInfo("API_HELPER_VALIDATION",
-                String.format("✅ Tipo de campo JSON validado: %s es %s", jsonPath, expectedType), null);
-        } catch (Exception e) {
-            TestLogger.logError("API_HELPER_VALIDATION",
-                "❌ Error validando tipo de campo JSON: " + e.getMessage(), null);
-            throw new FrameworkBusinessException("validateJsonFieldType",
-                "Error validando tipo de campo JSON: " + e.getMessage());
-        }
+        HttpResponse lastResponse = httpClient.getLastResponse();
+        ValidationUtilities.validateJsonType(lastResponse, jsonPath, expectedType);
+        TestLogger.logInfo("API_HELPER_VALIDATION",
+            String.format("Tipo de campo JSON validado: %s es %s", jsonPath, expectedType), null);
     }
 
     // =========================================================================
@@ -257,34 +212,20 @@ public class ApiHelper {
      * Valida que un header exista en la respuesta.
      */
     public void validateHeaderExists(String headerName) throws FrameworkBusinessException {
-        try {
-            HttpResponse lastResponse = httpClient.getLastResponse();
-            ValidationUtilities.validateHeaderExists(lastResponse, headerName);
-            TestLogger.logInfo("API_HELPER_VALIDATION",
-                String.format("✅ Header existe: %s", headerName), null);
-        } catch (Exception e) {
-            TestLogger.logError("API_HELPER_VALIDATION",
-                "❌ Error validando header: " + e.getMessage(), null);
-            throw new FrameworkBusinessException("validateHeaderExists",
-                "Error validando existencia de header: " + e.getMessage());
-        }
+        HttpResponse lastResponse = httpClient.getLastResponse();
+        ValidationUtilities.validateHeaderExists(lastResponse, headerName);
+        TestLogger.logInfo("API_HELPER_VALIDATION",
+            String.format("Header existe: %s", headerName), null);
     }
 
     /**
      * Valida el valor de un header en la respuesta.
      */
     public void validateHeaderValue(String headerName, String expectedValue) throws FrameworkBusinessException {
-        try {
-            HttpResponse lastResponse = httpClient.getLastResponse();
-            ValidationUtilities.validateHeaderValue(lastResponse, headerName, expectedValue);
-            TestLogger.logInfo("API_HELPER_VALIDATION",
-                String.format("✅ Header validado: %s = %s", headerName, expectedValue), null);
-        } catch (Exception e) {
-            TestLogger.logError("API_HELPER_VALIDATION",
-                "❌ Error validando valor de header: " + e.getMessage(), null);
-            throw new FrameworkBusinessException("validateHeaderValue",
-                "Error validando valor de header: " + e.getMessage());
-        }
+        HttpResponse lastResponse = httpClient.getLastResponse();
+        ValidationUtilities.validateHeaderValue(lastResponse, headerName, expectedValue);
+        TestLogger.logInfo("API_HELPER_VALIDATION",
+            String.format("Header validado: %s = %s", headerName, expectedValue), null);
     }
 
     // =========================================================================

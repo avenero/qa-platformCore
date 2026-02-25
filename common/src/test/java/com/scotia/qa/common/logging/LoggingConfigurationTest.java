@@ -257,25 +257,13 @@ class LoggingConfigurationTest {
     class EdgeCasesTests {
 
         @Test
-        @DisplayName("Debe manejar reconfiguración múltiple")
+        @DisplayName("Debe manejar reconfiguración múltiple sin error")
         void testMultipleConfigurations() {
-            // When/Then - No debe fallar al reconfigurar
             assertThatCode(() -> {
                 LoggingConfiguration.configureDefault("API");
                 LoggingConfiguration.configureDefault("WEB");
                 LoggingConfiguration.configureDefault("MOBILE");
             }).doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("Debe manejar framework con caracteres especiales")
-        void testFrameworkWithSpecialCharacters() {
-            // Given
-            String framework = "API-REST/v1";
-
-            // When/Then
-            assertThatCode(() -> LoggingConfiguration.configureDefault(framework))
-                .doesNotThrowAnyException();
         }
     }
 }

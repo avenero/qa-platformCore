@@ -1779,36 +1779,79 @@ public class WebHelper {
     // =========================================================================
 
     /**
-     * Valida que un botón esté habilitado (activo).
+     * Valida que un botón esté habilitado (activo).*
+     * <p>Soporta dos patrones de implementación de botones:</p>
+     * <ul>
+     *   <li><b>Botón nativo</b> {@code <button>} / {@code <input type="button">}:
+     *       se evalúa mediante {@code element.isEnabled()} y el atributo HTML {@code disabled}.</li>
+     *   <li><b>Botón custom</b> {@code <div role="button">} / {@code <span role="button">}:
+     *       {@code isEnabled()} siempre retorna {@code true} en Selenium para elementos no-form,
+     *       por lo que se evalúa la clase CSS — si la clase contiene "disabled" el botón
+     *       está deshabilitado.</li>
+     * </ul>
      */
     public void validateButtonIsEnabled(String locator) {
         WebElement element = getElement(locator);
+        String tagName = element.getTagName().toLowerCase();
 
-        Assertions.assertThat(element.isEnabled())
-            .as("El botón '%s' debe estar habilitado", locator)
-            .isTrue();
+        boolean isNativeButton = tagName.equals("button")
+            || tagName.equals("input")
+            || tagName.equals("select")
+            || tagName.equals("textarea");
 
-        Assertions.assertThat(element.getDomAttribute("disabled"))
-            .as("El botón '%s' no debe tener atributo disabled", locator)
-            .isNull();
+        boolean isDisabled;
+        if (isNativeButton) {
+            // Elementos de formulario: Selenium detecta disabled correctamente
+            isDisabled = !element.isEnabled()
+                || element.getDomAttribute("disabled") != null;
+        } else {
+            // Elementos custom (div, span, a con role=button):
+            // el estado se expresa mediante clase CSS que contiene "disabled"
+            String cssClass = element.getDomAttribute("class");
+            isDisabled = cssClass != null && cssClass.toLowerCase().contains("disabled");
+        }
+
+        Assertions.assertThat(isDisabled)
+            .as("El botón '%s' (tag: <%s>) debe estar habilitado pero está deshabilitado. "
+                + "Clase CSS: '%s'", locator, tagName, element.getDomAttribute("class"))
+            .isFalse();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
-            "✅ Botón habilitado validado: " + locator, null);
+            "Botón habilitado validado: " + locator, null);
     }
 
     /**
      * Valida que un botón esté deshabilitado (inactivo).
+     *
+     * <p>Aplica la misma lógica dual que {@link #validateButtonIsEnabled(String)}:
+     * para botones nativos usa {@code isEnabled()} y el atributo {@code disabled};
+     * para elementos custom evalúa la clase CSS.</p>
      */
     public void validateButtonIsDisabled(String locator) {
         WebElement element = getElement(locator);
-        boolean isDisabled = !element.isEnabled() || element.getDomAttribute("disabled") != null;
+        String tagName = element.getTagName().toLowerCase();
+
+        boolean isNativeButton = tagName.equals("button")
+            || tagName.equals("input")
+            || tagName.equals("select")
+            || tagName.equals("textarea");
+
+        boolean isDisabled;
+        if (isNativeButton) {
+            isDisabled = !element.isEnabled()
+                || element.getDomAttribute("disabled") != null;
+        } else {
+            String cssClass = element.getDomAttribute("class");
+            isDisabled = cssClass != null && cssClass.toLowerCase().contains("disabled");
+        }
 
         Assertions.assertThat(isDisabled)
-            .as("El botón '%s' debe estar deshabilitado", locator)
+            .as("El botón '%s' (tag: <%s>) debe estar deshabilitado pero está habilitado. "
+                + "Clase CSS: '%s'", locator, tagName, element.getDomAttribute("class"))
             .isTrue();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
-            "✅ Botón deshabilitado validado: " + locator, null);
+            "Botón deshabilitado validado: " + locator, null);
     }
 
     /**

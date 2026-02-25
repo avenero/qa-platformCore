@@ -137,9 +137,7 @@ public class ValidationUtilities {
     if (actualStatus != expectedStatus) {
       throw new FrameworkBusinessException(
           "validateStatusCode",
-          String.format(
-              "Expected status %d but was %d. Response: %s",
-              expectedStatus, actualStatus, truncateContent(response.getBody(), 200)));
+          String.format("Expected %d but was %d", expectedStatus, actualStatus));
     }
 
     log.debug("Status code validado correctamente: {}", expectedStatus);
@@ -163,9 +161,8 @@ public class ValidationUtilities {
     if (actualStatus < minStatus || actualStatus > maxStatus) {
       throw new FrameworkBusinessException(
           "validateStatusCodeRange",
-          String.format(
-              "Expected status between %d and %d but was %d. Response: %s",
-              minStatus, maxStatus, actualStatus, truncateContent(response.getBody(), 200)));
+          String.format("Expected status between %d and %d but was %d",
+              minStatus, maxStatus, actualStatus));
     }
 
     log.debug("Status code en rango validado: {} ({}-{})", actualStatus, minStatus, maxStatus);

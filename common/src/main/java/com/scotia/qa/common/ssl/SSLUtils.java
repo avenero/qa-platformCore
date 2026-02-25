@@ -96,7 +96,7 @@ public class SSLUtils {
                 .loadTrustMaterial(trustStore, new TrustSelfSignedStrategy())
                 .build();
 
-            TestLogger.logInfo("SSL_UTILS",
+            TestLogger.logDebug("SSL_UTILS",
                 "✅ SSLContext cargado con truststore del framework",
                 Map.of(
                     "truststore", truststorePath.getFileName().toString(),

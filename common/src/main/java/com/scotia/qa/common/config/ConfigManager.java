@@ -472,7 +472,7 @@ public class ConfigManager {
 
             // Si no se encuentra, dejar sin resolver y avisar
             if (varValue == null) {
-                log.error("⚠️ Variable de entorno '{}' no encontrada. Verifica que esté configurada en .env.local y cargada con 'source .env.local' (macOS/Linux) o '. .\\scripts\\setup-env.ps1' (Windows)", varName);
+                log.debug("Variable de entorno '{}' no encontrada (puede ser opcional)", varName);
                 varValue = matcher.group(0); // Dejar ${VAR} sin cambios
             }
 

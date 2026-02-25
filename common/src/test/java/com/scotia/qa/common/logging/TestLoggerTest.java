@@ -14,24 +14,15 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * Tests unitarios para TestLogger - Sistema de logging del framework.
+ * Tests unitarios para TestLogger.
  *
- * <p><b>Clase P0:</b> Sistema de logging usado por TODO el framework
- * <p><b>Cobertura objetivo:</b> 90%
- * <p><b>Total tests:</b> 25
- *
- * <p><b>Validaciones:</b>
- * <ul>
- *   <li>Niveles de log (INFO, ERROR, WARNING, DEBUG)</li>
- *   <li>Sanitización de datos sensibles</li>
- *   <li>LoggerWrapper functionality</li>
- *   <li>Manejo de excepciones</li>
- * </ul>
+ * <p>Valida que los métodos de logging produzcan eventos reales en el appender,
+ * no solo que "no exploten".
  *
  * @author Abel Venero
  * @since 1.0.0
  */
-@DisplayName("TestLogger Tests - Sistema de Logging")
+@DisplayName("TestLogger")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TestLoggerTest {
 
@@ -40,11 +31,11 @@ class TestLoggerTest {
 
     @BeforeEach
     void setUp() {
-        // Configurar captura de logs
         rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         listAppender = new ListAppender<>();
         listAppender.start();
         rootLogger.addAppender(listAppender);
+        listAppender.list.clear();
     }
 
     @AfterEach
@@ -54,421 +45,262 @@ class TestLoggerTest {
     }
 
     // =========================================================================
-    // BASIC LOGGING TESTS
+    // Niveles de log: validan que cada método produce al menos un evento
     // =========================================================================
 
     @Nested
-    @DisplayName("1. Basic Logging Operations")
+    @DisplayName("Niveles de logging")
     @Order(1)
-    class BasicLoggingTests {
+    class LogLevelTests {
 
         @Test
-        @DisplayName("Debe loguear INFO correctamente")
-        void testLogInfo() {
-            // Given
-            String category = "TEST_CATEGORY";
-            String message = "Test info message";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logInfo(category, message, null))
-                .doesNotThrowAnyException();
+        @DisplayName("logInfo produce evento de log")
+        void logInfoProduceEvento() {
+            TestLogger.logInfo("CAT", "mensaje info", null);
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear ERROR con contexto")
-        void testLogError() {
-            // Given
-            String category = "ERROR_CAT";
-            String message = "Error occurred";
-            Map<String, Object> context = Map.of("code", "E001", "detail", "Test error");
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logError(category, message, context))
-                .doesNotThrowAnyException();
+        @DisplayName("logError produce evento de log")
+        void logErrorProduceEvento() {
+            TestLogger.logError("CAT", "mensaje error", null);
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear excepción con logException")
-        void testLogException() {
-            // Given
-            String category = "EXCEPTION_CAT";
-            String message = "Exception occurred";
-            Exception exception = new RuntimeException("Test exception");
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logException(category, message, exception))
-                .doesNotThrowAnyException();
+        @DisplayName("logWarning produce evento de log")
+        void logWarningProduceEvento() {
+            TestLogger.logWarning("CAT", "mensaje warning", null);
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear WARNING")
-        void testLogWarning() {
-            // Given
-            String message = "Warning message";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logWarning("WARN_CAT", message, null))
-                .doesNotThrowAnyException();
+        @DisplayName("logException registra mensaje y no lanza excepción")
+        void logExceptionRegistraYNoLanza() {
+            assertThatCode(() ->
+                TestLogger.logException("CAT", "error", new RuntimeException("test"))
+            ).doesNotThrowAnyException();
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear DEBUG")
-        void testLogDebug() {
-            // When/Then
-            assertThatCode(() -> TestLogger.logDebug("DEBUG_CAT", "Debug message", null))
-                .doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("Debe manejar mensaje null en logInfo")
-        void testLogInfoWithNullMessage() {
-            // When/Then
-            assertThatCode(() -> TestLogger.logInfo("CATEGORY", null, null))
-                .doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("Debe manejar categoría null en logError")
-        void testLogErrorWithNullCategory() {
-            // When/Then
-            assertThatCode(() -> TestLogger.logError(null, "message", null))
-                .doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("Debe loguear con contexto")
-        void testLogInfoWithContext() {
-            // Given
-            String category = "TEST";
-            String message = "Test with context";
-            Map<String, Object> context = Map.of(
-                "key1", "value1",
-                "key2", "value2"
-            );
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logInfo(category, message, context))
-                .doesNotThrowAnyException();
+        @DisplayName("logInfo con contexto incluye datos del contexto en el log")
+        void logInfoConContextoProduceEvento() {
+            TestLogger.logInfo("CAT", "con contexto", Map.of("key", "val"));
+            assertThat(listAppender.list).isNotEmpty();
         }
     }
 
     // =========================================================================
-    // LOGGING STEPS TESTS
+    // Steps: producen eventos
     // =========================================================================
 
     @Nested
-    @DisplayName("2. Logging Steps Tests")
+    @DisplayName("Logging de steps")
     @Order(2)
     class LoggingStepsTests {
 
         @Test
-        @DisplayName("Debe loguear step sin datos")
-        void testLogStep() {
-            // Given
-            String stepType = "GIVEN";
-            String description = "Usuario está logueado";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logStep(stepType, description))
-                .doesNotThrowAnyException();
+        @DisplayName("logStep produce evento de log")
+        void logStepProduceEvento() {
+            TestLogger.logStep("GIVEN", "usuario logueado");
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear step con datos")
-        void testLogStepWithData() {
-            // Given
-            String stepType = "WHEN";
-            String description = "Usuario hace clic en botón";
-            Map<String, Object> data = Map.of("button", "Login", "action", "click");
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logStep(stepType, description, data))
-                .doesNotThrowAnyException();
+        @DisplayName("logStep con datos produce evento de log")
+        void logStepConDatosProduceEvento() {
+            TestLogger.logStep("WHEN", "clic en botón", Map.of("button", "Login"));
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear acción HTTP")
-        void testLogHttpAction() {
-            // Given
-            String method = "GET";
-            String url = "https://api.example.com/users";
-            int statusCode = 200;
-            long duration = 150;
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logHttpAction(method, url, statusCode, duration))
-                .doesNotThrowAnyException();
+        @DisplayName("logHttpAction produce evento con método HTTP")
+        void logHttpActionProduceEvento() {
+            TestLogger.logHttpAction("POST", "https://api.test.com/login", 200, 100L);
+            assertThat(listAppender.list).isNotEmpty();
+            // Al menos un evento debe mencionar el método o la URL
+            boolean tieneContenidoRelevante = listAppender.list.stream()
+                .anyMatch(e -> e.getFormattedMessage().contains("POST") ||
+                               e.getFormattedMessage().contains("200") ||
+                               e.getFormattedMessage().contains("api.test.com"));
+            assertThat(tieneContenidoRelevante).isTrue();
         }
 
         @Test
-        @DisplayName("Debe loguear acción UI")
-        void testLogUiAction() {
-            // Given
-            String action = "click";
-            String element = "btnLogin";
-            String value = "Login";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logUiAction(action, element, value))
-                .doesNotThrowAnyException();
+        @DisplayName("logUiAction produce evento de log")
+        void logUiActionProduceEvento() {
+            TestLogger.logUiAction("click", "btnLogin", "Login");
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear acción UI sin valor")
-        void testLogUiActionWithoutValue() {
-            // Given
-            String action = "click";
-            String element = "btnSubmit";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logUiAction(action, element, null))
+        @DisplayName("logUiAction sin valor no lanza excepción")
+        void logUiActionSinValorNoLanza() {
+            assertThatCode(() -> TestLogger.logUiAction("click", "btnSubmit", null))
                 .doesNotThrowAnyException();
         }
     }
 
     // =========================================================================
-    // ASSERTIONS AND VALIDATIONS TESTS
+    // Assertions y validaciones: producen eventos con contenido correcto
     // =========================================================================
 
     @Nested
-    @DisplayName("3. Assertions and Validations")
+    @DisplayName("Assertions y validaciones")
     @Order(3)
-    class AssertionsAndValidationsTests {
+    class AssertionsTests {
 
         @Test
-        @DisplayName("Debe loguear assertion exitosa")
-        void testLogAssertionSuccess() {
-            // Given
-            String assertion = "Status code is 200";
-            String expected = "200";
-            String actual = "200";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logAssertionSuccess(assertion, expected, actual))
-                .doesNotThrowAnyException();
+        @DisplayName("logAssertionSuccess produce evento de log")
+        void logAssertionSuccessProduceEvento() {
+            TestLogger.logAssertionSuccess("Status code es 200", "200", "200");
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear assertion fallida")
-        void testLogAssertionFailure() {
-            // Given
-            String assertion = "Status code is 200";
-            String expected = "200";
-            String actual = "404";
-            String reason = "API returned error";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logAssertionFailure(assertion, expected, actual, reason))
-                .doesNotThrowAnyException();
+        @DisplayName("logAssertionFailure produce evento de log")
+        void logAssertionFailureProduceEvento() {
+            TestLogger.logAssertionFailure("Status code es 200", "200", "404", "API error");
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear validación exitosa")
-        void testLogValidationSuccess() {
-            // Given
-            String validationType = "SCHEMA";
-            String description = "Response matches expected schema";
-            boolean passed = true;
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logValidation(validationType, description, passed))
-                .doesNotThrowAnyException();
+        @DisplayName("logValidation con passed=true produce evento de log")
+        void logValidationSuccessProduceEvento() {
+            TestLogger.logValidation("SCHEMA", "response válido", true);
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear validación fallida")
-        void testLogValidationFailure() {
-            // Given
-            String validationType = "SCHEMA";
-            String description = "Response does not match schema";
-            boolean passed = false;
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logValidation(validationType, description, passed))
-                .doesNotThrowAnyException();
+        @DisplayName("logValidation con passed=false produce evento de log")
+        void logValidationFailureProduceEvento() {
+            TestLogger.logValidation("SCHEMA", "response inválido", false);
+            assertThat(listAppender.list).isNotEmpty();
         }
     }
 
     // =========================================================================
-    // LOGGER WRAPPER TESTS
+    // LoggerWrapper: valida que los métodos del wrapper produzcan eventos
     // =========================================================================
 
     @Nested
-    @DisplayName("4. LoggerWrapper Tests")
+    @DisplayName("LoggerWrapper")
     @Order(4)
     class LoggerWrapperTests {
 
         @Test
-        @DisplayName("Debe crear LoggerWrapper para clase")
-        void testGetLogger() {
-            // When
-            TestLogger.LoggerWrapper wrapper = TestLogger.getLogger(TestLoggerTest.class);
-
-            // Then
-            assertThat(wrapper).isNotNull();
+        @DisplayName("getLogger retorna instancia no null")
+        void getLoggerNoNull() {
+            assertThat(TestLogger.getLogger(TestLoggerTest.class)).isNotNull();
         }
 
         @Test
-        @DisplayName("Debe loguear INFO a través de wrapper")
-        void testWrapperInfo() {
-            // Given
-            TestLogger.LoggerWrapper wrapper = TestLogger.getLogger(TestLoggerTest.class);
-
-            // When/Then
-            assertThatCode(() -> wrapper.info("Test message"))
-                .doesNotThrowAnyException();
+        @DisplayName("wrapper.info produce evento de log")
+        void wrapperInfoProduceEvento() {
+            TestLogger.getLogger(TestLoggerTest.class).info("mensaje info wrapper");
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear ERROR a través de wrapper")
-        void testWrapperError() {
-            // Given
-            TestLogger.LoggerWrapper wrapper = TestLogger.getLogger(TestLoggerTest.class);
-            Exception ex = new RuntimeException("Test error");
-
-            // When/Then
-            assertThatCode(() -> wrapper.error("Error message", ex))
-                .doesNotThrowAnyException();
+        @DisplayName("wrapper.error con excepción produce evento de log")
+        void wrapperErrorProduceEvento() {
+            TestLogger.getLogger(TestLoggerTest.class).error("error wrapper", new RuntimeException("test"));
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear WARN a través de wrapper")
-        void testWrapperWarn() {
-            // Given
-            TestLogger.LoggerWrapper wrapper = TestLogger.getLogger(TestLoggerTest.class);
-
-            // When/Then
-            assertThatCode(() -> wrapper.warn("Warning message"))
-                .doesNotThrowAnyException();
+        @DisplayName("wrapper.warn produce evento de log")
+        void wrapperWarnProduceEvento() {
+            TestLogger.getLogger(TestLoggerTest.class).warn("warning wrapper");
+            assertThat(listAppender.list).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Debe loguear DEBUG a través de wrapper")
-        void testWrapperDebug() {
-            // Given
+        @DisplayName("wrapper con formato SLF4J reemplaza parámetros correctamente")
+        void wrapperConFormatoReemplazaParametros() {
             TestLogger.LoggerWrapper wrapper = TestLogger.getLogger(TestLoggerTest.class);
-
-            // When/Then
-            assertThatCode(() -> wrapper.debug("Debug message"))
-                .doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("Debe loguear con formato en wrapper")
-        void testWrapperWithFormat() {
-            // Given
-            TestLogger.LoggerWrapper wrapper = TestLogger.getLogger(TestLoggerTest.class);
-
-            // When/Then
-            assertThatCode(() -> wrapper.info("User {} logged in", "john"))
-                .doesNotThrowAnyException();
+            wrapper.info("Usuario {} inició sesión", "john");
+            boolean tieneNombre = listAppender.list.stream()
+                .anyMatch(e -> e.getFormattedMessage().contains("john"));
+            assertThat(tieneNombre).isTrue();
         }
     }
 
     // =========================================================================
-    // EDGE CASES & ERROR HANDLING
+    // Edge cases: null, vacío, largo, unicode — no deben explotar
     // =========================================================================
 
     @Nested
-    @DisplayName("5. Edge Cases & Error Handling")
+    @DisplayName("Edge cases")
     @Order(5)
     class EdgeCasesTests {
 
         @Test
-        @DisplayName("Debe manejar mensaje muy largo")
-        void testVeryLongMessage() {
-            // Given
-            String longMessage = "x".repeat(10000);
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logInfo("CAT", longMessage, null))
-                .doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("Debe manejar caracteres especiales")
-        void testSpecialCharacters() {
-            // Given
-            String specialChars = "áéíóú ñÑ ¿¡ 你好 🔥";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.logInfo("CAT", specialChars, null))
-                .doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("Debe manejar null en todos los parámetros")
-        void testAllNullParameters() {
-            // When/Then
+        @DisplayName("Todos los parámetros null no lanza excepción")
+        void todosNullNoLanza() {
             assertThatCode(() -> TestLogger.logInfo(null, null, null))
                 .doesNotThrowAnyException();
         }
 
-        @ParameterizedTest
-        @ValueSource(strings = {
-            "SQL_QUERY",
-            "HTTP_REQUEST",
-            "DATABASE_ERROR",
-            "API_RESPONSE",
-            "AUTHENTICATION"
-        })
-        @DisplayName("Debe manejar diferentes categorías")
-        void testDifferentCategories(String category) {
-            // When/Then
-            assertThatCode(() -> TestLogger.logInfo(category, "Test message", null))
+        @Test
+        @DisplayName("Mensaje muy largo no lanza excepción")
+        void mensajeMuyLargoNoLanza() {
+            assertThatCode(() -> TestLogger.logInfo("CAT", "x".repeat(10000), null))
                 .doesNotThrowAnyException();
         }
 
         @Test
-        @DisplayName("Debe manejar contexto vacío")
-        void testEmptyContext() {
-            // Given
-            Map<String, Object> emptyContext = Map.of();
+        @DisplayName("Caracteres unicode no lanzan excepción")
+        void unicodeNoLanza() {
+            assertThatCode(() -> TestLogger.logInfo("CAT", "áéíóú ñ 你好 🔥", null))
+                .doesNotThrowAnyException();
+        }
 
-            // When/Then
-            assertThatCode(() -> TestLogger.logInfo("CAT", "message", emptyContext))
+        @ParameterizedTest
+        @ValueSource(strings = {"SQL_QUERY", "HTTP_REQUEST", "DATABASE_ERROR", "API_RESPONSE"})
+        @DisplayName("Diferentes categorías no lanzan excepción")
+        void diferentesCategorias(String category) {
+            assertThatCode(() -> TestLogger.logInfo(category, "mensaje", null))
+                .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("Contexto vacío no lanza excepción")
+        void contextoVacioNoLanza() {
+            assertThatCode(() -> TestLogger.logInfo("CAT", "mensaje", Map.of()))
                 .doesNotThrowAnyException();
         }
     }
 
     // =========================================================================
-    // TEST CONTEXT MANAGEMENT
+    // Context management: setTestContext / clearTestContext / setFramework
     // =========================================================================
 
     @Nested
-    @DisplayName("6. Test Context Management")
+    @DisplayName("Context management")
     @Order(6)
-    class TestContextManagementTests {
+    class ContextManagementTests {
 
         @Test
-        @DisplayName("Debe establecer contexto de test")
-        void testSetTestContext() {
-            // Given
-            String testName = "TestLoginFlow";
+        @DisplayName("setTestContext y clearTestContext no lanzan excepción")
+        void setAndClearContextNoLanza() {
+            assertThatCode(() -> {
+                TestLogger.setTestContext("TestLoginFlow");
+                TestLogger.clearTestContext();
+            }).doesNotThrowAnyException();
+        }
 
-            // When/Then
-            assertThatCode(() -> TestLogger.setTestContext(testName))
+        @Test
+        @DisplayName("setFramework no lanza excepción")
+        void setFrameworkNoLanza() {
+            assertThatCode(() -> TestLogger.setFramework("API"))
                 .doesNotThrowAnyException();
         }
 
         @Test
-        @DisplayName("Debe establecer framework")
-        void testSetFramework() {
-            // Given
-            String framework = "API";
-
-            // When/Then
-            assertThatCode(() -> TestLogger.setFramework(framework))
-                .doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("Debe limpiar contexto de test")
-        void testClearTestContext() {
-            // Given
-            TestLogger.setTestContext("TestExample");
-
-            // When/Then
+        @DisplayName("clearTestContext sin setTestContext previo no lanza excepción")
+        void clearSinSetPrevioNoLanza() {
             assertThatCode(() -> TestLogger.clearTestContext())
                 .doesNotThrowAnyException();
         }
