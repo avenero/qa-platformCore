@@ -444,7 +444,7 @@ class ConfigurationUtilitiesTest {
         @DisplayName("Constructor privado lanza UnsupportedOperationException")
         void constructorPrivadoLanzaExcepcion() {
             assertThatThrownBy(() -> {
-                var constructor = com.scotia.qa.common.ssl.SSLUtils.class.getDeclaredConstructor();
+                var constructor = com.scotia.qa.common.utils.SSLUtils.class.getDeclaredConstructor();
                 constructor.setAccessible(true);
                 constructor.newInstance();
             }).hasCauseInstanceOf(UnsupportedOperationException.class);
@@ -453,14 +453,14 @@ class ConfigurationUtilitiesTest {
         @Test
         @DisplayName("isTruststoreAvailable() no lanza excepción")
         void isTruststoreAvailableNoLanza() {
-            assertThatCode(() -> com.scotia.qa.common.ssl.SSLUtils.isTruststoreAvailable())
+            assertThatCode(() -> com.scotia.qa.common.utils.SSLUtils.isTruststoreAvailable())
                 .doesNotThrowAnyException();
         }
 
         @Test
         @DisplayName("getSSLInfo() retorna mapa con claves esperadas")
         void getSSLInfoRetornaMapaConClavesEsperadas() {
-            Map<String, String> info = com.scotia.qa.common.ssl.SSLUtils.getSSLInfo();
+            Map<String, String> info = com.scotia.qa.common.utils.SSLUtils.getSSLInfo();
             assertThat(info)
                 .containsKey("truststoreFound")
                 .containsKey("truststorePath")
@@ -470,21 +470,21 @@ class ConfigurationUtilitiesTest {
         @Test
         @DisplayName("clearCache() no lanza excepción")
         void clearCacheNoLanza() {
-            assertThatCode(() -> com.scotia.qa.common.ssl.SSLUtils.clearCache())
+            assertThatCode(() -> com.scotia.qa.common.utils.SSLUtils.clearCache())
                 .doesNotThrowAnyException();
         }
 
         @Test
         @DisplayName("createSecureHttpClient() retorna cliente no null")
         void createSecureHttpClientNoNull() {
-            var client = com.scotia.qa.common.ssl.SSLUtils.createSecureHttpClient();
+            var client = com.scotia.qa.common.utils.SSLUtils.createSecureHttpClient();
             assertThat(client).isNotNull();
         }
 
         @Test
         @DisplayName("loadFrameworkSSLContext() no lanza excepción (puede retornar null si no hay truststore)")
         void loadFrameworkSSLContextNoLanza() {
-            assertThatCode(() -> com.scotia.qa.common.ssl.SSLUtils.loadFrameworkSSLContext())
+            assertThatCode(() -> com.scotia.qa.common.utils.SSLUtils.loadFrameworkSSLContext())
                 .doesNotThrowAnyException();
         }
     }

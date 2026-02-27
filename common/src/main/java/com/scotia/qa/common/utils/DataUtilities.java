@@ -1412,8 +1412,10 @@ public class DataUtilities {
     // =================================================================================
 
     /**
-     * Reemplaza variables en el texto usando el formato ${variable_name}.
-     * También soporta variables de entorno y propiedades del sistema.
+     * Reemplaza variables en el texto.
+     * Soporta dos formatos:
+     * - ${variable_name} : busca en variableStore, System.getProperty y System.getenv
+     * - {{variable_name}}: busca en ScenarioContext (variables guardadas con WebSteps/ApiSteps)
      */
     public static String replaceVariables(String text) {
         if (text == null || text.trim().isEmpty()) {
@@ -1421,9 +1423,32 @@ public class DataUtilities {
         }
 
         String result = text;
+
+        // --- Formato {{var}} → ScenarioContext (Web/API variables temporales) ---
+        Pattern scenarioPattern = Pattern.compile("\\{\\{([^}]+)}}");
+        Matcher scenarioMatcher = scenarioPattern.matcher(result);
+        while (scenarioMatcher.find()) {
+            String variableName = scenarioMatcher.group(1);
+            String replacement = null;
+            try {
+                Object value = ScenarioContext.getFromAnyLayer(variableName);
+                if (value != null) {
+                    replacement = value.toString();
+                }
+            } catch (Exception ignored) {
+                // ScenarioContext no disponible fuera de ejecución Cucumber
+            }
+            if (replacement == null) {
+                TestLogger.logWarning("DATA_UTILITIES",
+                    String.format("Variable {{%s}} no encontrada en ScenarioContext - manteniendo valor original", variableName), null);
+                replacement = "{{" + variableName + "}}";
+            }
+            result = result.replace("{{" + variableName + "}}", replacement);
+        }
+
+        // --- Formato ${var} → variableStore, System.getProperty, System.getenv ---
         Pattern pattern = Pattern.compile("\\$\\{([^}]+)}");
         Matcher matcher = pattern.matcher(result);
-
         while (matcher.find()) {
             String variableName = matcher.group(1);
             String replacement = null;
@@ -1444,7 +1469,7 @@ public class DataUtilities {
             // 4. Si no se encuentra, mantener la variable original
             if (replacement == null) {
                 TestLogger.logWarning("DATA_UTILITIES",
-                                     String.format("Variable no encontrada: %s - manteniendo valor original", variableName), null);
+                    String.format("Variable no encontrada: %s - manteniendo valor original", variableName), null);
                 replacement = "${" + variableName + "}";
             }
 

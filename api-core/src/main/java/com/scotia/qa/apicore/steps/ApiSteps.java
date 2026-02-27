@@ -287,27 +287,6 @@ public class ApiSteps {
     getApiHelper().showLastRequestInfo();
   }
 
-  @Given("el host {string} mas el contexto {string}")
-  public void usarHostMasElContexto(String host, String contexto) {
-    String processedHost = DataUtilities.replaceVariables(host);
-    String processedContexto = DataUtilities.replaceVariables(contexto);
-    getHttpClient().setHost(processedHost + processedContexto);
-  }
-
-  @Given("agrego el token requerido del tipo Client-Credentials")
-  public void agregoElTokenRequeridoDelTipoClientCredentials() throws FrameworkBusinessException {
-    String token = getAuthentication().getClientCredentialsToken();
-    getHttpClient().addHeader("Authorization", "Bearer " + token);
-  }
-
-  @Given("agrego el token requerido del tipo Bearer-Token para el rut {string}")
-  public void agregoElTokenRequeridoDelTipoBearerTokenParaElRut(String rut)
-      throws FrameworkBusinessException {
-    String processedRut = DataUtilities.replaceVariables(rut);
-    String token = getAuthentication().getBearerTokenForIdentifier(processedRut);
-    getHttpClient().addHeader("Authorization", "Bearer " + token);
-  }
-
 
   @Given("agrego el field {string} con el valor {string}")
   public void agregoElFieldKeyConElValorValue(String key, String value) {

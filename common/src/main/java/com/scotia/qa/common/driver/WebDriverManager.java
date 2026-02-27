@@ -2,7 +2,7 @@ package com.scotia.qa.common.driver;
 
 import com.scotia.qa.common.config.ConfigManager;
 import com.scotia.qa.common.logging.TestLogger;
-import com.scotia.qa.common.ssl.SSLUtils;
+import com.scotia.qa.common.utils.SSLUtils;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;

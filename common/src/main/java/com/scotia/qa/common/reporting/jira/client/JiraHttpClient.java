@@ -2,7 +2,7 @@ package com.scotia.qa.common.reporting.jira.client;
 
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.common.reporting.core.config.JiraConfig;
-import com.scotia.qa.common.ssl.SSLUtils;
+import com.scotia.qa.common.utils.SSLUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -182,4 +182,3 @@ public class JiraHttpClient {
         }
     }
 }
-

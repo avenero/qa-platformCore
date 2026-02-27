@@ -18,9 +18,6 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.assertj.core.api.Assertions;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.Select;
-
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -927,6 +924,22 @@ public class WebSteps {
     @Then("el campo {string} debe estar vacío")
     public void elCampoDebeEstarVacio(String locator) {
         helper.validateFieldIsEmpty(locator);
+    }
+
+    @Then("valido que la variable {string} sea igual a la variable {string}")
+    public void validoQueLaVariableSeaIgualALaVariable(String varName1, String varName2) {
+        String value1 = helper.getTextVariableTemp(varName1);
+        String value2 = helper.getTextVariableTemp(varName2);
+        Assertions.assertThat(value1)
+            .as("La variable '" + varName1 + "' (" + value1 + ") no es igual a '"
+                + varName2 + "' (" + value2 + ")")
+            .isEqualTo(value2);
+    }
+
+    @Then("el mensaje {string} debe contener el texto de la variable {string}")
+    public void elMensajeDebeContenerElTextoDeLaVariable(String locator, String varName) {
+        String expectedText = helper.getTextVariableTemp(varName);
+        helper.validateMessageContainsText(locator, expectedText);
     }
 
     // =========================================================================

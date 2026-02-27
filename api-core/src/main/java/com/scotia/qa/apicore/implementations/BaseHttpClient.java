@@ -237,9 +237,9 @@ public class BaseHttpClient implements HttpClient {
           try {
             // Crear contexto SSL sin validación (sin logs internos)
             javax.net.ssl.SSLContext sslContext =
-                com.scotia.qa.apicore.utils.SSLUtils.createTrustAllSSLContext();
+                com.scotia.qa.common.utils.SSLUtils.createTrustAllSSLContext();
             javax.net.ssl.HostnameVerifier hostnameVerifier =
-                com.scotia.qa.apicore.utils.SSLUtils.createTrustAllHostnameVerifier();
+                com.scotia.qa.common.utils.SSLUtils.createTrustAllHostnameVerifier();
 
             // Configurar HttpsURLConnection por defecto (usado por Unirest internamente)
             javax.net.ssl.HttpsURLConnection.setDefaultSSLSocketFactory(

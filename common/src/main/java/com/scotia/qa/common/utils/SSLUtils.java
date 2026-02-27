@@ -1,4 +1,4 @@
-package com.scotia.qa.common.ssl;
+package com.scotia.qa.common.utils;
 
 import com.scotia.qa.common.logging.TestLogger;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -7,39 +7,28 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 
-import javax.net.ssl.SSLContext;
+import javax.net.ssl.*;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
+import java.security.cert.X509Certificate;
 import java.util.Map;
 
 /**
- * Utilidades para configuración SSL/TLS en el framework.
+ * Utilidades centralizadas para configuración SSL/TLS en el framework.
  *
- * <p>Proporciona métodos para cargar el truststore personalizado del framework
- * y crear clientes HTTP con SSL configurado.</p>
- *
- * <p><b>Truststore del Framework:</b></p>
+ * <p>Consolida toda la funcionalidad SSL del framework:</p>
  * <ul>
- *   <li>Ubicación: {@code common/ssl/myTrustStore.jks}</li>
- *   <li>Password: {@code changeit}</li>
- *   <li>Contiene certificados de servicios corporativos (Jira, Artifactory, etc.)</li>
+ *   <li>Truststore corporativo del framework ({@code common/ssl/myTrustStore.jks})</li>
+ *   <li>Clientes HTTP seguros con SSL configurado</li>
+ *   <li>Contextos SSL para testing (trust-all, truststore personalizado)</li>
  * </ul>
  *
- * <p><b>Uso típico:</b></p>
- * <pre>
- * // Crear cliente HTTP con SSL configurado
- * CloseableHttpClient httpClient = SSLUtils.createSecureHttpClient(credentialsProvider);
- *
- * // O solo obtener el SSLContext
- * SSLContext sslContext = SSLUtils.loadFrameworkSSLContext();
- * </pre>
- *
  * @author Abel Venero
- * @version 1.0.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 public class SSLUtils {
@@ -48,12 +37,13 @@ public class SSLUtils {
     private static final String TRUSTSTORE_PASSWORD = "changeit";
     private static SSLContext cachedSSLContext = null;
 
-    /**
-     * Constructor privado - clase de utilidad.
-     */
     private SSLUtils() {
         throw new UnsupportedOperationException("SSLUtils es una clase de utilidad");
     }
+
+    // =========================================================================
+    // FRAMEWORK TRUSTSTORE
+    // =========================================================================
 
     /**
      * Carga el SSLContext con el truststore personalizado del framework.
@@ -286,5 +276,104 @@ public class SSLUtils {
             "defaultTruststorePassword", TRUSTSTORE_PASSWORD
         );
     }
-}
 
+    // =========================================================================
+    // TESTING SSL UTILITIES (consolidado desde api-core)
+    // =========================================================================
+
+    /**
+     * Crea un SSLContext que acepta TODOS los certificados SSL sin validación.
+     *
+     * <p><b>SOLO PARA TESTING:</b> Deshabilita completamente la validación de certificados.
+     * Usar únicamente en entornos de desarrollo/testing controlados.
+     *
+     * @return SSLContext configurado para aceptar cualquier certificado
+     * @throws RuntimeException si hay error configurando el contexto SSL
+     */
+    public static SSLContext createTrustAllSSLContext() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                }
+            };
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            return sslContext;
+        } catch (Exception e) {
+            throw new RuntimeException("Error configurando SSL sin validación: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Crea un HostnameVerifier que acepta TODOS los hostnames sin validación.
+     *
+     * <p><b>SOLO PARA TESTING.</b> Usar en conjunto con {@link #createTrustAllSSLContext()}.
+     *
+     * @return HostnameVerifier que acepta cualquier hostname
+     */
+    public static HostnameVerifier createTrustAllHostnameVerifier() {
+        return (hostname, session) -> true;
+    }
+
+    /**
+     * Crea un SSLContext usando un TrustStore personalizado desde classpath o filesystem.
+     *
+     * @param trustStorePath     Ruta al archivo truststore (.jks)
+     * @param trustStorePassword Password del truststore
+     * @return SSLContext configurado con el truststore
+     * @throws RuntimeException si hay error cargando el truststore
+     */
+    public static SSLContext createSSLContextWithTrustStore(String trustStorePath, String trustStorePassword) {
+        if (trustStorePath == null || trustStorePath.trim().isEmpty()) {
+            throw new IllegalArgumentException("TrustStore path no puede ser null o vacío");
+        }
+        try {
+            KeyStore trustStore = KeyStore.getInstance("JKS");
+            InputStream stream = SSLUtils.class.getClassLoader().getResourceAsStream(trustStorePath);
+            if (stream == null) {
+                stream = new FileInputStream(trustStorePath);
+            }
+            try (InputStream s = stream) {
+                char[] pwd = trustStorePassword != null ? trustStorePassword.toCharArray() : null;
+                trustStore.load(s, pwd);
+            }
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustStore);
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, tmf.getTrustManagers(), new java.security.SecureRandom());
+            return sslContext;
+        } catch (Exception e) {
+            throw new RuntimeException("Error configurando SSL con TrustStore: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Crea un SSLContext con la configuración por defecto del sistema operativo.
+     *
+     * @return SSLContext con configuración por defecto
+     * @throws RuntimeException si hay error creando el contexto
+     */
+    public static SSLContext createDefaultSSLContext() {
+        try {
+            return SSLContext.getDefault();
+        } catch (Exception e) {
+            throw new RuntimeException("Error configurando SSL por defecto: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Indica si se recomienda deshabilitar la validación SSL según el ambiente.
+     *
+     * @param environment Ambiente actual (dev, qa, uat, prod)
+     * @return true si el ambiente es de desarrollo/testing, false en producción
+     */
+    public static boolean shouldDisableSSLValidation(String environment) {
+        if (environment == null) return false;
+        String env = environment.toLowerCase().trim();
+        return env.contains("dev") || env.contains("qa")
+            || env.contains("test") || env.contains("local");
+    }
+}

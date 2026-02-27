@@ -27,6 +27,7 @@ out/
 **/target/
 **/.gradle/
 lib/
+docu/
 
 ### Eclipse ###
 .apt_generated
