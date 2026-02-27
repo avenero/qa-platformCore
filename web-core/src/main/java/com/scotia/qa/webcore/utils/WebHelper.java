@@ -1982,14 +1982,30 @@ public class WebHelper {
     }
 
     /**
-     * Valida que un mensaje contenga un texto específico.
+     * Valida que un mensaje contenga un texto específico.*
+     * <p>Normaliza saltos de línea (\n, \r\n) producidos por etiquetas {@code <br>} del HTML
+     * reemplazándolos por un espacio simple, de modo que el texto esperado en el .feature
+     * no necesite conocer el salto de línea interno del DOM.</p>
+     *
+     * <p>Ejemplo: el HTML {@code El email no está autorizado.<br>Contactate con tu ejecutivo.}
+     * Selenium lo extrae como {@code "El email no está autorizado.\nContactate con tu ejecutivo."}
+     * y este método lo normaliza a {@code "El email no está autorizado. Contactate con tu ejecutivo."}
+     * antes de comparar.</p>
      */
     public void validateMessageContainsText(String locator, String expectedText) {
-        String actualText = getTextOf(locator);
+        String rawText = getTextOf(locator);
+
+        // Normalizar saltos de línea causados por <br> en el HTML → espacio simple
+        String actualText = rawText == null ? null
+            : rawText.replaceAll("\\r\\n|\\r|\\n", " ").replaceAll(" {2,}", " ").trim();
+
+        // Normalizar también el texto esperado por si viene con saltos desde el .feature
+        String normalizedExpected = expectedText == null ? null
+            : expectedText.replaceAll("\\r\\n|\\r|\\n", " ").replaceAll(" {2,}", " ").trim();
 
         Assertions.assertThat(actualText)
-            .as("El mensaje '%s' debe contener '%s'", locator, expectedText)
-            .contains(expectedText);
+            .as("El mensaje '%s' debe contener '%s'", locator, normalizedExpected)
+            .contains(normalizedExpected);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Mensaje contiene texto esperado: " + locator, null);
