@@ -2,7 +2,9 @@ package com.scotia.qa.webcore.steps;
 
 import com.scotia.qa.common.config.ConfigManager;
 import com.scotia.qa.common.cucumber.context.ScenarioContext;
+import com.scotia.qa.common.cucumber.validators.HookValidator;
 import com.scotia.qa.common.http.exceptions.FrameworkBusinessException;
+import com.scotia.qa.common.logging.ModuleDetector;
 import com.scotia.qa.common.logging.TestLogger;
 import com.scotia.qa.webcore.driver.DriverManager;
 import com.scotia.qa.webcore.driver.WebDriverFactory;
@@ -64,9 +66,9 @@ public class WebSteps {
     public void beforeScenario(Scenario scenario) throws FrameworkBusinessException {
         this.scenario = scenario;
 
-        com.scotia.qa.common.cucumber.validators.HookValidator.validateWebScenario(scenario);
+        HookValidator.validateWebScenario(scenario);
 
-        String moduleName = com.scotia.qa.common.logging.ModuleDetector.detectModuleName();
+        String moduleName = ModuleDetector.detectModuleName();
         TestLogger.setFramework(moduleName);
 
         // Inicializar driver si no existe
