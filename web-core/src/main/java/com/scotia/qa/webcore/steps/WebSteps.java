@@ -190,6 +190,94 @@ public class WebSteps {
         TestLogger.logInfo("WEB_STEPS", "🌐 URL actualizada: " + url, null);
     }
 
+    /**
+     * Step compuesto de alto nivel para encapsular precondiciones de flujos multi-pantalla.
+     *
+     * <p>Navega a una URL, rellena hasta 3 campos y presiona un botón de acción.
+     * Los campos 2 y 3 son <b>opcionales</b>: pasar {@code ""} (cadena vacía) los omite.</p>
+     *
+     * <p><b>Casuísticas soportadas:</b></p>
+     * <ul>
+     *   <li><b>1 campo obligatorio</b> (ej: login solo con email):
+     *       pasar {@code ""} en campo2/texto2 y campo3/texto3</li>
+     *   <li><b>2 campos</b> (ej: login con email + password):
+     *       pasar {@code ""} solo en campo3/texto3</li>
+     *   <li><b>3 campos</b> (ej: login con usuario + password + OTP):
+     *       rellenar todos los parámetros</li>
+     * </ul>
+     *
+     * <p><b>Ejemplos de uso en Background:</b></p>
+     * <pre>
+     * # Solo 1 campo (email) - campos 2 y 3 vacíos
+     * Given completo el flujo navegando a "https://banco.dev.../login"
+     *       con campos "login-email-input" "" ""
+     *       con textos "usuario@banco.com" "" ""
+     *       y presionando "login-continue-button"
+     *
+     * # 2 campos (usuario + password) - campo 3 vacío
+     * Given completo el flujo navegando a "https://banco.dev.../login"
+     *       con campos "username-input" "password-input" ""
+     *       con textos "miUsuario" "miPassword" ""
+     *       y presionando "login-button"
+     *
+     * # 3 campos (usuario + password + empresa)
+     * Given completo el flujo navegando a "https://banco.dev.../login"
+     *       con campos "user-input" "pass-input" "company-input"
+     *       con textos "miUsuario" "miPassword" "ScotiaBank"
+     *       y presionando "login-button"
+     * </pre>
+     *
+     * @param url     URL de la pantalla inicial (obligatorio)
+     * @param campo1  Locator del campo 1 (obligatorio)
+     * @param campo2  Locator del campo 2 (opcional, pasar "" para omitir)
+     * @param campo3  Locator del campo 3 (opcional, pasar "" para omitir)
+     * @param texto1  Valor a ingresar en campo 1 (obligatorio)
+     * @param texto2  Valor a ingresar en campo 2 (opcional, pasar "" para omitir)
+     * @param texto3  Valor a ingresar en campo 3 (opcional, pasar "" para omitir)
+     * @param boton   Locator del botón de acción (obligatorio)
+     */
+    @Given("completo el flujo navegando a {string} con campos {string} {string} {string} con textos {string} {string} {string} y presionando {string}")
+    public void completoElFlujoNavegandoConCamposYPresionando(
+            String url,
+            String campo1, String campo2, String campo3,
+            String texto1, String texto2, String texto3,
+            String boton) {
+
+        // 1. Navegar a la URL
+        WebDriver driver = DriverManager.getDriver();
+        driver.navigate().to(url);
+        WaitUtils.waitForPageReady();
+        TestLogger.logInfo("WEB_STEPS", "🌐 Navegando a: " + url, null);
+
+        // 2. Campo 1 - OBLIGATORIO
+        helper.setTextWithWait(texto1, campo1);
+        TestLogger.logInfo("WEB_STEPS", "✏️ Campo 1 completado: " + campo1, null);
+
+        // 3. Campo 2 - OPCIONAL
+        if (campo2 != null && !campo2.trim().isEmpty()) {
+            helper.setTextWithWait(texto2, campo2);
+            TestLogger.logInfo("WEB_STEPS", "✏️ Campo 2 completado: " + campo2, null);
+        }
+
+        // 4. Campo 3 - OPCIONAL
+        if (campo3 != null && !campo3.trim().isEmpty()) {
+            helper.setTextWithWait(texto3, campo3);
+            TestLogger.logInfo("WEB_STEPS", "✏️ Campo 3 completado: " + campo3, null);
+        }
+
+        // 5. Presionar botón
+        helper.clicButton(boton);
+
+        helper.captureScreen(scenario);
+        TestLogger.logInfo("WEB_STEPS",
+            String.format("🔀 Flujo completado: url='%s' | campos=[%s%s%s] | botón='%s'",
+                url,
+                campo1,
+                campo2 != null && !campo2.isEmpty() ? ", " + campo2 : "",
+                campo3 != null && !campo3.isEmpty() ? ", " + campo3 : "",
+                boton), null);
+    }
+
 
     // =========================================================================
     // WHEN STEPS - ACCIONES
