@@ -53,6 +53,10 @@ dependencies {
     api 'com.jayway.jsonpath:json-path:2.9.0'
     api 'org.skyscreamer:jsonassert:1.5.1'
 
+    // Forzar versión segura de json-smart (dependencia transitiva de json-path)
+    // Resuelve CVE-2024-57699 (HIGH - Uncontrolled Recursion/DoS vulnerability)
+    api 'net.minidev:json-smart:2.5.2'
+
     // === REPORTING (Extent Reports para HTML reports) ===
     api 'com.aventstack:extentreports:5.1.1'
 
