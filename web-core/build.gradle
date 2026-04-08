@@ -18,9 +18,9 @@ dependencies {
     api 'org.seleniumhq.selenium:selenium-java:4.27.0'
 
     // NOTA: WebDriverManager ya NO usa bonigarcia (eliminado)
-    // Ahora usa com.scotia.qa.common.driver.WebDriverManager del framework
-    // que descarga drivers desde Artifactory corporativo o path local configurado.
-    // Ver: common/src/main/java/com/scotia/qa/common/driver/WebDriverManager.java
+    // Ahora usa com.qa.common.driver.WebDriverManager del framework
+    // que gestiona drivers desde path local configurado.
+    // Ver: common/src/main/java/com/qa/common/driver/WebDriverManager.java
 
     // ===== CUCUMBER PARA BDD =====
     // Cucumber para escribir tests en Gherkin

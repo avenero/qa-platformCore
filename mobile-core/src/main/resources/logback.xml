@@ -63,20 +63,20 @@
     <!-- LOGGERS ESPECÍFICOS DEL MÓDULO MOBILE                                 -->
     <!-- ====================================================================== -->
 
-    <logger name="com.scotia.qa.mobilecore" level="DEBUG" additivity="false">
+    <logger name="com.qa.mobilecore" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
         <appender-ref ref="MOBILE_EVIDENCE"/>
         <appender-ref ref="ERROR"/>
     </logger>
 
-    <logger name="com.scotia.qa.common" level="INFO" additivity="false">
+    <logger name="com.qa.common" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
 
     <!-- Logger específico para evidencias -->
-    <logger name="com.scotia.qa.common.logging.EvidenceManager" level="INFO" additivity="false">
+    <logger name="com.qa.common.logging.EvidenceManager" level="INFO" additivity="false">
         <appender-ref ref="MOBILE_EVIDENCE"/>
     </logger>
 

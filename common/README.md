@@ -1,1185 +1,609 @@
-# 🔧 Common - Capa Base del Framework Scotia QA
+# 🔧 common — Capa Base del Framework
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Gradle](https://img.shields.io/badge/Gradle-8.14-blue.svg)](https://gradle.org/)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/scotia-qa/qa-scotia-frameworks)
-
-> La capa fundacional del QA Scotia Automation Framework. Proporciona componentes, interfaces y utilidades compartidas por todas las capas especializadas (API, Web, Mobile).
+> **Versión:** 2.0.0 | **Grupo:** `com.qa` | **Artefacto:** `common`  
+> **Última actualización:** Abril 2026  
+> **Autor:** Abel Venero
 
 ---
 
-## 📑 Índice General
+## 📑 Índice
 
-### Parte I: Visión General
-- [🎯 ¿Qué es Common?](#-qué-es-common)
-- [🏗️ Arquitectura de Common](#️-arquitectura-de-common)
-- [📦 Estructura de Paquetes](#-estructura-de-paquetes)
-
-### Parte II: Componentes Principales
-- [📊 Sistema de Logging](#-sistema-de-logging)
-- [🔗 ScenarioContext](#-scenariocontext)
-- [🌐 HTTP Client Base](#-http-client-base)
-- [🥒 Cucumber Hooks](#-cucumber-hooks)
-- [🔒 Seguridad y Sanitización](#-seguridad-y-sanitización)
-- [⚙️ Gestión de Configuraciones](#️-gestión-de-configuraciones)
-- [💾 Conexión a Base de Datos](#-conexión-a-base-de-datos)
-- [🔍 Test Data Finder](#-test-data-finder)
-
-### Parte III: Guías de Uso
-- [🏷️ Guía de Tags para Hooks](#️-guía-de-tags-para-hooks)
-- [🔄 Ejemplo de Flujo Completo](#-ejemplo-de-flujo-completo)
-- [💡 Ejemplos Prácticos](#-ejemplos-prácticos)
-- [⚠️ Troubleshooting](#️-troubleshooting)
+1. [¿Qué es Common?](#1-qué-es-common)
+2. [Mapa completo de paquetes](#2-mapa-completo-de-paquetes)
+3. [El Motor de Ejecución — runtime/](#3-el-motor-de-ejecución--runtime)
+4. [Sistema de Logging — logging/](#4-sistema-de-logging--logging)
+5. [Gestión de Configuración — config/](#5-gestión-de-configuración--config)
+6. [HTTP Base — http/](#6-http-base--http)
+7. [Base de Datos — database/](#7-base-de-datos--database)
+8. [Utilidades — utils/](#8-utilidades--utils)
+9. [Hooks de Cucumber — cucumber/hooks/](#9-hooks-de-cucumber--cucumberhooks)
+10. [Driver (WebDriver compartido) — driver/](#10-driver-webdriver-compartido--driver)
+11. [Reportes — reporting/](#11-reportes--reporting)
+12. [Cómo usar Common en otro módulo](#12-cómo-usar-common-en-otro-módulo)
+13. [Dependencias](#13-dependencias)
 
 ---
 
-## 🎯 ¿Qué es Common?
+## 1. ¿Qué es Common?
 
-### Definición
+**Common** es la **capa fundacional** del framework — la base sobre la que se construyen las capas especializadas (`api-core`, `web-core`, `mobile-core`). Ninguna de esas capas puede funcionar sin `common`.
 
-**Common** es la **capa base y fundacional** del framework Scotia QA. No es un framework completo por sí solo, sino el **núcleo genérico y reutilizable** que proporciona:
+Piénsalo como los **cimientos de un edificio**: no ves los cimientos cuando miras el edificio terminado, pero sin ellos, nada se sostiene.
 
-| Componente | Propósito |
-|------------|-----------|
-| 🏗️ **Arquitectura Base** | Interfaces y contratos genéricos |
-| 🔌 **HTTP Client** | Cliente HTTP genérico (Unirest) con SSL configurado |
-| 📊 **Logging** | Sistema de logging estructurado y contextual con MDC |
-| 🔗 **ScenarioContext** | Compartir datos entre capas (API ↔ Web ↔ Mobile) |
-| 🥒 **Cucumber Hooks** | Hooks base con inicialización condicional por tags |
-| 🔒 **Seguridad** | Sanitización, encriptación, manejo seguro de credenciales |
-| ⚙️ **Configuración** | ConfigManager para variables de entorno y properties |
-| 💾 **Database** | Conexión a BD con pool HikariCP |
-| 🔍 **Test Data** | UserFinderService para búsqueda de datos de prueba |
-| 🛠️ **Utilidades** | JSON parsing, data handling, validaciones |
+### ¿Qué hace Common?
 
-### ¿Para Qué NO es Common?
+| Paquete | Función en palabras simples |
+|---------|----------------------------|
+| `runtime/` | El motor que orquesta cómo se ejecutan los escenarios de prueba |
+| `logging/` | Registra todo lo que pasa durante las pruebas, de forma ordenada y segura |
+| `config/` | Lee la configuración del proyecto (URLs, credenciales, timeouts) |
+| `http/` | Define el modelo básico de una petición/respuesta HTTP |
+| `database/` | Conecta con bases de datos (Oracle, PostgreSQL, MySQL, SQL Server) |
+| `utils/` | Herramientas para manejar JSON, textos, fechas, archivos y variables |
+| `cucumber/hooks/` | Administra el ciclo de vida de cada escenario de prueba |
+| `driver/` | Base compartida para el manejo de WebDrivers |
+| `reporting/` | Genera evidencias y reportes de las pruebas ejecutadas |
 
-- ❌ **NO contiene** lógica de negocio específica
-- ❌ **NO conoce** nada sobre APIs REST, WebDriver o Appium
-- ❌ **NO tiene** steps de Cucumber específicos de negocio
-- ❌ **NO depende** de frameworks especializados (Selenium, Appium, RestAssured)
+### ¿Qué NO hace Common?
 
-### Principio de Diseño: Module-First
-
-Common sigue el principio **"Module-First"**:
-- Los **módulos de negocio** definen sus propios localizadores/endpoints
-- **Common** solo provee herramientas genéricas y reutilizables
-- Sin acoplamiento a proyectos específicos
+- ❌ **No contiene steps de Cucumber** (esos van en las capas especializadas)
+- ❌ **No sabe de Selenium, Appium ni API REST** (es completamente genérico)
+- ❌ **No tiene lógica de negocio** (eso va en el proyecto de pruebas)
+- ❌ **No conoce las URLs ni la estructura** de ningún sistema específico
 
 ---
 
-## 🏗️ Arquitectura de Common
-
-### Diagrama de Capas del Framework
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    MÓDULOS CONSUMIDORES                     │
-│          qa-banking • qa-autos • qa-logistics               │
-│          (Repositorios independientes)                      │
-└─────────────────────────────────────────────────────────────┘
-                            ↓ importan como librería
-┌─────────────────────────────────────────────────────────────┐
-│              FRAMEWORKS ESPECIALIZADOS (CORE)               │
-│        api-core  •  web-core  •  mobile-core               │
-│     (Selenium, Appium, RestAssured específicos)             │
-└─────────────────────────────────────────────────────────────┘
-                            ↓ extienden y dependen de
-┌─────────────────────────────────────────────────────────────┐
-│                      COMMON (BASE)                          │
-│  ┌──────────────┬──────────────┬──────────────────────┐    │
-│  │  Interfaces  │   Logging    │   ScenarioContext    │    │
-│  │  HTTP Base   │   Security   │   Data Utilities     │    │
-│  │  Cucumber    │   Factories  │   Configuration      │    │
-│  │  Database    │   TestData   │   Utilities          │    │
-│  └──────────────┴──────────────┴──────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Relación con Otras Capas
+## 2. Mapa Completo de Paquetes
 
 ```
 common/
-  ↓ es base de
-  ├─→ api-core (agrega: RestAssured, HTTP específico)
-  ├─→ web-core (agrega: Selenium, WebDriver, Page Objects)
-  └─→ mobile-core (agrega: Appium, Gestures móviles)
+└── src/main/java/com/qa/common/
+    │
+    ├── runtime/                         ← ⭐ MOTOR DE EJECUCIÓN (novedad v2.0)
+    │   ├── CorePlugin.java              ← Interfaz que todo plugin debe implementar
+    │   ├── CucumberRuntimeEngine.java   ← Director de la orquesta de ejecución
+    │   ├── ExecutionContext.java        ← Tablero de control de un escenario
+    │   ├── ExecutionConfig.java         ← Configuración de una ejecución
+    │   ├── ExecutionRequest.java        ← Solicitud de ejecución
+    │   ├── ExecutionResult.java         ← Resultado de una ejecución
+    │   ├── ServiceRegistry.java         ← Casillero de servicios (lazy injection)
+    │   ├── VariableStore.java           ← Cuaderno de variables entre steps
+    │   ├── StepComponent.java           ← Ficha técnica de un grupo de steps
+    │   ├── BddPhase.java                ← Enum: GIVEN, WHEN, THEN
+    │   ├── DefaultLifecycleManager.java ← Gestiona ciclo de vida de plugins
+    │   ├── LifecycleManager.java        ← Interfaz del lifecycle manager
+    │   ├── InMemoryResultCollector.java ← Colecta resultados en memoria
+    │   ├── StepDiscoveryService.java    ← Descubre steps disponibles
+    │   └── events/                      ← Eventos del ciclo de vida
+    │
+    ├── logging/                         ← SISTEMA DE LOGGING
+    │   ├── TestLogger.java              ← Logger principal con contexto automático
+    │   └── LoggingInitializer.java      ← Inicializa el contexto de log (MDC)
+    │
+    ├── config/                          ← GESTIÓN DE CONFIGURACIÓN
+    │   ├── ConfigManager.java           ← Singleton que lee config del proyecto
+    │   └── providers/                   ← Proveedores de configuración por fuente
+    │
+    ├── http/                            ← HTTP BASE (modelos compartidos)
+    │   ├── model/
+    │   │   └── HttpResponse.java        ← Modelo de respuesta HTTP (status+body+headers)
+    │   ├── enums/
+    │   │   └── HttpMethod.java          ← Enum: GET, POST, PUT, PATCH, DELETE
+    │   └── exceptions/
+    │       ├── FrameworkBusinessException.java   ← Excepción de validación fallida
+    │       └── FrameworkTechnicalException.java  ← Excepción técnica (timeout, red)
+    │
+    ├── database/                        ← CONEXIÓN A BASE DE DATOS
+    │   ├── connectors/
+    │   │   ├── BaseConnector.java        ← Base compartida
+    │   │   ├── OracleConnector.java      ← Oracle DB
+    │   │   ├── PostgreSQLConnector.java  ← PostgreSQL
+    │   │   ├── MySQLConnector.java       ← MySQL
+    │   │   └── SQLServerConnector.java   ← SQL Server
+    │   ├── factory/
+    │   │   └── DbConnectorFactory.java   ← Crea y cachea conectores
+    │   ├── helpers/
+    │   │   └── DatabaseHelper.java       ← Ejecuta queries y valida resultados
+    │   ├── interfaces/
+    │   │   └── DatabaseConnector.java    ← Interfaz de conector genérico
+    │   ├── config/
+    │   │   └── DatabaseConfig.java       ← Configuración HikariCP
+    │   ├── repository/
+    │   │   └── QueryRepository.java      ← Ejecuta queries genéricos (sin steps)
+    │   └── steps/
+    │       └── DatabaseConnectionSteps.java ← Steps BDD para BD
+    │
+    ├── utils/                           ← UTILIDADES GENERALES
+    │   ├── DataUtilities.java           ← Variables entre steps + interpolación ${...}
+    │   ├── DataGenerator.java           ← Genera datos aleatorios (UUID, timestamps, etc.)
+    │   ├── JsonUtilities.java           ← Parseo y manipulación de JSON
+    │   ├── TextUtilities.java           ← Operaciones con texto
+    │   ├── FileUtilities.java           ← Lectura de archivos
+    │   ├── SecurityUtilities.java       ← Enmascaramiento de datos sensibles
+    │   └── ConfigurationUtilities.java  ← Helpers para configuración
+    │
+    ├── cucumber/hooks/                  ← HOOKS DE CUCUMBER
+    │   └── ScenarioExecutionHooks.java  ← Hooks Before/After del ciclo de vida
+    │
+    ├── driver/                          ← BASE DE DRIVER (compartida por web y mobile)
+    │
+    └── reporting/                       ← REPORTES Y EVIDENCIAS
 ```
 
 ---
 
-## 📦 Estructura de Paquetes
+## 3. El Motor de Ejecución — `runtime/`
+
+Este es el paquete más importante de Common. Sin él, nada funciona. Es el que hace que al escribir `@api` en un escenario, automáticamente el cliente HTTP esté disponible.
+
+### El patrón Plugin (SPI)
+
+El motor usa el **Service Provider Interface (SPI)** de Java estándar. Funciona así:
+
+1. Cada capa especializada (api-core, web-core, mobile-core) tiene un archivo en:  
+   `META-INF/services/com.qa.common.runtime.CorePlugin`  
+   que contiene el nombre completo de su plugin.
+
+2. Cuando el motor arranca, usa `java.util.ServiceLoader` para descubrir automáticamente todos esos plugins, sin que nadie tenga que registrarlos manualmente.
+
+3. Al ejecutar un escenario, el motor activa solo los plugins cuyos tags de activación están presentes en el escenario.
 
 ```
-common/
-├── src/main/java/com/scotia/qa/common/
-│   │
-│   ├── config/                    # 📁 Gestión de Configuraciones
-│   │   ├── ConfigManager.java           # Singleton para configuración
-│   │   └── providers/
-│   │       ├── ConfigurationProvider.java      # Interface
-│   │       └── BaseConfigurationProvider.java  # Implementación base
-│   │
-│   ├── cucumber/                  # 📁 Cucumber & Contexto
-│   │   ├── context/
-│   │   │   ├── ScenarioContext.java     # Compartir datos entre steps
-│   │   │   └── ScenarioContextHooks.java # Hooks de contexto
-│   │   ├── hooks/
-│   │   │   ├── ConditionalHookDefinition.java  # Interface hooks
-│   │   │   ├── ApiHooks.java            # Hooks @api
-│   │   │   ├── WebHooks.java            # Hooks @web
-│   │   │   ├── MobileHooks.java         # Hooks @mobile
-│   │   │   └── DatabaseHooks.java       # Hooks @database (lazy)
-│   │   └── tags/
-│   │       └── TagDetector.java         # Detecta tags del escenario
-│   │
-│   ├── database/                  # 📁 Conexión a Base de Datos
-│   │   ├── config/
-│   │   │   └── DatabaseConfig.java      # Config HikariCP
-│   │   ├── connectors/
-│   │   │   ├── BaseConnector.java       # Clase base
-│   │   │   ├── OracleConnector.java     # Conector Oracle
-│   │   │   ├── PostgreSQLConnector.java # Conector PostgreSQL
-│   │   │   ├── MySQLConnector.java      # Conector MySQL
-│   │   │   └── SQLServerConnector.java  # Conector SQL Server
-│   │   ├── factory/
-│   │   │   └── DbConnectorFactory.java  # Factory + Manager (cache)
-│   │   ├── helpers/
-│   │   │   └── DatabaseHelper.java      # 🆕 Helper para lógica SQL
-│   │   ├── interfaces/
-│   │   │   └── DatabaseConnector.java   # Interface base
-│   │   ├── repository/
-│   │   │   └── QueryRepository.java     # Queries genéricas (sin steps)
-│   │   └── steps/
-│   │       └── DatabaseConnectionSteps.java # 🆕 Steps Cucumber BD
-│   │
-│   ├── http/                      # 📁 Cliente HTTP Base
-│   │   ├── BaseHttpClient.java          # Cliente Unirest genérico
-│   │   ├── HttpResponse.java            # Wrapper de respuestas
-│   │   └── ssl/
-│   │       └── SSLUtils.java            # Utilidades SSL para testing
-│   │
-│   ├── logging/                   # 📁 Sistema de Logging
-│   │   ├── LoggingInitializer.java      # Inicializa MDC por módulo
-│   │   ├── TestLogger.java              # Logger estructurado
-│   │   └── LogMaskingConverter.java     # Enmascara credenciales en logs
-│   │
-│   ├── security/                  # 📁 Seguridad
-│   │   ├── DataSanitizer.java           # Sanitiza datos sensibles
-│   │   └── EncryptionUtils.java         # Encriptación básica
-│   │
-│   └── utils/                     # 📁 Utilidades
-│       ├── json/
-│       │   └── JsonUtils.java           # Parsing JSON
-│       ├── testdata/
-│       │   ├── model/
-│       │   │   └── TestUser.java        # Modelo de usuario de prueba
-│       │   ├── repository/
-│       │   │   └── TestDataRepository.java  # Repo de test data
-│       │   ├── service/
-│       │   │   └── UserFinderService.java   # Buscar usuarios de prueba
-│       │   └── steps/
-│       │       └── UserFinderSteps.java     # Steps Cucumber para test data
-│       └── DataUtilities.java           # Utilidades de datos
-│
-└── src/main/resources/
-    ├── logback.xml                      # Configuración logging
-    └── templates/
-        ├── config-scotia.properties.template  # Template configuración
-        └── README.md                    # Guía de templates
+Escenario con @api y @web
+        │
+        ▼
+ServiceLoader descubre: ApiPlugin, WebPlugin, MobilePlugin
+        │
+        ▼
+Motor activa: ApiPlugin (tiene @api), WebPlugin (tiene @web)
+Motor ignora: MobilePlugin (no hay @mobile)
 ```
 
----
+### `CorePlugin` — La Interfaz del Plugin
 
-## 📊 Sistema de Logging
-
-### Características
-
-- ✅ **Logging estructurado** con MDC (Mapped Diagnostic Context)
-- ✅ **Por módulo y escenario**: Logs identifican módulo y test actual
-- ✅ **Enmascaramiento automático** de credenciales (passwords, tokens)
-- ✅ **Formato unificado** en todas las capas
-- ✅ **Niveles configurables** por ambiente
-
-### Componentes Clave
-
-#### 1. LoggingInitializer
+Todo plugin debe implementar estos métodos:
 
 ```java
-// Inicializa contexto por módulo
-LoggingInitializer.initModuleContext("BANKING");
-
-// Establece contexto del test actual
-LoggingInitializer.setTestContext("Login exitoso");
-
-// Limpia contexto al finalizar
-LoggingInitializer.clearTestContext();
-```
-
-#### 2. TestLogger
-
-```java
-// Logging estructurado con contexto
-TestLogger.logInfo("USER_LOGIN", "Usuario autenticado", 
-    Map.of("userId", "12345", "timestamp", System.currentTimeMillis()));
-
-TestLogger.logError("API_ERROR", "Fallo en llamada", 
-    Map.of("endpoint", "/api/users", "status", 500));
-
-TestLogger.logSuccess("TEST_PASSED", "Test completado", null);
-```
-
-#### 3. LogMaskingConverter
-
-Enmascara automáticamente:
-- Passwords
-- Tokens
-- API Keys
-- Números de tarjeta
-- SSNs
-
-**Ejemplo:**
-
-```
-ANTES: {"password": "MySecret123"}
-DESPUÉS: {"password": "***MASKED***"}
-```
-
-### Formato de Log
-
-```
-12:30:45.123 INFO [BANKING] [Login exitoso] c.s.q.c.logging.TestLogger - [BANKING][Login exitoso][USER_LOGIN] Usuario autenticado
-Context: {userId=12345, timestamp=1701181845000}
-```
-
----
-
-## 🔗 ScenarioContext
-
-### ¿Qué es?
-
-**ScenarioContext** permite **compartir datos entre diferentes steps y capas** dentro de un mismo escenario de Cucumber.
-
-### Casos de Uso
-
-#### 1. Compartir entre Steps del Mismo Tipo
-
-```java
-// En LoginSteps.java
-@When("me autentico con credenciales válidas")
-public void autenticar() {
-    String token = authService.login("user", "pass");
-    ScenarioContext.set("authToken", token);  // ← Guardar
-}
-
-// En TransferSteps.java
-@When("realizo una transferencia")
-public void transferir() {
-    String token = ScenarioContext.get("authToken");  // ← Recuperar
-    transferService.transfer(token, amount);
+public interface CorePlugin {
+    String getName();                              // Nombre único ("api", "web", "mobile")
+    Set<String> getActivationTags();               // Tags que activan este plugin
+    int getOrder();                                // Orden de inicialización (menor = primero)
+    void registerServices(ServiceRegistry, ExecutionConfig); // Registra sus servicios
+    void onScenarioStart(ExecutionContext context); // Se llama al inicio de cada escenario
+    void onScenarioEnd(ExecutionContext context);   // Se llama al final de cada escenario
+    List<StepComponent> getComponents();           // Declara sus grupos de steps
 }
 ```
 
-#### 2. Compartir entre API y Web (Híbrido)
+### `ExecutionContext` — El tablero de control
 
-```gherkin
-@api @web @e2e
-Scenario: Crear usuario en API y verificar en Web
-  Given creo usuario via API                    # ← API guarda userId
-  When navego al perfil del usuario creado      # ← Web usa userId
-  Then veo los datos correctos                  # ← Web valida
-```
+El `ExecutionContext` es el objeto que existe durante la vida de un escenario y reúne todo lo que se necesita:
 
 ```java
-// ApiSteps.java
-@Given("creo usuario via API")
-public void crearUsuario() {
-    String userId = apiClient.post("/users", userData).get("id");
-    ScenarioContext.set("userId", userId);  // ← Compartir a Web
-}
+// Obtener el contexto del escenario actual
+ExecutionContext ctx = ExecutionContext.current();
 
-// WebSteps.java
-@When("navego al perfil del usuario creado")
-public void navegarPerfil() {
-    String userId = ScenarioContext.get("userId");  // ← Recibir de API
-    driver.get("https://app.com/profile/" + userId);
-}
+// Acceder a un servicio registrado (ej: desde un step)
+HttpClient client = ctx.service(HttpClient.class);
+
+// Acceder a las variables del escenario
+ctx.variables().set("token", "Bearer eyJhbG...");
+String token = ctx.variables().resolve("token");
+
+// Interpolar variables en un string
+String body = ctx.variables().interpolate('{"token": "${token}"}');
+// → {"token": "Bearer eyJhbG..."}
 ```
 
-#### 3. Compartir Test Data
+### `ServiceRegistry` — El casillero de servicios
+
+El `ServiceRegistry` es el mecanismo de **inyección de dependencias sin Spring**. Funciona con inicialización *lazy* (perezosa): los servicios se crean solo cuando alguien los pide por primera vez.
 
 ```java
-// UserFinderSteps.java (@database)
-@Given("usuario con cuenta activa")
-public void usuarioConCuentaActiva() {
-    TestUser user = userFinder.findUserWith("cuenta-activa");
-    ScenarioContext.set("testUser", user);  // ← Guardar usuario
-}
+// En ApiPlugin.registerServices():
+registry.registerLazy(HttpClient.class, () -> HttpClientFactory.create(config));
 
-// LoginSteps.java (@web)
-@When("me autentico con el usuario de prueba")
-public void autenticar() {
-    TestUser user = ScenarioContext.get("testUser");  // ← Usar usuario
-    loginPage.login(user.getUsername(), user.getPassword());
-}
+// En un step, al ejecutarse:
+HttpClient client = context.service(HttpClient.class);
+// → Se crea el HttpClient en ese momento (si no existía)
+// → La siguiente vez que se pida, se reutiliza el mismo objeto
 ```
 
-### Métodos Principales
+**¿Por qué lazy?** Porque si un escenario tiene `@api` y `@web` pero no usa autenticación, no tiene sentido crear el `AuthenticationService`. Se crea solo si algún step lo pide.
+
+### `VariableStore` — El cuaderno de notas
+
+Almacena variables que los steps guardan y comparten entre sí:
 
 ```java
-// Guardar dato
-ScenarioContext.set("key", value);
+VariableStore vars = context.variables();
 
-// Recuperar dato
-String value = ScenarioContext.get("key");
+// Guardar una variable
+vars.set("userId", "12345");
 
-// Verificar existencia
-boolean exists = ScenarioContext.has("key");
+// Leer una variable
+String id = vars.resolve("userId");  // → "12345"
 
-// Remover dato
-ScenarioContext.remove("key");
-
-// Limpiar todo (se hace automáticamente después de cada escenario)
-ScenarioContext.clear();
+// Reemplazar ${variables} en un texto
+String body = vars.interpolate("https://api.com/users/${userId}");
+// → "https://api.com/users/12345"
 ```
 
-### Gestión Automática
-
-**ScenarioContextHooks** limpia automáticamente el contexto:
+### `BddPhase` — Enum de fases
 
 ```java
-@After(order = 999)  // Se ejecuta al final
-public void cleanupContext(Scenario scenario) {
-    ScenarioContext.clear();  // ← Limpieza automática
-}
+BddPhase.GIVEN  // Pasos de configuración (Given / And antes de When)
+BddPhase.WHEN   // Pasos de ejecución (When)
+BddPhase.THEN   // Pasos de validación (Then / And después de When)
 ```
 
 ---
 
-## 🌐 HTTP Client Base
+## 4. Sistema de Logging — `logging/`
 
-### BaseHttpClient
+### `TestLogger` — El logger principal
 
-Cliente HTTP genérico basado en **Unirest** con configuración para testing.
-
-### Características
-
-- ✅ SSL deshabilitado para entornos de prueba
-- ✅ Timeouts configurables
-- ✅ Headers predefinidos
-- ✅ Logging automático de requests/responses
-- ✅ Manejo de errores centralizado
-
-### Uso Básico
+Todos los steps y servicios del framework usan `TestLogger` (nunca `System.out.println()`). Agrega automáticamente contexto de módulo y escenario a cada línea de log.
 
 ```java
-BaseHttpClient client = new BaseHttpClient();
+// Mensajes informacionales
+TestLogger.logInfo("API_HELPER_CONFIG", "✅ Host base establecido: " + url);
 
-// GET
-HttpResponse<String> response = client.get("https://api.test.com/users");
+// Mensajes de error
+TestLogger.logError("HTTP_ERROR", "Error al ejecutar petición: " + e.getMessage());
 
-// POST
-String body = "{\"name\": \"John\"}";
-HttpResponse<String> response = client.post("https://api.test.com/users", body);
-
-// Headers personalizados
-client.addHeader("Authorization", "Bearer token123");
-client.get("https://api.test.com/protected");
+// Mensajes de debug (no aparecen en producción)
+TestLogger.logDebug("HTTP_EXEC", "Armando petición con headers: " + headers);
 ```
 
-### Configuración SSL
-
-```java
-// SSL ya viene deshabilitado para testing
-// Si necesitas habilitarlo:
-SSLUtils.enableSSLVerification();
+**Formato en el log:**
 ```
+12:02:36.014 INFO  [API] [Mi Escenario] com.qa.common.logging.TestLogger - [API_HELPER_CONFIG] ✅ Host base establecido: https://api.com
+```
+
+Cada parte tiene significado:
+- `[API]` → Módulo activo (api, web, mobile)
+- `[Mi Escenario]` → Nombre del escenario en ejecución
+- `[API_HELPER_CONFIG]` → Categoría del mensaje (fácil de filtrar en logs)
+
+### Enmascaramiento automático de datos sensibles
+
+El framework detecta automáticamente palabras clave sensibles en los logs y las enmascara:
+
+```
+Antes: Authorization: Bearer eyJhbGciOiJIUzM4...
+Después: Authorization: Bearer ***MASKED***
+```
+
+Las palabras clave que se enmascaran incluyen: `password`, `token`, `secret`, `authorization`, `apikey`, `api_key`, `credential`.
 
 ---
 
-## 🥒 Cucumber Hooks
+## 5. Gestión de Configuración — `config/`
 
-### Sistema de Hooks Condicionales
+### `ConfigManager` — El lector de configuración
 
-Common implementa **inicialización condicional** basada en **tags de Cucumber**.
-
-### Hooks Disponibles
-
-| Hook | Tag Requerido | Qué Inicializa |
-|------|---------------|----------------|
-| `ApiHooks` | `@api`, `@rest`, `@http` | HttpClient (lazy) |
-| `WebHooks` | `@web`, `@ui`, `@selenium` | WebDriver |
-| `MobileHooks` | `@mobile`, `@android`, `@ios` | AppiumDriver |
-| `DatabaseHooks` | `@database`, `@db`, `@sql` | DatabaseConnector (lazy) |
-
-### Orden de Ejecución
+Singleton que lee configuración desde múltiples fuentes en orden de prioridad:
 
 ```
-@Before (order = 10) → Detectar tags
-@Before (order = 20) → Inicializar componentes según tags
-@After (order = 999) → Limpiar ScenarioContext
-@After (order = 1000) → Cerrar conexiones
+1. Propiedades del sistema (-Dkey=value en línea de comandos)
+2. Variables de entorno (export KEY=value)
+3. Archivo config-app.properties (en src/test/resources/)
+4. Valores por defecto del framework
 ```
 
-### Ejemplo de Uso
-
-```gherkin
-@web @api
-Scenario: Flujo híbrido Web + API
-  Given navego a la página de login          # ← WebDriver activo
-  When me autentico
-  Then valido en API que la sesión existe    # ← HttpClient activo
-```
-
-**Resultado:**
-- ✅ WebDriver se inicializa (por `@web`)
-- ✅ HttpClient se inicializa (por `@api`)
-- ❌ AppiumDriver NO se inicializa (sin `@mobile`)
-- ❌ Database NO se inicializa (sin `@database`)
-
----
-
-## 🏷️ Guía de Tags para Hooks
-
-### Tags Soportados por Capa
-
-#### 🌐 Web Testing
-
-**Tags:** `@web`, `@ui`, `@selenium`, `@browser`
-
-**Inicializa:**
-- WebDriver (Selenium)
-- Navegador configurado
-- Page Objects
-- Screenshots automáticos
-
-**Ejemplo:**
-```gherkin
-@web @smoke
-Scenario: Login exitoso
-  Given navego a "https://qa.banking.com/login"
-  When ingreso credenciales válidas
-  Then veo el dashboard
-```
-
-#### 🔌 API Testing
-
-**Tags:** `@api`, `@rest`, `@http`, `@service`
-
-**Inicializa:**
-- HttpClient (lazy)
-- Gestión de headers
-- SSL configurado para testing
-
-**Ejemplo:**
-```gherkin
-@api @integration
-Scenario: Consulta de usuarios
-  Given configuro el endpoint "/users"
-  When ejecuto GET request
-  Then el código de respuesta es 200
-```
-
-#### 📱 Mobile Testing
-
-**Tags:** `@mobile`, `@android`, `@ios`, `@appium`
-
-**Inicializa:**
-- AppiumDriver
-- Gestures móviles
-- Context switching (NATIVE/WEBVIEW)
-
-**Ejemplo:**
-```gherkin
-@mobile @smoke
-Scenario: Login en app móvil
-  Given abro la aplicación móvil
-  When ingreso credenciales
-  Then veo el home
-```
-
-#### 💾 Database Testing
-
-**Tags:** `@database`, `@db`, `@sql`
-
-**NO inicializa automáticamente** - La conexión se crea lazy al usar `UserFinderService`.
-
-**Ejemplo:**
-```gherkin
-@database @testdata
-Scenario: Buscar usuario con cuenta activa
-  Given usuario con cuenta activa
-  Then valido que tiene saldo disponible
-```
-
-### Combinaciones (Tests Híbridos)
-
-#### Web + API
-
-```gherkin
-@web @api @e2e
-Scenario: Transferencia con validación backend
-  Given navego a la página de transferencias
-  When realizo transferencia de $100
-  Then veo confirmación en pantalla
-  And valido en API que el movimiento se registró
-```
-
-#### Mobile + API
-
-```gherkin
-@mobile @api @integration
-Scenario: Pago en app con validación
-  Given abro la app de pagos
-  When realizo un pago
-  Then veo confirmación
-  And valido en API el débito
-```
-
-#### Web + API + Database
-
-```gherkin
-@web @api @database @e2e
-Scenario: Flujo completo de registro
-  Given usuario nuevo desde base de datos
-  When registro usuario en web
-  Then valido creación en API
-  And valido registro en BD
-```
-
-### ⚠️ Reglas Importantes
-
-#### 1. Siempre Agregar el Tag Correcto
-
-❌ **MAL:**
-```gherkin
-Scenario: Login en web
-  Given navego a "https://..."
-```
-**Problema:** Sin tag `@web`, WebDriver NO se inicializa → Test falla
-
-✅ **BIEN:**
-```gherkin
-@web
-Scenario: Login en web
-  Given navego a "https://..."
-```
-
-#### 2. Usar Múltiples Tags para Tests Híbridos
-
-```gherkin
-@web @api  # ← Ambos tags necesarios
-Scenario: Test que usa Web y API
-```
-
-#### 3. Tags Específicos de Móvil
-
-```gherkin
-@mobile @android  # Para Android
-@mobile @ios      # Para iOS
-```
-
----
-
-## 🔒 Seguridad y Sanitización
-
-### DataSanitizer
-
-Elimina o enmascara datos sensibles antes de logging.
+**Uso básico:**
 
 ```java
-// Sanitizar JSON con passwords
-String json = "{\"user\":\"john\", \"password\":\"secret123\"}";
-String sanitized = DataSanitizer.sanitizeJson(json);
-// Resultado: {"user":"john", "password":"***MASKED***"}
-
-// Sanitizar URLs con query params sensibles
-String url = "https://api.com?token=abc123&key=secret";
-String sanitized = DataSanitizer.sanitizeUrl(url);
-// Resultado: https://api.com?token=***&key=***
-```
-
-### EncryptionUtils
-
-Encriptación básica para almacenamiento temporal.
-
-```java
-// Encriptar
-String encrypted = EncryptionUtils.encrypt("myPassword");
-
-// Desencriptar
-String decrypted = EncryptionUtils.decrypt(encrypted);
-```
-
----
-
-## ⚙️ Gestión de Configuraciones
-
-### ConfigManager
-
-Singleton para gestionar configuraciones desde múltiples fuentes.
-
-### Prioridad de Carga
-
-```
-1. System Properties (-Dkey=value)
-2. Environment Variables (export KEY=value)
-3. Archivos .properties (config-qa.properties)
-4. Valores por defecto
-```
-
-### Uso
-
-```java
-// Obtener instancia
 ConfigManager config = ConfigManager.getInstance();
 
-// Leer valores
-String dbUrl = config.get("db.url");
-String timeout = config.get("api.timeout", "30000");  // Con default
+// Leer un valor
+String baseUrl = config.get("api.base.url");
 
-// Verificar existencia
+// Leer con valor por defecto si no existe
+int timeout = Integer.parseInt(config.get("api.timeout", "30000"));
+
+// Verificar si existe una clave
 if (config.has("db.url")) {
-    // ...
+    // conectar a BD...
 }
 ```
 
-### Archivo de Configuración
-
-**`config-scotia.properties`:**
+**Archivo de configuración del proyecto** (`config-app.properties`):
 
 ```properties
-# Base de Datos
-db.url=jdbc:oracle:thin:@//qa-db:1521/XE
-db.username=${DB_USER}
-db.password=${DB_PASS}
-db.driver=oracle.jdbc.OracleDriver
+# URLs del sistema a probar
+api.base.url=https://mi-sistema-qa.com/
+web.base.url=https://mi-sistema-qa.com
 
-# API
-api.base.url=https://api-qa.scotia.com
-api.timeout=30000
-
-# Web
-web.base.url=https://qa.scotia.com
+# Configuración del navegador
 web.browser=chrome
 web.headless=true
-```
+web.timeout=30
 
-### Variables de Entorno
+# Timeouts
+api.timeout=30000
 
-**`.env.local`:**
-
-```bash
-# Base de Datos
-DB_USER=test_user
-DB_PASS=test_password
-
-# API
-API_TOKEN=your_token_here
+# Variables que se toman de environment (.env.local)
+db.username=${DB_USER}
+db.password=${DB_PASS}
 ```
 
 ---
 
-## 💾 Conexión a Base de Datos
+## 6. HTTP Base — `http/`
 
-### Componentes
+Este paquete define los **tipos de datos compartidos** que todas las capas usan para representar peticiones y respuestas HTTP. No hace peticiones por sí solo — eso lo hace `api-core` con `BaseHttpClient`.
 
-#### 1. DbConnectorFactory (Factory + Manager)
-
-Factory y Manager para crear y gestionar conectores de BD con cache.
-
-**⭐ NUEVO (v1.1.0):** Gestión de conexiones con cache para uso en Steps de Cucumber
+### `HttpResponse` — Modelo de respuesta
 
 ```java
-// ⭐ RECOMENDADO: Conectar con cache (para Steps)
-DatabaseConnector oracle = DbConnectorFactory.connectAndCache("oracle");
-DatabaseConnector sqlserver = DbConnectorFactory.connectAndCache("sqlserver");
+// Representa cualquier respuesta HTTP recibida
+HttpResponse response = httpClient.getLastResponse();
 
-// Desconectar
-DbConnectorFactory.disconnect("oracle");
-DbConnectorFactory.disconnectAll();
-
-// Legacy: Crear sin cache (compatibilidad)
-DatabaseConnector connector = DbConnectorFactory.createFromConfig();
-DatabaseConnector connector = DbConnectorFactory.create(url, user, pass, driver);
+int status    = response.getStatus();    // Ej: 200, 404, 500
+String body   = response.getBody();      // El cuerpo como texto
+Map<String, String> headers = response.getHeaders(); // Headers de respuesta
+long timeMs   = response.getElapsedTimeMs(); // Tiempo en milisegundos
 ```
 
-**Configuración multi-BD en config-{env}.properties:**
-
-```properties
-# Oracle
-oracle.db.url=jdbc:oracle:thin:@//servidor:1521/DB
-oracle.db.username=${ORACLE_USER}
-oracle.db.password=${ORACLE_PASSWORD}
-
-# SQL Server con Windows Authentication
-sqlserver.db.url=jdbc:sqlserver://servidor:1433;databaseName=DB;integratedSecurity=true;encrypt=false
-sqlserver.db.username=
-sqlserver.db.password=
-
-# PostgreSQL
-postgresql.db.url=jdbc:postgresql://servidor:5432/db
-postgresql.db.username=${PG_USER}
-postgresql.db.password=${PG_PASSWORD}
-```
-
-#### 2. Conectores Específicos
-
-- `OracleConnector` - Oracle DB
-- `PostgreSQLConnector` - PostgreSQL
-- `MySQLConnector` - MySQL
-- `SQLServerConnector` - SQL Server (con soporte Windows Authentication)
-- `BaseConnector` - Clase base compartida
-
-#### 3. DatabaseHelper
-
-Helper para operaciones de BD. Encapsula toda la lógica SQL.
+### `HttpMethod` — Métodos HTTP
 
 ```java
-// Ejecutar query
-Map<String, Object> result = DatabaseHelper.executeQuery(connector, "SELECT * FROM users WHERE id = ?", "12345");
-
-// Ejecutar sentencia
-int rows = DatabaseHelper.executeStatement(connector, "UPDATE users SET status = ?", "ACTIVE");
-
-// Obtener valor de columna
-Object value = DatabaseHelper.getColumnValue(queryResult, "balance");
-
-// Validaciones
-DatabaseHelper.validateHasResults(queryResult);
-DatabaseHelper.validateNoResults(queryResult);
-DatabaseHelper.validateColumnValue(queryResult, "status", "ACTIVE");
+// Los métodos HTTP estándar
+HttpMethod.GET     // Consultar datos
+HttpMethod.POST    // Crear / enviar datos
+HttpMethod.PUT     // Reemplazar datos
+HttpMethod.PATCH   // Modificar parcialmente
+HttpMethod.DELETE  // Eliminar datos
 ```
 
-#### 4. QueryRepository
+### Excepciones
 
-Repositorio genérico para ejecutar queries SQL (sin steps de Cucumber).
+| Excepción | Cuándo se lanza |
+|-----------|-----------------|
+| `FrameworkBusinessException` | Una validación falló (ej: status esperado 200, se recibió 404) |
+| `FrameworkTechnicalException` | Error técnico (timeout, sin conexión de red, servidor no disponible) |
+
+Ambas extienden de `RuntimeException`, por lo que no requieren declaración en `throws`.
+
+---
+
+## 7. Base de Datos — `database/`
+
+Permite a los tests conectarse a bases de datos para **preparar datos de prueba** o **verificar que las operaciones del sistema afectaron la BD correctamente**.
+
+### Flujo de conexión
+
+```
+DbConnectorFactory.connectAndCache("oracle")
+        │
+        ├── Lee oracle.db.url, oracle.db.username, oracle.db.password de config
+        ├── Detecta el tipo de BD por la URL
+        ├── Crea OracleConnector con pool HikariCP
+        └── Cachea la conexión (reutilizable en el mismo escenario)
+```
+
+### Conectores disponibles
+
+| Conector | Tipo de BD | URL típica |
+|----------|-----------|------------|
+| `OracleConnector` | Oracle DB | `jdbc:oracle:thin:@//host:1521/NOMBRE` |
+| `PostgreSQLConnector` | PostgreSQL | `jdbc:postgresql://host:5432/nombre` |
+| `MySQLConnector` | MySQL | `jdbc:mysql://host:3306/nombre` |
+| `SQLServerConnector` | SQL Server | `jdbc:sqlserver://host:1433;databaseName=nombre` |
+
+### `DatabaseHelper` — Ejecutar queries
 
 ```java
-QueryRepository repo = new QueryRepository(connector);
+// Ejecutar una query que devuelve una fila
+Map<String, Object> resultado = DatabaseHelper.executeQuery(
+    connector,
+    "SELECT balance, status FROM accounts WHERE user_id = ?",
+    "12345"
+);
 
-// Query que retorna mapa
-Map<String, Object> result = repo.queryForMap("SELECT * FROM users WHERE id = ?", userId);
+// Obtener un valor específico
+Object saldo = DatabaseHelper.getColumnValue(resultado, "balance");
 
-// Query que retorna lista
-List<Map<String, Object>> results = repo.queryForList("SELECT * FROM users WHERE status = ?", "ACTIVE");
+// Validar que la query retornó resultados
+DatabaseHelper.validateHasResults(resultado);
 
-// Contar registros
-Long count = repo.count("SELECT COUNT(*) FROM users WHERE status = 'ACTIVE'");
-
-// Ejecutar modificaciones
-int rows = repo.execute("UPDATE users SET status = ? WHERE id = ?", "ACTIVE", "12345");
+// Validar el valor de una columna
+DatabaseHelper.validateColumnValue(resultado, "status", "ACTIVE");
 ```
 
-#### 5. DatabaseConnectionSteps (NUEVO)
-
-Steps genéricos de Cucumber para conexiones BD.
+### Steps de BD disponibles (Gherkin)
 
 ```gherkin
-# Conectar
+# Conectar a la BD
 Given establezco conexion a base de datos "oracle"
-Given establezco conexion a base de datos "sqlserver"
+Given establezco conexion a base de datos "postgresql"
 
-# Ejecutar consultas
-When ejecuto la consulta "SELECT * FROM users"
-When ejecuto la consulta "SELECT * FROM users WHERE user_id = ?" con parametros "12345"
+# Ejecutar queries
+When ejecuto la consulta "SELECT * FROM users WHERE id = ?" con parametros "12345"
+When ejecuto la sentencia "UPDATE users SET status = ? WHERE id = ?" con parametros "ACTIVE,12345"
 
-# Ejecutar sentencias
-When ejecuto la sentencia "UPDATE users SET status = ?" con parametros "ACTIVE"
-
-# Validaciones y extracción
-Then obtengo el valor de la columna "balance" y lo almaceno en "saldo"
+# Validar resultados
 Then valido que la consulta retorne resultados
 Then valido que la consulta no retorne resultados
 Then valido que la columna "status" tenga el valor "ACTIVE"
+Then obtengo el valor de la columna "balance" y lo almaceno en "saldo"
 ```
 
-**Ejemplo completo:**
-
-```gherkin
-Feature: Consultas multi-BD
-
-  Scenario: Comparar datos entre Oracle y SQL Server
-    Given establezco conexion a base de datos "oracle"
-    When ejecuto la consulta "SELECT balance FROM accounts WHERE user_id = ?" con parametros "12345"
-    Then valido que la consulta retorne resultados
-    And obtengo el valor de la columna "balance" y lo almaceno en "balanceOracle"
-    
-    Given establezco conexion a base de datos "sqlserver"
-    When ejecuto la consulta "SELECT balance FROM accounts WHERE user_id = ?" con parametros "12345"
-    And obtengo el valor de la columna "balance" y lo almaceno en "balanceSqlServer"
-    
-    Then valido que "{{balanceOracle}}" sea igual a "{{balanceSqlServer}}"
-```
-
-### Pool de Conexiones
-
-Usa **HikariCP** para pool de conexiones:
+**Configuración necesaria en `config-app.properties`:**
 
 ```properties
-db.pool.size.min=2
-db.pool.size.max=10
-db.pool.connectionTimeout=30000
+# Una sección por cada BD que se use
+oracle.db.url=jdbc:oracle:thin:@//servidor:1521/DB
+oracle.db.username=${ORACLE_USER}
+oracle.db.password=${ORACLE_PASS}
+
+postgresql.db.url=jdbc:postgresql://servidor:5432/testdb
+postgresql.db.username=${PG_USER}
+postgresql.db.password=${PG_PASS}
 ```
-
-### Ventajas de la Nueva Arquitectura
-
-- ✅ Multi-BD en el mismo test
-- ✅ Cache automático de conexiones
-- ✅ Detección automática de driver por URL
-- ✅ Soporte Windows Authentication para SQL Server
-- ✅ Steps súper limpios sin lógica (3-7 líneas cada uno)
-- ✅ Configuración declarativa en properties
-- ✅ 100% compatible con código legacy
 
 ---
 
-## 🔍 Test Data Finder
+## 8. Utilidades — `utils/`
 
-### ¿Qué es?
+### `DataUtilities` — Variables entre steps e interpolación
 
-Sistema para **buscar usuarios de prueba** en base de datos según características específicas.
-
-### Componentes
-
-#### 1. UserFinderService
+Esta es la clase más usada por los steps. Gestiona las variables del escenario y reemplaza `${variable}` en textos.
 
 ```java
-// Inicializar (lee configuración automáticamente)
-UserFinderService userFinder = new UserFinderService("test-data-queries.yml");
+// Guardar una variable (típicamente desde un step "And almaceno...")
+DataUtilities.storeValue("token", "Bearer eyJhbG...");
 
-// Buscar usuario con característica
-TestUser user = userFinder.findUserWith("cuenta-activa");
+// Leer una variable
+String token = DataUtilities.getValue("token");
 
-// Usar usuario
-System.out.println(user.getUserId());
-System.out.println(user.getUsername());
-System.out.println(user.getPassword());
+// Reemplazar ${variables} en un texto
+String body = DataUtilities.replaceVariables('{"token": "${token}"}');
+// → '{"token": "Bearer eyJhbG..."}'
+
+// Verificar si un JSON tiene un campo (usando JSONPath)
+boolean existe = DataUtilities.hasJsonField(responseBody, "$.user.id");
+
+// Extraer un valor de un JSON
+String userId = DataUtilities.getJsonParameter(responseBody, "$.user.id");
 ```
 
-#### 2. test-data-queries.yml
-
-Define queries para diferentes tipos de usuarios.
-
-```yaml
-queries:
-  cuenta-activa:
-    sql: |
-      SELECT user_id, username, password, email, phone
-      FROM test_users u
-      INNER JOIN accounts a ON u.user_id = a.user_id
-      WHERE a.status = 'ACTIVE' 
-        AND a.balance > 0
-        AND u.reserved_by IS NULL
-      LIMIT 1
-    description: "Usuario con cuenta activa"
-  
-  tarjeta-credito:
-    sql: |
-      SELECT user_id, username, password, email, phone
-      FROM test_users u
-      INNER JOIN credit_cards cc ON u.user_id = cc.user_id
-      WHERE cc.status = 'ACTIVE'
-        AND u.reserved_by IS NULL
-      LIMIT 1
-    description: "Usuario con tarjeta de crédito"
-```
-
-#### 3. TestUser Model
+### `DataGenerator` — Generar datos de prueba
 
 ```java
-public class TestUser {
-    private String userId;
-    private String username;
-    private String password;
-    private String email;
-    private String phone;
-    private Map<String, Object> additionalData;
-    
-    // Getters...
-}
+// UUID v4 aleatorio (para IDs únicos en cada ejecución)
+String uuid = DataGenerator.generateUUID();
+// → "550e8400-e29b-41d4-a716-446655440000"
+
+// Timestamp actual en milisegundos
+long ts = DataGenerator.generateTimestamp();
+
+// Número aleatorio en un rango
+int numero = DataGenerator.generateRandomNumber(1, 100);
+
+// String aleatorio de longitud N
+String random = DataGenerator.generateRandomString(8);
 ```
 
-#### 4. UserFinderSteps (Cucumber)
-
-Steps predefinidos para usar en features.
-
-```gherkin
-@database
-Scenario: Login con usuario de prueba
-  Given usuario con "cuenta-activa"            # ← Step del framework
-  When me autentico con el usuario de prueba   # ← Usa ScenarioContext
-  Then veo el dashboard
-```
+### `JsonUtilities` — Manipular JSON
 
 ```java
-// El step guarda el usuario en ScenarioContext automáticamente
-@Given("usuario con {string}")
-public void usuarioConCaracteristica(String caracteristica) {
-    TestUser user = userFinder.findUserWith(caracteristica);
-    ScenarioContext.set("testUser", user);
-}
+// Parsear un JSON a un Map
+Map<String, Object> mapa = JsonUtilities.toMap(jsonString);
+
+// Convertir un objeto a JSON
+String json = JsonUtilities.toJson(miObjeto);
+
+// Extraer valor con JSONPath
+Object valor = JsonUtilities.extractValue(jsonString, "$.user.name");
+
+// Validar si un string es JSON válido
+boolean esJson = JsonUtilities.isValidJson(texto);
 ```
 
-### Implementación en Módulos
+### `SecurityUtilities` — Datos sensibles
 
-#### PASO 1: Agregar Dependencias
+```java
+// Enmascarar un valor sensible para el log
+String seguro = SecurityUtilities.mask("mi-contraseña-secreta");
+// → "mi-c********************"
+
+// Verificar si una clave parece sensible
+boolean esSensible = SecurityUtilities.isSensitiveKey("password");
+// → true
+```
+
+---
+
+## 9. Hooks de Cucumber — `cucumber/hooks/`
+
+### `ScenarioExecutionHooks` — El ciclo de vida del escenario
+
+Esta clase se ejecuta automáticamente antes y después de **cada escenario**:
+
+```
+@Before (orden 0)
+    → Inicializar el ExecutionContext
+    → Activar los plugins correspondientes a los tags del escenario
+    → Registrar los servicios que cada plugin declara
+    → Llamar onScenarioStart() en cada plugin activo
+
+Cucumber ejecuta los steps del escenario...
+
+@After (orden 0)
+    → Llamar onScenarioEnd() en cada plugin activo
+    → Limpiar el ExecutionContext
+    → Limpiar las variables del escenario (VariableStore)
+```
+
+**¿Por qué importa esto?** Porque garantiza que cada escenario **empieza con estado limpio**. El cliente HTTP del escenario anterior no contamina el siguiente.
+
+---
+
+## 10. Driver (WebDriver compartido) — `driver/`
+
+Paquete base con utilidades compartidas entre `web-core` (Selenium) y `mobile-core` (Appium). Contiene abstracciones genéricas para el manejo de drivers que luego cada capa especializa.
+
+---
+
+## 11. Reportes — `reporting/`
+
+Gestiona la generación de evidencias de las pruebas:
+- Capturas de pantalla automáticas en fallos
+- Logs de ejecución por escenario
+- Datos de contexto cuando falla un test
+
+---
+
+## 12. Cómo usar Common en otro módulo
+
+### En `build.gradle` del módulo que usa el framework:
 
 ```groovy
 dependencies {
-    implementation 'com.scotia.qa:common:1.0.0'
+    implementation 'com.qa:common:2.0.0'     // Siempre requerido
+    implementation 'com.qa:api-core:2.0.0'   // Si necesita probar APIs
+    // common viene incluido transitivamente en api-core, web-core y mobile-core
 }
 ```
 
-#### PASO 2: Crear test-data-queries.yml
+### Publicar Common localmente (para desarrollo):
 
-Ubicación: `src/test/resources/test-data-queries.yml`
-
-#### PASO 3: Configurar BD
-
-```properties
-# config-scotia.properties
-db.url=jdbc:oracle:thin:@//testdb:1521/TESTDB
-db.username=${DB_USER}
-db.password=${DB_PASS}
-```
-
-#### PASO 4: Usar en Steps
-
-```java
-@Given("usuario con cuenta activa")
-public void usuarioConCuentaActiva() {
-    TestUser user = userFinder.findUserWith("cuenta-activa");
-    ScenarioContext.set("testUser", user);
-}
-```
-
----
-
-## 🔄 Ejemplo de Flujo Completo
-
-### Arquitectura del Flujo
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  MÓDULO qa-banking (repositorio independiente)              │
-└──────────────────────────────────────────────────────────────┘
-         │
-         │ 1. Lee configuraciones
-         ↓
-┌──────────────────────────────────────────────────────────────┐
-│  ConfigManager (common/config/)                              │
-│  └─→ config-qa.properties                                    │
-│      ├─ db.url=jdbc:oracle:thin:@//qa-db:1521/XE           │
-│      ├─ db.username=${DB_USER}                              │
-│      └─ db.password=${DB_PASS}                              │
-└──────────────────────────────────────────────────────────────┘
-         │
-         │ 2. Pasa config a Database
-         ↓
-┌──────────────────────────────────────────────────────────────┐
-│  DbConnectorFactory (common/database/factory/)               │
-│  └─→ OracleConnector                                         │
-│      └─→ HikariDataSource                                    │
-│          └─→ Connection a Oracle DB                          │
-└──────────────────────────────────────────────────────────────┘
-         │
-         │ 3. Connection disponible
-         ↓
-┌──────────────────────────────────────────────────────────────┐
-│  UserFinderService (common/utils/testdata/)                  │
-│  └─→ Carga test-data-queries.yml                            │
-│      └─→ Ejecuta query con QueryRepository                  │
-│          └─→ Retorna TestUser                                │
-└──────────────────────────────────────────────────────────────┘
-         │
-         │ 4. TestUser listo
-         ↓
-┌──────────────────────────────────────────────────────────────┐
-│  LoginSteps (módulo qa-banking)                              │
-│  └─→ Usa TestUser en escenarios Cucumber                    │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Feature de Ejemplo
-
-```gherkin
-@web @api @database @e2e
-Feature: Login y validación completa
-
-  Scenario: Login con usuario de BD y validar en API
-    # 1. Test Data Finder busca usuario
-    Given usuario con "cuenta-activa"
-    
-    # 2. Web usa el usuario encontrado
-    And navego a "https://qa.banking.com/login"
-    When me autentico con el usuario de prueba
-    Then veo el dashboard
-    
-    # 3. API valida la sesión
-    And valido en API que la sesión está activa
-```
-
-### Steps Implementados
-
-```java
-// DatabaseSteps.java
-@Given("usuario con {string}")
-public void buscarUsuario(String caracteristica) {
-    TestUser user = userFinder.findUserWith(caracteristica);
-    ScenarioContext.set("testUser", user);
-    TestLogger.logInfo("USER_FOUND", "Usuario encontrado", 
-        Map.of("userId", user.getUserId()));
-}
-
-// WebSteps.java
-@When("me autentico con el usuario de prueba")
-public void autenticar() {
-    TestUser user = ScenarioContext.get("testUser");
-    loginPage.login(user.getUsername(), user.getPassword());
-}
-
-// ApiSteps.java
-@Then("valido en API que la sesión está activa")
-public void validarSesion() {
-    TestUser user = ScenarioContext.get("testUser");
-    Response response = apiClient.get("/sessions/" + user.getUserId());
-    assertThat(response.jsonPath().getString("status")).isEqualTo("ACTIVE");
-}
-```
-
----
-
-## 💡 Ejemplos Prácticos
-
-### Ejemplo 1: Test Híbrido Web + API
-
-```gherkin
-@web @api
-Feature: Transferencias
-
-  Scenario: Transferencia con validación backend
-    Given usuario con "cuenta-con-saldo"
-    And navego a transferencias
-    When transfiero $100 a cuenta "123456"
-    Then veo mensaje de confirmación
-    And valido en API que se registró el movimiento
-```
-
-### Ejemplo 2: Test con Test Data
-
-```gherkin
-@database @web
-Feature: Productos
-
-  Scenario: Solicitar tarjeta
-    Given usuario sin "tarjeta-credito"
-    And navego a solicitudes
-    When solicito tarjeta de crédito
-    Then veo confirmación de solicitud
-```
-
-### Ejemplo 3: Test E2E Completo
-
-```gherkin
-@web @api @database @e2e
-Feature: Registro completo
-
-  Scenario: Registro de usuario nuevo
-    Given usuario nuevo desde base de datos
-    When completo formulario de registro en web
-    Then veo bienvenida
-    And valido en API que el usuario existe
-    And valido en BD que se crearon sus productos por defecto
-```
-
----
-
-## ⚠️ Troubleshooting
-
-### Error: "WebDriver no inicializado"
-
-**Causa:** Falta tag `@web` en el escenario.
-
-**Solución:**
-```gherkin
-@web  # ← Agregar tag
-Scenario: Test web
-```
-
-### Error: "No se encontró config-scotia.properties"
-
-**Causa:** Archivo no está en `src/test/resources/`
-
-**Solución:**
 ```bash
-# Copiar template
-cp common/src/main/resources/templates/config-scotia.properties.template \
-   src/test/resources/config-scotia.properties
-```
+cd qa-frameworks-core
+./gradlew :common:publishToMavenLocal
 
-### Error: "Database connection failed"
-
-**Causa:** Variables de entorno no cargadas.
-
-**Solución:**
-```bash
-# Cargar .env.local
-source .env.local
-./gradlew test
-```
-
-### Error: "TestUser es null"
-
-**Causa:** Query no retornó resultados.
-
-**Solución:**
-- Verificar que hay datos de prueba en BD
-- Revisar query en `test-data-queries.yml`
-- Verificar conexión a BD
-
-### Error: "ScenarioContext.get() retorna null"
-
-**Causa:** Dato no fue guardado antes con `set()`.
-
-**Solución:**
-```java
-// Siempre verificar antes de usar
-if (ScenarioContext.has("key")) {
-    String value = ScenarioContext.get("key");
-} else {
-    throw new RuntimeException("Dato no disponible en contexto");
-}
+# O publicar todo el framework de una vez:
+./gradlew publishToMavenLocal
 ```
 
 ---
 
-## 📚 Recursos Adicionales
-
-### Documentación Relacionada
-
-- **Framework General:** `/documentacion/FRAMEWORK-GUIDE.md`
-- **Quick Start:** `/documentacion/QUICK-START.md`
-- **API Core:** `/api-core/README.md`
-- **Web Core:** `/web-core/README.md`
-- **Mobile Core:** `/mobile-core/README.md`
-- **Scripts:** `/scripts/README.md`
-
-### Dependencias Principales
+## 13. Dependencias
 
 | Dependencia | Versión | Propósito |
 |-------------|---------|-----------|
-| Java | 21 | Lenguaje base |
-| Cucumber | 7.18.0 | BDD Framework |
-| SLF4J/Logback | 2.0.x | Logging |
-| Unirest | 3.14.5 | HTTP Client |
-| HikariCP | 5.1.0 | Connection Pool |
-| Jackson | 2.15.x | JSON parsing |
+| **Java** | 21 LTS | Lenguaje base |
+| **Cucumber Java** | 7.18.0 | Motor BDD |
+| **Cucumber JUnit Platform Engine** | 7.18.0 | Runner para JUnit 5 |
+| **JUnit Platform Suite** | 1.10.x | Suite de tests |
+| **SLF4J + Logback** | 1.5.x | Sistema de logging |
+| **Jackson Databind** | 2.15.x | Serialización JSON |
+| **JsonPath** | 2.x | Navegación JSONPath |
+| **Unirest** | 4.4.4 | HTTP Client base |
+| **HikariCP** | 5.x | Pool de conexiones BD |
+| **AssertJ** | 3.24.x | Aserciones fluidas |
+| **OJDBC** | 23.x | Driver Oracle |
+| **PostgreSQL** | 42.x | Driver PostgreSQL |
+| **MySQL Connector** | 8.x | Driver MySQL |
+| **MSSQL JDBC** | 12.x | Driver SQL Server |
 
 ---
 
-**Versión:** 1.0.0  
-**Fecha:** 28 de Noviembre de 2025  
-**Autor:** Abel Venero  
-**Framework:** Scotia QA Framework
-
+> 📖 **Documentación relacionada:**
+> - [api-core/README.md](../api-core/README.md) — Capa de pruebas de API
+> - [web-core/README.md](../web-core/README.md) — Capa de pruebas Web
+> - [mobile-core/README.md](../mobile-core/README.md) — Capa de pruebas Mobile
+> - [README.md](../README.md) — Visión general del framework

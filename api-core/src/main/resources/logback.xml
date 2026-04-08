@@ -48,7 +48,7 @@
         <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
             <evaluator>
                 <expression>
-                    logger.startsWith("com.scotia") ||
+                    logger.startsWith("com.qa") ||
                     level &gt;= WARN
                 </expression>
             </evaluator>
@@ -116,13 +116,13 @@
     <!-- LOGGERS ESPECÍFICOS DEL MÓDULO API                                    -->
     <!-- ====================================================================== -->
 
-    <logger name="com.scotia.qa.apicore" level="DEBUG" additivity="false">
+    <logger name="com.qa.apicore" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
         <appender-ref ref="ERROR"/>
     </logger>
 
-    <logger name="com.scotia.qa.common" level="INFO" additivity="false">
+    <logger name="com.qa.common" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>

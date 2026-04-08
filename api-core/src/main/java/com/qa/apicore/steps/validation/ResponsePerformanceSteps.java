@@ -1,0 +1,42 @@
+package com.qa.apicore.steps.validation;
+
+import com.qa.apicore.utils.ApiHelper;
+import com.qa.common.runtime.ExecutionContext;
+import io.cucumber.java.en.Then;
+import org.assertj.core.api.Assertions;
+
+/**
+ * Steps de validacion de performance de respuesta HTTP.
+ * Nuevo componente en Fase 2: tiempo de respuesta, tamano del body.
+ * @author Abel Venero
+ * @since 2.0.0
+ */
+public class ResponsePerformanceSteps {
+
+    private ApiHelper apiHelper() { return ApiHelper.forCurrentContext(); }
+
+    @Then("valido que el tiempo de respuesta sea menor a {int} milisegundos")
+    public void validoTiempoRespuesta(int maxMs) {
+        long elapsed = apiHelper().getLastResponseTimeMs();
+        Assertions.assertThat(elapsed)
+            .as("Tiempo (" + elapsed + "ms) excede " + maxMs + "ms").isLessThanOrEqualTo(maxMs);
+    }
+
+    @Then("valido que el tiempo de respuesta sea menor a {int} segundos")
+    public void validoTiempoRespuestaSegundos(int maxSeconds) {
+        validoTiempoRespuesta(maxSeconds * 1000);
+    }
+
+    @Then("guardo el tiempo de respuesta como {string}")
+    public void guardoTiempoRespuesta(String variable) {
+        ExecutionContext.requireCurrent().variables().set(variable, String.valueOf(apiHelper().getLastResponseTimeMs()));
+    }
+
+    @Then("valido que el tamaño de la respuesta sea menor a {int} KB")
+    public void validoTamanoRespuesta(int maxKb) {
+        String body = apiHelper().getLastResponse().getBody();
+        int sizeKb = (body != null ? body.getBytes().length : 0) / 1024;
+        Assertions.assertThat(sizeKb)
+            .as("Tamano (" + sizeKb + "KB) excede " + maxKb + "KB").isLessThanOrEqualTo(maxKb);
+    }
+}

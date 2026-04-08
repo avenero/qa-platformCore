@@ -143,30 +143,30 @@ publishing {
         mavenJava(MavenPublication) {
             from components.java
 
-            groupId = 'com.scotia.qa'
-            artifactId = 'api-core'
-            version = project.version  // Usa la versión del build.gradle raíz
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
 
             // JavaDoc y Sources ya incluidos por withJavadocJar() y withSourcesJar()
             // NO agregar manualmente para evitar duplicados
 
             pom {
-                name = 'Scotia QA Framework - API Core'
-                description = 'Framework de automatización QA para Scotia Bank - Módulo API Core con Cucumber Steps para testing de APIs REST'
-                url = 'https://github.com/scotia-qa/qa-scotia-frameworks'
+                name = 'QA Framework - API Core'
+                description = 'Framework de automatización QA - Módulo API Core con Cucumber Steps para testing de APIs REST'
+                url = 'https://github.com/avenero/qa-framework-core'
 
                 licenses {
                     license {
                         name = 'Proprietary'
-                        url = 'https://www.scotiabank.com'
+                        url  = 'https://github.com/avenero/qa-framework-core'
                     }
                 }
 
                 developers {
                     developer {
-                        id = 'scotia-qa'
-                        name = 'Scotia QA Team'
-                        email = 'qa-team@scotiabank.com'
+                        id = 'qa-team'
+                        name = 'QA Automation Team'
+                        email = 'qa-team@internal.com'
                     }
                 }
             }
@@ -175,6 +175,14 @@ publishing {
 
     repositories {
         mavenLocal()
+        maven {
+            name = "GitHubPackages"
+            url  = uri("https://maven.pkg.github.com/avenero/qa-framework-core")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") ?: ""
+                password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.token") ?: ""
+            }
+        }
     }
 }
 
@@ -185,17 +193,17 @@ tasks.register('publishInfo') {
         ╔════════════════════════════════════════════════════════════╗
         ║  INFORMACIÓN DE PUBLICACIÓN - api-core
         ╠════════════════════════════════════════════════════════════╣
-        ║  Group ID:    com.scotia.qa
+        ║  Group ID:    com.qa
         ║  Artifact ID: api-core
         ║  Version:     ${project.version}
         ║  
         ║  Maven Coordinates:
-        ║  com.scotia.qa:api-core:${project.version}
+        ║  com.qa:api-core:${project.version}
         ║
         ║  Para usar en tu proyecto de automatización:
         ║  
         ║  dependencies {
-        ║      implementation 'com.scotia.qa:api-core:${project.version}'
+        ║      implementation 'com.qa:api-core:${project.version}'
         ║  }
         ║
         ║  NOTA: Este JAR incluye transitivamente el módulo 'common'
@@ -207,7 +215,7 @@ tasks.register('publishInfo') {
 
 // Jacoco configuration para cobertura de código
 jacoco {
-    toolVersion = "0.8.8"
+    toolVersion = "0.8.11"
 }
 
 jacocoTestReport {

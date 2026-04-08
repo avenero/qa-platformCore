@@ -1,362 +1,625 @@
-# 📱 Mobile Core Layer - Testing de Aplicaciones Móviles
+# 📱 mobile-core — Capa de Pruebas de Apps Móviles
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Appium](https://img.shields.io/badge/Appium-9.1.0-purple.svg)](https://appium.io/)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)]()
-
-> Capa especializada para testing de aplicaciones móviles (Android/iOS). Proporciona steps de Cucumber, gestión de Appium y utilidades para automatizar pruebas en dispositivos y emuladores.
+> **Versión:** 2.0.0 | **Grupo:** `com.qa` | **Artefacto:** `mobile-core`  
+> **Estado:** 🔄 Beta — Estructura completa implementada, en consolidación  
+> **Última actualización:** Abril 2026  
+> **Autor:** Abel Venero
 
 ---
 
 ## 📑 Índice
 
-- [Visión General](#visión-general)
-- [Características](#características)
-- [Arquitectura](#arquitectura)
-- [Steps Disponibles](#steps-disponibles)
-- [Plataformas Soportadas](#plataformas-soportadas)
-- [Ejemplos de Uso](#ejemplos-de-uso)
-- [Configuración](#configuración)
-- [Integración con Módulos](#integración-con-módulos)
-- [Referencia Rápida](#referencia-rápida)
+1. [¿Qué es mobile-core en palabras simples?](#1-qué-es-mobile-core-en-palabras-simples)
+2. [Conceptos clave antes de empezar](#2-conceptos-clave-antes-de-empezar)
+3. [El lugar de mobile-core en el framework](#3-el-lugar-de-mobile-core-en-el-framework)
+4. [Mapa completo del módulo](#4-mapa-completo-del-módulo)
+5. [Los 10 Componentes de Steps](#5-los-10-componentes-de-steps)
+6. [Catálogo de Steps por Categoría](#6-catálogo-de-steps-por-categoría)
+7. [Flujo completo de una prueba Mobile](#7-flujo-completo-de-una-prueba-mobile)
+8. [Plataformas soportadas (Android e iOS)](#8-plataformas-soportadas-android-e-ios)
+9. [Ejemplos prácticos](#9-ejemplos-prácticos)
+10. [Configuración y prerequisitos](#10-configuración-y-prerequisitos)
+11. [Estado actual y roadmap](#11-estado-actual-y-roadmap)
+12. [Troubleshooting](#12-troubleshooting)
 
 ---
 
-## Visión General
+## 1. ¿Qué es mobile-core en palabras simples?
 
-**Mobile-Core** es la capa especializada del framework para **testing de aplicaciones móviles**. Se construye sobre **Common Layer** y proporciona:
+Imagina que tienes una aplicación bancaria instalada en un teléfono celular y necesitas verificar que cuando el usuario inicia sesión, la app muestra correctamente el saldo de su cuenta. Para hacerlo manualmente habría que: encender el teléfono (o emulador), abrir la app, escribir usuario y contraseña, tocar el botón de ingresar, verificar que aparece el saldo correcto… y repetir esto cada vez que haya un cambio en la app.
 
-✅ **Steps de Cucumber** para interacciones móviles
-✅ **Gestión de Appium** (Android e iOS)
-✅ **Soporte para emuladores** y dispositivos reales
-✅ **Gestos móviles** (swipe, scroll, tap, long press)
-✅ **Manejo de permisos** y notificaciones
-✅ **Capturas de pantalla** en dispositivos
-✅ **Integración con ScenarioContext** para compartir datos
+**mobile-core** es el asistente que hace eso automáticamente. A través de **Appium** (una herramienta especializada), puede:
 
-### Dependencias
+- **Conectarse a un dispositivo** Android o iOS real, o a un emulador/simulador
+- **Abrir la aplicación** bajo prueba
+- **Tocar elementos** en la pantalla (botones, campos, ítems de listas)
+- **Escribir texto** en campos
+- **Realizar gestos** (swipe hacia arriba/abajo, scroll, presión larga)
+- **Cambiar de contexto** entre la app nativa y vistas web dentro de la app
+- **Verificar** que lo que aparece en pantalla es lo esperado
+- **Manejar permisos** (aceptar o denegar permisos del sistema)
+
+Todo eso, siguiendo instrucciones escritas en español:
+
+```gherkin
+@mobile @android @smoke
+Scenario: Login exitoso en la app muestra el home
+  Given inicio la aplicacion movil
+  When ingreso el texto "usuario@empresa.com" en el campo movil "emailField"
+  And ingreso el texto "MiPassword@2026!" en el campo movil "passwordField"
+  And toco el elemento movil "loginButton"
+  Then el elemento movil "homeScreen" debe ser visible
+  And el texto del elemento movil "bienvenidaMensaje" debe contener "Bienvenido"
+```
+
+---
+
+## 2. Conceptos Clave Antes de Empezar
+
+### 📱 ¿Qué es Appium?
+
+Appium es la herramienta que permite controlar apps móviles desde código Java, de manera similar a como Selenium controla navegadores web. Actúa como intermediario entre el código de la prueba y el dispositivo/emulador.
 
 ```
-mobile-core
-    └── common (automática)
-        ├── Logging (TestLogger)
-        ├── Config (ConfigManager)
-        ├── ScenarioContext
-        └── WaitUtils
+Código Java (test) → Appium Server → Dispositivo Android/iOS
 ```
 
----
+Appium necesita ejecutarse como un servidor antes de que corra el test.
 
-## Características
+### 🤖 ¿UiAutomator2 y XCUITest?
 
-### 🎯 Steps de Cucumber
+Son los "motores" que Appium usa para interactuar con las apps:
+- **UiAutomator2** → para Android (creado por Google)
+- **XCUITest** → para iOS (creado por Apple, solo funciona en macOS)
 
-Mobile-Core proporciona **+45 steps** específicos para mobile:
+### 🖥️ ¿Emulador vs Dispositivo Real?
 
-#### Navegación Mobile
-- `Dado que inicio la aplicación móvil`
-- `Cuando hago tap en el elemento móvil "..."`
-- `Y deslizo hacia arriba`
+- **Emulador** (Android) / **Simulador** (iOS): Un dispositivo virtual que corre en tu computadora. Más fácil de configurar.
+- **Dispositivo real**: Un teléfono físico conectado por USB. Más cercano a la realidad del usuario.
 
-#### Interacción Mobile
-- `Cuando ingreso el texto "..." en el campo móvil "..."`
-- `Y hago swipe en el elemento "..." hacia la dirección "..."`
-- `Y mantengo presionado el elemento "..."`
+### 🔄 ¿Contexto Nativo vs WebView?
 
-#### Validaciones
-- `Entonces debo ver el elemento móvil "..."`
-- `Y el texto del elemento móvil "..." debe ser "..."`
-- `Y el elemento móvil "..." debe estar habilitado`
+Algunas apps son "híbridas" — tienen partes nativas (controles del sistema operativo) y partes que son páginas web incrustadas (WebView). mobile-core puede cambiar entre estos dos contextos para interactuar con ambas partes.
 
-#### Gestos
-- `Cuando hago scroll hasta el elemento "..."`
-- `Y deslizo desde "..." hasta "..."`
+### 🎯 ¿Qué es un locator móvil?
+
+Es la "dirección" de un elemento en la pantalla del dispositivo. Los más comunes son:
+- **Android**: `resource-id` (ej: `com.mi.app:id/loginButton`), `accessibility id`, `text`
+- **iOS**: `accessibility id`, `class chain`, `predicate string`
 
 ---
 
-## Arquitectura
+## 3. El Lugar de mobile-core en el Framework
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│              qa-frameworks-core                               │
+│                                                              │
+│  ┌──────────┐  ┌─────────────────────────────────────────┐  │
+│  │  common  │  │           mobile-core                   │  │
+│  │          │◄─┤                                         │  │
+│  │ Runtime  │  │  MobilePlugin      MobileHelper (*)     │  │
+│  │ Config   │  │  10 components     GestureUtils (*)     │  │
+│  │ Logging  │  │  Steps (4 pkg)     MobileDriverFactory  │  │
+│  │ HTTP     │  │                                         │  │
+│  └──────────┘  └─────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+          ▲
+          │ importa como librería
+┌─────────────────────────────────────────────────────────────┐
+│  Tu proyecto de pruebas Mobile                               │
+│  • features/mobile/*.feature (Gherkin)                       │
+│  • ScreenManager (locators de pantallas) (*)                 │
+│  • config-app.properties (Appium, device, app path)         │
+└─────────────────────────────────────────────────────────────┘
+
+(*) En proceso de implementación
+```
+
+**mobile-core aporta:**
+- Los ~60 steps en español para controlar apps móviles
+- El `MobilePlugin` que se activa con los tags `@mobile`, `@android`, `@ios`, `@appium`
+- 10 componentes organizados por responsabilidad
+- El `MobileDriverFactory` para crear el driver Appium correcto
+
+**mobile-core NO hace:**
+- No conoce los locators de tu app (eso lo define tu proyecto)
+- No prueba APIs (eso es `api-core`)
+- No prueba navegadores web (eso es `web-core`)
+- No requiere modificar el código fuente de la app
+
+---
+
+## 4. Mapa Completo del Módulo
 
 ```
 mobile-core/
-├── src/main/java/com/scotia/qa/mobilecore/
-│   ├── steps/
-│   │   └── MobileSteps.java           ← Steps de Cucumber
-│   │
-│   ├── driver/
-│   │   ├── AppiumDriverManager.java   ← Gestión de drivers
-│   │   └── DriverFactory.java         ← Factory para crear drivers
-│   │
-│   ├── utils/
-│   │   ├── MobileHelper.java          ← Utilidades mobile
-│   │   ├── GestureUtils.java          ← Gestos (swipe, scroll)
-│   │   └── ScreenshotUtils.java       ← Capturas
-│   │
-│   └── capabilities/
-│       ├── AndroidCapabilities.java   ← Capabilities Android
-│       └── IOSCapabilities.java       ← Capabilities iOS
-│
-└── src/main/resources/
-    └── apps/                           ← APKs/IPAs de prueba
-```
-
-### Flujo de Ejecución
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│  FEATURE (Gherkin)                                             │
-│  @mobile                                                       │
-│  Escenario: Login en app móvil                                │
-│    Dado que inicio la aplicación móvil                        │
-│    Cuando ingreso "user" en el campo móvil "username"         │
-│    Y hago tap en el elemento móvil "loginButton"              │
-│    Entonces debo ver el elemento móvil "homeScreen"           │
-└────────────────────────────────────────────────────────────────┘
-                             ↓
-┌────────────────────────────────────────────────────────────────┐
-│  MOBILE-CORE (MobileSteps.java)                                │
-│  • Obtiene AppiumDriver de DriverManager                      │
-│  • Localiza elementos móviles                                 │
-│  • Ejecuta acciones (tap, sendKeys, swipe)                    │
-│  • Aplica waits específicos de mobile                         │
-│  • Guarda datos en ScenarioContext                            │
-└────────────────────────────────────────────────────────────────┘
-                             ↓
-┌────────────────────────────────────────────────────────────────┐
-│  APPIUM                                                        │
-│  • Controla el dispositivo/emulador                           │
-│  • Ejecuta gestos nativos                                     │
-│  • Captura screenshots                                        │
-│  • Maneja permisos y notificaciones                           │
-└────────────────────────────────────────────────────────────────┘
+└── src/main/java/com/qa/mobilecore/
+    │
+    ├── plugin/
+    │   └── MobilePlugin.java              ← PUERTA DE ENTRADA: activa la capa Mobile
+    │
+    ├── components/                        ← CATÁLOGO DE 10 CAPACIDADES (metadatos)
+    │   ├── AppManagementComponent.java    ← Gestión de la app (iniciar, cerrar, reinstalar)
+    │   ├── DeviceConfigComponent.java     ← Configuración del dispositivo/emulador
+    │   ├── GestureComponent.java          ← Gestos (swipe, scroll, tap, long press)
+    │   ├── NativeElementComponent.java    ← Interacción con elementos nativos
+    │   ├── ContextSwitchComponent.java    ← Cambiar entre Native y WebView
+    │   ├── DevicePermissionComponent.java ← Permisos del sistema (cámara, ubicación, etc.)
+    │   ├── NotificationComponent.java     ← Manejo de notificaciones push
+    │   ├── SensorComponent.java           ← Simulación de sensores (GPS, batería, etc.)
+    │   ├── MobileElementValidationComponent.java ← Validar elementos en pantalla
+    │   └── AppStateValidationComponent.java      ← Validar estado de la app
+    │
+    ├── steps/                             ← LOS STEPS BDD
+    │   ├── MobileHooksSteps.java          ← Cierre automático del driver al terminar
+    │   ├── config/
+    │   │   ├── AppManagementSteps.java    ← GIVEN: iniciar/cerrar/resetear la app
+    │   │   └── DeviceConfigSteps.java     ← GIVEN: configurar dispositivo/emulador
+    │   ├── interaction/
+    │   │   ├── GestureSteps.java          ← WHEN: gestos (swipe, scroll, tap)
+    │   │   ├── NativeElementSteps.java    ← WHEN: tocar, escribir en elementos
+    │   │   └── ContextSwitchSteps.java    ← WHEN: cambiar entre Native y WebView
+    │   ├── device/
+    │   │   ├── DevicePermissionSteps.java ← WHEN: aceptar/denegar permisos del sistema
+    │   │   ├── NotificationSteps.java     ← WHEN: interactuar con notificaciones
+    │   │   └── SensorSteps.java           ← WHEN: simular GPS, batería, etc.
+    │   └── validation/
+    │       ├── MobileElementValidationSteps.java ← THEN: validar elementos en pantalla
+    │       └── AppStateValidationSteps.java      ← THEN: validar estado de la app
+    │
+    └── driver/
+        └── MobileDriverFactory.java       ← Crea el AppiumDriver (Android o iOS)
 ```
 
 ---
 
-## Steps Disponibles
+## 5. Los 10 Componentes de Steps
 
-### Categoría: Inicialización
+### 🔵 GIVEN — Configuración (2 componentes)
 
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Dado que inicio la aplicación móvil` | Inicia la app | `Dado que inicio la aplicación móvil` |
-| `Y reinicio la aplicación` | Reinicia la app | `Y reinicio la aplicación` |
-| `Y cierro la aplicación` | Cierra la app | `Y cierro la aplicación` |
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Preparan la app y el dispositivo antes de la prueba             │
+├──────────────────────┬───────────────────────────────────────────┤
+│ 1. AppManagement     │ ¿Cómo iniciar la app?                    │
+│                      │ Iniciar, cerrar, reinstalar, limpiar datos│
+├──────────────────────┼───────────────────────────────────────────┤
+│ 2. DeviceConfig      │ ¿Qué dispositivo usar?                   │
+│                      │ Android/iOS, emulador/real, versión OS    │
+└──────────────────────┴───────────────────────────────────────────┘
+```
 
-### Categoría: Interacción
+### 🟡 WHEN — Acción (6 componentes)
 
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Cuando hago tap en el elemento móvil {string}` | Tap en elemento | `Cuando hago tap en el elemento móvil "loginButton"` |
-| `Cuando ingreso el texto {string} en el campo móvil {string}` | Escribe texto | `Cuando ingreso el texto "usuario" en el campo móvil "username"` |
-| `Y mantengo presionado el elemento {string}` | Long press | `Y mantengo presionado el elemento "menuItem"` |
-| `Y hago doble tap en el elemento {string}` | Double tap | `Y hago doble tap en el elemento "image"` |
+```
+┌───────────────────────────────────────────────────────────────────┐
+│  Acciones sobre la app y el dispositivo                            │
+├──────────────────────┬────────────────────────────────────────────┤
+│ 3. Gesture           │ Swipe, scroll, tap, doble tap, long press  │
+├──────────────────────┼────────────────────────────────────────────┤
+│ 4. NativeElement     │ Tocar elemento, escribir texto, limpiar    │
+├──────────────────────┼────────────────────────────────────────────┤
+│ 5. ContextSwitch     │ Cambiar entre app nativa y webview         │
+├──────────────────────┼────────────────────────────────────────────┤
+│ 6. DevicePermission  │ Aceptar/denegar permisos del sistema       │
+├──────────────────────┼────────────────────────────────────────────┤
+│ 7. Notification      │ Abrir bandeja, tocar notificación          │
+├──────────────────────┼────────────────────────────────────────────┤
+│ 8. Sensor            │ Simular ubicación GPS, nivel de batería    │
+└──────────────────────┴────────────────────────────────────────────┘
+```
 
-### Categoría: Gestos
+### 🟢 THEN — Validación (2 componentes)
 
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Cuando deslizo hacia arriba` | Swipe up | `Cuando deslizo hacia arriba` |
-| `Y deslizo hacia abajo` | Swipe down | `Y deslizo hacia abajo` |
-| `Y deslizo hacia la izquierda` | Swipe left | `Y deslizo hacia la izquierda` |
-| `Y deslizo hacia la derecha` | Swipe right | `Y deslizo hacia la derecha` |
-| `Y hago scroll hasta el elemento {string}` | Scroll to element | `Y hago scroll hasta el elemento "submitButton"` |
-
-### Categoría: Validaciones
-
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Entonces debo ver el elemento móvil {string}` | Verifica existencia | `Entonces debo ver el elemento móvil "welcomeMessage"` |
-| `Y el texto del elemento móvil {string} debe ser {string}` | Valida texto | `Y el texto del elemento móvil "title" debe ser "Dashboard"` |
-| `Y el elemento móvil {string} debe estar habilitado` | Verifica estado | `Y el elemento móvil "submitButton" debe estar habilitado` |
-
-### Categoría: Manejo de Permisos
-
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Y acepto los permisos de la aplicación` | Acepta permisos | `Y acepto los permisos de la aplicación` |
-| `Y deniego los permisos de la aplicación` | Deniega permisos | `Y deniego los permisos de la aplicación` |
+```
+┌───────────────────────────────────────────────────────────────────┐
+│  Verifican que la app muestra y hace lo correcto                  │
+├──────────────────────────┬────────────────────────────────────────┤
+│ 9. MobileElementValidation│ ¿El elemento existe? ¿Tiene ese texto?│
+│                            │ ¿Está habilitado? ¿Está visible?      │
+├──────────────────────────┼────────────────────────────────────────┤
+│ 10. AppStateValidation   │ ¿La app está en foreground/background? │
+│                          │ ¿La pantalla X está activa?            │
+└──────────────────────────┴────────────────────────────────────────┘
+```
 
 ---
 
-## Plataformas Soportadas
+## 6. Catálogo de Steps por Categoría
+
+### 📱 Gestión de la App (`AppManagementSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `Given inicio la aplicacion movil` | Inicia la app con la configuración de Appium |
+| `Given reinicio la aplicacion movil` | Cierra y vuelve a abrir la app |
+| `Given cierro la aplicacion movil` | Cierra la app (no la desinstala) |
+| `Given limpio los datos de la aplicacion movil` | Resetea el estado de la app (como reinstalar) |
+| `Given pongo la aplicacion en segundo plano por {int} segundos` | Minimiza la app N segundos y vuelve |
+
+### ⚙️ Configuración del Dispositivo (`DeviceConfigSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `Given configuro el dispositivo movil {string} con plataforma {string}` | Establece el dispositivo y plataforma para la sesión |
+| `Given configuro la orientacion del dispositivo como {string}` | `"portrait"` o `"landscape"` |
+| `Given bloqueo el dispositivo` | Bloquea la pantalla |
+| `Given desbloqueo el dispositivo` | Desbloquea la pantalla |
+
+### 👆 Gestos (`GestureSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When toco el elemento movil {string}` | Tap simple en el elemento |
+| `When hago doble tap en el elemento movil {string}` | Doble tap en el elemento |
+| `When mantengo presionado el elemento movil {string}` | Long press (presión larga) |
+| `When deslizo hacia arriba` | Swipe up en el centro de la pantalla |
+| `When deslizo hacia abajo` | Swipe down en el centro de la pantalla |
+| `When deslizo hacia la izquierda` | Swipe left (típico para ir a la siguiente pantalla) |
+| `When deslizo hacia la derecha` | Swipe right (típico para volver) |
+| `When hago scroll hasta el elemento movil {string}` | Scrollea hasta que el elemento sea visible |
+| `When deslizo el elemento movil {string} hacia {string}` | Swipe en dirección específica sobre un elemento |
+
+### ✍️ Elementos Nativos (`NativeElementSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When ingreso el texto {string} en el campo movil {string}` | Escribe el texto en el campo |
+| `When limpio el campo movil {string}` | Borra el contenido del campo |
+| `When selecciono el item {string} de la lista {string}` | Selecciona un ítem de una lista/picker |
+| `When presiono el boton nativo {string}` | Presiona botones nativos del sistema (Back, Home, etc.) |
+
+### 🔄 Cambio de Contexto (`ContextSwitchSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When cambio al contexto nativo` | Vuelve al contexto NATIVE de la app |
+| `When cambio al contexto web` | Cambia al primer contexto WebView disponible |
+| `When cambio al contexto {string}` | Cambia a un contexto específico por nombre |
+
+### 🔐 Permisos del Sistema (`DevicePermissionSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When acepto el permiso del sistema` | Toca "Permitir" en el popup de permisos |
+| `When deniego el permiso del sistema` | Toca "Denegar" en el popup de permisos |
+| `When acepto el permiso {string}` | Acepta un permiso específico (cámara, ubicación, etc.) |
+| `When deniego el permiso {string}` | Deniega un permiso específico |
+
+### 🔔 Notificaciones (`NotificationSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When abro la bandeja de notificaciones` | Desliza desde arriba para ver notificaciones |
+| `When toco la notificacion {string}` | Toca una notificación específica por texto |
+| `When cierro la bandeja de notificaciones` | Cierra la bandeja de notificaciones |
+
+### 📡 Sensores (`SensorSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When simulo la ubicacion GPS con latitud {double} y longitud {double}` | Establece ubicación GPS falsa |
+| `When simulo el nivel de bateria al {int} por ciento` | Simula nivel de batería (emulador) |
+| `When simulo modo avion {string}` | Activa/desactiva modo avión |
+
+### ✅ Validación de Elementos (`MobileElementValidationSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `Then el elemento movil {string} debe ser visible` | Falla si el elemento no está visible |
+| `Then el elemento movil {string} no debe ser visible` | Falla si el elemento SÍ está visible |
+| `Then el elemento movil {string} debe estar habilitado` | Falla si el elemento está deshabilitado |
+| `Then el texto del elemento movil {string} debe ser {string}` | Valida texto exacto |
+| `Then el texto del elemento movil {string} debe contener {string}` | Valida que contiene el texto |
+| `Then el atributo {string} del elemento movil {string} debe ser {string}` | Valida un atributo del elemento |
+
+### 📊 Validación del Estado de la App (`AppStateValidationSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `Then la aplicacion debe estar en primer plano` | Verifica que la app está activa |
+| `Then la aplicacion debe estar en segundo plano` | Verifica que la app está minimizada |
+| `Then la pantalla actual debe ser {string}` | Verifica la pantalla activa por identificador |
+
+---
+
+## 7. Flujo Completo de una Prueba Mobile
+
+Sigamos el viaje de este escenario de principio a fin:
+
+```gherkin
+@mobile @android @smoke
+Scenario: Login exitoso muestra el balance de cuenta
+  Given inicio la aplicacion movil
+  When ingreso el texto "usuario@empresa.com" en el campo movil "emailField"
+  And ingreso el texto "MiPassword@2026!" en el campo movil "passwordField"
+  And toco el elemento movil "loginButton"
+  Then el elemento movil "homeScreen" debe ser visible
+  And el texto del elemento movil "welcomeLabel" debe contener "Bienvenido"
+```
+
+### Paso 0: El motor activa MobilePlugin
+
+`ScenarioExecutionHooks.@Before` detecta `@mobile` (y opcionalmente `@android`) → activa `MobilePlugin` → registra el driver Appium en `ServiceRegistry` (lazy).
+
+### Paso 1: `Given inicio la aplicacion movil`
+
+```
+AppManagementSteps.iniciarApp()
+    │
+    ▼
+MobileDriverFactory.createDriver(plataforma, capabilities)
+    │
+    ├── Lee de config: appium.server.url, mobile.app.path,
+    │                  mobile.platform, mobile.device.name,
+    │                  mobile.platform.version
+    │
+    ├── Construye AndroidDriver con UiAutomator2Capabilities:
+    │     {
+    │       platformName: "Android",
+    │       deviceName: "Pixel_6_API_33",
+    │       app: "/ruta/app-debug.apk",
+    │       automationName: "UiAutomator2"
+    │     }
+    │
+    ├── Se conecta al servidor Appium en http://localhost:4723
+    ├── Appium instala la app en el emulador/dispositivo
+    └── Retorna AndroidDriver listo para usar
+    │
+    ▼
+Log: "✅ App iniciada en Android | device: Pixel_6_API_33"
+```
+
+### Paso 2: `When ingreso el texto "usuario@empresa.com" en el campo movil "emailField"`
+
+```
+NativeElementSteps.ingresarTextoEnCampo("usuario@empresa.com", "emailField")
+    │
+    ▼
+driver.findElement(By.accessibilityId("emailField"))
+    → Espera hasta 30s que el campo aparezca
+    → element.sendKeys("usuario@empresa.com")
+    │
+    ▼
+Log: "✅ Texto ingresado en campo 'emailField'"
+```
+
+### Paso 3: `When toco el elemento movil "loginButton"`
+
+```
+GestureSteps.tocarElemento("loginButton")
+    │
+    ▼
+driver.findElement(By.id("com.empresa.app:id/loginButton"))
+    → Espera hasta que sea visible
+    → element.click()  (en mobile, click = tap)
+    │
+    ▼
+App procesa login → navega a la pantalla Home
+```
+
+### Paso 4: `Then el elemento movil "homeScreen" debe ser visible`
+
+```
+MobileElementValidationSteps.elementoDebeSerVisible("homeScreen")
+    │
+    ▼
+driver.findElement(By.accessibilityId("homeScreen"))
+    → Verifica que el elemento existe y es visible
+    → ✅ PASA — El home screen apareció tras el login
+```
+
+### Fin del escenario ✅
+
+`MobileHooksSteps.@After` → `driver.quit()` → Cierra la sesión Appium → Listo.
+
+---
+
+## 8. Plataformas Soportadas (Android e iOS)
 
 ### Android
 
-**Requisitos:**
-- Android SDK instalado
-- Android Studio (para emuladores)
-- Appium instalado
+| Elemento | Detalle |
+|----------|---------|
+| **Versión mínima** | Android 8.0 (API 26) |
+| **Motor Appium** | UiAutomator2 |
+| **Locators recomendados** | `resource-id`, `accessibility id`, `text`, `class` |
+| **Emuladores** | Android Virtual Device (AVD) con Android Studio |
+| **Dispositivos reales** | Conectar por USB con depuración USB activada |
 
-**Capabilities típicas:**
-```java
-{
-  "platformName": "Android",
-  "platformVersion": "13.0",
-  "deviceName": "Pixel_5_API_33",
-  "app": "/path/to/app.apk",
-  "automationName": "UiAutomator2"
-}
+**Capabilities típicas para Android:**
+
+```properties
+# config-app.properties
+mobile.platform=Android
+mobile.device.name=Pixel_6_API_33
+mobile.platform.version=13.0
+mobile.automation.name=UiAutomator2
+mobile.app.path=${APP_PATH}
+appium.server.url=http://localhost:4723
 ```
 
 ### iOS
 
-**Requisitos:**
-- macOS con Xcode
-- iOS Simulator
-- Appium instalado
+| Elemento | Detalle |
+|----------|---------|
+| **Versión mínima** | iOS 14.0 |
+| **Motor Appium** | XCUITest |
+| **Requisito del sistema** | Solo macOS con Xcode |
+| **Locators recomendados** | `accessibility id`, `class chain`, `predicate string` |
+| **Simuladores** | Xcode iOS Simulator |
+| **Dispositivos reales** | Requiere certificado de desarrollador Apple |
 
-**Capabilities típicas:**
-```java
-{
-  "platformName": "iOS",
-  "platformVersion": "16.0",
-  "deviceName": "iPhone 14",
-  "app": "/path/to/app.ipa",
-  "automationName": "XCUITest"
-}
-```
-
----
-
-## Ejemplos de Uso
-
-### Ejemplo 1: Login en App Móvil
-
-```gherkin
-@mobile @test
-Escenario: Login exitoso en app móvil
-  Dado que inicio la aplicación móvil
-  Cuando ingreso el texto "testuser" en el campo móvil "username"
-  Y ingreso el texto "Test123" en el campo móvil "password"
-  Y hago tap en el elemento móvil "loginButton"
-  Entonces debo ver el elemento móvil "homeScreen"
-  Y el texto del elemento móvil "welcomeMessage" debe contener "Bienvenido"
-```
-
-### Ejemplo 2: Navegación con Gestos
-
-```gherkin
-@mobile @test
-Escenario: Navegar por la app
-  Dado que inicio la aplicación móvil
-  Cuando hago tap en el elemento móvil "menuButton"
-  Y espero 2 segundos
-  Y deslizo hacia arriba
-  Y hago scroll hasta el elemento "settingsOption"
-  Y hago tap en el elemento móvil "settingsOption"
-  Entonces debo ver el elemento móvil "settingsScreen"
-```
-
-### Ejemplo 3: Formulario Móvil
-
-```gherkin
-@mobile @test
-Escenario: Completar formulario en app
-  Dado que inicio la aplicación móvil
-  Cuando hago tap en el elemento móvil "newFormButton"
-  Y ingreso el texto "Juan Pérez" en el campo móvil "fullName"
-  Y ingreso el texto "juan@test.com" en el campo móvil "email"
-  Y hago scroll hasta el elemento "phoneField"
-  Y ingreso el texto "1234567890" en el campo móvil "phoneField"
-  Y hago tap en el elemento móvil "submitButton"
-  Entonces debo ver el elemento móvil "successMessage"
-```
-
-### Ejemplo 4: Integración con API (Cross-Layer)
-
-```gherkin
-@api @mobile
-Escenario: Crear usuario por API y validar en App
-  # Crear usuario por API
-  Dado que tengo el endpoint "/users"
-  Y agrego el request:
-    """
-    {
-      "name": "Test User",
-      "email": "test@example.com"
-    }
-    """
-  Cuando ejecuto una petición POST
-  Entonces el código de respuesta debe ser 201
-  Y guardo el valor del campo "id" en variable "userId"
-  
-  # Validar en app móvil
-  Dado que inicio la aplicación móvil
-  Cuando hago tap en el elemento móvil "searchButton"
-  Y ingreso el texto "{userId}" en el campo móvil "searchInput"
-  Y hago tap en el elemento móvil "searchSubmit"
-  Entonces el texto del elemento móvil "userName" debe ser "Test User"
-```
-
----
-
-## Configuración
-
-### Prerequisitos
-
-**1. Instalar Appium:**
-
-```bash
-# Usando npm
-npm install -g appium
-
-# Verificar instalación
-appium --version
-```
-
-**2. Instalar drivers:**
-
-```bash
-# Driver Android
-appium driver install uiautomator2
-
-# Driver iOS (solo macOS)
-appium driver install xcuitest
-```
-
-### En el Módulo
-
-**1. Agregar dependencia en `build.gradle`:**
-
-```groovy
-dependencies {
-    testImplementation 'com.scotia.qa:mobile-core:1.0.0'
-    // common se incluye automáticamente
-}
-```
-
-**2. Configurar en `config-scotia.properties`:**
+**Capabilities típicas para iOS:**
 
 ```properties
-# Mobile Testing
-mobile.platform=Android
-mobile.device.name=Pixel_5_API_33
-mobile.platform.version=13.0
-mobile.app.path=${{APP_PATH}}
-mobile.automation.name=UiAutomator2
+# config-app.properties
+mobile.platform=iOS
+mobile.device.name=iPhone 15
+mobile.platform.version=17.0
+mobile.automation.name=XCUITest
+mobile.app.path=${IOS_APP_PATH}
 appium.server.url=http://localhost:4723
 ```
 
-**3. Configurar variables en `.env.local`:**
+### Diferencias importantes entre Android e iOS
 
-```bash
-APP_PATH=/Users/tu-usuario/apps/app-debug.apk
-PLATFORM=Android
+| Aspecto | Android | iOS |
+|---------|---------|-----|
+| Locator principal | `resource-id` | `accessibility id` |
+| Botón Atrás | Hardware/software | Gesto de swipe |
+| Permisos | Popup en runtime | Se piden en primera ejecución |
+| Modo emulador | AVD (Android Studio) | Xcode Simulator |
+| Host requerido | Windows/Mac/Linux | Solo macOS |
+
+---
+
+## 9. Ejemplos Prácticos
+
+### Ejemplo 1: Login Básico Android
+
+```gherkin
+@mobile @android @smoke
+Scenario: Login exitoso con credenciales válidas
+  Given inicio la aplicacion movil
+  When ingreso el texto "admin@empresa.com" en el campo movil "emailInput"
+  And ingreso el texto "Admin@2026!" en el campo movil "passwordInput"
+  And toco el elemento movil "btnLogin"
+  Then el elemento movil "dashboardScreen" debe ser visible
+  And el texto del elemento movil "welcomeText" debe contener "Bienvenido"
 ```
 
-**4. Agregar glue en `RunCucumberTest.java`:**
+### Ejemplo 2: Navegar con Gestos
 
-```java
-@ConfigurationParameter(
-    key = "cucumber.glue",
-    value = "com.scotia.qa.mobilecore, com.scotia.qa.common, com.tu.proyecto.steps"
-)
+```gherkin
+@mobile @android @regression
+Scenario: Navegar por la lista de transacciones
+  Given inicio la aplicacion movil
+  When toco el elemento movil "menuTransacciones"
+  Then el elemento movil "listaTransacciones" debe ser visible
+  When deslizo hacia arriba
+  And deslizo hacia arriba
+  And hago scroll hasta el elemento movil "transaccionMasAntigua"
+  Then el elemento movil "transaccionMasAntigua" debe ser visible
 ```
 
-### Iniciar Appium Server
+### Ejemplo 3: Flujo con Permisos
+
+```gherkin
+@mobile @android @regression
+Scenario: Activar notificaciones de la app
+  Given inicio la aplicacion movil
+  When toco el elemento movil "btnActivarNotificaciones"
+  And acepto el permiso del sistema
+  Then el texto del elemento movil "estadoNotificaciones" debe ser "Activadas"
+```
+
+### Ejemplo 4: App Híbrida con WebView
+
+```gherkin
+@mobile @android @regression
+Scenario: Verificar el contenido de la sección de ayuda (WebView)
+  Given inicio la aplicacion movil
+  When toco el elemento movil "menuAyuda"
+  And cambio al contexto web
+  Then la URL debe contener "ayuda"
+  And el texto del elemento movil "tituloPagina" debe contener "Centro de Ayuda"
+  When cambio al contexto nativo
+  Then el elemento movil "btnVolver" debe ser visible
+```
+
+### Ejemplo 5: Prueba con GPS simulado
+
+```gherkin
+@mobile @android @regression
+Scenario: La app muestra sucursales cercanas según ubicación
+  Given inicio la aplicacion movil
+  When simulo la ubicacion GPS con latitud -33.4489 y longitud -70.6693
+  And toco el elemento movil "btnSucursalesCercanas"
+  Then el elemento movil "listaSucursales" debe ser visible
+  And el texto del elemento movil "primerasSucursal" debe contener "Santiago"
+```
+
+### Ejemplo 6: Prueba Híbrida API + Mobile
+
+```gherkin
+@api @mobile @android @e2e
+Scenario: Crear transacción por API y verificar en la app
+  # Crear transacción via API
+  Given configuro endpoint con base "https://api.empresa.com/" y path "api/transactions"
+  And agrego autenticacion Client Credentials
+  And agrego el header "Content-Type" con valor "application/json"
+  And agrego el request
+    """
+    { "monto": 50000, "concepto": "Pago prueba QA", "destinatario": "12345678" }
+    """
+  When ejecuto la consulta con el metodo "POST"
+  Then valido que el codigo de respuesta del servicio sea 201
+  And el resultado almaceno el valor que está dentro de la estructura "transactionId" en "txId"
+
+  # Verificar en la app mobile
+  Given inicio la aplicacion movil
+  When toco el elemento movil "menuTransacciones"
+  And ingreso el texto "${txId}" en el campo movil "buscadorTransacciones"
+  And toco el elemento movil "btnBuscar"
+  Then el elemento movil "detalleTransaccion" debe ser visible
+  And el texto del elemento movil "conceptoTransaccion" debe contener "Pago prueba QA"
+```
+
+---
+
+## 10. Configuración y Prerequisitos
+
+### Software requerido
+
+#### Siempre requerido
 
 ```bash
-# Iniciar servidor Appium
+# 1. Node.js y Appium 2.x
+npm install -g appium
+appium --version  # Verificar: debe mostrar 2.x.x
+
+# 2. Appium Inspector (para encontrar locators)
+# Descargar desde: https://github.com/appium/appium-inspector/releases
+```
+
+#### Para Android
+
+```bash
+# 3. Android Studio (incluye AVD Manager y Android SDK)
+# Descargar desde: https://developer.android.com/studio
+
+# 4. Driver de Appium para Android
+appium driver install uiautomator2
+
+# 5. Verificar que el emulador está disponible
+emulator -list-avds
+
+# 6. Iniciar el emulador
+emulator -avd Pixel_6_API_33
+
+# 7. Verificar que Appium lo detecta
+adb devices  # Debe mostrar el emulador
+```
+
+#### Para iOS (solo macOS)
+
+```bash
+# 3. Xcode con Command Line Tools
+xcode-select --install
+
+# 4. Driver de Appium para iOS
+appium driver install xcuitest
+
+# 5. Iniciar simulador
+open -a Simulator
+```
+
+### Iniciar el servidor Appium
+
+```bash
+# Iniciar Appium
 appium
 
 # Output esperado:
@@ -364,150 +627,173 @@ appium
 # [Appium] Appium REST http interface listener started on http://0.0.0.0:4723
 ```
 
----
+### Dependencia en `build.gradle`
 
-## Integración con Módulos
-
-### Estructura Típica
-
-```
-qa-module-tu-app-mobile/
-├── src/test/
-│   ├── java/
-│   │   └── com/tu/proyecto/
-│   │       ├── RunCucumberTest.java
-│   │       ├── screens/
-│   │       │   ├── LoginScreen.java      ← Screen Objects
-│   │       │   └── HomeScreen.java
-│   │       └── steps/
-│   │           └── CustomSteps.java
-│   │
-│   └── resources/
-│       ├── features/
-│       │   └── mobile/
-│       │       ├── login.feature
-│       │       └── navigation.feature
-│       │
-│       ├── apps/
-│       │   └── app-debug.apk            ← APK de prueba
-│       │
-│       └── config-scotia.properties
-│
-├── .env.local
-└── build.gradle
+```groovy
+dependencies {
+    implementation 'com.qa:mobile-core:2.0.0'
+    // common se incluye automáticamente
+}
 ```
 
----
+### Archivo de configuración del proyecto
 
-## Referencia Rápida
+```properties
+# config-app.properties
 
-### Cheat Sheet de Steps Comunes
+# Configuración Appium
+appium.server.url=http://localhost:4723
 
-```gherkin
-# Inicialización
-Dado que inicio la aplicación móvil
+# Android
+mobile.platform=Android
+mobile.device.name=Pixel_6_API_33
+mobile.platform.version=13.0
+mobile.automation.name=UiAutomator2
+mobile.app.path=${ANDROID_APP_PATH}
 
-# Interacciones
-Cuando ingreso el texto "valor" en el campo móvil "inputId"
-Y hago tap en el elemento móvil "buttonId"
-
-# Gestos
-Y deslizo hacia arriba
-Y hago scroll hasta el elemento "elemento"
-
-# Validaciones
-Entonces debo ver el elemento móvil "successMessage"
-Y el texto del elemento móvil "title" debe ser "Dashboard"
+# iOS (comentar Android y descomentar esto para iOS)
+# mobile.platform=iOS
+# mobile.device.name=iPhone 15
+# mobile.platform.version=17.0
+# mobile.automation.name=XCUITest
+# mobile.app.path=${IOS_APP_PATH}
 ```
-
-### Locators Móviles
-
-**Android:**
-```xml
-<!-- resource-id -->
-<Button android:id="@+id/loginButton" />
-
-<!-- text -->
-<TextView android:text="Login" />
-
-<!-- content-desc -->
-<ImageView android:contentDescription="Logo" />
-```
-
-**iOS:**
-```xml
-<!-- accessibilityId -->
-<UIButton accessibilityIdentifier="loginButton" />
-
-<!-- label -->
-<UILabel text="Login" />
-```
-
----
-
-## 📚 Documentación Adicional
-
-- **[../FRAMEWORK-GUIDE.md](../FRAMEWORK-GUIDE.md)** - Arquitectura del framework
-- **[../QUICK-START.md](../QUICK-START.md)** - Guía de inicio rápido
-- **[../common/README.md](../common/README.md)** - Documentación de Common Layer
-- **[Appium Docs](https://appium.io/docs/en/latest/)** - Documentación oficial de Appium
-
----
-
-## 🐛 Troubleshooting
-
-### ❌ Appium server not running
-
-**Problema:** No se puede conectar a Appium.
-
-**Solución:** Iniciar servidor Appium:
 
 ```bash
+# .env.local
+ANDROID_APP_PATH=/ruta/absoluta/a/mi-app-debug.apk
+# IOS_APP_PATH=/ruta/absoluta/a/mi-app.ipa
+```
+
+### Runner de Cucumber
+
+```java
+@Suite
+@IncludeEngines("cucumber")
+@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME,
+    value = "com.qa.mobilecore, com.qa.common, com.mi.proyecto.steps")
+@ConfigurationParameter(key = Constants.FEATURES_PROPERTY_NAME,
+    value = "src/test/resources/features/mobile")
+public class RunMobileCucumberTest {}
+```
+
+---
+
+## 11. Estado Actual y Roadmap
+
+### ✅ Implementado en esta versión
+
+| Componente | Estado | Descripción |
+|-----------|--------|-------------|
+| `MobilePlugin.java` | ✅ | Plugin completo con 10 componentes y lifecycle |
+| 10 clases `*Component` | ✅ | Descriptores de metadatos para el catálogo |
+| `AppManagementSteps` | ✅ | Iniciar, cerrar, resetear app |
+| `DeviceConfigSteps` | ✅ | Configurar dispositivo y orientación |
+| `GestureSteps` | ✅ | Swipe, scroll, tap, long press |
+| `NativeElementSteps` | ✅ | Tocar, escribir en elementos nativos |
+| `ContextSwitchSteps` | ✅ | Cambiar entre NATIVE y WebView |
+| `DevicePermissionSteps` | ✅ | Aceptar/denegar permisos |
+| `NotificationSteps` | ✅ | Interactuar con notificaciones |
+| `SensorSteps` | ✅ | Simular GPS, batería, modo avión |
+| `MobileElementValidationSteps` | ✅ | Validar elementos en pantalla |
+| `AppStateValidationSteps` | ✅ | Validar estado de la app |
+| `MobileDriverFactory` | ✅ | Crea driver Appium (Android/iOS) |
+
+### 🔄 En proceso / Próximas mejoras
+
+| Pendiente | Descripción | Prioridad |
+|-----------|-------------|-----------|
+| **MobileHelper** | Fachada central (como WebHelper en web-core) para centralizar la lógica de interacción | Alta |
+| **Screen Objects** | Patrón equivalente a Page Objects para pantallas móviles | Alta |
+| **Tests de integración** | Pruebas de los steps con un app de ejemplo | Media |
+| **Deep Links** | Step para abrir la app en una pantalla específica via deep link | Media |
+| **Accessibility Snapshot** | Extraer y validar el árbol de accesibilidad completo | Baja |
+| **Video Recording** | Grabar video de la ejecución (útil para debugging) | Baja |
+
+### Métricas del módulo
+
+| Métrica | Valor |
+|---------|-------|
+| Archivos Java en producción | **20** |
+| Steps BDD implementados | **~60** steps en 8 clases |
+| Componentes declarados | **10** descriptores |
+| Plataformas soportadas | **2** (Android, iOS) |
+
+---
+
+## 12. Troubleshooting
+
+### ❌ Appium server not running — Connection refused
+
+**Problema:** El test no puede conectarse a Appium.
+
+**Solución:**
+```bash
+# Verificar que Appium está corriendo
 appium
+
+# Si no estaba corriendo, iniciarlo y volver a ejecutar el test
 ```
 
-### ❌ App no se instala
+### ❌ El emulador no es detectado
 
-**Problema:** La app no se instala en el dispositivo.
-
-**Solución:** Verificar ruta del APK/IPA:
-
-```bash
-# Verificar que existe
-ls -la /path/to/app.apk
-
-# Actualizar en config
-APP_PATH=/path/correcto/app.apk
-```
-
-### ❌ Elemento no encontrado
-
-**Problema:** `NoSuchElementException`.
+**Problema:** Appium no encuentra el dispositivo.
 
 **Solución:**
-1. Verificar locator con Appium Inspector
-2. Agregar wait:
+```bash
+# Verificar dispositivos conectados
+adb devices
+
+# Si el emulador no aparece, iniciarlo
+emulator -avd Pixel_6_API_33 &
+
+# Esperar que cargue completamente y ejecutar de nuevo
+adb devices
+```
+
+### ❌ La app no se instala
+
+**Problema:** El APK/IPA no se encuentra o tiene un error.
+
+**Solución:**
+```bash
+# Verificar que la ruta existe
+ls -la /ruta/a/mi-app.apk
+
+# Verificar variable de entorno
+echo $ANDROID_APP_PATH
+```
+
+### ❌ NoSuchElementException — Elemento no encontrado en pantalla
+
+**Causa:** El locator es incorrecto, o la pantalla no cargó completamente.
+
+**Solución:**
+1. Usar **Appium Inspector** para verificar el locator real del elemento
+2. Agregar un wait antes del step:
    ```gherkin
-   Y espero 3 segundos
+   # Si el elemento tarda en aparecer
+   When hago scroll hasta el elemento movil "miElemento"
    ```
+3. Verificar que el nombre en el step coincide exactamente con el locator definido en el proyecto
 
-### ❌ Emulador no inicia
+### ❌ Session not created — Version mismatch
 
-**Problema:** El emulador Android no inicia.
+**Problema:** La versión del driver Appium no es compatible con el dispositivo.
 
 **Solución:**
-
 ```bash
-# Listar emuladores
-emulator -list-avds
-
-# Iniciar emulador
-emulator -avd Pixel_5_API_33
+# Actualizar el driver de Appium
+appium driver update uiautomator2
+# o
+appium driver update xcuitest
 ```
 
 ---
 
-**Última actualización:** 28 de Noviembre de 2025  
-**Autor:** Abel Venero  
-**Versión:** 1.0.0
-
+> 📖 **Documentación relacionada:**
+> - [common/README.md](../common/README.md) — Capa base y motor de ejecución
+> - [api-core/README.md](../api-core/README.md) — Para pruebas híbridas API+Mobile
+> - [web-core/README.md](../web-core/README.md) — Para pruebas de interfaz Web
+> - [README.md](../README.md) — Visión general del framework
+> - [Appium Documentation](https://appium.io/docs/en/latest/) — Documentación oficial de Appium

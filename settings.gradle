@@ -1,4 +1,4 @@
-rootProject.name = 'qa-scotia-frameworks'
+rootProject.name = 'qa-frameworks-core'
 
 include 'common'
 include 'api-core'

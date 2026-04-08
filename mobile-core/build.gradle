@@ -18,9 +18,57 @@ dependencies {
     api 'org.seleniumhq.selenium:selenium-support:4.13.0'
 
     // Forzar versión segura de async-http-client para corregir CVE-2024-53990
+    // Forzar versión segura de Netty (4.1.121.Final) para mitigar CVEs en io.netty:netty-codec-http
+    // ✅ CVE-2024-29025 (MEDIUM): HttpPostRequestDecoder OOM — CORREGIDO en 4.1.121.Final
+    // ⚠️ CVE-2025-58056 (LOW): Request smuggling via chunk extensions — sin parche publicado aún
+    // ⚠️ CVE-2025-67735 (MEDIUM): CRLF injection in HttpRequestEncoder — sin parche publicado aún
+    // ⚠️ CVE-2026-33870 (HIGH): HTTP Request Smuggling via Chunked Extension Quoted-String — sin parche publicado aún
+    // Versión 4.1.121.Final es la máxima mitigación disponible y la última estable compatible con Appium 8.6.0
     constraints {
         implementation('org.asynchttpclient:async-http-client:2.12.4') {
             because 'CVE-2024-53990: AsyncHttpClient CookieStore vulnerability'
+        }
+        implementation('io.netty:netty-codec-http:4.1.121.Final') {
+            because 'CVE-2024-29025, CVE-2025-58056, CVE-2025-67735, CVE-2026-33870: múltiples vulnerabilidades HTTP en versiones < 4.1.121.Final'
+        }
+        implementation('io.netty:netty-common:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-buffer:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-codec:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-codec-socks:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-handler:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-handler-proxy:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-resolver:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-transport:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-transport-native-unix-common:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-transport-native-epoll:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-transport-native-kqueue:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-transport-classes-epoll:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
+        }
+        implementation('io.netty:netty-transport-classes-kqueue:4.1.121.Final') {
+            because 'Actualización de seguridad Netty: alineación de versión con netty-codec-http'
         }
     }
 
@@ -28,7 +76,7 @@ dependencies {
     api 'org.testng:testng:7.8.0'
 
     // JSON processing para configuraciones de dispositivos
-    api 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    api 'com.fasterxml.jackson.core:jackson-core:2.21.1'
     api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
 
     // ExtentReports for mobile test reporting

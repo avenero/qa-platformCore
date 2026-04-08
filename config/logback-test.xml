@@ -6,7 +6,7 @@
     <!-- VARIABLES DE CONFIGURACIÓN                                            -->
     <!-- ====================================================================== -->
     <property name="LOG_HOME" value="./logs"/>
-    <property name="FILE_NAME" value="scotia-framework"/>
+    <property name="FILE_NAME" value="qa-framework"/>
 
     <!-- Pattern base sin colores para archivos -->
     <property name="FILE_LOG_PATTERN"
@@ -87,11 +87,11 @@
 
     <!-- Appender para consola con colores y filtrado -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- Filtro para solo mostrar logs de Scotia Framework en consola -->
+        <!-- Filtro para solo mostrar logs del QA Framework en consola -->
         <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
             <evaluator>
                 <expression>
-                    logger.startsWith("com.scotia") ||
+                    logger.startsWith("com.qa") ||
                     logger.startsWith("io.cucumber.core.plugin") ||
                     level &gt;= WARN
                 </expression>
@@ -154,29 +154,29 @@
     </appender>
 
     <!-- ====================================================================== -->
-    <!-- LOGGERS ESPECÍFICOS DEL FRAMEWORK SCOTIA                             -->
+    <!-- LOGGERS ESPECÍFICOS DEL FRAMEWORK QA                             -->
     <!-- ====================================================================== -->
 
     <!-- Logger para el módulo common -->
-    <logger name="com.scotia.qa.common" level="DEBUG" additivity="false">
+    <logger name="com.qa.common" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
 
     <!-- Logger para api-core -->
-    <logger name="com.scotia.qa.apicore" level="DEBUG" additivity="false">
+    <logger name="com.qa.apicore" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
 
     <!-- Logger para web-core -->
-    <logger name="com.scotia.qa.webcore" level="DEBUG" additivity="false">
+    <logger name="com.qa.webcore" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
 
     <!-- Logger para mobile-core -->
-    <logger name="com.scotia.qa.mobilecore" level="DEBUG" additivity="false">
+    <logger name="com.qa.mobilecore" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>

@@ -53,6 +53,11 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+.github
+
+# Windows
+Thumbs.db
+Desktop.ini
 
 ### Test artifacts (created during test execution) ###
 **/custom-evidences/

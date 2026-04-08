@@ -1,560 +1,822 @@
-# 🖥️ Web Core Layer - Testing de Aplicaciones Web
+ # 💻 web-core — Capa de Pruebas de Interfaz Web
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Selenium](https://img.shields.io/badge/Selenium-4.27.0-brightgreen.svg)](https://www.selenium.dev/)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)]()
-
-> Capa especializada para testing de aplicaciones web. Proporciona steps de Cucumber, gestión de WebDriver y utilidades para automatizar pruebas de interfaces de usuario.
+> **Versión:** 2.0.0 | **Grupo:** `com.qa` | **Artefacto:** `web-core`  
+> **Última actualización:** Abril 2026  
+> **Autor:** Abel Venero
 
 ---
 
 ## 📑 Índice
 
-- [Visión General](#visión-general)
-- [Características](#características)
-- [Arquitectura](#arquitectura)
-- [Steps Disponibles](#steps-disponibles)
-- [Estrategia de Locators](#estrategia-de-locators)
-- [Ejemplos de Uso](#ejemplos-de-uso)
-- [Configuración](#configuración)
-- [Integración con Módulos](#integración-con-módulos)
-- [Referencia Rápida](#referencia-rápida)
+1. [¿Qué es web-core en palabras simples?](#1-qué-es-web-core-en-palabras-simples)
+2. [Conceptos clave antes de empezar](#2-conceptos-clave-antes-de-empezar)
+3. [El lugar de web-core en el framework](#3-el-lugar-de-web-core-en-el-framework)
+4. [Mapa completo del módulo](#4-mapa-completo-del-módulo)
+5. [Las zonas de la arquitectura](#5-las-zonas-de-la-arquitectura)
+   - 5.1 [La Puerta de Entrada — WebPlugin](#51-la-puerta-de-entrada--webplugin)
+   - 5.2 [Los 16 Componentes de Steps](#52-los-16-componentes-de-steps)
+   - 5.3 [Las Clases de Steps — organizadas por función](#53-las-clases-de-steps--organizadas-por-función)
+   - 5.4 [Las Herramientas — utils/](#54-las-herramientas--utils)
+   - 5.5 [El Driver Manager](#55-el-driver-manager)
+6. [Estrategia Module-First para locators](#6-estrategia-module-first-para-locators)
+7. [Catálogo de Steps por Categoría](#7-catálogo-de-steps-por-categoría)
+8. [Flujo completo de una prueba Web](#8-flujo-completo-de-una-prueba-web)
+9. [Ejemplos prácticos](#9-ejemplos-prácticos)
+10. [Configuración](#10-configuración)
+11. [Patrones de diseño usados](#11-patrones-de-diseño-usados)
+12. [Troubleshooting](#12-troubleshooting)
 
 ---
 
-## Visión General
+## 1. ¿Qué es web-core en palabras simples?
 
-**Web-Core** es la capa especializada del framework para **testing de aplicaciones web**. Se construye sobre **Common Layer** y proporciona:
+Imagina que necesitas verificar que el formulario de login de tu sistema web funciona correctamente: que cuando escribes el usuario y la contraseña y presionas el botón, el sistema te lleva al dashboard. Para hacer eso manualmente hay que abrir el navegador, escribir la URL, llenar los campos, hacer clic… y repetirlo cada vez que haya un cambio en el sistema.
 
-✅ **Steps de Cucumber** para interacciones web
-✅ **Gestión de WebDriver** (Chrome, Firefox, Edge)
-✅ **Estrategia Module-First** para locators
-✅ **Waits inteligentes** y manejo de sincronización
-✅ **Capturas de pantalla** automáticas en fallos
-✅ **Soporte headless** para CI/CD
-✅ **Integración con ScenarioContext** para compartir datos
+**web-core** es el asistente que hace eso automáticamente. Puede:
 
-### Dependencias
+- **Abrir un navegador** (Chrome, Firefox o Edge) y navegar a una URL
+- **Encontrar elementos** en la página (campos, botones, menús)
+- **Interactuar** con ellos (escribir texto, hacer clic, seleccionar opciones)
+- **Verificar** que lo que aparece en pantalla es lo esperado
+- **Tomar capturas de pantalla** cuando algo falla
+
+Todo eso, siguiendo instrucciones escritas en español que cualquier persona puede entender:
+
+```gherkin
+@web
+Scenario: Login exitoso navega al dashboard
+  Given configuro el driver del navegador "chrome" en modo headless "true"
+  And navego a la URL "https://mi-sistema.com/login"
+  When ingreso "admin" en el elemento "usernameField"
+  And ingreso "Admin@2026!" en el elemento "passwordField"
+  And hago clic en el elemento "loginButton"
+  Then espero que el elemento "dashboardTitle" sea visible
+  And el texto del elemento "dashboardTitle" debe contener "Bienvenido"
+```
+
+---
+
+## 2. Conceptos Clave Antes de Empezar
+
+### 🌐 ¿Qué es Selenium WebDriver?
+
+Selenium WebDriver es la librería que permite controlar un navegador web desde código Java. Es como tener una "mano virtual" que puede hacer todo lo que haría un usuario real en el navegador.
+
+### 🎯 ¿Qué es un locator?
+
+Un locator es la "dirección" de un elemento en la página web — le dice a Selenium dónde encontrarlo. Los locators más comunes son:
+- **CSS Selector**: `#loginButton`, `.btn-primary`, `input[name='username']`
+- **XPath**: `//button[contains(text(),'Iniciar sesión')]`
+- **ID**: `loginButton` (si el elemento tiene `id="loginButton"`)
+
+### 📦 ¿Qué es Module-First?
+
+El framework usa un principio llamado "Module-First" que significa que **el framework no conoce los locators** de tu aplicación. Tu proyecto de pruebas es quien los define. El framework solo provee los steps genéricos. Esto hace que el framework sea completamente reutilizable para cualquier sistema.
+
+### 🖥️ ¿Qué es headless?
+
+Modo headless significa que el navegador se ejecuta **sin ventana visible**. Es útil en pipelines de CI/CD donde no hay pantalla. Para desarrollo local es mejor `"false"` para ver qué está haciendo el test.
+
+---
+
+## 3. El Lugar de web-core en el Framework
 
 ```
-web-core
-    └── common (automática)
-        ├── Logging (TestLogger)
-        ├── Config (ConfigManager)
-        ├── ScenarioContext
-        └── WaitUtils
+┌──────────────────────────────────────────────────────────────┐
+│              qa-frameworks-core                               │
+│                                                              │
+│  ┌──────────┐  ┌─────────────────────────────────────────┐  │
+│  │  common  │  │              web-core                   │  │
+│  │          │◄─┤                                         │  │
+│  │ Runtime  │  │  WebPlugin       WebHelper              │  │
+│  │ Config   │  │  16 components   WaitUtils              │  │
+│  │ Logging  │  │  Steps (7 pkg)   ScreenshotUtils        │  │
+│  │ HTTP     │  │  DriverManager   WebDriverFactory       │  │
+│  └──────────┘  └─────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+          ▲
+          │ importa como librería
+┌─────────────────────────────────────┐
+│  Tu proyecto de pruebas             │
+│  • features/*.feature (Gherkin)     │
+│  • ComponentManager (tus locators)  │
+│  • config-app.properties           │
+└─────────────────────────────────────┘
 ```
 
----
+**web-core aporta:**
+- Los ~80 steps en español para controlar navegadores
+- El `WebPlugin` que se activa con los tags `@web`, `@ui`, `@browser`, `@selenium`
+- El `WebHelper` con toda la lógica de Selenium
+- El `DriverManager` para gestionar el ciclo de vida del WebDriver
 
-## Características
-
-### 🎯 Steps de Cucumber
-
-Web-Core proporciona **+50 steps** listos para usar:
-
-#### ⭐ Configuración de Driver (NUEVO v1.2.0)
-- `Given configuro el driver del navegador "chrome" en modo headless "false"`
-- Soporta: Chrome, Firefox, Edge, Safari
-- Configurable: headless true/false, yes/no, si/no, 1/0
-- Versión y estrategia (Artifactory/local) desde config
-
-#### Navegación
-- `Dado que navego a la URL "..."`
-- `Cuando hago clic en el elemento "..."`
-- `Y espero hasta que elemento "..." este visible`
-
-#### Interacción
-- `Cuando ingreso el texto "..." en el elemento "..."`
-- `Y selecciono la opción "..." del dropdown "..."`
-- `Y marco el checkbox "..."`
-
-#### Validaciones
-- `Entonces debo ver el elemento "..."`
-- `Y el texto del elemento "..." debe ser "..."`
-- `Y el elemento "..." debe estar visible`
-
-#### Manejo de Datos
-- `Y guardo texto del elemento "..." en variable "..."`
-
-**Ver lista completa:** [QUICK-REFERENCE.md](QUICK-REFERENCE.md)
+**web-core NO hace:**
+- No conoce los locators de tu aplicación (eso lo define tu proyecto)
+- No contiene Page Objects (esos van en tu proyecto)
+- No prueba APIs (eso es `api-core`)
+- No prueba apps móviles (eso es `mobile-core`)
 
 ---
 
-## Arquitectura
+## 4. Mapa Completo del Módulo
 
 ```
 web-core/
-├── src/main/java/com/scotia/qa/webcore/
-│   ├── steps/
-│   │   └── WebSteps.java              ← Steps de Cucumber
-│   │
-│   ├── driver/
-│   │   ├── DriverManager.java         ← Gestión thread-safe de drivers
-│   │   └── WebDriverFactory.java      ← Factory para crear drivers
-│   │
-│   ├── utils/
-│   │   ├── WebHelper.java             ← Utilidades web
-│   │   ├── WaitUtils.java             ← Waits inteligentes
-│   │   └── ScreenshotUtils.java       ← Capturas de pantalla
-│   │
-│   └── locators/
-│       └── LocatorStrategy.java       ← Estrategias de localización
-│
-└── src/main/resources/
-    └── drivers/                        ← WebDrivers (si se usan locales)
-```
-
-### Flujo de Ejecución
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│  FEATURE (Gherkin)                                             │
-│  @web                                                          │
-│  Escenario: Login en aplicación web                           │
-│    Dado que navego a la URL "https://app.com/login"           │
-│    Cuando ingreso "user" en el elemento "username"            │
-│    Y hago clic en el elemento "loginButton"                   │
-│    Entonces debo ver el elemento "welcomeMessage"             │
-└────────────────────────────────────────────────────────────────┘
-                             ↓
-┌────────────────────────────────────────────────────────────────┐
-│  WEB-CORE (WebSteps.java)                                      │
-│  • Obtiene WebDriver de DriverManager                         │
-│  • Localiza elementos (Module-First strategy)                 │
-│  • Ejecuta acciones (click, sendKeys, etc.)                   │
-│  • Aplica waits inteligentes                                  │
-│  • Guarda datos en ScenarioContext                            │
-└────────────────────────────────────────────────────────────────┘
-                             ↓
-┌────────────────────────────────────────────────────────────────┐
-│  SELENIUM WEBDRIVER                                            │
-│  • Controla el navegador                                      │
-│  • Ejecuta JavaScript                                         │
-│  • Captura screenshots                                        │
-│  • Maneja iframes, alerts, ventanas                           │
-└────────────────────────────────────────────────────────────────┘
+└── src/main/java/com/qa/webcore/
+    │
+    ├── plugin/
+    │   └── WebPlugin.java                 ← PUERTA DE ENTRADA: activa la capa Web
+    │
+    ├── components/bdd/                    ← CATÁLOGO DE 16 CAPACIDADES (metadatos)
+    │   ├── BrowserConfigComponent.java    ← Configuración de navegador
+    │   ├── WebEnvironmentComponent.java   ← Configuración de ambiente/URL base
+    │   ├── NavigationComponent.java       ← Navegación (ir a URL, back, refresh)
+    │   ├── FrameComponent.java            ← Manejo de iframes
+    │   ├── WindowComponent.java           ← Manejo de ventanas/pestañas
+    │   ├── ClickComponent.java            ← Clics en elementos
+    │   ├── InputComponent.java            ← Escritura en campos de texto
+    │   ├── SelectComponent.java           ← Selección en dropdowns
+    │   ├── ScrollComponent.java           ← Scroll de página
+    │   ├── DragDropComponent.java         ← Arrastrar y soltar
+    │   ├── AlertComponent.java            ← Manejo de popups/alerts
+    │   ├── WaitComponent.java             ← Esperas inteligentes
+    │   ├── ElementValidationComponent.java ← Validar elementos (visible, texto, etc.)
+    │   ├── PageValidationComponent.java   ← Validar la página (título, URL, etc.)
+    │   ├── TableValidationComponent.java  ← Validar tablas HTML
+    │   └── ScreenshotComponent.java       ← Captura de pantalla
+    │
+    ├── steps/                             ← LOS STEPS BDD (clases Java con @Given/@When/@Then)
+    │   ├── WebHooksSteps.java             ← Cierre automático del navegador al terminar
+    │   ├── WebVariableSteps.java          ← Guardar/usar variables de elementos web
+    │   ├── config/
+    │   │   ├── BrowserConfigSteps.java    ← GIVEN: configurar navegador y modo headless
+    │   │   └── WebEnvironmentSteps.java   ← GIVEN: configurar URL base del ambiente
+    │   ├── navigation/
+    │   │   ├── NavigationSteps.java       ← WHEN: navegar a URL, back, refresh
+    │   │   ├── FrameSteps.java            ← WHEN: entrar/salir de iframes
+    │   │   └── WindowSteps.java           ← WHEN: cambiar entre ventanas/pestañas
+    │   ├── interaction/
+    │   │   ├── ClickSteps.java            ← WHEN: hacer clic en elementos
+    │   │   ├── InputSteps.java            ← WHEN: escribir texto en campos
+    │   │   ├── SelectSteps.java           ← WHEN: seleccionar opciones de dropdown
+    │   │   ├── ScrollSteps.java           ← WHEN: hacer scroll
+    │   │   ├── DragDropSteps.java         ← WHEN: arrastrar y soltar elementos
+    │   │   └── AlertSteps.java            ← WHEN: aceptar/rechazar alerts/popups
+    │   ├── wait/
+    │   │   └── WaitSteps.java             ← WHEN: esperar condiciones en la página
+    │   └── validation/
+    │       ├── ElementValidationSteps.java ← THEN: validar elementos (visible, texto, etc.)
+    │       ├── PageValidationSteps.java    ← THEN: validar título de página, URL, etc.
+    │       ├── TableValidationSteps.java   ← THEN: validar contenido de tablas
+    │       └── ScreenshotSteps.java        ← THEN: tomar captura de pantalla
+    │
+    ├── utils/
+    │   ├── WebHelper.java                 ← ⭐ FACHADA CENTRAL: combina todo
+    │   ├── WaitUtils.java                 ← Esperas inteligentes (Selenium FluentWait)
+    │   └── ScreenshotUtils.java           ← Captura de pantalla y guardado
+    │
+    ├── driver/
+    │   ├── DriverManager.java             ← Gestión thread-safe del WebDriver
+    │   └── WebDriverFactory.java          ← Crea drivers para Chrome, Firefox, Edge
+    │
+    └── pages/                             ← Base de Page Objects (si el proyecto los usa)
 ```
 
 ---
 
-## Steps Disponibles
+## 5. Las Zonas de la Arquitectura
 
-### Categoría: Navegación
+### 5.1 La Puerta de Entrada — WebPlugin
 
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Dado que navego a la URL {string}` | Navega a una URL | `Dado que navego a la URL "https://app.com"` |
-| `Dado que actualizo URL en el navegador {string}` | Navega sin limpiar estado | `Dado que actualizo URL en el navegador "https://app.com/page2"` |
+#### `WebPlugin.java`
 
-### Categoría: Interacción con Elementos
+Es la **puerta de entrada oficial** de toda la capa web-core al motor de ejecución. Se activa cuando el escenario tiene los tags `@web`, `@ui`, `@browser` o `@selenium`.
 
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Cuando ingreso el texto {string} en el elemento {string}` | Escribe texto | `Cuando ingreso el texto "usuario" en el elemento "username"` |
-| `Cuando hago clic en el elemento {string}` | Hace clic | `Cuando hago clic en el elemento "submitButton"` |
-| `Y presiono el boton {string}` | Hace clic en botón | `Y presiono el boton "loginBtn"` |
-| `Y selecciono la opción {string} del dropdown {string}` | Selecciona de dropdown | `Y selecciono la opción "Argentina" del dropdown "country"` |
-| `Y marco el checkbox {string}` | Marca checkbox | `Y marco el checkbox "acceptTerms"` |
+**¿Qué hace?**
+1. **Registra** el servicio `WebHelper` en el `ServiceRegistry` (lazy — se crea solo cuando se necesita)
+2. **Declara los 16 componentes** de steps con sus metadatos
+3. **Gestiona el ciclo de vida**: al inicio del escenario no hace nada especial; al final cierra el navegador si estaba abierto
 
-### Categoría: Validaciones
+**Tags de activación:**
+```gherkin
+@web       ← tag principal de prueba web
+@ui        ← alias (testing de interfaz de usuario)
+@browser   ← alias (testing de navegador)
+@selenium  ← alias (para tests de Selenium específicos)
+```
 
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Entonces debo ver el elemento {string}` | Verifica existencia | `Entonces debo ver el elemento "welcomeMessage"` |
-| `Y el texto del elemento {string} debe ser {string}` | Valida texto exacto | `Y el texto del elemento "title" debe ser "Dashboard"` |
-| `Y el texto del elemento {string} debe contener {string}` | Valida substring | `Y el texto del elemento "message" debe contener "exitoso"` |
-| `Y el elemento {string} debe estar visible` | Verifica visibilidad | `Y el elemento {string} debe estar visible` |
-| `Y verifico si existe el elemento {string}` | Verifica existencia (soft) | `Y verifico si existe el elemento "optionalBanner"` |
+**Orden de inicialización:** 100 (después de `ApiPlugin` que es 50)
 
-### Categoría: Waits
+### 5.2 Los 16 Componentes de Steps
 
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Y espero hasta que elemento {string} este visible` | Wait explícito | `Y espero hasta que elemento "loadingSpinner" este visible` |
-| `Y espero {int} segundos` | Wait fijo (no recomendado) | `Y espero 3 segundos` |
+Los 16 componentes se organizan en 4 grupos según su función:
 
-### Categoría: Manejo de Datos
+#### 🔵 GIVEN — Configuración (2 componentes)
 
-| Step | Descripción | Ejemplo |
-|------|-------------|---------|
-| `Y guardo texto del elemento {string} en variable {string}` | Guarda en contexto | `Y guardo texto del elemento "userId" en variable "id"` |
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Configuran el entorno ANTES de navegar                         │
+├──────────────────┬──────────────────────────────────────────────┤
+│ 1. BrowserConfig │ ¿Qué navegador usar? ¿Headless o con UI?    │
+│                  │ Chrome, Firefox, Edge — visible o invisible   │
+├──────────────────┼──────────────────────────────────────────────┤
+│ 2. WebEnvironment│ ¿Cuál es la URL base del ambiente?          │
+│                  │ QA, Staging, Producción                       │
+└──────────────────┴──────────────────────────────────────────────┘
+```
+
+#### 🟡 WHEN — Acción (9 componentes)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Ejecutan acciones en el navegador y la página                   │
+├───────────────┬──────────────────────────────────────────────────┤
+│ 3. Navigation │ Ir a URL, volver, actualizar, historial          │
+├───────────────┼──────────────────────────────────────────────────┤
+│ 4. Frame      │ Entrar a un iframe, salir, cambiar de frame      │
+├───────────────┼──────────────────────────────────────────────────┤
+│ 5. Window     │ Cambiar entre pestañas, cerrar ventana           │
+├───────────────┼──────────────────────────────────────────────────┤
+│ 6. Click      │ Clic, clic derecho, doble clic en elementos      │
+├───────────────┼──────────────────────────────────────────────────┤
+│ 7. Input      │ Escribir texto, limpiar campos, presionar teclas │
+├───────────────┼──────────────────────────────────────────────────┤
+│ 8. Select     │ Seleccionar opciones de dropdown (por texto/valor)│
+├───────────────┼──────────────────────────────────────────────────┤
+│ 9. Scroll     │ Scroll a elemento, al tope, al fondo de página   │
+├───────────────┼──────────────────────────────────────────────────┤
+│ 10. DragDrop  │ Arrastrar elemento A y soltarlo en elemento B    │
+├───────────────┼──────────────────────────────────────────────────┤
+│ 11. Alert     │ Aceptar, rechazar, leer texto de popups/alerts   │
+├───────────────┼──────────────────────────────────────────────────┤
+│ 12. Wait      │ Esperar N segundos o hasta que elemento aparezca │
+└───────────────┴──────────────────────────────────────────────────┘
+```
+
+#### 🟢 THEN — Validación (4 componentes)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Verifican que la página muestra lo correcto                     │
+├─────────────────────┬───────────────────────────────────────────┤
+│ 13. ElementValidation│ ¿El elemento existe? ¿Tiene ese texto?  │
+│                      │ ¿Está visible? ¿Está habilitado?         │
+├─────────────────────┼───────────────────────────────────────────┤
+│ 14. PageValidation  │ ¿El título de la página es correcto?     │
+│                      │ ¿La URL contiene lo esperado?            │
+├─────────────────────┼───────────────────────────────────────────┤
+│ 15. TableValidation │ ¿La tabla tiene N filas? ¿La celda [x,y] │
+│                      │ tiene ese texto?                          │
+├─────────────────────┼───────────────────────────────────────────┤
+│ 16. Screenshot      │ Tomar captura de pantalla en este momento │
+└─────────────────────┴───────────────────────────────────────────┘
+```
+
+### 5.3 Las Clases de Steps — organizadas por función
+
+Las clases de steps siguen las fases BDD:
+
+```
+steps/
+├── config/         ← GIVEN: configuración inicial
+├── navigation/     ← WHEN: navegar en el navegador
+├── interaction/    ← WHEN: interactuar con elementos
+├── wait/           ← WHEN: esperar condiciones
+└── validation/     ← THEN: verificar resultados
+```
+
+**Antes de la versión 2.0** existía una sola clase `WebSteps.java` con todo mezclado. Ahora cada grupo de steps tiene su propia clase con una responsabilidad específica.
+
+### 5.4 Las Herramientas — `utils/`
+
+#### `WebHelper.java` — La Fachada Central ⭐
+
+Es la clase más importante de web-core. Todos los steps le delegan el trabajo. Combina el `DriverManager` (el WebDriver), el `WaitUtils` (las esperas) y el `ScreenshotUtils` (las capturas) en un solo punto de acceso.
+
+**¿Por qué existe WebHelper?**
+
+| Sin WebHelper | Con WebHelper |
+|---------------|---------------|
+| Cada step maneja su propia espera | Las esperas están centralizadas |
+| Cada step captura sus propias excepciones | El manejo de errores es uniforme |
+| Código repetido en cada clase de step | Una sola implementación |
+
+**Lo que hace WebHelper:**
+- Localiza elementos en la página (busca en el `ComponentManager` del proyecto)
+- Aplica esperas inteligentes antes de interactuar
+- Registra en el log cada acción que realiza
+- Toma capturas de pantalla automáticamente cuando falla algo
+
+#### `WaitUtils.java` — Esperas Inteligentes
+
+En vez de esperar un número fijo de segundos (lo que hace que los tests sean lentos o frágiles), `WaitUtils` espera **hasta que se cumpla una condición**:
+
+```
+WaitUtils.waitForVisible(elemento)
+    │
+    └── Intenta cada 500ms durante máximo 30 segundos
+          Si aparece antes → continúa inmediatamente
+          Si no aparece en 30s → lanza TimeoutException
+```
+
+Tipos de esperas disponibles:
+- `waitForVisible(element)` — esperar que sea visible
+- `waitForClickable(element)` — esperar que sea cliqueable
+- `waitForText(element, text)` — esperar que tenga un texto específico
+- `waitForInvisible(element)` — esperar que desaparezca
+
+#### `ScreenshotUtils.java` — Capturas de Pantalla
+
+Toma capturas de pantalla del estado actual del navegador y las guarda en `logs/web/`. Son fundamentales para el análisis de fallas: puedes ver exactamente qué había en pantalla cuando el test falló.
+
+### 5.5 El Driver Manager
+
+#### `DriverManager.java` — Gestión del WebDriver
+
+Gestiona el ciclo de vida del driver de forma **thread-safe** usando `ThreadLocal`, lo que permite ejecutar tests en paralelo sin que los drivers se mezclen entre sí.
+
+```
+WebDriverFactory.createDriver("chrome", headless=true)
+        │
+        ├── Descarga ChromeDriver automáticamente (WebDriverManager)
+        ├── Configura opciones: --headless, --no-sandbox, --window-size=1920x1080
+        └── Retorna un ChromeDriver listo para usar
+
+DriverManager.setDriver(driver)
+        └── Guarda el driver en el ThreadLocal del thread actual
+
+DriverManager.getDriver()
+        └── Recupera el driver del thread actual (no el de otro thread)
+
+DriverManager.quitDriver()
+        └── Cierra el navegador y limpia el ThreadLocal
+```
 
 ---
 
-## Estrategia de Locators
+## 6. Estrategia Module-First para Locators
 
-Web-Core usa la estrategia **Module-First** donde los **módulos definen sus propios locators**.
+Esta es la decisión de diseño más importante de web-core: **el framework no conoce ningún locator**. Los locators son responsabilidad del proyecto de pruebas.
 
-### Enfoque Module-First
+### ¿Por qué?
 
-```
-┌─────────────────────────────────────────────┐
-│  WEB-CORE (Framework)                       │
-│  • Proporciona steps genéricos              │
-│  • NO conoce locators específicos           │
-│  • Busca en ComponentManager del módulo     │
-└─────────────────────────────────────────────┘
-                   ↓
-┌─────────────────────────────────────────────┐
-│  MÓDULO (qa-banking, qa-autos, etc.)        │
-│  • Define ComponentManager.java             │
-│  • Registra componentes con locators        │
-│  • Específico para su aplicación           │
-└─────────────────────────────────────────────┘
-```
+- El framework debe ser **reutilizable** para cualquier sistema web
+- Los locators cambian con frecuencia; si estuvieran en el framework, cada cambio requeriría actualizar el framework
+- Cada proyecto tiene sus propias convenciones de locators
 
-### Ejemplo de Implementación
+### ¿Cómo funciona?
 
-**En el módulo (`ComponentManager.java`):**
+Cuando el framework ejecuta el step `hago clic en el elemento "loginButton"`, busca "loginButton" en un `ComponentManager` que el **proyecto de pruebas** debe proveer:
+
+**En el proyecto de pruebas** (no en el framework):
 
 ```java
-package com.tu.proyecto.components;
-
-import com.scotia.qa.webcore.components.Component;
-import java.util.Map;
-import java.util.HashMap;
-
+// src/test/java/com/mi/proyecto/components/ComponentManager.java
 public class ComponentManager {
-    private static final Map<String, Component> components = new HashMap<>();
+    
+    private static final Map<String, By> locators = new HashMap<>();
     
     static {
-        // Definir componentes de tu aplicación
-        components.put("username", Component.builder()
-            .id("loginUsername")
-            .name("username")
-            .css("#login-form input[name='username']")
-            .build());
-        
-        components.put("password", Component.builder()
-            .id("loginPassword")
-            .css("#login-form input[type='password']")
-            .build());
-        
-        components.put("loginButton", Component.builder()
-            .id("btnLogin")
-            .css("button.login-submit")
-            .xpath("//button[contains(text(),'Iniciar sesión')]")
-            .build());
+        // Cada equipo define sus propios locators aquí
+        locators.put("usernameField", By.id("username"));
+        locators.put("passwordField", By.name("password"));
+        locators.put("loginButton",   By.cssSelector("button[type='submit']"));
+        locators.put("dashboardTitle", By.xpath("//h1[contains(@class,'title')]"));
+        locators.put("errorMessage",  By.cssSelector(".alert-danger"));
     }
     
-    public static Component get(String componentName) {
-        return components.get(componentName);
+    public static By getLocator(String componentName) {
+        By locator = locators.get(componentName);
+        if (locator == null) {
+            throw new RuntimeException("Locator no encontrado: " + componentName);
+        }
+        return locator;
     }
 }
 ```
 
-**En el feature:**
+**En el feature** (usando nombres de locators, no los CSS/XPath reales):
 
 ```gherkin
-@web
-Escenario: Login
-  Dado que navego a "https://app.com/login"
-  Cuando ingreso "user" en el elemento "username"
-  Y ingreso "pass" en el elemento "password"
-  Y hago clic en el elemento "loginButton"
+When ingreso "admin" en el elemento "usernameField"
+And hago clic en el elemento "loginButton"
 ```
 
 **Ventajas:**
-- ✅ Framework NO conoce tu aplicación
-- ✅ Módulo controla sus locators
-- ✅ Fácil mantenimiento (un solo lugar)
-- ✅ Reutilización de componentes
+- ✅ El framework no cambia cuando cambia la UI
+- ✅ Los locators están en un solo lugar
+- ✅ Los features son legibles (hablan de "loginButton", no de `#btn-login-submit-v2`)
 
 ---
 
-## Ejemplos de Uso
+## 7. Catálogo de Steps por Categoría
 
-### Ejemplo 1: ⭐ Configuración de Navegador (NUEVO v1.2.0)
+### ⚙️ Configuración (`BrowserConfigSteps`, `WebEnvironmentSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `Given configuro el driver del navegador {string} en modo headless {string}` | Inicia el navegador. Ej: `"chrome"` con headless `"true"` o `"false"` |
+| `Given configuro el ambiente web {string}` | Establece la URL base del ambiente desde config (`web.baseurl.{ambiente}`) |
+| `Given configuro la URL base web como {string}` | Establece la URL base directamente |
+
+### 🧭 Navegación (`NavigationSteps`, `FrameSteps`, `WindowSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When navego a la URL {string}` | Navega a esa URL |
+| `When actualizo URL en el navegador {string}` | Navega sin limpiar estado anterior |
+| `When hago clic en el boton de atras del navegador` | Equivale a presionar "Atrás" |
+| `When recargo la pagina` | Equivale a presionar F5 |
+| `When entro al iframe {string}` | Cambia el foco al iframe especificado |
+| `When salgo del iframe` | Vuelve al documento principal |
+| `When cambio a la ventana {int}` | Cambia a la pestaña número N (0 = primera) |
+| `When cierro la ventana actual` | Cierra la pestaña actual |
+
+### 🖱️ Interacción (`ClickSteps`, `InputSteps`, `SelectSteps`, `ScrollSteps`, `DragDropSteps`, `AlertSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When hago clic en el elemento {string}` | Clic en el elemento |
+| `When hago doble clic en el elemento {string}` | Doble clic en el elemento |
+| `When hago clic derecho en el elemento {string}` | Clic derecho (abre menú contextual) |
+| `When ingreso {string} en el elemento {string}` | Escribe el texto en el campo |
+| `When limpio el elemento {string}` | Borra el contenido del campo |
+| `When presiono la tecla {string} en el elemento {string}` | Presiona una tecla (Enter, Tab, etc.) |
+| `When selecciono la opcion {string} del dropdown {string}` | Selecciona por texto visible |
+| `When selecciono la opcion con valor {string} del dropdown {string}` | Selecciona por value del `<option>` |
+| `When hago scroll hasta el elemento {string}` | Hace scroll hasta que el elemento sea visible |
+| `When hago scroll al tope de la pagina` | Scroll al inicio de la página |
+| `When hago scroll al fondo de la pagina` | Scroll al final de la página |
+| `When arrastro {string} y lo suelto en {string}` | Drag & Drop |
+| `When acepto el alert` | Hace clic en "Aceptar" del popup |
+| `When cancelo el alert` | Hace clic en "Cancelar" del popup |
+| `When ingreso {string} en el alert` | Escribe texto en un prompt (alert con input) |
+
+### ⏱️ Esperas (`WaitSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `When espero {int} segundos` | Espera fija (usar solo cuando sea necesario) |
+| `When espero que el elemento {string} sea visible` | Espera hasta que el elemento aparezca |
+| `When espero que el elemento {string} sea clickeable` | Espera hasta que pueda hacerse clic |
+| `When espero que el elemento {string} desaparezca` | Espera hasta que el elemento se oculte |
+| `When espero que el texto {string} aparezca en {string}` | Espera hasta que el elemento tenga ese texto |
+
+### ✅ Validaciones (`ElementValidationSteps`, `PageValidationSteps`, `TableValidationSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `Then el elemento {string} debe estar visible` | Falla si el elemento no es visible |
+| `Then el elemento {string} debe estar habilitado` | Falla si el elemento está disabled |
+| `Then el elemento {string} debe estar deshabilitado` | Falla si el elemento está enabled |
+| `Then el elemento {string} debe estar seleccionado` | Para checkboxes y radio buttons |
+| `Then el texto del elemento {string} debe ser {string}` | Valida texto exacto |
+| `Then el texto del elemento {string} debe contener {string}` | Valida que contiene el texto |
+| `Then el atributo {string} del elemento {string} debe ser {string}` | Valida un atributo HTML |
+| `Then no debe existir el elemento {string}` | Falla si el elemento SÍ existe |
+| `Then el titulo de la pagina debe ser {string}` | Valida el título de la pestaña |
+| `Then la URL debe contener {string}` | Valida que la URL contiene ese texto |
+| `Then la URL debe ser {string}` | Valida la URL completa |
+| `Then la tabla {string} debe tener {int} filas` | Valida número de filas de una tabla |
+| `Then la celda [{int},{int}] de la tabla {string} debe contener {string}` | Valida una celda específica |
+
+### 📸 Screenshot (`ScreenshotSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `Then tomo una captura de pantalla` | Guarda screenshot en el log |
+| `Then tomo una captura de pantalla con nombre {string}` | Guarda con nombre personalizado |
+
+### 💾 Variables (`WebVariableSteps`)
+
+| Step | Descripción |
+|------|-------------|
+| `And guardo el texto del elemento {string} como {string}` | Extrae el texto y lo guarda para uso posterior |
+| `And guardo el atributo {string} del elemento {string} como {string}` | Extrae un atributo y lo guarda |
+| `And almaceno el valor {string} como {string}` | Guarda un valor literal como variable |
+
+---
+
+## 8. Flujo Completo de una Prueba Web
+
+Sigamos el viaje de este escenario de principio a fin:
 
 ```gherkin
-@web
-Feature: Cross-browser login testing
+@web @smoke
+Scenario: Login exitoso muestra el dashboard
+  Given configuro el driver del navegador "chrome" en modo headless "true"
+  And navego a la URL "https://mi-sistema.com/login"
+  When ingreso "admin" en el elemento "usernameField"
+  And ingreso "Admin@2026!" en el elemento "passwordField"
+  And hago clic en el elemento "loginButton"
+  Then espero que el elemento "dashboardTitle" sea visible
+  And el texto del elemento "dashboardTitle" debe contener "Dashboard"
+```
 
-  # Desarrollo local - Ver navegador
-  Scenario: Login en Chrome (desarrollo)
-    Given configuro el driver del navegador "chrome" en modo headless "false"
-    When navego a la URL "https://app.com/login"
-    And ingreso "user@mail.com" en el campo "email"
-    And ingreso "Pass123" en el campo "password"
-    And hago click en el boton "loginButton"
-    Then debo ver el elemento "dashboard"
+### Paso 0: El motor activa WebPlugin
 
-  # Pipeline CI/CD - Sin UI
-  Scenario: Login en Firefox (CI/CD)
-    Given configuro el driver del navegador "firefox" en modo headless "true"
-    When navego a la URL "https://app.com/login"
-    And ingreso "user@mail.com" en el campo "email"
-    And hago click en el boton "loginButton"
-    Then debo ver el elemento "dashboard"
+`ScenarioExecutionHooks.@Before` detecta `@web` → activa `WebPlugin` → registra `WebHelper` en `ServiceRegistry`.
 
-  # Cross-browser testing
-  Scenario Outline: Login en <browser>
-    Given configuro el driver del navegador "<browser>" en modo headless "true"
-    When navego a la URL "https://app.com/login"
-    Then debo ver el elemento "loginForm"
+### Paso 1: `Given configuro el driver del navegador "chrome" en modo headless "true"`
+
+```
+BrowserConfigSteps.configurarDriver("chrome", "true")
+    │
+    ▼
+WebHelper.configureBrowser("chrome", true)
+    │
+    ▼
+WebDriverFactory.createDriver("chrome", headless=true)
+    │
+    ├── WebDriverManager descarga ChromeDriver compatible automáticamente
+    ├── Configura ChromeOptions: --headless, --no-sandbox, etc.
+    └── Retorna ChromeDriver listo
+    │
+    ▼
+DriverManager.setDriver(chromeDriver)
+    └── Guarda el driver en ThreadLocal del thread actual
+    │
+    ▼
+Log: "✅ Driver configurado: chrome | headless: true"
+```
+
+### Paso 2: `And navego a la URL "https://mi-sistema.com/login"`
+
+```
+NavigationSteps.navegarAUrl("https://mi-sistema.com/login")
+    │
+    ▼
+WebHelper.navigateTo("https://mi-sistema.com/login")
+    │
+    ▼
+driver.get("https://mi-sistema.com/login")
+    └── El navegador abre la página de login
+    │
+    ▼
+Log: "✅ Navegando a: https://mi-sistema.com/login"
+```
+
+### Paso 3: `When ingreso "admin" en el elemento "usernameField"`
+
+```
+InputSteps.ingresoTextoEnElemento("admin", "usernameField")
+    │
+    ▼
+WebHelper.typeText("usernameField", "admin")
+    │
+    ├── ComponentManager.getLocator("usernameField") → By.id("username")
+    │
+    ├── WaitUtils.waitForVisible(By.id("username"))
+    │       Espera hasta 30s que el campo sea visible
+    │
+    ├── element.clear()                 → Limpia el campo
+    ├── element.sendKeys("admin")       → Escribe "admin"
+    │
+    └── Log: "✅ Texto ingresado: 'admin' en 'usernameField'"
+```
+
+### Paso 4: `And hago clic en el elemento "loginButton"`
+
+```
+ClickSteps.hacerClicEnElemento("loginButton")
+    │
+    ▼
+WebHelper.click("loginButton")
+    │
+    ├── ComponentManager.getLocator("loginButton") → By.cssSelector("button[type='submit']")
+    ├── WaitUtils.waitForClickable(locator)  → Espera que sea cliqueable
+    ├── element.click()                      → Hace el clic
+    └── Log: "✅ Clic en: 'loginButton'"
     
+    → El sistema procesa el login y navega al dashboard
+```
+
+### Paso 5: `Then espero que el elemento "dashboardTitle" sea visible`
+
+```
+WaitSteps.esperarElementoVisible("dashboardTitle")
+    │
+    ▼
+WebHelper.waitForVisible("dashboardTitle")
+    │
+    ├── ComponentManager.getLocator("dashboardTitle") → By.xpath("//h1[contains(@class,'title')]")
+    ├── WaitUtils.waitForVisible(locator)  → Espera hasta 30s
+    └── El título aparece → continúa ✅
+```
+
+### Paso 6: `And el texto del elemento "dashboardTitle" debe contener "Dashboard"`
+
+```
+ElementValidationSteps.textoDebeContener("dashboardTitle", "Dashboard")
+    │
+    ▼
+WebHelper.validateTextContains("dashboardTitle", "Dashboard")
+    │
+    ├── element.getText() → "Mi Dashboard Principal"
+    ├── "Mi Dashboard Principal".contains("Dashboard") → true ✅
+    └── Log: "✅ Texto validado: elemento 'dashboardTitle' contiene 'Dashboard'"
+```
+
+### Fin del escenario ✅
+
+`WebHooksSteps.@After` → `DriverManager.quitDriver()` → Cierra el navegador → Listo para el siguiente escenario.
+
+---
+
+## 9. Ejemplos Prácticos
+
+### Ejemplo 1: Prueba Cross-Browser
+
+```gherkin
+@web @smoke
+Feature: Login funciona en todos los navegadores
+
+  Scenario Outline: Login exitoso en <navegador>
+    Given configuro el driver del navegador "<navegador>" en modo headless "true"
+    And navego a la URL "https://mi-sistema.com/login"
+    When ingreso "admin" en el elemento "usernameField"
+    And ingreso "Admin@2026!" en el elemento "passwordField"
+    And hago clic en el elemento "loginButton"
+    Then espero que el elemento "dashboardTitle" sea visible
+
     Examples:
-      | browser |
-      | chrome  |
-      | firefox |
-      | edge    |
+      | navegador |
+      | chrome    |
+      | firefox   |
+      | edge      |
 ```
 
-**💡 NOTA:** Si NO usas el step, usa el navegador por defecto (config-qa.properties).
-
----
-
-### Ejemplo 2: Login Simple
+### Ejemplo 2: Formulario de Registro
 
 ```gherkin
-@web @test
-Escenario: Login exitoso
-  Dado que navego a la URL "https://app.example.com/login"
-  Cuando ingreso el texto "testuser" en el elemento "username"
-  Y ingreso el texto "Test123" en el elemento "password"
-  Y hago clic en el elemento "loginButton"
-  Entonces debo ver el elemento "welcomeMessage"
-  Y el texto del elemento "userDisplay" debe contener "testuser"
+@web @regression
+Scenario: Registro de usuario nuevo
+  Given configuro el driver del navegador "chrome" en modo headless "false"
+  And navego a la URL "https://mi-sistema.com/registro"
+  When ingreso "Juan Pérez" en el elemento "nombreCompleto"
+  And ingreso "juan.perez@empresa.com" en el elemento "email"
+  And ingreso "JuanPass@2026!" en el elemento "password"
+  And selecciono la opcion "Chile" del dropdown "pais"
+  And hago clic en el elemento "checkboxTerminos"
+  And hago clic en el elemento "btnRegistrar"
+  Then espero que el elemento "mensajeExito" sea visible
+  And el texto del elemento "mensajeExito" debe contener "Registro exitoso"
 ```
 
-### Ejemplo 3: Formulario Completo
+### Ejemplo 3: Prueba Híbrida API + Web
 
 ```gherkin
-@web @test
-Escenario: Completar formulario de registro
-  Dado que navego a la URL "https://app.com/register"
-  Cuando ingreso el texto "Juan Pérez" en el elemento "fullName"
-  Y ingreso el texto "juan@test.com" en el elemento "email"
-  Y ingreso el texto "Test123" en el elemento "password"
-  Y selecciono la opción "Argentina" del dropdown "country"
-  Y marco el checkbox "acceptTerms"
-  Y hago clic en el elemento "submitButton"
-  Entonces debo ver el elemento "successMessage"
-  Y el texto del elemento "successMessage" debe contener "registro exitoso"
-```
-
-### Ejemplo 3: Flujo de Compra
-
-```gherkin
-@web @test
-Escenario: Comprar producto
-  # Búsqueda
-  Dado que navego a la URL "https://shop.com"
-  Cuando ingreso el texto "laptop" en el elemento "searchBox"
-  Y hago clic en el elemento "searchButton"
-  Y espero hasta que elemento "searchResults" este visible
-  
-  # Selección
-  Cuando hago clic en el elemento "firstProduct"
-  Y espero hasta que elemento "productDetails" este visible
-  Y guardo texto del elemento "productPrice" en variable "price"
-  Y hago clic en el elemento "addToCartButton"
-  
-  # Checkout
-  Cuando hago clic en el elemento "cartIcon"
-  Entonces el texto del elemento "cartTotal" debe contener "{price}"
-  Cuando hago clic en el elemento "checkoutButton"
-  Entonces debo ver el elemento "checkoutForm"
-```
-
-### Ejemplo 4: Integración con API (Cross-Layer)
-
-```gherkin
-@api @web
-Escenario: Crear producto por API y buscar en Web
-  # Crear por API
-  Dado que tengo el endpoint "/products"
-  Y agrego el request:
+@api @web @e2e
+Scenario: Crear usuario por API y verificar en interfaz web
+  # Crear usuario via API
+  Given configuro endpoint con base "https://mi-sistema.com/" y path "api/users"
+  And agrego el header "Content-Type" con valor "application/json"
+  And agrego el request
     """
-    {"name": "Nuevo Producto", "sku": "PROD-123"}
+    { "nombre": "Test QA", "email": "test.qa@empresa.com", "rol": "viewer" }
     """
-  Cuando ejecuto una petición POST
-  Entonces el código de respuesta debe ser 201
-  Y guardo el valor del campo "sku" en variable "productSku"
-  
-  # Buscar en web
-  Dado que navego a la URL "https://app.com/products"
-  Cuando ingreso el texto "{productSku}" en el elemento "searchBox"
-  Y hago clic en el elemento "searchButton"
-  Entonces el texto del elemento "productName" debe ser "Nuevo Producto"
+  When ejecuto la consulta con el metodo "POST"
+  Then valido que el codigo de respuesta del servicio sea 201
+  And el resultado almaceno el valor que está dentro de la estructura "id" en "nuevoUserId"
+
+  # Verificar en la interfaz web de administración
+  Given configuro el driver del navegador "chrome" en modo headless "true"
+  And navego a la URL "https://mi-sistema.com/admin/usuarios"
+  When ingreso "${nuevoUserId}" en el elemento "campoBusqueda"
+  And hago clic en el elemento "btnBuscar"
+  Then espero que el elemento "resultadoBusqueda" sea visible
+  And el texto del elemento "emailUsuario" debe contener "test.qa@empresa.com"
+```
+
+### Ejemplo 4: Validar una Tabla de Datos
+
+```gherkin
+@web @regression
+Scenario: La tabla de productos muestra los datos correctos
+  Given configuro el driver del navegador "chrome" en modo headless "true"
+  And navego a la URL "https://mi-sistema.com/productos"
+  Then espero que el elemento "tablaProductos" sea visible
+  And la tabla "tablaProductos" debe tener 5 filas
+  And la celda [1,1] de la tabla "tablaProductos" debe contener "Producto A"
+  And la celda [1,2] de la tabla "tablaProductos" debe contener "$10.000"
 ```
 
 ---
 
-## Configuración
+## 10. Configuración
 
-### En el Módulo
-
-**1. Agregar dependencia en `build.gradle`:**
+### Dependencia en `build.gradle`
 
 ```groovy
 dependencies {
-    testImplementation 'com.scotia.qa:web-core:1.0.0'
+    implementation 'com.qa:web-core:2.0.0'
     // common se incluye automáticamente
 }
 ```
 
-**2. Configurar en `config-scotia.properties`:**
+### Archivo de configuración del proyecto
+
+**`src/test/resources/config-app.properties`:**
 
 ```properties
-# Web Testing
-web.base.url=${{WEB_BASE_URL}}
+# Configuración Web
 web.browser=chrome
-web.headless=false
+web.headless=true
 web.timeout=30
-web.implicit.wait=10
+web.base.url=https://mi-sistema-qa.com
+
+# URLs por ambiente (para el step "configuro el ambiente web")
+web.baseurl.qa=https://mi-sistema-qa.com
+web.baseurl.staging=https://mi-sistema-staging.com
+web.baseurl.prod=https://mi-sistema.com
 ```
 
-**3. Configurar variables en `.env.local`:**
+### Navegadores soportados
 
-```bash
-WEB_BASE_URL=https://app-qa.example.com
-BROWSER=chrome
-HEADLESS=false
-```
+| Navegador | Valor en step | Modo headless | Requisito |
+|-----------|---------------|---------------|-----------|
+| Chrome | `"chrome"` | ✅ Sí | Chrome instalado (driver automático) |
+| Firefox | `"firefox"` | ✅ Sí | Firefox instalado (driver automático) |
+| Edge | `"edge"` | ✅ Sí | Edge instalado (driver automático) |
 
-**4. Agregar glue en `RunCucumberTest.java`:**
+> Los drivers (ChromeDriver, GeckoDriver, EdgeDriver) se descargan **automáticamente** por WebDriverManager. No hay que instalar nada manualmente.
+
+### Runner de Cucumber
 
 ```java
-@ConfigurationParameter(
-    key = "cucumber.glue",
-    value = "com.scotia.qa.webcore, com.scotia.qa.common, com.tu.proyecto.steps"
-)
-```
-
-### Navegadores Soportados
-
-| Navegador | Valor Config | Requisitos |
-|-----------|--------------|------------|
-| **Chrome** | `chrome` | Chrome instalado + ChromeDriver (auto-download) |
-| **Firefox** | `firefox` | Firefox instalado + GeckoDriver (auto-download) |
-| **Edge** | `edge` | Edge instalado + EdgeDriver (auto-download) |
-
-### Modo Headless (CI/CD)
-
-```properties
-# Para Jenkins/GitLab CI
-web.headless=true
+@Suite
+@IncludeEngines("cucumber")
+@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME,
+    value = "com.qa.webcore, com.qa.common, com.mi.proyecto.steps")
+@ConfigurationParameter(key = Constants.FEATURES_PROPERTY_NAME,
+    value = "src/test/resources/features")
+public class RunCucumberTest {}
 ```
 
 ---
 
-## Integración con Módulos
+## 11. Patrones de Diseño Usados
 
-### Estructura Típica
-
-```
-qa-module-tu-proyecto/
-├── src/test/
-│   ├── java/
-│   │   └── com/tu/proyecto/
-│   │       ├── RunCucumberTest.java
-│   │       ├── components/
-│   │       │   └── ComponentManager.java    ← Locators
-│   │       ├── pages/
-│   │       │   ├── LoginPage.java           ← Page Objects (opcional)
-│   │       │   └── DashboardPage.java
-│   │       └── steps/
-│   │           └── CustomSteps.java
-│   │
-│   └── resources/
-│       ├── features/
-│       │   └── web/
-│       │       ├── login.feature
-│       │       └── dashboard.feature
-│       │
-│       └── config-scotia.properties
-│
-├── .env.local
-└── build.gradle
-```
+| Patrón | Dónde | Para qué |
+|--------|-------|----------|
+| **Plugin / SPI** | `WebPlugin` + `META-INF/services/` | Auto-registro sin configuración manual |
+| **Facade** | `WebHelper` | Un punto de acceso que oculta la complejidad de Selenium |
+| **Factory** | `WebDriverFactory` | Crea drivers para diferentes navegadores |
+| **ThreadLocal** | `DriverManager` | Ejecución en paralelo sin mezclar drivers |
+| **Component / Metadata** | 16 clases `*Component` | Fichas técnicas usadas por el sistema de descubrimiento |
+| **Strategy** | `WaitUtils` | Diferentes estrategias de espera según condición |
 
 ---
 
-## Referencia Rápida
+## 12. Troubleshooting
 
-### Cheat Sheet de Steps Comunes
+### ❌ El navegador no se abre / NullPointerException en el driver
 
-```gherkin
-# Navegación
-Dado que navego a la URL "https://app.com"
-
-# Interacciones básicas
-Cuando ingreso el texto "valor" en el elemento "inputId"
-Y hago clic en el elemento "buttonId"
-
-# Waits
-Y espero hasta que elemento "loadingSpinner" este visible
-
-# Validaciones
-Entonces debo ver el elemento "successMessage"
-Y el texto del elemento "title" debe ser "Dashboard"
-
-# Guardar datos
-Y guardo texto del elemento "userId" en variable "id"
-```
-
-### Uso de Variables
-
-```gherkin
-# Guardar desde API
-Y guardo el valor del campo "userId" en variable "id"
-
-# Usar en Web (automático)
-Dado que navego a la URL "https://app.com/users/{id}"
-Entonces el texto del elemento "userName" debe contener "{fullName}"
-```
-
----
-
-## 📚 Documentación Adicional
-
-- **[QUICK-REFERENCE.md](QUICK-REFERENCE.md)** - Referencia rápida de todos los steps
-- **[../FRAMEWORK-GUIDE.md](../FRAMEWORK-GUIDE.md)** - Arquitectura del framework
-- **[../QUICK-START.md](../QUICK-START.md)** - Guía de inicio rápido
-- **[../common/README.md](../common/README.md)** - Documentación de Common Layer
-
----
-
-## 🐛 Troubleshooting
-
-### ❌ WebDriver no se inicializa
-
-**Problema:** `NullPointerException` al acceder al driver.
-
-**Solución:** Verificar que el scenario tiene el tag correcto:
-
-```gherkin
-@web  # ← Este tag es obligatorio
-Escenario: Mi test web
-```
-
-### ❌ Elemento no encontrado
-
-**Problema:** `NoSuchElementException`.
+**Causa:** Falta el tag `@web` en el escenario o feature.
 
 **Solución:**
-1. Verificar que el locator está definido en `ComponentManager`
-2. Agregar wait explícito:
-   ```gherkin
-   Y espero hasta que elemento "miElemento" este visible
+```gherkin
+@web  ← Obligatorio para activar WebPlugin
+Scenario: Mi test web
+```
+
+### ❌ NoSuchElementException — Elemento no encontrado
+
+**Causa:** El locator no está definido en el `ComponentManager` del proyecto, o el elemento no aparece en el tiempo de espera.
+
+**Solución:**
+1. Verificar que existe en `ComponentManager.java`:
+   ```java
+   locators.put("miElemento", By.id("mi-id-real"));
    ```
+2. Agregar un wait explícito:
+   ```gherkin
+   When espero que el elemento "miElemento" sea visible
+   ```
+
+### ❌ TimeoutException — Elemento no aparece en el tiempo esperado
+
+**Causa:** La página tarda más de 30 segundos, o el elemento no va a aparecer.
+
+**Solución:**
+- Verificar que la URL es correcta
+- Verificar que el locator es correcto (usar DevTools del navegador)
+- Si es un elemento que tarda, aumentar el timeout en config: `web.timeout=60`
 
 ### ❌ ChromeDriver version mismatch
 
-**Problema:** Versión incompatible de ChromeDriver.
+**Causa:** Rara vez sucede. WebDriverManager lo maneja automáticamente.
 
-**Solución:** WebDriverManager lo descarga automáticamente. Si falla:
-
+**Solución:**
 ```bash
-# Limpiar cache
-rm -rf ~/.m2/repository/.cache/selenium
+# Limpiar cache de WebDriverManager
+rm -rf ~/.cache/selenium
 ```
 
 ---
 
-**Última actualización:** 28 de Noviembre de 2025  
-**Autor:** Abel Venero  
-**Versión:** 1.0.0
-
+> 📖 **Documentación relacionada:**
+> - [common/README.md](../common/README.md) — Capa base y motor de ejecución
+> - [api-core/README.md](../api-core/README.md) — Para pruebas híbridas API+Web
+> - [mobile-core/README.md](../mobile-core/README.md) — Para pruebas mobile
+> - [README.md](../README.md) — Visión general del framework
