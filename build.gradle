@@ -1,126 +1,219 @@
+// =============================================================================
+// ROOT BUILD — CuAleon Test Engineering Platform
+// Aplicar plugins externos aquí con 'apply false'; los subproyectos los aplican
+// mediante 'apply plugin:' dentro del bloque subprojects {}
+// =============================================================================
+plugins {
+    id "org.sonarqube"       version "5.1.0.4882"
+    id "com.github.spotbugs" version "6.0.18" apply false
+}
 
-// Configuración del proyecto raíz qa-framework
-group = "com.qa"
+group   = "com.qa"
 version = "2.0.0"
 
+// =============================================================================
+// SONARCLOUD — Análisis de calidad multi-módulo
+//
+// Pre-requisitos (solo una vez por repositorio):
+//   1. Ir a https://sonarcloud.io y autenticarse con GitHub
+//   2. Importar el repositorio 'avenero/qa-framework-core'
+//   3. Copiar el SONAR_TOKEN generado
+//   4. En GitHub → Settings → Secrets → Actions → New secret:
+//        Nombre: SONAR_TOKEN  |  Valor: <token copiado>
+//
+// La organización SonarCloud DEBE coincidir con el org/user de GitHub (lowercase).
+// =============================================================================
+sonar {
+    properties {
+        property "sonar.projectKey",    "avenero_qa-framework-core"
+        property "sonar.organization",  "avenero"
+        property "sonar.host.url",      "https://sonarcloud.io"
+        property "sonar.java.source",   "21"
+        property "sonar.sourceEncoding","UTF-8"
+        property "sonar.projectName",   "CuAleon Test Engineering Platform — Core"
 
-// Configuración para todos los submódulos
+        // Aggregate JaCoCo XML coverage reports from all 4 modules
+        property "sonar.coverage.jacoco.xmlReportPaths",
+                 ["common", "api-core", "web-core", "mobile-core"].collect {
+                     "${rootProject.projectDir}/${it}/build/reports/jacoco/test/jacocoTestReport.xml"
+                 }.join(",")
+
+        // Checkstyle reports (main source only)
+        property "sonar.java.checkstyle.reportPaths",
+                 ["common", "api-core", "web-core", "mobile-core"].collect {
+                     "${rootProject.projectDir}/${it}/build/reports/checkstyle/main.xml"
+                 }.join(",")
+
+        // SpotBugs reports (main source only)
+        property "sonar.java.spotbugs.reportPaths",
+                 ["common", "api-core", "web-core", "mobile-core"].collect {
+                     "${rootProject.projectDir}/${it}/build/reports/spotbugs/main.xml"
+                 }.join(",")
+
+        // Exclusiones: no analizar código generado, modelos simples ni clases de excepción
+        property "sonar.exclusions", [
+            "**/model/**",
+            "**/exceptions/**",
+            "**/enums/**",
+            "**/*Exception.java",
+            "**/*Test.java"
+        ].join(",")
+
+        // Exclusiones de cobertura: mismo criterio que JaCoCo
+        property "sonar.coverage.exclusions", [
+            "**/model/**",
+            "**/exceptions/**",
+            "**/enums/**",
+            "**/*Exception.java",
+            "**/*Test.java",
+            "**/*Steps.java"
+        ].join(",")
+    }
+}
+
+
+// =============================================================================
+// CONFIGURACIÓN COMÚN A TODOS LOS SUBMÓDULOS
+// =============================================================================
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'jacoco'
+    apply plugin: 'checkstyle'
+    apply plugin: 'com.github.spotbugs'
 
-    group = "com.qa"
+    group   = "com.qa"
     version = "2.0.0"
-
 
     repositories {
         mavenLocal()
         mavenCentral()
     }
 
+    // =========================================================================
+    // CHECKSTYLE — Análisis estático de estilo / code smells
+    // =========================================================================
+    checkstyle {
+        toolVersion    = "10.21.0"
+        configFile     = rootProject.file("config/checkstyle/checkstyle.xml")
+        ignoreFailures = true      // No romper el build; reportes van a SonarCloud
+        showViolations = false
+    }
+    // Solo analizar fuentes principales; los tests tienen reglas más relajadas
+    checkstyleTest.enabled = false
 
-    // ========================================================================
-    // CONFIGURACIÓN DE ENCODING UTF-8 (Soluciona errores en Windows)
-    // ========================================================================
+    // =========================================================================
+    // SPOTBUGS — Detección de bugs y code smells
+    // =========================================================================
+    spotbugs {
+        toolVersion    = "4.8.6"
+        ignoreFailures = true      // No romper el build; reportes van a SonarCloud
+        effort         = "default"
+        reportLevel    = "high"    // Solo HIGH severity (medium/low va igual a SonarCloud vía sonar)
+        excludeFilter  = rootProject.file("config/spotbugs/exclude.xml")
+    }
+    tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+        reports {
+            xml  { required = true  }   // SonarCloud consume XML
+            html { required = false }
+        }
+    }
+    // No analizar tests con SpotBugs (demasiados false-positives en código de tests)
+    tasks.matching { it.name == 'spotbugsTest' }.configureEach { enabled = false }
+
+    // =========================================================================
+    // ENCODING UTF-8
+    // =========================================================================
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
-
-        // Mostrar warnings de unchecked operations y deprecations
         options.compilerArgs << '-Xlint:unchecked' << '-Xlint:deprecation'
     }
 
-
+    // =========================================================================
+    // CONFIGURACIÓN DE TESTS
+    // =========================================================================
     tasks.withType(Test) {
         useJUnitPlatform()
 
-        // ═══════════════════════════════════════════════════════════════════
-        // CONFIGURACIÓN CENTRALIZADA DE LOGGING PARA TESTS
-        // ═══════════════════════════════════════════════════════════════════
-
-        // Normalizar ruta de logback para Windows (evita problemas con backslashes)
         def logbackPath = rootProject.file('config/logback-test.xml').absolutePath.replace('\\', '/')
         systemProperty 'logback.configurationFile', logbackPath
-
-        // Habilitar colores ANSI en consola (Jansi - funciona en Windows)
         systemProperty 'jansi.force', 'true'
-        systemProperty 'jansi.passthrough', 'false'  // false para que Gradle no interfiera
+        systemProperty 'jansi.passthrough', 'false'
+        systemProperty 'qa.logs.verbose', System.getProperty('qa.logs.verbose', 'false')
 
-        // Habilitar modo verbose de logs (opcional, por defecto false)
-        systemProperty 'qa.logs.verbose',
-                      System.getProperty('qa.logs.verbose', 'false')
-
-        // Configuración de test logging optimizada
         testLogging {
-            // Mostrar solo eventos importantes (NO showStandardStreams para preservar colores)
             events "passed", "failed", "skipped"
-
-            // Mostrar excepciones completas solo en fallos
-            exceptionFormat = 'full'
-            showExceptions = true
-            showCauses = true
-            showStackTraces = true
-
-            // Nivel de detalle (0=quiet, 1=lifecycle, 2=info)
+            exceptionFormat  = 'full'
+            showExceptions   = true
+            showCauses       = true
+            showStackTraces  = true
             displayGranularity = 1
-
-            // NO capturar stdout/stderr (deja que Logback maneje colores)
             showStandardStreams = false
         }
 
-        // Configuración JVM para mejor performance
         jvmArgs '-Xmx2048m', '-XX:+UseG1GC'
-
-        // Forzar colores en terminal
         outputs.upToDateWhen { false }
+
+        // Finalizar generando reporte de cobertura automáticamente
+        finalizedBy jacocoTestReport
     }
 
-    // ========================================================================
-    // GENERACIÓN DE JAVADOC Y SOURCES
-    // ========================================================================
+    // =========================================================================
+    // JACOCO — Cobertura de código
+    // =========================================================================
+    jacoco {
+        toolVersion = '0.8.12'
+    }
 
-    // Generar JavaDoc JAR
+    jacocoTestReport {
+        dependsOn test
+        reports {
+            xml.required  = true
+            html.required = true
+            csv.required  = false
+        }
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                    '**/model/**',
+                    '**/exceptions/**',
+                    '**/enums/**',
+                    '**/*Exception*'
+                ])
+            }))
+        }
+    }
+
+    // =========================================================================
+    // JAVADOC Y SOURCES
+    // =========================================================================
     java {
         withJavadocJar()
         withSourcesJar()
     }
 
-    // Configurar JavaDoc task
     javadoc {
         options.encoding = 'UTF-8'
-        options.charSet = 'UTF-8'
-        options.author = true
-        options.version = true
-
-        // Links a documentación estándar
-        options.links = [
-            'https://docs.oracle.com/en/java/javase/21/docs/api/'
-        ]
-
-        // Ignorar errores en JavaDoc (para no bloquear el build)
-        failOnError = false
-
-        // Opciones adicionales
+        options.charSet  = 'UTF-8'
+        options.author   = true
+        options.version  = true
+        options.links    = ['https://docs.oracle.com/en/java/javase/21/docs/api/']
+        failOnError      = false
         options.addStringOption('Xdoclint:none', '-quiet')
     }
 
-    // ========================================================================
-    // PUBLICACIÓN (Publishing)
-    // ========================================================================
-    // Configuración de publicación Maven para submódulos sin configuración propia
+    // =========================================================================
+    // PUBLICACIÓN A GITHUB PACKAGES
+    // =========================================================================
     afterEvaluate {
-        // Solo aplicar si el módulo no tiene su propia configuración de publicación
         if (!project.name.equals('api-core')) {
             publishing {
                 publications {
                     mavenJava(MavenPublication) {
                         from components.java
-                        groupId = project.group
+                        groupId    = project.group
                         artifactId = project.name
-                        version = project.version
-
-                        // JavaDoc y Sources ya incluidos por withJavadocJar() y withSourcesJar()
-                        // NO agregar manualmente para evitar duplicados
+                        version    = project.version
                     }
                 }
                 repositories {
@@ -138,4 +231,3 @@ subprojects {
         }
     }
 }
-

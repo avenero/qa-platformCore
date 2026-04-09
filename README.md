@@ -1,4 +1,4 @@
-# 🚀 QA Automation Framework — Core
+# CuAleon Test Engineering Platform — Core
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
 [![Gradle](https://img.shields.io/badge/Gradle-8.14-blue.svg)](https://gradle.org/)
@@ -6,7 +6,7 @@
 [![Cucumber](https://img.shields.io/badge/Cucumber-7.18.0-brightgreen.svg)](https://cucumber.io/)
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/avenero/qa-framework-core)
 
-> Framework de automatización de pruebas modular, robusto y extensible para API REST, Web UI y Mobile — construido sobre BDD (Behavior-Driven Development) con Cucumber en español.
+> Motor de ejecución BDD del ecosistema **CuAleon Test Engineering Platform** — framework modular de automatización para API REST, Web UI, Mobile y Base de Datos, construido sobre Cucumber en español y consumido por el Backend a través de una API de ejecución uniforme.
 
 ---
 
@@ -31,10 +31,12 @@
 Imagina que necesitas verificar que un sistema funciona correctamente — que cuando alguien inicia sesión, el sistema realmente lo deja entrar; que cuando se hace una compra, el dinero se descuenta bien; que la app móvil muestra los datos correctos. Eso es lo que hace este framework: **automatizar todas esas verificaciones** para que no tengan que hacerse a mano cada vez que el sistema cambia.
 
 El framework está organizado como un **kit de herramientas por capas**:
-- Una capa base con todas las piezas comunes (como la caja de herramientas general)
-- Capas especializadas para cada tipo de prueba (herramientas específicas para APIs, para navegadores web, para apps móviles)
+- Una capa base con todas las piezas comunes (motor de ejecución, logging, config, HTTP, BD)
+- Capas especializadas para cada tipo de prueba (API REST, Web UI, Mobile, Base de Datos)
 
 La clave del diseño es que **las capas especializadas no se conocen entre sí** — solo conocen la base. Esto permite combinarlas libremente y reemplazar cualquier pieza sin afectar las demás.
+
+> **Contexto de plataforma:** Este Core es el motor que el **Backend de CuAleon** consume directamente. El Backend recibe solicitudes de ejecución desde el Frontend (React), invoca `CucumberRuntimeEngine.execute(ExecutionRequest)`, y retorna `ExecutionResult` con los resultados en tiempo real vía `EventBus`. El Core no tiene UI propia — es una librería pura publicada como JARs.
 
 ### ¿Qué significa BDD?
 
@@ -220,7 +222,7 @@ dependencies {
     implementation 'com.qa:common:2.0.0'      // Siempre requerido
     implementation 'com.qa:api-core:2.0.0'    // Para pruebas de API REST
     implementation 'com.qa:web-core:2.0.0'    // Para pruebas de interfaz Web
-    // implementation 'com.qa:mobile-core:2.0.0' // Para pruebas Mobile (Beta)
+    implementation 'com.qa:mobile-core:2.0.0'    // Para pruebas Mobile (Android + iOS)
 }
 ```
 
@@ -372,23 +374,30 @@ Scenario: El menú principal tiene los ítems correctos
 
 ### 📱 [mobile-core](./mobile-core/README.md) — Pruebas de Apps Móviles
 
-**¿Qué es?** Todo lo necesario para controlar aplicaciones móviles en Android e iOS usando Appium.
+**¿Qué es?** Todo lo necesario para controlar aplicaciones móviles en Android e iOS usando Appium 8+.
 
 **Lo más importante que tiene:**
-- **~60 steps en español** organizados en 10 grupos
+- **~80 steps en español** organizados en 10 componentes BDD
 - **MobilePlugin**: se activa con `@mobile`, `@android`, `@ios`, `@appium`
-- **10 componentes**: AppManagement, DeviceConfig, Gestures, NativeElement, ContextSwitch, DevicePermission, Notification, Sensor, MobileElementValidation, AppStateValidation
-- **MobileDriverFactory**: crea y configura el driver Appium para Android o iOS
+- **Auto-descubrimiento de dispositivos**: `DeviceDiscoveryService` detecta emuladores (ADB) y simuladores (simctl) para presentarlos en el FE
+- **Pool thread-safe**: `DevicePool` asigna dispositivos y puertos Appium únicos por ejecución paralela
+- **MobileDriverManager**: ThreadLocal garantiza aislamiento total entre escenarios paralelos
+- **GestureHelper**: W3C Actions API (Appium 8+) — sin TouchAction deprecado
+- **ElementLocatorHelper**: estrategia de localización por prefijo (`~`, `id:`, `xpath:`, `text:`...) diseñada para entrenamiento de IA de sugerencias en el FE
+- **AppiumServerManager**: health check automático + auto-start opt-in para desarrollo local
 
 **Versión:** `com.qa:mobile-core:2.0.0`
 
 **Ejemplo rápido:**
 ```gherkin
-@mobile @android
+@android
 Scenario: La app muestra la pantalla de login al iniciarse
-  Given inicio la aplicacion movil
-  Then el elemento movil "loginScreen" debe ser visible
-  And el elemento movil "usernameField" debe estar habilitado
+  Given configuro el dispositivo movil como "ANDROID"
+  Given configuro que la app se ejecute en un emulador
+  Given lanzo la aplicacion
+  Then deberia ver el texto "Iniciar sesion" en la pantalla
+  And el elemento "~username_field" debe estar habilitado
+  And tomo screenshot mobile
 ```
 
 📖 **[Ver documentación completa → mobile-core/README.md](./mobile-core/README.md)**
@@ -411,7 +420,7 @@ Scenario: La app muestra la pantalla de login al iniciarse
 | **AssertJ** | 3.24.x | Aserciones fluidas (fáciles de leer) | api-core |
 | **Selenium WebDriver** | 4.27.0 | Automatizar navegadores | web-core |
 | **WebDriverManager** | 5.x | Descarga drivers automáticamente | web-core |
-| **Appium Java Client** | 9.1.0 | Automatizar apps móviles | mobile-core |
+| **Appium Java Client** | 8.6.0 | Automatizar apps móviles (W3C API) | mobile-core |
 | **HikariCP** | 5.x | Pool de conexiones a BD | common |
 
 ### Navegadores soportados (web-core)
@@ -431,17 +440,61 @@ Scenario: La app muestra la pantalla de login al iniciarse
 
 ---
 
+## 🔌 Contrato con el Backend (API Pública del Core)
+
+El Backend de CuAleon integra este Core como librería Java. Estas son las **5 clases públicas** que el Backend consume directamente, todas en `com.qa.common.runtime`:
+
+| Clase | Rol | Descripción |
+|-------|-----|-------------|
+| `CucumberRuntimeEngine` | **Entry point** | `execute(ExecutionRequest) → ExecutionResult` |
+| `ExecutionRequest` | **Input** | Feature paths, tags, variables de entorno, config |
+| `ExecutionResult` | **Output** | Estado final, métricas, escenarios pasados/fallados |
+| `StepDiscoveryService` | **Catálogo** | Lista todos los `StepComponent` disponibles por plugin |
+| `EventSubscriber` | **Streaming** | Interfaz implementada por el adapter WebSocket del Backend |
+
+### Flujo de integración
+
+```
+Backend recibe POST /executions
+        │
+        ▼
+ExecutionRequest req = ExecutionRequest.builder()
+    .featurePaths(List.of("classpath:features/login.feature"))
+    .tags(List.of("@api", "@smoke"))
+    .environmentVars(Map.of("BASE_URL", "https://qa.empresa.com"))
+    .build();
+        │
+        ▼
+CucumberRuntimeEngine engine = new CucumberRuntimeEngine();
+engine.getEventBus().subscribe(webSocketAdapter);   // streaming tiempo real
+ExecutionResult result = engine.execute(req);
+        │
+        ▼
+Backend persiste result y retorna al Frontend
+```
+
+### Catálogo de steps para el Frontend
+
+```java
+StepDiscoveryService discovery = new StepDiscoveryService();
+List<StepComponent> allSteps = discovery.discoverAll();
+// → ApiPlugin (12 componentes) + WebPlugin (16) + MobilePlugin (10) + DatabasePlugin (3)
+// → Total: 41 grupos de steps con metadatos para la paleta visual del FE
+```
+
+---
+
 ## 📊 Estado del Proyecto
 
 **Versión actual:** 2.0.0  
 **Última actualización:** Abril 2026
 
-| Capa | Versión | Estado | Steps | Build |
-|------|---------|--------|-------|-------|
-| **common** | 2.0.0 | ✅ Estable | — | ✅ Verde |
-| **api-core** | 2.0.0 | ✅ Estable | ~92 steps (13 clases) | ✅ Verde |
-| **web-core** | 2.0.0 | ✅ Estable | ~80 steps (16 componentes) | ✅ Verde |
-| **mobile-core** | 2.0.0 | 🔄 Beta | ~60 steps (10 componentes) | ✅ Verde |
+| Capa | Versión | Estado | Componentes | Build |
+|------|---------|--------|-------------|-------|
+| **common** | 2.0.0 | ✅ Estable | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
+| **api-core** | 2.0.0 | ✅ Estable | 12 componentes (~92 steps) | ✅ Verde |
+| **web-core** | 2.0.0 | ✅ Estable | 16 componentes (~80 steps) | ✅ Verde |
+| **mobile-core** | 2.0.0 | ✅ Estable | 10 componentes (~80 steps) | ✅ Verde |
 
 ### ¿Qué cambió de v1.x a v2.0?
 
@@ -632,9 +685,9 @@ open common/build/reports/jacoco/test/html/index.html
 
 <div align="center">
 
-**[⬆ Volver arriba](#-qa-automation-framework--core)**
+**[⬆ Volver arriba](#cualeon-test-engineering-platform--core)**
 
-Hecho con ❤️ por el QA Team
+CuAleon Test Engineering Platform — construido por el QA Engineering Team
 
 </div>
 

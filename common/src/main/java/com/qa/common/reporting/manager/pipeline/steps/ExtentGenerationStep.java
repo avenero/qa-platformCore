@@ -6,7 +6,7 @@ import com.qa.common.reporting.core.model.TestExecutionResult;
 import com.qa.common.reporting.extent.generator.ExtentReportGenerator;
 import com.qa.common.reporting.manager.pipeline.PipelineContext;
 import com.qa.common.reporting.manager.pipeline.ReportingStep;
-import com.qa.common.reporting.manager.pipeline.StepResult;
+import com.qa.common.reporting.manager.pipeline.PipelineStepResult;
 
 /**
  * Step 2: Generación de reporte Extent (HTML).
@@ -36,12 +36,12 @@ public class ExtentGenerationStep implements ReportingStep {
     }
 
     @Override
-    public StepResult execute(PipelineContext context) {
+    public PipelineStepResult execute(PipelineContext context) {
         TestLogger.logInfo("EXTENT_STEP", "📊 Generando reporte Extent Reports", null);
 
         TestExecutionResult result = context.getTestExecutionResult();
         if (result == null) {
-            return StepResult.failure("TestExecutionResult no disponible en contexto");
+            return PipelineStepResult.failure("TestExecutionResult no disponible en contexto");
         }
 
         try {
@@ -54,12 +54,12 @@ public class ExtentGenerationStep implements ReportingStep {
             // Guardar path en contexto
             context.setExtentReportPath(reportPath);
 
-            return StepResult.success("Reporte generado en: " + reportPath);
+            return PipelineStepResult.success("Reporte generado en: " + reportPath);
 
         } catch (Exception e) {
             TestLogger.logException("EXTENT_STEP",
                 "Error generando reporte Extent: " + e.getMessage(), e);
-            return StepResult.failure("Error generando Extent Report: " + e.getMessage(), e);
+            return PipelineStepResult.failure("Error generando Extent Report: " + e.getMessage(), e);
         }
     }
 }

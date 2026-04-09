@@ -1,8 +1,9 @@
 package com.qa.common.database.plugin;
 
+import com.qa.common.database.components.DatabaseExecutionComponent;
+import com.qa.common.database.components.DatabaseSetupComponent;
+import com.qa.common.database.components.DatabaseValidationComponent;
 import com.qa.common.database.helpers.DatabaseHelper;
-import com.qa.common.database.steps.DatabaseConnectionSteps;
-import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
@@ -66,26 +67,21 @@ public class DatabasePlugin implements CorePlugin {
     }
 
     /**
-     * Declara el componente de steps de base de datos.
+     * Declara los componentes de steps de base de datos, uno por fase BDD.
+     *
+     * <ul>
+     *   <li>GIVEN — establecer conexión a un motor de BD</li>
+     *   <li>WHEN  — ejecutar consultas/sentencias SQL</li>
+     *   <li>THEN  — validar resultados y extraer valores de columnas</li>
+     * </ul>
      */
     @Override
     public List<StepComponent> getComponents() {
         return List.of(
-                component("Conexión y Consultas DB", BddPhase.GIVEN, DatabaseConnectionSteps.class,
-                        "Conectar a bases de datos y ejecutar queries SQL")
+                new DatabaseSetupComponent(),
+                new DatabaseExecutionComponent(),
+                new DatabaseValidationComponent()
         );
-    }
-
-    // -------------------------------------------------------------------------
-
-    private StepComponent component(String name, BddPhase phase,
-                                    Class<?> stepClass, String description) {
-        return new StepComponent() {
-            @Override public String getName()                  { return name; }
-            @Override public BddPhase getPhase()               { return phase; }
-            @Override public Class<?> getStepDefinitionClass() { return stepClass; }
-            @Override public String getDescription()           { return description; }
-        };
     }
 }
 

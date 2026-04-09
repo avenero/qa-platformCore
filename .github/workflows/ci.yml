@@ -1,0 +1,182 @@
+# =============================================================================
+# CuAleon Test Engineering Platform — CI Pipeline
+#
+# Disparo: push a la rama master únicamente.
+#
+# Jobs:
+#   1. quality   — Compila, ejecuta unit tests, genera cobertura JaCoCo,
+#                  corre Checkstyle + SpotBugs y envía todo a SonarCloud.
+#   2. publish   — Publica los artefactos en GitHub Packages (solo si quality pasa).
+#
+# Secrets requeridos (GitHub → Settings → Secrets → Actions):
+#   • SONAR_TOKEN  — Token de SonarCloud (https://sonarcloud.io)
+#                    GITHUB_TOKEN se inyecta automáticamente por GitHub Actions.
+#
+# Pre-requisitos SonarCloud (solo la primera vez):
+#   1. https://sonarcloud.io → Log in with GitHub
+#   2. "+ Analyze new project" → seleccionar avenero/qa-framework-core
+#   3. Copiar el token generado y guardarlo como secret SONAR_TOKEN
+# =============================================================================
+
+name: CI — CuAleon Core
+
+on:
+  push:
+    branches: [ master ]
+
+# Evitar ejecuciones paralelas en la misma rama
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ===========================================================================
+  # JOB 1: Tests · Cobertura · Análisis de Calidad · SonarCloud
+  # ===========================================================================
+  quality:
+    name: Tests · Coverage · Static Analysis
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+
+      # ── Checkout completo (fetch-depth: 0 requerido por SonarCloud) ──────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── JDK 21 (Temurin — distribución Eclipse, 100% open source) ────────────
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # ── Cache Gradle (wrapper + caches) ───────────────────────────────────────
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # ── Cache SonarCloud (reduce tiempo de análisis en ejecuciones sucesivas) ─
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-sonar-
+
+      # ── Permisos Gradle Wrapper ───────────────────────────────────────────────
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      # ── Unit Tests + JaCoCo ───────────────────────────────────────────────────
+      # --continue: no abortar si un módulo falla; reportar todos los resultados
+      - name: Run unit tests and generate JaCoCo coverage
+        run: ./gradlew test jacocoTestReport --continue --no-daemon
+        env:
+          CI: true
+
+      # ── Checkstyle (estilo de código / code smells) ────────────────────────────
+      - name: Run Checkstyle static analysis
+        run: ./gradlew checkstyleMain --continue --no-daemon
+
+      # ── SpotBugs (detección de bugs / vulnerabilidades) ───────────────────────
+      - name: Run SpotBugs analysis
+        run: ./gradlew spotbugsMain --continue --no-daemon
+
+      # ── SonarCloud — análisis central de calidad ──────────────────────────────
+      # Consolida: tests, cobertura JaCoCo, Checkstyle y SpotBugs en un único
+      # dashboard accesible en https://sonarcloud.io/project/overview?id=avenero_qa-framework-core
+      - name: SonarCloud analysis
+        run: ./gradlew sonar --no-daemon
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN:  ${{ secrets.SONAR_TOKEN }}
+
+      # ── Artefactos: Resultados de Tests ──────────────────────────────────────
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ github.run_number }}
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
+          retention-days: 30
+
+      # ── Artefactos: Reportes JaCoCo (HTML navegable + XML para SonarCloud) ───
+      - name: Upload JaCoCo coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-reports-${{ github.run_number }}
+          path: '**/build/reports/jacoco/'
+          retention-days: 30
+
+      # ── Artefactos: Reportes de Análisis Estático ────────────────────────────
+      - name: Upload static analysis reports (Checkstyle + SpotBugs)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: static-analysis-${{ github.run_number }}
+          path: |
+            **/build/reports/checkstyle/
+            **/build/reports/spotbugs/
+          retention-days: 30
+
+  # ===========================================================================
+  # JOB 2: Publicación en GitHub Packages
+  # Solo se ejecuta si el job 'quality' termina exitosamente.
+  # ===========================================================================
+  publish:
+    name: Publish to GitHub Packages
+    needs: quality
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      # Publica los 4 módulos en:
+      # https://github.com/avenero/qa-framework-core/packages
+      - name: Publish all modules to GitHub Packages
+        run: ./gradlew publish --no-daemon
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

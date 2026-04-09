@@ -1,0 +1,204 @@
+package com.qa.mobilecore.appium;
+
+import com.qa.common.logging.TestLogger;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Gestor del servidor Appium.
+ *
+ * <p>Responsabilidades:
+ * <ol>
+ *   <li><b>Health check:</b> verifica si Appium responde en la URL dada ({@code /status})</li>
+ *   <li><b>Auto-start opt-in:</b> levanta el proceso Appium localmente cuando
+ *       {@code mobile.appium.auto.start=true} (solo para desarrollo local)</li>
+ * </ol>
+ *
+ * <p><b>Política de uso:</b>
+ * <ul>
+ *   <li><b>CI/CD / Grid:</b> Appium ya corre en el servidor; solo se hace health check.
+ *       Si no responde se falla rápido con mensaje claro.</li>
+ *   <li><b>Local dev:</b> {@code mobile.appium.auto.start=true} levanta Appium
+ *       automáticamente si no está corriendo. Requiere {@code appium} en PATH
+ *       ({@code npm install -g appium}).</li>
+ * </ul>
+ *
+ * <p><b>Instrucciones para el BE:</b> no es necesario invocar esta clase desde el BE.
+ * El {@code MobileHelper} la invoca internamente antes de crear el driver.
+ *
+ * @author Abel Venero
+ * @since 2.0.0
+ */
+public final class AppiumServerManager {
+
+    private static final int HEALTH_CHECK_TIMEOUT_MS = 3_000;
+    private static final int STARTUP_POLL_INTERVAL_MS = 1_000;
+
+    private AppiumServerManager() {}
+
+    /**
+     * Verifica que Appium esté disponible en la URL dada.
+     * Si no responde y {@code autoStart} es {@code false}, falla con mensaje claro.
+     * Si {@code autoStart} es {@code true}, intenta levantarlo (solo local/dev).
+     *
+     * @param serverUrl URL del servidor Appium (ej: {@code http://localhost:4723})
+     * @param autoStart si {@code true}, intenta arrancar Appium al detectar que no responde
+     * @param startupTimeoutSec segundos máximos de espera para que Appium esté listo
+     * @throws IllegalStateException si Appium no está disponible y no se puede iniciar
+     */
+    public static void ensureRunning(String serverUrl, boolean autoStart, int startupTimeoutSec) {
+        if (isResponding(serverUrl)) {
+            TestLogger.logInfo("APPIUM_SERVER",
+                "Appium disponible en: " + serverUrl, null);
+            return;
+        }
+
+        if (!autoStart) {
+            throw new IllegalStateException(
+                "Appium no responde en: " + serverUrl + ". " +
+                "Opciones:\n" +
+                "  1) Inicia Appium manualmente: appium --port <PORT>\n" +
+                "  2) Usa un grid/Docker con Appium levantado\n" +
+                "  3) Activa auto-start (solo local dev): mobile.appium.auto.start=true");
+        }
+
+        TestLogger.logInfo("APPIUM_SERVER",
+            "Appium no responde en " + serverUrl + ". Intentando auto-start...", null);
+        startLocalAppium(serverUrl, startupTimeoutSec);
+    }
+
+    /**
+     * Verifica si Appium responde en la URL dada con un GET a {@code /status}.
+     *
+     * @param serverUrl URL base del servidor Appium
+     * @return true si el servidor responde con HTTP 200
+     */
+    public static boolean isResponding(String serverUrl) {
+        try {
+            String statusUrl = serverUrl.replaceAll("/+$", "") + "/status";
+            URL url = URI.create(statusUrl).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(HEALTH_CHECK_TIMEOUT_MS);
+            conn.setReadTimeout(HEALTH_CHECK_TIMEOUT_MS);
+            conn.setRequestMethod("GET");
+            int code = conn.getResponseCode();
+            conn.disconnect();
+            return code == 200;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // Auto-start (solo local/dev)
+    // =========================================================================
+
+    private static void startLocalAppium(String serverUrl, int timeoutSec) {
+        if (!isAppiumInPath()) {
+            throw new IllegalStateException(
+                "Auto-start habilitado pero 'appium' no está en PATH. " +
+                "Instala Appium globalmente: npm install -g appium " +
+                "y luego: appium driver install uiautomator2 xcuitest");
+        }
+
+        int port = extractPort(serverUrl);
+        Process appiumProcess = launchAppiumProcess(port);
+
+        // Registrar shutdown hook para matar el proceso al terminar la JVM
+        final Process proc = appiumProcess;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (proc != null && proc.isAlive()) {
+                proc.destroyForcibly();
+                TestLogger.logInfo("APPIUM_SERVER",
+                    "Proceso Appium terminado (shutdown hook)", null);
+            }
+        }, "appium-shutdown-hook"));
+
+        waitForAppium(serverUrl, timeoutSec);
+    }
+
+    private static boolean isAppiumInPath() {
+        try {
+            String cmd = isWindows() ? "where appium" : "which appium";
+            Process p = Runtime.getRuntime().exec(
+                isWindows() ? new String[]{"cmd", "/c", cmd} : new String[]{"sh", "-c", cmd});
+            return p.waitFor(3, TimeUnit.SECONDS) && p.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static Process launchAppiumProcess(int port) {
+        try {
+            String[] cmd = isWindows()
+                ? new String[]{"cmd", "/c", "appium", "--port", String.valueOf(port), "--log-level", "warn"}
+                : new String[]{"appium", "--port", String.valueOf(port), "--log-level", "warn"};
+
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            // Consumir el output en un thread demonio para evitar bloqueos
+            Thread reader = new Thread(() -> {
+                try (BufferedReader r = new BufferedReader(
+                        new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = r.readLine()) != null) {
+                        TestLogger.logInfo("APPIUM_SERVER", "[appium] " + line, null);
+                    }
+                } catch (Exception ignored) {}
+            }, "appium-output-reader");
+            reader.setDaemon(true);
+            reader.start();
+
+            TestLogger.logInfo("APPIUM_SERVER",
+                "Proceso Appium iniciado en puerto: " + port, null);
+            return process;
+
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                "Error al lanzar proceso Appium: " + e.getMessage(), e);
+        }
+    }
+
+    private static void waitForAppium(String serverUrl, int timeoutSec) {
+        long deadline = System.currentTimeMillis() + (timeoutSec * 1000L);
+        TestLogger.logInfo("APPIUM_SERVER",
+            "Esperando que Appium este listo (timeout: " + timeoutSec + "s)...", null);
+
+        while (System.currentTimeMillis() < deadline) {
+            if (isResponding(serverUrl)) {
+                TestLogger.logInfo("APPIUM_SERVER",
+                    "Appium listo en: " + serverUrl, null);
+                return;
+            }
+            try {
+                Thread.sleep(STARTUP_POLL_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        throw new IllegalStateException(
+            "Appium no estuvo listo en " + timeoutSec + "s. " +
+            "Verifica la instalacion o aumenta mobile.appium.startup.timeout.sec");
+    }
+
+    private static int extractPort(String serverUrl) {
+        try {
+            return URI.create(serverUrl).getPort();
+        } catch (Exception e) {
+            return 4723;
+        }
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase().contains("win");
+    }
+}

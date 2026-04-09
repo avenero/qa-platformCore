@@ -19,7 +19,7 @@ public class PipelineContext {
     private final String rawResults;
     private final ReportingConfig config;
     private final Map<String, Object> data;
-    private final Map<String, StepResult> stepResults;
+    private final Map<String, PipelineStepResult> stepResults;
 
     // Datos principales
     private TestExecutionResult testExecutionResult;
@@ -50,14 +50,14 @@ public class PipelineContext {
     /**
      * Almacena el resultado de un step.
      */
-    public void addStepResult(String stepName, StepResult result) {
+    public void addStepResult(String stepName, PipelineStepResult result) {
         stepResults.put(stepName, result);
     }
 
     /**
      * Obtiene el resultado de un step específico.
      */
-    public StepResult getStepResult(String stepName) {
+    public PipelineStepResult getStepResult(String stepName) {
         return stepResults.get(stepName);
     }
 
@@ -75,7 +75,7 @@ public class PipelineContext {
         return data;
     }
 
-    public Map<String, StepResult> getStepResults() {
+    public Map<String, PipelineStepResult> getStepResults() {
         return stepResults;
     }
 

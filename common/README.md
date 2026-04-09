@@ -1,4 +1,4 @@
-# 🔧 common — Capa Base del Framework
+# common — Capa Base del Framework (CuAleon Core)
 
 > **Versión:** 2.0.0 | **Grupo:** `com.qa` | **Artefacto:** `common`  
 > **Última actualización:** Abril 2026  
@@ -46,10 +46,11 @@ Piénsalo como los **cimientos de un edificio**: no ves los cimientos cuando mir
 
 ### ¿Qué NO hace Common?
 
-- ❌ **No contiene steps de Cucumber** (esos van en las capas especializadas)
-- ❌ **No sabe de Selenium, Appium ni API REST** (es completamente genérico)
+- ❌ **No contiene steps de Selenium ni Appium** (esos van en web-core y mobile-core)
 - ❌ **No tiene lógica de negocio** (eso va en el proyecto de pruebas)
 - ❌ **No conoce las URLs ni la estructura** de ningún sistema específico
+
+> **Nota:** `database/` sí contiene steps BDD (`DatabaseConnectionSteps`) porque la BD es un recurso transversal usado por cualquier capa — no es exclusivo de API, Web ni Mobile.
 
 ---
 
@@ -93,7 +94,13 @@ common/
     │       ├── FrameworkBusinessException.java   ← Excepción de validación fallida
     │       └── FrameworkTechnicalException.java  ← Excepción técnica (timeout, red)
     │
-    ├── database/                        ← CONEXIÓN A BASE DE DATOS
+    ├── database/                        ← PLUGIN DE BASE DE DATOS (CorePlugin)
+    │   ├── plugin/
+    │   │   └── DatabasePlugin.java       ← Implementa CorePlugin; orden=0 (primero)
+    │   ├── components/                   ← 3 StepComponent (GIVEN/WHEN/THEN)
+    │   │   ├── DatabaseSetupComponent.java      ← GIVEN: establecer conexión
+    │   │   ├── DatabaseExecutionComponent.java  ← WHEN: ejecutar SQL
+    │   │   └── DatabaseValidationComponent.java ← THEN: validar resultados
     │   ├── connectors/
     │   │   ├── BaseConnector.java        ← Base compartida
     │   │   ├── OracleConnector.java      ← Oracle DB
@@ -103,7 +110,7 @@ common/
     │   ├── factory/
     │   │   └── DbConnectorFactory.java   ← Crea y cachea conectores
     │   ├── helpers/
-    │   │   └── DatabaseHelper.java       ← Ejecuta queries y valida resultados
+    │   │   └── DatabaseHelper.java       ← Fachada: ejecuta queries y valida resultados
     │   ├── interfaces/
     │   │   └── DatabaseConnector.java    ← Interfaz de conector genérico
     │   ├── config/
@@ -111,7 +118,7 @@ common/
     │   ├── repository/
     │   │   └── QueryRepository.java      ← Ejecuta queries genéricos (sin steps)
     │   └── steps/
-    │       └── DatabaseConnectionSteps.java ← Steps BDD para BD
+    │       └── DatabaseConnectionSteps.java ← Steps BDD para BD (GIVEN/WHEN/THEN)
     │
     ├── utils/                           ← UTILIDADES GENERALES
     │   ├── DataUtilities.java           ← Variables entre steps + interpolación ${...}
@@ -557,7 +564,47 @@ Gestiona la generación de evidencias de las pruebas:
 
 ---
 
-## 12. Cómo usar Common en otro módulo
+## 12. Contrato con el Backend (API Pública del Core)
+
+El paquete `runtime/` expone las clases que el Backend de CuAleon consume directamente. **Estas son las únicas clases que el Backend debe importar:**
+
+| Clase | Paquete | Rol |
+|-------|---------|-----|
+| `CucumberRuntimeEngine` | `com.qa.common.runtime` | Entry point: `execute(ExecutionRequest)` |
+| `ExecutionRequest` | `com.qa.common.runtime` | Parámetros de entrada (features, tags, config) |
+| `ExecutionResult` | `com.qa.common.runtime` | Resultado final (estado, métricas, escenarios) |
+| `StepDiscoveryService` | `com.qa.common.runtime` | Catálogo de steps disponibles por plugin |
+| `EventSubscriber` | `com.qa.common.runtime.events` | Interface para streaming WebSocket |
+
+### Ciclo de ejecución (Backend → Core)
+
+```
+1. Backend construye ExecutionRequest con featurePaths + tags + variables
+2. Backend registra un EventSubscriber (adapter WebSocket) en el EventBus
+3. Backend llama CucumberRuntimeEngine.execute(request)
+4. Core activa los plugins según los tags (ApiPlugin, WebPlugin, etc.)
+5. Core publica eventos en el EventBus durante la ejecución:
+       ScenarioStarted → StepStarted → StepFinished → ScenarioFinished
+6. El EventSubscriber del Backend los reenvía al Frontend vía WebSocket
+7. execute() retorna ExecutionResult con el estado final
+```
+
+### `ExecutionResult` — estructura de datos
+
+```java
+ExecutionResult result = engine.execute(request);
+
+result.getStatus()          // PASSED | FAILED | ERROR
+result.getTotalScenarios()  // int: total de escenarios ejecutados
+result.getPassedScenarios() // int: escenarios exitosos
+result.getFailedScenarios() // int: escenarios fallidos
+result.getDurationMs()      // long: tiempo total en ms
+result.getScenarioResults() // List<ScenarioResult>: detalle por escenario
+```
+
+---
+
+## 14. Cómo usar Common en otro módulo
 
 ### En `build.gradle` del módulo que usa el framework:
 
@@ -581,7 +628,7 @@ cd qa-frameworks-core
 
 ---
 
-## 13. Dependencias
+## 15. Dependencias
 
 | Dependencia | Versión | Propósito |
 |-------------|---------|-----------|

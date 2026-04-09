@@ -42,6 +42,6 @@ public interface ReportingStep {
      * @param context contexto compartido del pipeline
      * @return resultado de la ejecución
      */
-    StepResult execute(PipelineContext context);
+    PipelineStepResult execute(PipelineContext context);
 }
 

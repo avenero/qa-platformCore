@@ -267,8 +267,13 @@ class VariableStoreResolveTest {
             }
 
             executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
-            assertThat(exceptions.get()).isEqualTo(0);
+            boolean finished = executor.awaitTermination(15, TimeUnit.SECONDS);
+            assertThat(finished)
+                .as("Todas las tareas deben completarse en el tiempo límite")
+                .isTrue();
+            assertThat(exceptions.get())
+                .as("No deben ocurrir excepciones en operaciones concurrentes")
+                .isEqualTo(0);
         }
     }
 

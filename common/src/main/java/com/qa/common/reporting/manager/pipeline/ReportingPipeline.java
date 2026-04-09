@@ -61,7 +61,7 @@ public class ReportingPipeline {
                 String.format("▶️  Ejecutando step: %s", stepName), null);
 
             try {
-                StepResult result = step.execute(context);
+                PipelineStepResult result = step.execute(context);
                 context.addStepResult(stepName, result);
 
                 if (result.isSuccess()) {
@@ -91,7 +91,7 @@ public class ReportingPipeline {
                 TestLogger.logException("REPORTING_PIPELINE",
                     String.format("💥 Excepción en step [%s]: %s", stepName, e.getMessage()), e);
 
-                StepResult errorResult = StepResult.failure(e.getMessage(), e);
+                PipelineStepResult errorResult = PipelineStepResult.failure(e.getMessage(), e);
                 context.addStepResult(stepName, errorResult);
 
                 // Si el step es requerido, fallar el pipeline

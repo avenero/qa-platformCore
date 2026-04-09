@@ -499,16 +499,24 @@ class SecurityUtilitiesTest {
         @DisplayName("Debe generar distribución uniforme (estadístico)")
         void testGenerateRandomNumberDistribution() {
             int[] counts = new int[5]; // Rango 0-4
+            int samples = 10_000;
 
-            for (int i = 0; i < 1000; i++) {
+            for (int i = 0; i < samples; i++) {
                 int num = SecurityUtilities.generateRandomNumber(0, 4);
                 counts[num]++;
             }
 
-            // Cada número debe aparecer ~200 veces (+- 50%)
-            for (int count : counts) {
-                assertTrue(count >= 100 && count <= 300,
-                    "Distribución debe ser uniforme. Count: " + count);
+            // Con 10 000 muestras, cada bucket espera ~2000.
+            // Umbral ±40% (1200–2800) eliminando falsos negativos estadísticos.
+            int expectedPerBucket = samples / 5;
+            int tolerance = (int) (expectedPerBucket * 0.4);
+            for (int i = 0; i < counts.length; i++) {
+                assertTrue(
+                    counts[i] >= expectedPerBucket - tolerance
+                        && counts[i] <= expectedPerBucket + tolerance,
+                    "Bucket [" + i + "] fuera de distribución uniforme esperada: " + counts[i]
+                        + " (esperado " + (expectedPerBucket - tolerance)
+                        + "-" + (expectedPerBucket + tolerance) + ")");
             }
         }
 

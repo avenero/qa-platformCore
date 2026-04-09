@@ -68,7 +68,7 @@ public class PipelineResult {
         return context != null ? context.getExtentReportPath() : null;
     }
 
-    public Map<String, StepResult> getStepResults() {
+    public Map<String, PipelineStepResult> getStepResults() {
         return context != null ? context.getStepResults() : Map.of();
     }
 

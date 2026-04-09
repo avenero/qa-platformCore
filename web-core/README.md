@@ -1,8 +1,9 @@
- # 💻 web-core — Capa de Pruebas de Interfaz Web
+# web-core — Capa de Pruebas de Interfaz Web (CuAleon Core)
 
 > **Versión:** 2.0.0 | **Grupo:** `com.qa` | **Artefacto:** `web-core`  
 > **Última actualización:** Abril 2026  
-> **Autor:** Abel Venero
+> **Autor:** Abel Venero  
+> **Plugin:** `WebPlugin` — tags de activación: `@web`, `@ui`, `@browser`, `@selenium` — orden: `100`
 
 ---
 
@@ -179,7 +180,9 @@ web-core/
     │   ├── DriverManager.java             ← Gestión thread-safe del WebDriver
     │   └── WebDriverFactory.java          ← Crea drivers para Chrome, Firefox, Edge
     │
-    └── pages/                             ← Base de Page Objects (si el proyecto los usa)
+    └── driver/
+        ├── DriverManager.java             ← Gestión thread-safe del WebDriver (ThreadLocal)
+        └── WebDriverFactory.java          ← Crea drivers para Chrome, Firefox, Edge
 ```
 
 ---
@@ -815,8 +818,25 @@ rm -rf ~/.cache/selenium
 
 ---
 
+---
+
+## 13. Integración con el Backend (CuAleon)
+
+`WebPlugin` es descubierto automáticamente por `StepDiscoveryService` y expone sus **16 componentes** al Backend para poblar la paleta visual del Frontend:
+
+```java
+StepDiscoveryService discovery = new StepDiscoveryService();
+List<StepComponent> webComponents = discovery.discoverAll()
+    .stream()
+    .filter(c -> c.getId().startsWith("web."))
+    .toList();
+// → 16 componentes: web.browser-config, web.navigation, web.click, ...
+```
+
+El plugin se activa con los tags `@web`, `@ui`, `@browser` o `@selenium`. No requiere configuración adicional en el `ExecutionRequest` — la URL de navegación se pasa como parámetro en los steps.
+
 > 📖 **Documentación relacionada:**
-> - [common/README.md](../common/README.md) — Capa base y motor de ejecución
+> - [common/README.md](../common/README.md) — Motor de ejecución y contrato con el Backend
 > - [api-core/README.md](../api-core/README.md) — Para pruebas híbridas API+Web
 > - [mobile-core/README.md](../mobile-core/README.md) — Para pruebas mobile
-> - [README.md](../README.md) — Visión general del framework
+> - [README.md](../README.md) — Visión general de la plataforma CuAleon

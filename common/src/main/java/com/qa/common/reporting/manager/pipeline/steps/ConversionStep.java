@@ -7,7 +7,7 @@ import com.qa.common.reporting.core.config.ReportingConfig;
 import com.qa.common.reporting.core.model.TestExecutionResult;
 import com.qa.common.reporting.manager.pipeline.PipelineContext;
 import com.qa.common.reporting.manager.pipeline.ReportingStep;
-import com.qa.common.reporting.manager.pipeline.StepResult;
+import com.qa.common.reporting.manager.pipeline.PipelineStepResult;
 
 /**
  * Step 1: Conversión de resultados raw a modelo estándar.
@@ -39,12 +39,12 @@ public class ConversionStep implements ReportingStep {
     }
 
     @Override
-    public StepResult execute(PipelineContext context) {
+    public PipelineStepResult execute(PipelineContext context) {
         TestLogger.logInfo("CONVERSION_STEP", "📝 Convirtiendo resultados a modelo estándar", null);
 
         String rawResults = context.getRawResults();
         if (rawResults == null || rawResults.trim().isEmpty()) {
-            return StepResult.failure("Raw results vacíos o nulos");
+            return PipelineStepResult.failure("Raw results vacíos o nulos");
         }
 
         try {
@@ -52,7 +52,7 @@ public class ConversionStep implements ReportingStep {
             ResultAdapter adapter = findAdapter(rawResults);
 
             if (adapter == null) {
-                return StepResult.failure("No se encontró adaptador compatible para el formato");
+                return PipelineStepResult.failure("No se encontró adaptador compatible para el formato");
             }
 
             TestLogger.logInfo("CONVERSION_STEP",
@@ -62,7 +62,7 @@ public class ConversionStep implements ReportingStep {
             TestExecutionResult result = adapter.convert(rawResults);
 
             if (result == null) {
-                return StepResult.failure("El adaptador retornó null");
+                return PipelineStepResult.failure("El adaptador retornó null");
             }
 
             // Validar resultado
@@ -77,7 +77,7 @@ public class ConversionStep implements ReportingStep {
             // Guardar en contexto
             context.setTestExecutionResult(result);
 
-            return StepResult.success(
+            return PipelineStepResult.success(
                 String.format("Convertidos %d scenarios exitosamente",
                     result.getScenarios() != null ? result.getScenarios().size() : 0)
             );
@@ -85,7 +85,7 @@ public class ConversionStep implements ReportingStep {
         } catch (Exception e) {
             TestLogger.logException("CONVERSION_STEP",
                 "Error convirtiendo resultados: " + e.getMessage(), e);
-            return StepResult.failure("Error en conversión: " + e.getMessage(), e);
+            return PipelineStepResult.failure("Error en conversión: " + e.getMessage(), e);
         }
     }
 

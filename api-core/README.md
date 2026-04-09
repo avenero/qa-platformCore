@@ -1,9 +1,9 @@
-# 🌐 api-core — Capa de Pruebas de API REST
+# api-core — Capa de Pruebas de API REST (CuAleon Core)
 
 > **Versión:** 2.0.0 | **Grupo:** `com.qa` | **Artefacto:** `api-core`  
 > **Última actualización:** Abril 2026  
 > **Autor:** Abel Venero  
-> **Para quién es este manual:** Para cualquier persona que quiera entender, mantener o extender esta capa — desde un desarrollador experimentado hasta alguien sin conocimientos técnicos que necesita entender qué hace cada pieza.
+> **Plugin:** `ApiPlugin` — tags de activación: `@api`, `@rest`, `@http`, `@service` — orden: `50`
 
 ---
 
@@ -33,7 +33,7 @@
 
 ## 1. ¿Qué es api-core en palabras simples?
 
-Imagina que tienes un **asistente de pruebas** cuyo único trabajo es verificar que los servicios web de Scotiabank funcionan correctamente. Este asistente sabe cómo:
+Imagina que tienes un **asistente de pruebas** cuyo único trabajo es verificar que los servicios web de tu sistema funcionan correctamente. Este asistente sabe cómo:
 
 - **Armar una solicitud**: "Voy a conectarme al endpoint `/api/transferencias`, con mi token de seguridad, y voy a enviar estos datos en el cuerpo del mensaje."
 - **Ejecutar la solicitud**: "Ahora envío la solicitud con el método POST."
@@ -1031,9 +1031,9 @@ dependencies {
 
 ---
 
-## 12. Estado Actual y Pendientes
+## 12. Estado Actual
 
-### ✅ Completado en esta capa
+### ✅ Implementación completa
 
 | Elemento | Estado | Descripción |
 |----------|--------|-------------|
@@ -1045,41 +1045,38 @@ dependencies {
 | `VariableSteps.java` | ✅ | Steps transversales |
 | `META-INF/services/` SPI | ✅ | Auto-registro de ApiPlugin |
 | `ValidationUtilities.java` | ✅ | Validaciones completas con tests unitarios |
-| `ApiHelper.java` | ✅ | Fachada completa |
+| `ApiHelper.java` | ✅ | Fachada completa (Facade pattern) |
 | `BaseHttpClient.java` | ✅ | Implementación funcional con Unirest |
 | `BaseAuthenticationManager.java` | ✅ | OAuth2 Client Credentials + Bearer |
-| `ApiSteps.java` (God Class original) | ✅ | Eliminada — reemplazada por los 12 componentes |
 
-### 🔄 Pendiente (Fase 2 → Fase 3 del roadmap)
+### Integración con el Backend (CuAleon)
 
-| Pendiente | Descripción |
-|-----------|-------------|
-| **Migración a ExecutionContext** | Los steps actualmente instancian sus dependencias con `new BaseHttpClient()`. En la arquitectura final usarán `ExecutionContext.current().service(HttpClient.class)` para garantizar que todos los steps de un escenario compartan el mismo cliente HTTP. |
-| **Migración de DataUtilities** | `DataUtilities.replaceVariables()` y `DataUtilities.storeValue()` serán reemplazados por `ExecutionContext.current().variables().resolve()` y `.set()`. Hay bridges temporales en su lugar. |
-| **Simplificar `HttpClient` interface** | Actualmente tiene ~60 métodos. Se reducirá a ~25 métodos esenciales para mejor mantenibilidad (ítem M-02 de auditoría). |
-| **Simplificar `BaseHttpClient`** | Proporcional a la reducción de la interface. |
+Este plugin es descubierto automáticamente por `StepDiscoveryService` y expone sus **12 componentes** al Backend para que el Frontend pueda construir la paleta visual de steps de API:
 
-> **Impacto de los pendientes en el funcionamiento actual:** Ninguno. Los steps funcionan correctamente. Los pendientes son mejoras de arquitectura que afectan aislamiento en ejecución paralela, no la funcionalidad en uso secuencial normal.
+```java
+// Backend llama al catálogo:
+StepDiscoveryService discovery = new StepDiscoveryService();
+List<StepComponent> apiComponents = discovery.discoverAll()
+    .stream()
+    .filter(c -> c.getId().startsWith("api."))
+    .toList();
+// → 12 componentes: api.url-config, api.authentication, api.headers, ...
+```
 
-### 📊 Métricas del módulo
+El plugin se activa automáticamente para cualquier escenario que tenga los tags `@api`, `@rest`, `@http` o `@service`.
+
+### Métricas del módulo
 
 | Métrica | Valor |
 |---------|-------|
-| Archivos Java en producción | **35** |
-| Steps BDD disponibles | **~92** steps en 13 clases |
-| Componentes declarados | **12** descriptores |
-| Interfaces (contratos) | **3** |
-| Implementaciones | **4** |
-| Fábricas | **3** |
-| Utilidades | **3** (ApiHelper, ValidationUtilities, DatabaseTestUtilities) |
-| Archivos de test | **2** (ApiHelperTest, ValidationUtilitiesTest) |
-| Líneas de código aproximadas | **~3,500** |
+| Steps BDD disponibles | ~92 steps en 13 clases |
+| Componentes declarados | 12 descriptores |
+| Interfaces (contratos) | 3 |
+| Implementaciones | 4 |
+| Fábricas | 3 |
 
 ---
 
-> **Documentos complementarios:**
->
-> - `docu/REDISENO-ARQUITECTONICO-CORE.md` — Arquitectura completa y tracking de fases
-> - `docu/DISENO-STEPS-POR-COMPONENTES.md` — Diseño detallado de la componentización
-> - `docu/AUDIT-ARQUITECTONICO-CORE.md` — Auditoría clase por clase del estado original
-> - `docu/prompt.md` — Contexto maestro de la plataforma completa (Core + Backend + Frontend)
+> **Documentación relacionada:**
+> - [common/README.md](../common/README.md) — Motor de ejecución y contrato con el Backend
+> - [README.md](../README.md) — Visión general de la plataforma CuAleon
