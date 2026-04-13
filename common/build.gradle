@@ -147,8 +147,8 @@ jacoco {
     toolVersion = '0.8.11'
 }
 
-jacocoTestReport {
-    dependsOn test
+tasks.named('jacocoTestReport').configure {
+    dependsOn 'test'
 
     reports {
         xml.required = true
@@ -156,15 +156,13 @@ jacocoTestReport {
         csv.required = false
     }
 
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                '**/model/**',        // POJOs
-                '**/exceptions/**',   // Excepciones simples
-                '**/enums/**'         // Enums
-            ])
-        }))
-    }
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: [
+            '**/model/**',        // POJOs
+            '**/exceptions/**',   // Excepciones simples
+            '**/enums/**'         // Enums
+        ])
+    }))
 }
 
 jacocoTestCoverageVerification {
@@ -180,7 +178,7 @@ jacocoTestCoverageVerification {
     }
 }
 
-check.dependsOn jacocoTestCoverageVerification
+tasks.named('check').configure { dependsOn tasks.named('jacocoTestCoverageVerification') }
 
 
 // NOTA: La configuración de publicación está en el build.gradle raíz

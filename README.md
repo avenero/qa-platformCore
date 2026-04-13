@@ -4,7 +4,7 @@
 [![Gradle](https://img.shields.io/badge/Gradle-8.14-blue.svg)](https://gradle.org/)
 [![Selenium](https://img.shields.io/badge/Selenium-4.27.0-green.svg)](https://www.selenium.dev/)
 [![Cucumber](https://img.shields.io/badge/Cucumber-7.18.0-brightgreen.svg)](https://cucumber.io/)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/avenero/qa-framework-core)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://github.com/avenero/qa-platformCore)
 
 > Motor de ejecución BDD del ecosistema **CuAleon Test Engineering Platform** — framework modular de automatización para API REST, Web UI, Mobile y Base de Datos, construido sobre Cucumber en español y consumido por el Backend a través de una API de ejecución uniforme.
 
@@ -19,6 +19,8 @@
 - [Cómo se usa — Quick Start](#-cómo-se-usa--quick-start)
 - [Las 4 capas explicadas](#-las-4-capas-explicadas)
 - [Matriz de tecnologías](#-matriz-de-tecnologías)
+- [CI/CD Pipeline](#-cicd-pipeline)
+- [Publicación en GitHub Packages](#-publicación-en-github-packages)
 - [Estado del proyecto](#-estado-del-proyecto)
 - [Mejores prácticas](#-mejores-prácticas)
 - [Contribución](#-contribución)
@@ -86,12 +88,12 @@ Eso es suficiente para ejecutar una prueba real sobre un sistema real. No se nec
 │   • steps propios             • steps propios                       │
 │   • config del proyecto       • config del proyecto                 │
 │                                                                     │
-│   build.gradle: implementation 'com.qa:api-core:2.0.0'            │
+│   build.gradle: implementation 'com.qa:api-core:2.0.1'            │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ dependen de
                                ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│               qa-frameworks-core (este repositorio)                  │
+│               qa-platformCore (este repositorio)                     │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────┐       │
 │  │                   CAPA 1 — common                        │       │
@@ -111,7 +113,7 @@ Eso es suficiente para ejecutar una prueba real sobre un sistema real. No se nec
 │  │  api-core     │  │  web-core   │  │  mobile-core  │             │
 │  │               │  │             │  │               │             │
 │  │ Pruebas REST  │  │ Pruebas Web │  │ Pruebas Móvil │             │
-│  │ ~92 steps     │  │ ~80 steps   │  │ ~60 steps     │             │
+│  │ ~92 steps     │  │ ~80 steps   │  │ ~80 steps     │             │
 │  │ 13 clases     │  │ 16 componentes│  │ 10 componentes│            │
 │  │               │  │             │  │               │             │
 │  │ 📖 api-core/  │  │ 📖 web-core/│  │ 📖 mobile-    │             │
@@ -194,14 +196,14 @@ CucumberRuntimeEngine activa ApiPlugin
 ### Prerequisitos
 
 - ☕ **Java 21** (versión mínima requerida)
-- 🐘 **Gradle 8.x** (incluido via `./gradlew`)
+- 🐘 **Gradle 8.14+** (incluido via `./gradlew`)
 - 🌐 **Git**
 
 ### 1. Clonar y compilar el framework
 
 ```bash
-git clone https://github.com/avenero/qa-framework-core.git
-cd qa-framework-core
+git clone https://github.com/avenero/qa-platformCore.git
+cd qa-platformCore
 
 # Compilar y publicar en Maven Local (~/.m2/repository)
 ./gradlew clean build publishToMavenLocal
@@ -219,10 +221,10 @@ repositories {
 
 dependencies {
     // Elige SOLO las capas que necesitas
-    implementation 'com.qa:common:2.0.0'      // Siempre requerido
-    implementation 'com.qa:api-core:2.0.0'    // Para pruebas de API REST
-    implementation 'com.qa:web-core:2.0.0'    // Para pruebas de interfaz Web
-    implementation 'com.qa:mobile-core:2.0.0'    // Para pruebas Mobile (Android + iOS)
+    implementation 'com.qa:common:2.0.1'        // Siempre requerido
+    implementation 'com.qa:api-core:2.0.1'      // Para pruebas de API REST
+    implementation 'com.qa:web-core:2.0.1'      // Para pruebas de interfaz Web
+    implementation 'com.qa:mobile-core:2.0.1'   // Para pruebas Mobile (Android + iOS)
 }
 ```
 
@@ -314,7 +316,7 @@ Feature: Interfaz de login web
 - Las **utilidades**: JSON, texto, datos aleatorios, variables entre steps
 - La **base de datos**: conectores para Oracle, PostgreSQL, MySQL, SQL Server
 
-**Versión:** `com.qa:common:2.0.0`
+**Versión:** `com.qa:common:2.0.1`
 
 📖 **[Ver documentación completa → common/README.md](./common/README.md)**
 
@@ -330,7 +332,7 @@ Feature: Interfaz de login web
 - **12 grupos de steps**: URL, Autenticación, Headers, Cookies, Parámetros, Body, Ejecución, Status Code, Body de Respuesta, Headers de Respuesta, Performance, Seguridad
 - **ApiHelper**: fachada que conecta steps con el cliente HTTP y el validador
 
-**Versión:** `com.qa:api-core:2.0.0`
+**Versión:** `com.qa:api-core:2.0.1`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -356,7 +358,7 @@ Scenario: Verificar endpoint de salud
 - **16 componentes**: BrowserConfig, Navegación, Frames, Ventanas, Click, Input, Select, Scroll, DragDrop, Alert, Waits, ElementValidation, PageValidation, TableValidation, Screenshot, WebEnvironment
 - **WebHelper**: fachada que combina DriverManager + WaitUtils + ScreenshotUtils
 
-**Versión:** `com.qa:web-core:2.0.0`
+**Versión:** `com.qa:web-core:2.0.1`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -386,7 +388,7 @@ Scenario: El menú principal tiene los ítems correctos
 - **ElementLocatorHelper**: estrategia de localización por prefijo (`~`, `id:`, `xpath:`, `text:`...) diseñada para entrenamiento de IA de sugerencias en el FE
 - **AppiumServerManager**: health check automático + auto-start opt-in para desarrollo local
 
-**Versión:** `com.qa:mobile-core:2.0.0`
+**Versión:** `com.qa:mobile-core:2.0.1`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -412,16 +414,19 @@ Scenario: La app muestra la pantalla de login al iniciarse
 | **Gradle** | 8.14 | Sistema de build | Todas |
 | **Cucumber** | 7.18.0 | Motor BDD (Gherkin → Java) | Todas |
 | **JUnit Platform** | 1.10.0 | Runner de tests | Todas |
-| **Unirest** | 4.4.4 | HTTP Client (peticiones REST) | common, api-core |
-| **Jackson** | 2.15.x | Serialización/deserialización JSON | common, api-core |
-| **JsonPath** | 2.x | Navegar documentos JSON (`$.campo`) | api-core |
-| **JSON Schema Validator** | 1.x | Validar estructura de JSON | api-core |
-| **Logback / SLF4J** | 1.5.x | Sistema de logging | Todas |
-| **AssertJ** | 3.24.x | Aserciones fluidas (fáciles de leer) | api-core |
+| **Unirest** | 3.14.5 | HTTP Client (peticiones REST) | api-core |
+| **Jackson** | 2.15.x | Serialización/deserialización JSON | common, api-core, mobile-core |
+| **JsonPath** | 2.9.0 | Navegar documentos JSON (`$.campo`) | common, api-core |
+| **JSON Schema Validator** | 1.0.87 | Validar estructura de JSON | api-core |
+| **Logback / SLF4J** | 1.5.25 / 2.0.9 | Sistema de logging | Todas |
+| **AssertJ** | 3.27.7 | Aserciones fluidas (fáciles de leer) | Todas |
 | **Selenium WebDriver** | 4.27.0 | Automatizar navegadores | web-core |
-| **WebDriverManager** | 5.x | Descarga drivers automáticamente | web-core |
 | **Appium Java Client** | 8.6.0 | Automatizar apps móviles (W3C API) | mobile-core |
-| **HikariCP** | 5.x | Pool de conexiones a BD | common |
+| **HikariCP** | 5.0.1 | Pool de conexiones a BD | common |
+| **SpotBugs** | 4.8.6 | Detección estática de bugs | Build |
+| **Checkstyle** | 10.21.0 | Análisis de estilo de código | Build |
+| **JaCoCo** | 0.8.12 | Cobertura de código | Build |
+| **ExtentReports** | 5.1.1 | Reportes HTML de ejecución | common, mobile-core |
 
 ### Navegadores soportados (web-core)
 
@@ -437,6 +442,15 @@ Scenario: La app muestra la pantalla de login al iniciarse
 |------------|----------------|-----------|---------|
 | Android | 8.0 (API 26) | UiAutomator2 | ✅ Estable |
 | iOS | 14.0 | XCUITest | ✅ Estable (requiere macOS) |
+
+### Bases de datos soportadas (common)
+
+| BD | Driver | Versión |
+|----|--------|---------|
+| MySQL | `mysql-connector-j` | 8.4.0 |
+| PostgreSQL | `postgresql` | 42.7.7 |
+| SQL Server | `mssql-jdbc` | 12.8.2.jre11 |
+| Oracle | `ojdbc11` | 23.2.0.0 |
 
 ---
 
@@ -484,17 +498,124 @@ List<StepComponent> allSteps = discovery.discoverAll();
 
 ---
 
+## 🚦 CI/CD Pipeline
+
+El pipeline corre automáticamente con cada push a `master` y se compone de dos jobs secuenciales.
+
+### Flujo general
+
+```
+push → master
+      │
+      ▼
+┌─────────────────────────────────────────────────────┐
+│  JOB 1: quality  (ubuntu-latest)                    │
+│                                                     │
+│  1. Checkout (completo)                             │
+│  2. JDK 21 Temurin                                  │
+│  3. Cache Gradle                                    │
+│  4. ./gradlew test jacocoTestReport --continue      │
+│  5. ./gradlew checkstyleMain --continue             │
+│  6. ./gradlew spotbugsMain --continue               │
+│  7. Upload artefactos (test-results, jacoco,        │
+│     static-analysis) → retención 30 días            │
+└──────────────────────┬──────────────────────────────┘
+                       │ solo si quality pasa
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│  JOB 2: publish  (ubuntu-latest)                    │
+│                                                     │
+│  1. Checkout                                        │
+│  2. JDK 21 Temurin                                  │
+│  3. Cache Gradle                                    │
+│  4. ./gradlew publish --no-daemon                   │
+│     → common, api-core, web-core, mobile-core       │
+│        a GitHub Packages                            │
+└─────────────────────────────────────────────────────┘
+```
+
+### Herramientas de calidad incluidas (sin dependencias externas)
+
+| Herramienta | Qué analiza | Reporte generado |
+|-------------|-------------|-----------------|
+| **JaCoCo** | Cobertura de código (líneas, ramas, métodos) | XML + HTML navegable |
+| **Checkstyle** | Estilo de código (línea máx. 120, imports, javadoc) | XML por módulo |
+| **SpotBugs** | Bugs potenciales y vulnerabilidades (solo HIGH) | XML por módulo |
+
+> **Nota:** El análisis de calidad es completamente self-contained — no requiere cuentas en servicios externos. Todos los reportes quedan disponibles como artefactos descargables en cada ejecución del pipeline.
+
+### Secretos requeridos
+
+| Secret | Fuente | Para qué |
+|--------|--------|----------|
+| `GITHUB_TOKEN` | Inyectado automáticamente por GitHub Actions | Publicar en GitHub Packages |
+
+---
+
+## 📤 Publicación en GitHub Packages
+
+Los artefactos se publican automáticamente al pasar el job `quality`. El repositorio es:
+
+```
+https://maven.pkg.github.com/avenero/qa-platformCore
+```
+
+### Módulos publicados
+
+| Módulo | Coordenadas Maven | Publicado |
+|--------|------------------|-----------|
+| common | `com.qa:common:2.0.1` | ✅ Sí |
+| api-core | `com.qa:api-core:2.0.1` | ✅ Sí |
+| web-core | `com.qa:web-core:2.0.1` | ✅ Sí |
+| mobile-core | `com.qa:mobile-core:2.0.1` | ✅ Sí |
+
+### Consumir desde tu proyecto
+
+```groovy
+repositories {
+    maven {
+        url = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.qa:common:2.0.1'
+    implementation 'com.qa:api-core:2.0.1'      // Solo si necesitas pruebas de API
+    implementation 'com.qa:web-core:2.0.1'      // Solo si necesitas pruebas Web
+    implementation 'com.qa:mobile-core:2.0.1'   // Solo si necesitas pruebas Mobile
+}
+```
+
+### Publicar localmente (desarrollo)
+
+```bash
+# Publicar en Maven Local (~/.m2/repository)
+./gradlew clean build publishToMavenLocal
+
+# Publicar a GitHub Packages manualmente (requiere GITHUB_ACTOR y GITHUB_TOKEN)
+./gradlew publish --no-daemon
+```
+
+> **Importante:** GitHub Packages Maven **no permite sobreescribir versiones** ya publicadas.
+> Si recibes un error `409 Conflict`, debes incrementar la versión en `build.gradle` antes de volver a publicar.
+
+---
+
 ## 📊 Estado del Proyecto
 
-**Versión actual:** 2.0.0  
+**Versión actual:** 2.0.1
 **Última actualización:** Abril 2026
 
 | Capa | Versión | Estado | Componentes | Build |
 |------|---------|--------|-------------|-------|
-| **common** | 2.0.0 | ✅ Estable | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
-| **api-core** | 2.0.0 | ✅ Estable | 12 componentes (~92 steps) | ✅ Verde |
-| **web-core** | 2.0.0 | ✅ Estable | 16 componentes (~80 steps) | ✅ Verde |
-| **mobile-core** | 2.0.0 | ✅ Estable | 10 componentes (~80 steps) | ✅ Verde |
+| **common** | 2.0.1 | ✅ Estable | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
+| **api-core** | 2.0.1 | ✅ Estable | 12 componentes (~92 steps) | ✅ Verde |
+| **web-core** | 2.0.1 | ✅ Estable | 16 componentes (~80 steps) | ✅ Verde |
+| **mobile-core** | 2.0.1 | ✅ Estable | 10 componentes (~80 steps) | ✅ Verde |
 
 ### ¿Qué cambió de v1.x a v2.0?
 
@@ -510,31 +631,17 @@ La versión 2.0 fue un rediseño arquitectónico completo. Los cambios más impo
 | Sin `VariableStore` central | `ExecutionContext.variables()` para todas las capas |
 | Grupo `com.scotia.qa` | Grupo `com.qa` (independiente) |
 
-### Publicación en GitHub Packages
+### ¿Qué cambió de v2.0.0 a v2.0.1?
 
-El framework se publica automáticamente en GitHub Packages vía GitHub Actions.
-
-```bash
-# Para publicar manualmente en tu máquina:
-./gradlew clean build publishToMavenLocal
-
-# Para publicar en GitHub Packages (requiere token configurado):
-./gradlew publishAllPublicationsToGitHubPackagesRepository
-```
-
-Para usar desde GitHub Packages en tu proyecto:
-
-```groovy
-repositories {
-    maven {
-        url = uri("https://maven.pkg.github.com/avenero/qa-framework-core")
-        credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-            password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
-        }
-    }
-}
-```
+| Área | Cambio |
+|------|--------|
+| **Repositorio** | Renombrado de `qa-framework-core` a `qa-platformCore` |
+| **GitHub Packages URL** | Actualizada a `maven.pkg.github.com/avenero/qa-platformCore` |
+| **api-core** | Ahora se publica correctamente en GitHub Packages |
+| **Gradle 9.0** | Eliminadas todas las APIs deprecated (`tasks.withType`, `tasks.matching`, acceso eager a tareas) |
+| **CI/CD** | Removido SonarCloud (análisis de calidad ahora completamente self-contained con JaCoCo + Checkstyle + SpotBugs) |
+| **mobile-core** | Consolidado bloque `dependencies {}` duplicado |
+| **build.gradle** | `rootProject.name` actualizado a `qa-platformCore` |
 
 ---
 
@@ -619,7 +726,7 @@ DB_PASSWORD=mi-password
 
 ### Proceso para contribuir
 
-1. Crea un branch desde `main`:
+1. Crea un branch desde `master`:
    ```bash
    git checkout -b feature/nueva-funcionalidad
    ```
@@ -631,7 +738,7 @@ DB_PASSWORD=mi-password
    ./gradlew clean build
    ```
 
-4. Crea un Pull Request hacia `main`
+4. Crea un Pull Request hacia `master`
 
 ### Convenciones de código
 
@@ -667,19 +774,26 @@ test(api-core): agregar tests para ValidationUtilities
 
 # 4. Ver reporte (macOS)
 open common/build/reports/jacoco/test/html/index.html
+
+# 5. Ver reporte Checkstyle
+open common/build/reports/checkstyle/main.html
+
+# 6. Ver reporte SpotBugs
+open common/build/reports/spotbugs/main.html
 ```
 
 ---
 
 ## 📞 Soporte
 
-- **GitHub Issues:** https://github.com/avenero/qa-framework-core/issues
+- **GitHub Issues:** https://github.com/avenero/qa-platformCore/issues
 - **Autor principal:** Abel Venero
 - **Documentación detallada por capa:**
   - [common/README.md](./common/README.md)
   - [api-core/README.md](./api-core/README.md)
   - [web-core/README.md](./web-core/README.md)
   - [mobile-core/README.md](./mobile-core/README.md)
+  - [config/README.md](./config/README.md)
 
 ---
 
@@ -690,4 +804,3 @@ open common/build/reports/jacoco/test/html/index.html
 CuAleon Test Engineering Platform — construido por el QA Engineering Team
 
 </div>
-

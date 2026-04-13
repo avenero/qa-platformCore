@@ -95,12 +95,10 @@ dependencies {
     api('ru.yandex.qatools.ashot:ashot:1.5.4') {
         exclude group: 'org.seleniumhq.selenium', module: 'selenium-remote-driver'
     }
-}
 
-// ========================================================================
-// DEPENDENCIAS DE TEST
-// ========================================================================
-dependencies {
+    // ========================================================================
+    // DEPENDENCIAS DE TEST
+    // ========================================================================
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
     testImplementation 'org.mockito:mockito-core:5.8.0'

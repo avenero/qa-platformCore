@@ -8,7 +8,7 @@ plugins {
 }
 
 group   = "com.qa"
-version = "2.0.1"
+version = "2.0.2"
 
 // =============================================================================
 // CONFIGURACIÓN COMÚN A TODOS LOS SUBMÓDULOS
@@ -21,7 +21,7 @@ subprojects {
     apply plugin: 'com.github.spotbugs'
 
     group   = "com.qa"
-    version = "2.0.1"
+    version = "2.0.2"
 
     repositories {
         mavenLocal()
@@ -34,35 +34,35 @@ subprojects {
     checkstyle {
         toolVersion    = "10.21.0"
         configFile     = rootProject.file("config/checkstyle/checkstyle.xml")
-        ignoreFailures = true      // No romper el build; reportes van a SonarCloud
+        ignoreFailures = true
         showViolations = false
     }
     // Solo analizar fuentes principales; los tests tienen reglas más relajadas
-    checkstyleTest.enabled = false
+    tasks.named('checkstyleTest').configure { enabled = false }
 
     // =========================================================================
     // SPOTBUGS — Detección de bugs y code smells
     // =========================================================================
     spotbugs {
         toolVersion    = "4.8.6"
-        ignoreFailures = true      // No romper el build; reportes van a SonarCloud
+        ignoreFailures = true
         effort         = "default"
-        reportLevel    = "high"    // Solo HIGH severity (medium/low va igual a SonarCloud vía sonar)
+        reportLevel    = "high"
         excludeFilter  = rootProject.file("config/spotbugs/exclude.xml")
     }
     tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
         reports {
-            xml  { required = true  }   // SonarCloud consume XML
+            xml  { required = true  }
             html { required = false }
         }
     }
     // No analizar tests con SpotBugs (demasiados false-positives en código de tests)
-    tasks.matching { it.name == 'spotbugsTest' }.configureEach { enabled = false }
+    tasks.named('spotbugsTest').configure { enabled = false }
 
     // =========================================================================
     // ENCODING UTF-8
     // =========================================================================
-    tasks.withType(JavaCompile) {
+    tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
         options.compilerArgs << '-Xlint:unchecked' << '-Xlint:deprecation'
     }
@@ -70,7 +70,7 @@ subprojects {
     // =========================================================================
     // CONFIGURACIÓN DE TESTS
     // =========================================================================
-    tasks.withType(Test) {
+    tasks.withType(Test).configureEach {
         useJUnitPlatform()
 
         def logbackPath = rootProject.file('config/logback-test.xml').absolutePath.replace('\\', '/')
@@ -93,7 +93,7 @@ subprojects {
         outputs.upToDateWhen { false }
 
         // Finalizar generando reporte de cobertura automáticamente
-        finalizedBy jacocoTestReport
+        finalizedBy 'jacocoTestReport'
     }
 
     // =========================================================================
@@ -103,23 +103,21 @@ subprojects {
         toolVersion = '0.8.12'
     }
 
-    jacocoTestReport {
-        dependsOn test
+    tasks.named('jacocoTestReport').configure {
+        dependsOn 'test'
         reports {
             xml.required  = true
             html.required = true
             csv.required  = false
         }
-        afterEvaluate {
-            classDirectories.setFrom(files(classDirectories.files.collect {
-                fileTree(dir: it, exclude: [
-                    '**/model/**',
-                    '**/exceptions/**',
-                    '**/enums/**',
-                    '**/*Exception*'
-                ])
-            }))
-        }
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/model/**',
+                '**/exceptions/**',
+                '**/enums/**',
+                '**/*Exception*'
+            ])
+        }))
     }
 
     // =========================================================================
