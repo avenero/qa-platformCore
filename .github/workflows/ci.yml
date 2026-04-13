@@ -38,7 +38,7 @@ jobs:
 
     steps:
 
-      # ── Checkout completo (fetch-depth: 0 requerido por SonarCloud) ──────────
+      # ── Checkout completo ────────────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -92,7 +92,7 @@ jobs:
             **/build/test-results/
           retention-days: 30
 
-      # ── Artefactos: Reportes JaCoCo (HTML navegable + XML para SonarCloud) ───
+      # ── Artefactos: Reportes JaCoCo (HTML navegable + XML) ──────────────────
       - name: Upload JaCoCo coverage reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -149,8 +149,8 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
-      # Publica los 4 módulos en:
-      # https://github.com/avenero/qa-framework-core/packages
+      # Publica los módulos en:
+      # https://github.com/avenero/qa-platformCore/packages
       - name: Publish all modules to GitHub Packages
         run: ./gradlew publish --no-daemon
         env:

@@ -1,4 +1,4 @@
-rootProject.name = 'qa-framework-core'
+rootProject.name = 'qa-platformCore'
 
 include 'common'
 include 'api-core'

@@ -157,12 +157,12 @@ publishing {
             pom {
                 name = 'QA Framework - API Core'
                 description = 'Framework de automatización QA - Módulo API Core con Cucumber Steps para testing de APIs REST'
-                url = 'https://github.com/avenero/qa-framework-core'
+                url = 'https://github.com/avenero/qa-platformCore'
 
                 licenses {
                     license {
                         name = 'Proprietary'
-                        url  = 'https://github.com/avenero/qa-framework-core'
+                        url  = 'https://github.com/avenero/qa-platformCore'
                     }
                 }
 
@@ -178,10 +178,9 @@ publishing {
     }
 
     repositories {
-        mavenLocal()
         maven {
             name = "GitHubPackages"
-            url  = uri("https://maven.pkg.github.com/avenero/qa-framework-core")
+            url  = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
             credentials {
                 username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") ?: ""
                 password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.token") ?: ""
