@@ -5,17 +5,11 @@
 #
 # Jobs:
 #   1. quality   — Compila, ejecuta unit tests, genera cobertura JaCoCo,
-#                  corre Checkstyle + SpotBugs y envía todo a SonarCloud.
+#                  corre Checkstyle + SpotBugs y sube reportes como artefactos.
 #   2. publish   — Publica los artefactos en GitHub Packages (solo si quality pasa).
 #
 # Secrets requeridos (GitHub → Settings → Secrets → Actions):
-#   • SONAR_TOKEN  — Token de SonarCloud (https://sonarcloud.io)
-#                    GITHUB_TOKEN se inyecta automáticamente por GitHub Actions.
-#
-# Pre-requisitos SonarCloud (solo la primera vez):
-#   1. https://sonarcloud.io → Log in with GitHub
-#   2. "+ Analyze new project" → seleccionar avenero/qa-framework-core
-#   3. Copiar el token generado y guardarlo como secret SONAR_TOKEN
+#   • GITHUB_TOKEN se inyecta automáticamente por GitHub Actions.
 # =============================================================================
 
 name: CI — KiuA·leon Core
@@ -68,15 +62,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # ── Cache SonarCloud (reduce tiempo de análisis en ejecuciones sucesivas) ─
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-sonar-
-
       # ── Permisos Gradle Wrapper ───────────────────────────────────────────────
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
@@ -95,15 +80,6 @@ jobs:
       # ── SpotBugs (detección de bugs / vulnerabilidades) ───────────────────────
       - name: Run SpotBugs analysis
         run: ./gradlew spotbugsMain --continue --no-daemon
-
-      # ── SonarCloud — análisis central de calidad ──────────────────────────────
-      # Consolida: tests, cobertura JaCoCo, Checkstyle y SpotBugs en un único
-      # dashboard accesible en https://sonarcloud.io/project/overview?id=avenero_qa-framework-core
-      - name: SonarCloud analysis
-        run: ./gradlew sonar --no-daemon
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN:  ${{ secrets.SONAR_TOKEN }}
 
       # ── Artefactos: Resultados de Tests ──────────────────────────────────────
       - name: Upload test results

@@ -4,73 +4,11 @@
 // mediante 'apply plugin:' dentro del bloque subprojects {}
 // =============================================================================
 plugins {
-    id "org.sonarqube"       version "5.1.0.4882"
     id "com.github.spotbugs" version "6.0.18" apply false
 }
 
 group   = "com.qa"
 version = "2.0.0"
-
-// =============================================================================
-// SONARCLOUD — Análisis de calidad multi-módulo
-//
-// Pre-requisitos (solo una vez por repositorio):
-//   1. Ir a https://sonarcloud.io y autenticarse con GitHub
-//   2. Importar el repositorio 'avenero/qa-framework-core'
-//   3. Copiar el SONAR_TOKEN generado
-//   4. En GitHub → Settings → Secrets → Actions → New secret:
-//        Nombre: SONAR_TOKEN  |  Valor: <token copiado>
-//
-// La organización SonarCloud DEBE coincidir con el org/user de GitHub (lowercase).
-// =============================================================================
-sonar {
-    properties {
-        property "sonar.projectKey",    "avenero_qa-framework-core"
-        property "sonar.organization",  "avenero"
-        property "sonar.host.url",      "https://sonarcloud.io"
-        property "sonar.java.source",   "21"
-        property "sonar.sourceEncoding","UTF-8"
-        property "sonar.projectName",   "CuAleon Test Engineering Platform — Core"
-
-        // Aggregate JaCoCo XML coverage reports from all 4 modules
-        property "sonar.coverage.jacoco.xmlReportPaths",
-                 ["common", "api-core", "web-core", "mobile-core"].collect {
-                     "${rootProject.projectDir}/${it}/build/reports/jacoco/test/jacocoTestReport.xml"
-                 }.join(",")
-
-        // Checkstyle reports (main source only)
-        property "sonar.java.checkstyle.reportPaths",
-                 ["common", "api-core", "web-core", "mobile-core"].collect {
-                     "${rootProject.projectDir}/${it}/build/reports/checkstyle/main.xml"
-                 }.join(",")
-
-        // SpotBugs reports (main source only)
-        property "sonar.java.spotbugs.reportPaths",
-                 ["common", "api-core", "web-core", "mobile-core"].collect {
-                     "${rootProject.projectDir}/${it}/build/reports/spotbugs/main.xml"
-                 }.join(",")
-
-        // Exclusiones: no analizar código generado, modelos simples ni clases de excepción
-        property "sonar.exclusions", [
-            "**/model/**",
-            "**/exceptions/**",
-            "**/enums/**",
-            "**/*Exception.java",
-            "**/*Test.java"
-        ].join(",")
-
-        // Exclusiones de cobertura: mismo criterio que JaCoCo
-        property "sonar.coverage.exclusions", [
-            "**/model/**",
-            "**/exceptions/**",
-            "**/enums/**",
-            "**/*Exception.java",
-            "**/*Test.java",
-            "**/*Steps.java"
-        ].join(",")
-    }
-}
-
 
 // =============================================================================
 // CONFIGURACIÓN COMÚN A TODOS LOS SUBMÓDULOS
