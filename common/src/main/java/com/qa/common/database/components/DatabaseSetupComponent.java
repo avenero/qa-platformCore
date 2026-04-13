@@ -4,6 +4,8 @@ import com.qa.common.database.steps.DatabaseConnectionSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps DB: Configuracion y Conexion.
  * Fase BDD: GIVEN. Categoria: Configuracion.
@@ -21,4 +23,22 @@ public class DatabaseSetupComponent implements StepComponent {
     @Override public String getIcon()                  { return "storage"; }
     @Override public int getDisplayOrder()             { return 10; }
     @Override public Class<?> getStepDefinitionClass() { return DatabaseConnectionSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Conexion a Base de Datos",
+            "en", "Database Connection",
+            "fr", "Connexion a la base de donnees"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Establecer conexion a Oracle, PostgreSQL, MySQL o SQL Server",
+            "en", "Establish connection to Oracle, PostgreSQL, MySQL or SQL Server",
+            "fr", "Etablir une connexion a Oracle, PostgreSQL, MySQL ou SQL Server"
+        );
+    }
 }

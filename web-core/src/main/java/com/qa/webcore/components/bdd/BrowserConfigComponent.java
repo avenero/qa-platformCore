@@ -4,6 +4,8 @@ import com.qa.webcore.steps.config.BrowserConfigSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Web: Configuracion de Navegador.
  * Fase BDD: GIVEN. Categoria: Configuracion Web.
@@ -20,4 +22,22 @@ public class BrowserConfigComponent implements StepComponent {
     @Override public String getIcon()                  { return "web"; }
     @Override public int getDisplayOrder()             { return 10; }
     @Override public Class<?> getStepDefinitionClass() { return BrowserConfigSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Configuracion de Navegador",
+            "en", "Browser Configuration",
+            "fr", "Configuration du navigateur"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Configuracion del browser, modo headless, capabilities",
+            "en", "Browser setup, headless mode, capabilities",
+            "fr", "Configuration du navigateur, mode sans interface, capacites"
+        );
+    }
 }

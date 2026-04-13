@@ -4,6 +4,8 @@ import com.qa.webcore.steps.navigation.FrameSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Web: Frames e iFrames.
  * Fase BDD: WHEN. Categoria: Navegacion.
@@ -20,4 +22,22 @@ public class FrameComponent implements StepComponent {
     @Override public String getIcon()                  { return "layers"; }
     @Override public int getDisplayOrder()             { return 40; }
     @Override public Class<?> getStepDefinitionClass() { return FrameSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Frames e iFrames",
+            "en", "Frames & iFrames",
+            "fr", "Frames et iFrames"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Cambio de contexto a frames e iFrames",
+            "en", "Context switching to frames and iFrames",
+            "fr", "Changement de contexte vers les frames et iFrames"
+        );
+    }
 }

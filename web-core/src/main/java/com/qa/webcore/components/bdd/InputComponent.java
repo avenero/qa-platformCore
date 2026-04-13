@@ -4,6 +4,8 @@ import com.qa.webcore.steps.interaction.InputSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Web: Entrada de Texto.
  * Fase BDD: WHEN. Categoria: Interaccion.
@@ -20,4 +22,22 @@ public class InputComponent implements StepComponent {
     @Override public String getIcon()                  { return "keyboard"; }
     @Override public int getDisplayOrder()             { return 70; }
     @Override public Class<?> getStepDefinitionClass() { return InputSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Entrada de Texto",
+            "en", "Text Input",
+            "fr", "Saisie de texte"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Escribir texto, limpiar campos, teclado",
+            "en", "Write text, clear fields, keyboard",
+            "fr", "Saisir du texte, vider des champs, clavier"
+        );
+    }
 }

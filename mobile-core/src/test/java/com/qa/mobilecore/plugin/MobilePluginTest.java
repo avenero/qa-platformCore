@@ -242,4 +242,100 @@ class MobilePluginTest {
             }
         }
     }
+
+    // =========================================================================
+    // Metadata i18n
+    // =========================================================================
+
+    @Nested
+    @DisplayName("Metadata i18n por componente")
+    class I18nMetadataTests {
+
+        @Test
+        @DisplayName("Todos los componentes tienen displayNameByLocale no nulo")
+        void todosLosComponentesTienenDisplayNameByLocale() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDisplayNameByLocale())
+                    .as("displayNameByLocale para '%s'", c.getId())
+                    .isNotNull()
+            );
+        }
+
+        @Test
+        @DisplayName("Todos los componentes proveen locales ES, EN y FR en displayName")
+        void todosLosComponentesTienenTresLocalesEnDisplayName() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDisplayNameByLocale())
+                    .as("locales en displayName para '%s'", c.getId())
+                    .containsKeys("es", "en", "fr")
+            );
+        }
+
+        @Test
+        @DisplayName("Todos los componentes proveen locales ES, EN y FR en description")
+        void todosLosComponentesTienenTresLocalesEnDescription() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDescriptionByLocale())
+                    .as("locales en description para '%s'", c.getId())
+                    .containsKeys("es", "en", "fr")
+            );
+        }
+
+        @Test
+        @DisplayName("Ninguna traduccion de displayName es nula o vacia")
+        void ningunaTraduccionDeDisplayNameEsVacia() {
+            plugin.getComponents().forEach(c ->
+                c.getDisplayNameByLocale().values().forEach(v ->
+                    assertThat(v)
+                        .as("valor displayName para '%s'", c.getId())
+                        .isNotNull().isNotBlank()
+                )
+            );
+        }
+
+        @Test
+        @DisplayName("Ninguna traduccion de description es nula o vacia")
+        void ningunaTraduccionDeDescriptionEsVacia() {
+            plugin.getComponents().forEach(c ->
+                c.getDescriptionByLocale().values().forEach(v ->
+                    assertThat(v)
+                        .as("valor description para '%s'", c.getId())
+                        .isNotNull().isNotBlank()
+                )
+            );
+        }
+
+        @Test
+        @DisplayName("DeviceConfigComponent tiene displayName EN = 'Device Configuration'")
+        void deviceConfigTieneDisplayNameEn() {
+            plugin.getComponents().stream()
+                .filter(c -> "mobile.device.config".equals(c.getId()))
+                .findFirst()
+                .ifPresent(c ->
+                    assertThat(c.getDisplayNameByLocale().get("en")).isEqualTo("Device Configuration")
+                );
+        }
+
+        @Test
+        @DisplayName("GestureComponent tiene displayName FR = 'Gestes'")
+        void gestureComponentTieneDisplayNameFr() {
+            plugin.getComponents().stream()
+                .filter(c -> "mobile.gesture".equals(c.getId()))
+                .findFirst()
+                .ifPresent(c ->
+                    assertThat(c.getDisplayNameByLocale().get("fr")).isEqualTo("Gestes")
+                );
+        }
+
+        @Test
+        @DisplayName("AppStateValidationComponent tiene displayName EN = 'Application State'")
+        void appStateValidationTieneDisplayNameEn() {
+            plugin.getComponents().stream()
+                .filter(c -> "mobile.validation.app-state".equals(c.getId()))
+                .findFirst()
+                .ifPresent(c ->
+                    assertThat(c.getDisplayNameByLocale().get("en")).isEqualTo("Application State")
+                );
+        }
+    }
 }

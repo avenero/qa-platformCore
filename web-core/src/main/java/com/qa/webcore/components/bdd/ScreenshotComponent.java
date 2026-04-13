@@ -4,6 +4,8 @@ import com.qa.webcore.steps.validation.ScreenshotSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Web: Capturas de Pantalla.
  * Fase BDD: THEN. Categoria: Validacion Web.
@@ -20,4 +22,22 @@ public class ScreenshotComponent implements StepComponent {
     @Override public String getIcon()                  { return "photo_camera"; }
     @Override public int getDisplayOrder()             { return 150; }
     @Override public Class<?> getStepDefinitionClass() { return ScreenshotSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Capturas de Pantalla",
+            "en", "Screenshots",
+            "fr", "Captures d'ecran"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Capturar evidencia y adjuntar al reporte",
+            "en", "Capture evidence and attach to report",
+            "fr", "Capturer des preuves et les joindre au rapport"
+        );
+    }
 }

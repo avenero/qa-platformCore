@@ -4,6 +4,8 @@ import com.qa.mobilecore.steps.interaction.ContextSwitchSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Mobile: Cambio de Contexto.
  * Fase BDD: WHEN. Categoria: Interaccion Mobile.
@@ -20,4 +22,22 @@ public class ContextSwitchComponent implements StepComponent {
     @Override public String getIcon()                  { return "swap_horiz"; }
     @Override public int getDisplayOrder()             { return 50; }
     @Override public Class<?> getStepDefinitionClass() { return ContextSwitchSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Cambio de Contexto",
+            "en", "Context Switch",
+            "fr", "Changement de contexte"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Cambiar entre contexto nativo y WebView",
+            "en", "Switch between native context and WebView",
+            "fr", "Basculer entre le contexte natif et WebView"
+        );
+    }
 }

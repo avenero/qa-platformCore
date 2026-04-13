@@ -4,6 +4,8 @@ import com.qa.mobilecore.steps.interaction.GestureSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Mobile: Gestos.
  * Fase BDD: WHEN. Categoria: Interaccion Mobile.
@@ -20,4 +22,22 @@ public class GestureComponent implements StepComponent {
     @Override public String getIcon()                  { return "gesture"; }
     @Override public int getDisplayOrder()             { return 30; }
     @Override public Class<?> getStepDefinitionClass() { return GestureSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Gestos",
+            "en", "Gestures",
+            "fr", "Gestes"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Tap, long press, swipe, pinch, zoom",
+            "en", "Tap, long press, swipe, pinch, zoom",
+            "fr", "Appui, appui long, balayage, pincement, zoom"
+        );
+    }
 }

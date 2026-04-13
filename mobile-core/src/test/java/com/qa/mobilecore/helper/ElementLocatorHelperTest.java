@@ -34,13 +34,14 @@ class ElementLocatorHelperTest {
     class InstanciaTest {
 
         @Test
-        @DisplayName("Constructor privado lanza UnsupportedOperationException")
+        @DisplayName("Constructor privado existe y no es accesible publicamente")
         void testConstructorPrivado() throws Exception {
             Constructor<ElementLocatorHelper> c = ElementLocatorHelper.class.getDeclaredConstructor();
-            c.setAccessible(true);
-            // La clase tiene constructor privado vacio — solo valida que no es instanciable desde fuera
-            // El constructor existe pero es private; verificamos que refleja el patron utility
+            // El constructor es privado — no puede accederse sin reflexion
             assertThat(c.canAccess(null)).isFalse();
+            // Se puede forzar el acceso via reflexion (patron utility class standard)
+            c.setAccessible(true);
+            assertThat(c.canAccess(null)).isTrue();
         }
     }
 
@@ -58,10 +59,12 @@ class ElementLocatorHelperTest {
         }
 
         @Test
-        @DisplayName("'~' con valor vacio genera accessibilityId('')")
+        @DisplayName("'~' con valor vacio lanza IllegalArgumentException (Appium rechaza cadena vacia)")
         void testAccessibilityIdVacio() {
-            By by = invokeResolveBy("~");
-            assertThat(by).isNotNull();
+            // "~" pasa la validacion de blanco del helper (la expresion completa no es blank),
+            // pero Appium rechaza accessibilityId("") con IllegalArgumentException.
+            assertThatIllegalArgumentException()
+                    .isThrownBy(() -> invokeResolveBy("~"));
         }
     }
 

@@ -3,7 +3,6 @@ package com.qa.common.runtime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -186,6 +185,42 @@ public final class StepDiscoveryService {
          */
         public BddPhase phase() {
             return component.getPhase();
+        }
+
+        /**
+         * Nombre de display del componente para el locale dado.
+         *
+         * <p>Busca en {@link StepComponent#getDisplayNameByLocale()}; si el locale no existe
+         * o el mapa está vacío, retorna {@link StepComponent#getDisplayName()} como fallback.
+         *
+         * @param locale locale corto ("es", "en", "fr")
+         * @return nombre localizado, nunca null
+         */
+        public String getDisplayNameForLocale(String locale) {
+            Objects.requireNonNull(locale, "locale no puede ser null");
+            Map<String, String> byLocale = component.getDisplayNameByLocale();
+            if (byLocale != null && byLocale.containsKey(locale)) {
+                return byLocale.get(locale);
+            }
+            return component.getDisplayName();
+        }
+
+        /**
+         * Descripción del componente para el locale dado.
+         *
+         * <p>Busca en {@link StepComponent#getDescriptionByLocale()}; si el locale no existe
+         * o el mapa está vacío, retorna {@link StepComponent#getDescription()} como fallback.
+         *
+         * @param locale locale corto ("es", "en", "fr")
+         * @return descripción localizada, nunca null
+         */
+        public String getDescriptionForLocale(String locale) {
+            Objects.requireNonNull(locale, "locale no puede ser null");
+            Map<String, String> byLocale = component.getDescriptionByLocale();
+            if (byLocale != null && byLocale.containsKey(locale)) {
+                return byLocale.get(locale);
+            }
+            return component.getDescription();
         }
     }
 }

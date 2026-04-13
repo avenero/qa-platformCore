@@ -374,4 +374,102 @@ class ApiPluginTest {
                 .anyMatch(c -> c instanceof ApiSecurityComponent);
         }
     }
+
+    // =========================================================================
+    // 6. Metadata i18n
+    // =========================================================================
+
+    @Nested
+    @DisplayName("6. Metadata i18n por componente")
+    @Order(6)
+    class I18nMetadataTests {
+
+        @Test
+        @DisplayName("Todos los componentes tienen displayNameByLocale no nulo")
+        void todosLoComponentesTienenDisplayNameByLocale() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDisplayNameByLocale())
+                    .as("displayNameByLocale para componente '%s'", c.getId())
+                    .isNotNull()
+            );
+        }
+
+        @Test
+        @DisplayName("Todos los componentes tienen descriptionByLocale no nulo")
+        void todosLosComponentesTienenDescriptionByLocale() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDescriptionByLocale())
+                    .as("descriptionByLocale para componente '%s'", c.getId())
+                    .isNotNull()
+            );
+        }
+
+        @Test
+        @DisplayName("Todos los componentes proveen traduccion ES, EN y FR en displayName")
+        void todosLosComponentesTienenTresLocalesEnDisplayName() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDisplayNameByLocale())
+                    .as("locales en displayNameByLocale para '%s'", c.getId())
+                    .containsKeys("es", "en", "fr")
+            );
+        }
+
+        @Test
+        @DisplayName("Todos los componentes proveen traduccion ES, EN y FR en description")
+        void todosLosComponentesTienenTresLocalesEnDescription() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDescriptionByLocale())
+                    .as("locales en descriptionByLocale para '%s'", c.getId())
+                    .containsKeys("es", "en", "fr")
+            );
+        }
+
+        @Test
+        @DisplayName("Ninguna traduccion de displayName es nula o vacia")
+        void ningunaTraduccionDeDisplayNameEsVacia() {
+            plugin.getComponents().forEach(c ->
+                c.getDisplayNameByLocale().values().forEach(v ->
+                    assertThat(v)
+                        .as("valor de displayName para '%s'", c.getId())
+                        .isNotNull()
+                        .isNotBlank()
+                )
+            );
+        }
+
+        @Test
+        @DisplayName("Ninguna traduccion de description es nula o vacia")
+        void ningunaTraduccionDeDescriptionEsVacia() {
+            plugin.getComponents().forEach(c ->
+                c.getDescriptionByLocale().values().forEach(v ->
+                    assertThat(v)
+                        .as("valor de description para '%s'", c.getId())
+                        .isNotNull()
+                        .isNotBlank()
+                )
+            );
+        }
+
+        @Test
+        @DisplayName("ApiUrlComponent tiene displayName EN = 'URL / Environment'")
+        void apiUrlComponentTieneDisplayNameEn() {
+            plugin.getComponents().stream()
+                .filter(c -> c instanceof ApiUrlComponent)
+                .findFirst()
+                .ifPresent(c ->
+                    assertThat(c.getDisplayNameByLocale().get("en")).isEqualTo("URL / Environment")
+                );
+        }
+
+        @Test
+        @DisplayName("ApiAuthComponent tiene displayName FR = 'Authentification'")
+        void apiAuthComponentTieneDisplayNameFr() {
+            plugin.getComponents().stream()
+                .filter(c -> c instanceof ApiAuthComponent)
+                .findFirst()
+                .ifPresent(c ->
+                    assertThat(c.getDisplayNameByLocale().get("fr")).isEqualTo("Authentification")
+                );
+        }
+    }
 }

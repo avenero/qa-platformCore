@@ -4,6 +4,8 @@ import com.qa.apicore.steps.validation.ResponseBodySteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps: Response Body.
  * Fase BDD: THEN. Categoria: Validacion de Respuesta.
@@ -20,4 +22,22 @@ public class ApiResponseBodyComponent implements StepComponent {
     @Override public String getIcon()                  { return "data_object"; }
     @Override public int getDisplayOrder()             { return 90; }
     @Override public Class<?> getStepDefinitionClass() { return ResponseBodySteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Response Body",
+            "en", "Response Body",
+            "fr", "Corps de la reponse"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Validacion y extraccion del cuerpo de respuesta JSON",
+            "en", "JSON response body validation and extraction",
+            "fr", "Validation et extraction du corps de reponse JSON"
+        );
+    }
 }

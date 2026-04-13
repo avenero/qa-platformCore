@@ -4,6 +4,8 @@ import com.qa.webcore.steps.validation.ElementValidationSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Web: Validacion de Elementos.
  * Fase BDD: THEN. Categoria: Validacion Web.
@@ -20,4 +22,22 @@ public class ElementValidationComponent implements StepComponent {
     @Override public String getIcon()                  { return "check_box"; }
     @Override public int getDisplayOrder()             { return 120; }
     @Override public Class<?> getStepDefinitionClass() { return ElementValidationSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Validacion de Elementos",
+            "en", "Element Validation",
+            "fr", "Validation des elements"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Visibilidad, texto, atributos y estado de elementos",
+            "en", "Element visibility, text, attributes and state",
+            "fr", "Visibilite, texte, attributs et etat des elements"
+        );
+    }
 }

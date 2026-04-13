@@ -1,6 +1,7 @@
 package com.qa.common.runtime;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -122,5 +123,35 @@ public interface StepComponent {
      */
     default Set<String> getActivationTags() {
         return Set.of();
+    }
+
+    // =========================================================================
+    // Metadata multi-idioma para el Frontend (ES / EN / FR)
+    // =========================================================================
+
+    /**
+     * Nombre de display del componente por locale para el Frontend.
+     *
+     * <p>Las claves del mapa son locales cortos: {@code "es"}, {@code "en"}, {@code "fr"}.
+     * Si el mapa está vacío o no contiene el locale solicitado, el Frontend
+     * debe hacer fallback a {@link #getDisplayName()} (español por defecto).
+     *
+     * @return mapa inmutable locale → nombre; nunca null
+     */
+    default Map<String, String> getDisplayNameByLocale() {
+        return Map.of();
+    }
+
+    /**
+     * Descripción del componente por locale para el Frontend.
+     *
+     * <p>Las claves del mapa son locales cortos: {@code "es"}, {@code "en"}, {@code "fr"}.
+     * Si el mapa está vacío o no contiene el locale solicitado, el Frontend
+     * debe hacer fallback a {@link #getDescription()} (español por defecto).
+     *
+     * @return mapa inmutable locale → descripción; nunca null
+     */
+    default Map<String, String> getDescriptionByLocale() {
+        return Map.of();
     }
 }

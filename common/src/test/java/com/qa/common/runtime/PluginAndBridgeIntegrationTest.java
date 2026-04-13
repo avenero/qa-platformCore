@@ -81,18 +81,22 @@ class PluginAndBridgeIntegrationTest {
         }
 
         @Test
-        @DisplayName("getComponents() declara exactamente 1 componente")
-        void getComponentsDeclara1Componente() {
-            assertThat(plugin.getComponents()).hasSize(1);
+        @DisplayName("getComponents() declara exactamente 3 componentes (GIVEN, WHEN, THEN)")
+        void getComponentsDeclara3Componentes() {
+            assertThat(plugin.getComponents()).hasSize(3);
         }
 
         @Test
-        @DisplayName("El componente DB tiene fase GIVEN")
-        void componenteDbTieneFaseGiven() {
-            StepComponent comp = plugin.getComponents().getFirst();
-            assertThat(comp.getPhase()).isEqualTo(BddPhase.GIVEN);
-            assertThat(comp.getName()).isNotBlank();
-            assertThat(comp.getDescription()).isNotBlank();
+        @DisplayName("Los componentes DB cubren las tres fases BDD")
+        void componentesDbCubrenTresFases() {
+            var components = plugin.getComponents();
+            assertThat(components).anyMatch(c -> c.getPhase() == BddPhase.GIVEN);
+            assertThat(components).anyMatch(c -> c.getPhase() == BddPhase.WHEN);
+            assertThat(components).anyMatch(c -> c.getPhase() == BddPhase.THEN);
+            components.forEach(c -> {
+                assertThat(c.getName()).isNotBlank();
+                assertThat(c.getDescription()).isNotBlank();
+            });
         }
 
         @Test
@@ -252,7 +256,7 @@ class PluginAndBridgeIntegrationTest {
                     .extracting(CorePlugin::getName)
                     .containsExactly("database");
 
-            assertThat(engine.getDiscoveryService().totalComponents()).isEqualTo(1);
+            assertThat(engine.getDiscoveryService().totalComponents()).isEqualTo(3);
         }
 
         @Test
@@ -263,7 +267,7 @@ class PluginAndBridgeIntegrationTest {
 
             var componentsByPlugin = discovery.groupByPlugin();
             assertThat(componentsByPlugin).containsKey("database");
-            assertThat(componentsByPlugin.get("database")).hasSize(1);
+            assertThat(componentsByPlugin.get("database")).hasSize(3);
         }
     }
 }

@@ -4,6 +4,8 @@ import com.qa.mobilecore.steps.interaction.NativeElementSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Mobile: Elementos Nativos.
  * Fase BDD: WHEN. Categoria: Interaccion Mobile.
@@ -20,4 +22,22 @@ public class NativeElementComponent implements StepComponent {
     @Override public String getIcon()                  { return "widgets"; }
     @Override public int getDisplayOrder()             { return 40; }
     @Override public Class<?> getStepDefinitionClass() { return NativeElementSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Elementos Nativos",
+            "en", "Native Elements",
+            "fr", "Elements natifs"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Interaccion con elementos de la UI nativa",
+            "en", "Interaction with native UI elements",
+            "fr", "Interaction avec les elements de l'interface utilisateur native"
+        );
+    }
 }

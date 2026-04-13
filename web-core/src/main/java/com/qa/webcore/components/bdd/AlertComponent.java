@@ -4,6 +4,8 @@ import com.qa.webcore.steps.interaction.AlertSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Web: Alertas y Dialogos.
  * Fase BDD: WHEN. Categoria: Interaccion.
@@ -20,4 +22,22 @@ public class AlertComponent implements StepComponent {
     @Override public String getIcon()                  { return "warning"; }
     @Override public int getDisplayOrder()             { return 100; }
     @Override public Class<?> getStepDefinitionClass() { return AlertSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Alertas y Dialogos",
+            "en", "Alerts & Dialogs",
+            "fr", "Alertes et boites de dialogue"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Aceptar, cancelar y leer alertas del navegador",
+            "en", "Accept, cancel and read browser alerts",
+            "fr", "Accepter, annuler et lire les alertes du navigateur"
+        );
+    }
 }

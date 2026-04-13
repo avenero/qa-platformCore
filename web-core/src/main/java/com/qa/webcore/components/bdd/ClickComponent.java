@@ -4,6 +4,8 @@ import com.qa.webcore.steps.interaction.ClickSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Web: Clicks e Interacciones.
  * Fase BDD: WHEN. Categoria: Interaccion.
@@ -20,4 +22,22 @@ public class ClickComponent implements StepComponent {
     @Override public String getIcon()                  { return "touch_app"; }
     @Override public int getDisplayOrder()             { return 60; }
     @Override public Class<?> getStepDefinitionClass() { return ClickSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Clicks e Interacciones",
+            "en", "Clicks & Interactions",
+            "fr", "Clics et interactions"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Click, doble click, click derecho, hover, shadow DOM",
+            "en", "Click, double click, right click, hover, shadow DOM",
+            "fr", "Clic, double clic, clic droit, survol, shadow DOM"
+        );
+    }
 }

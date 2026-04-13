@@ -4,6 +4,8 @@ import com.qa.mobilecore.steps.validation.MobileElementValidationSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Mobile: Validacion de Elementos Mobile.
  * Fase BDD: THEN. Categoria: Validacion Mobile.
@@ -20,4 +22,22 @@ public class MobileElementValidationComponent implements StepComponent {
     @Override public String getIcon()                  { return "check_circle"; }
     @Override public int getDisplayOrder()             { return 90; }
     @Override public Class<?> getStepDefinitionClass() { return MobileElementValidationSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Validacion de Elementos Mobile",
+            "en", "Mobile Element Validation",
+            "fr", "Validation des elements mobiles"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Visibilidad, texto y estado de elementos nativos",
+            "en", "Visibility, text and state of native elements",
+            "fr", "Visibilite, texte et etat des elements natifs"
+        );
+    }
 }

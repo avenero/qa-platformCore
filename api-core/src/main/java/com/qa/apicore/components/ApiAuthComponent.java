@@ -4,6 +4,8 @@ import com.qa.apicore.steps.config.AuthenticationSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps: Autenticacion.
  * Fase BDD: GIVEN. Categoria: Configuracion de Peticion.
@@ -20,4 +22,22 @@ public class ApiAuthComponent implements StepComponent {
     @Override public String getIcon()                  { return "lock"; }
     @Override public int getDisplayOrder()             { return 20; }
     @Override public Class<?> getStepDefinitionClass() { return AuthenticationSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Autenticacion",
+            "en", "Authentication",
+            "fr", "Authentification"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Bearer Token, Basic Auth, API Key, OAuth 2.0, JWT",
+            "en", "Bearer Token, Basic Auth, API Key, OAuth 2.0, JWT",
+            "fr", "Bearer Token, Basic Auth, API Key, OAuth 2.0, JWT"
+        );
+    }
 }

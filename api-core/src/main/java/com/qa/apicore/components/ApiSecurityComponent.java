@@ -4,6 +4,8 @@ import com.qa.apicore.steps.validation.ResponseSecuritySteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps: Seguridad.
  * Fase BDD: THEN. Categoria: Validacion de Respuesta.
@@ -20,4 +22,22 @@ public class ApiSecurityComponent implements StepComponent {
     @Override public String getIcon()                  { return "security"; }
     @Override public int getDisplayOrder()             { return 120; }
     @Override public Class<?> getStepDefinitionClass() { return ResponseSecuritySteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Seguridad",
+            "en", "Security",
+            "fr", "Securite"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Validacion de controles de seguridad HTTP",
+            "en", "HTTP security controls validation",
+            "fr", "Validation des controles de securite HTTP"
+        );
+    }
 }

@@ -10,6 +10,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests unitarios para StepDiscoveryService.
@@ -33,6 +34,21 @@ class StepDiscoveryServiceTest {
             @Override public BddPhase getPhase()               { return phase; }
             @Override public Class<?> getStepDefinitionClass() { return Object.class; }
             @Override public String getId()                    { return name.toLowerCase().replace(" ", "."); }
+        };
+    }
+
+    private static StepComponent makeI18nComponent(String name, BddPhase phase,
+                                                     Map<String, String> displayNames,
+                                                     Map<String, String> descriptions) {
+        return new StepComponent() {
+            @Override public String getName()                  { return name; }
+            @Override public BddPhase getPhase()               { return phase; }
+            @Override public Class<?> getStepDefinitionClass() { return Object.class; }
+            @Override public String getId()                    { return name.toLowerCase().replace(" ", "."); }
+            @Override public String getDisplayName()           { return name; }
+            @Override public String getDescription()           { return "fallback-desc"; }
+            @Override public Map<String, String> getDisplayNameByLocale()  { return displayNames; }
+            @Override public Map<String, String> getDescriptionByLocale()  { return descriptions; }
         };
     }
 
@@ -290,6 +306,113 @@ class StepDiscoveryServiceTest {
             StepDiscoveryService svc = new StepDiscoveryService(List.of(api, web));
 
             assertThat(svc.getPluginNames()).containsExactly("api", "web");
+        }
+    }
+
+    // =========================================================================
+
+    @Nested
+    @DisplayName("ComponentInfo — locale-aware helpers")
+    class ComponentInfoLocaleTest {
+
+        private final Map<String, String> displayNames = Map.of(
+                "es", "Nombre ES",
+                "en", "Name EN",
+                "fr", "Nom FR"
+        );
+        private final Map<String, String> descriptions = Map.of(
+                "es", "Descripcion ES",
+                "en", "Description EN",
+                "fr", "Description FR"
+        );
+
+        @Test
+        @DisplayName("getDisplayNameForLocale retorna traduccion espanol")
+        void testDisplayNameEs() {
+            StepComponent comp = makeI18nComponent("Test", BddPhase.GIVEN, displayNames, descriptions);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("api", comp);
+            assertThat(info.getDisplayNameForLocale("es")).isEqualTo("Nombre ES");
+        }
+
+        @Test
+        @DisplayName("getDisplayNameForLocale retorna traduccion ingles")
+        void testDisplayNameEn() {
+            StepComponent comp = makeI18nComponent("Test", BddPhase.GIVEN, displayNames, descriptions);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("api", comp);
+            assertThat(info.getDisplayNameForLocale("en")).isEqualTo("Name EN");
+        }
+
+        @Test
+        @DisplayName("getDisplayNameForLocale retorna traduccion frances")
+        void testDisplayNameFr() {
+            StepComponent comp = makeI18nComponent("Test", BddPhase.GIVEN, displayNames, descriptions);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("api", comp);
+            assertThat(info.getDisplayNameForLocale("fr")).isEqualTo("Nom FR");
+        }
+
+        @Test
+        @DisplayName("getDisplayNameForLocale hace fallback a getDisplayName() si locale no existe")
+        void testDisplayNameFallback() {
+            StepComponent comp = makeI18nComponent("Test", BddPhase.GIVEN, displayNames, descriptions);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("api", comp);
+            assertThat(info.getDisplayNameForLocale("de")).isEqualTo("Test");
+        }
+
+        @Test
+        @DisplayName("getDisplayNameForLocale hace fallback a getDisplayName() si mapa vacio")
+        void testDisplayNameFallbackMapaVacio() {
+            StepComponent comp = makeComponent("Sin i18n", BddPhase.WHEN);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("web", comp);
+            assertThat(info.getDisplayNameForLocale("en")).isEqualTo("Sin i18n");
+        }
+
+        @Test
+        @DisplayName("getDescriptionForLocale retorna descripcion en espanol")
+        void testDescriptionEs() {
+            StepComponent comp = makeI18nComponent("Test", BddPhase.THEN, displayNames, descriptions);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("db", comp);
+            assertThat(info.getDescriptionForLocale("es")).isEqualTo("Descripcion ES");
+        }
+
+        @Test
+        @DisplayName("getDescriptionForLocale retorna descripcion en ingles")
+        void testDescriptionEn() {
+            StepComponent comp = makeI18nComponent("Test", BddPhase.THEN, displayNames, descriptions);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("db", comp);
+            assertThat(info.getDescriptionForLocale("en")).isEqualTo("Description EN");
+        }
+
+        @Test
+        @DisplayName("getDescriptionForLocale hace fallback a getDescription() si locale ausente")
+        void testDescriptionFallback() {
+            StepComponent comp = makeI18nComponent("Test", BddPhase.THEN, displayNames, descriptions);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("db", comp);
+            assertThat(info.getDescriptionForLocale("pt")).isEqualTo("fallback-desc");
+        }
+
+        @Test
+        @DisplayName("getDescriptionForLocale hace fallback si componente no tiene i18n")
+        void testDescriptionFallbackSinI18n() {
+            StepComponent comp = makeComponent("Sin descripcion", BddPhase.GIVEN);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("api", comp);
+            String result = info.getDescriptionForLocale("en");
+            assertThat(result).isNotNull().isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("getDisplayNameForLocale con locale null lanza NullPointerException")
+        void testDisplayNameLocaleNullLanzaException() {
+            StepComponent comp = makeComponent("Test", BddPhase.GIVEN);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("api", comp);
+            assertThatNullPointerException().isThrownBy(() -> info.getDisplayNameForLocale(null));
+        }
+
+        @Test
+        @DisplayName("getDescriptionForLocale con locale null lanza NullPointerException")
+        void testDescriptionLocaleNullLanzaException() {
+            StepComponent comp = makeComponent("Test", BddPhase.GIVEN);
+            StepDiscoveryService.ComponentInfo info = new StepDiscoveryService.ComponentInfo("api", comp);
+            assertThatNullPointerException().isThrownBy(() -> info.getDescriptionForLocale(null));
         }
     }
 }

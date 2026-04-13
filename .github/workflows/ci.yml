@@ -18,7 +18,7 @@
 #   3. Copiar el token generado y guardarlo como secret SONAR_TOKEN
 # =============================================================================
 
-name: CI — CuAleon Core
+name: CI — KiuA·leon Core
 
 on:
   push:

@@ -4,6 +4,8 @@ import com.qa.apicore.steps.config.ParameterSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps: Query Parameters.
  * Fase BDD: GIVEN. Categoria: Configuracion de Peticion.
@@ -20,4 +22,22 @@ public class ApiParameterComponent implements StepComponent {
     @Override public String getIcon()                  { return "search"; }
     @Override public int getDisplayOrder()             { return 50; }
     @Override public Class<?> getStepDefinitionClass() { return ParameterSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Query Parameters",
+            "en", "Query Parameters",
+            "fr", "Parametres de requete"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Parametros de URL y path de la peticion",
+            "en", "URL and path parameters of the request",
+            "fr", "Parametres d'URL et de chemin de la requete"
+        );
+    }
 }

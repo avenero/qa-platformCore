@@ -3,6 +3,7 @@ package com.qa.common.runtime;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,6 +54,44 @@ class StepComponentTest {
 
         @Override
         public List<String> getRequiredTags() { return List.of("@api", "@rest"); }
+    }
+
+    /**
+     * Implementacion con metadata i18n completa.
+     */
+    static class I18nStepComponent implements StepComponent {
+        @Override
+        public String getName() { return "HTTP Request"; }
+
+        @Override
+        public BddPhase getPhase() { return BddPhase.WHEN; }
+
+        @Override
+        public Class<?> getStepDefinitionClass() { return I18nStepComponent.class; }
+
+        @Override
+        public String getDisplayName() { return "HTTP Request"; }
+
+        @Override
+        public String getDescription() { return "Descripcion en espanol"; }
+
+        @Override
+        public Map<String, String> getDisplayNameByLocale() {
+            return Map.of(
+                "es", "Peticion HTTP",
+                "en", "HTTP Request",
+                "fr", "Requete HTTP"
+            );
+        }
+
+        @Override
+        public Map<String, String> getDescriptionByLocale() {
+            return Map.of(
+                "es", "Descripcion en espanol",
+                "en", "Description in English",
+                "fr", "Description en francais"
+            );
+        }
     }
 
     @Nested
@@ -115,5 +154,78 @@ class StepComponentTest {
                     .containsExactly("@api", "@rest");
         }
     }
-}
 
+    @Nested
+    @DisplayName("Metadata i18n — getDisplayNameByLocale()")
+    class DisplayNameByLocaleTests {
+
+        @Test
+        @DisplayName("Retorna mapa vacio por defecto (sin override)")
+        void defaultRetornaMapaVacio() {
+            StepComponent component = new DummyStepComponent("Test", BddPhase.GIVEN);
+            assertThat(component.getDisplayNameByLocale()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Retorna traducciones ES/EN/FR cuando se sobrescribe")
+        void retornaTraduccionesParaTodosLosLocales() {
+            StepComponent component = new I18nStepComponent();
+            Map<String, String> names = component.getDisplayNameByLocale();
+
+            assertThat(names).containsKeys("es", "en", "fr");
+            assertThat(names.get("es")).isEqualTo("Peticion HTTP");
+            assertThat(names.get("en")).isEqualTo("HTTP Request");
+            assertThat(names.get("fr")).isEqualTo("Requete HTTP");
+        }
+
+        @Test
+        @DisplayName("Mapa retornado es inmutable (Map.of)")
+        void mapaEsInmutable() {
+            StepComponent component = new I18nStepComponent();
+            Map<String, String> names = component.getDisplayNameByLocale();
+            org.junit.jupiter.api.Assertions.assertThrows(
+                    UnsupportedOperationException.class,
+                    () -> names.put("de", "HTTP-Anfrage")
+            );
+        }
+
+        @Test
+        @DisplayName("Retorna exactamente 3 locales")
+        void retornaTresLocales() {
+            StepComponent component = new I18nStepComponent();
+            assertThat(component.getDisplayNameByLocale()).hasSize(3);
+        }
+    }
+
+    @Nested
+    @DisplayName("Metadata i18n — getDescriptionByLocale()")
+    class DescriptionByLocaleTests {
+
+        @Test
+        @DisplayName("Retorna mapa vacio por defecto (sin override)")
+        void defaultRetornaMapaVacio() {
+            StepComponent component = new DummyStepComponent("Test", BddPhase.THEN);
+            assertThat(component.getDescriptionByLocale()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Retorna traducciones ES/EN/FR cuando se sobrescribe")
+        void retornaTraduccionesParaTodosLosLocales() {
+            StepComponent component = new I18nStepComponent();
+            Map<String, String> descs = component.getDescriptionByLocale();
+
+            assertThat(descs).containsKeys("es", "en", "fr");
+            assertThat(descs.get("es")).isEqualTo("Descripcion en espanol");
+            assertThat(descs.get("en")).isEqualTo("Description in English");
+            assertThat(descs.get("fr")).isEqualTo("Description en francais");
+        }
+
+        @Test
+        @DisplayName("Las traducciones no son nulas ni vacias")
+        void traduccionesNoSonNulasNiVacias() {
+            StepComponent component = new I18nStepComponent();
+            component.getDescriptionByLocale().values()
+                    .forEach(v -> assertThat(v).isNotNull().isNotEmpty());
+        }
+    }
+}

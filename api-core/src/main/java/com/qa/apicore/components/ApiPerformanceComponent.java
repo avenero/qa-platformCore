@@ -4,6 +4,8 @@ import com.qa.apicore.steps.validation.ResponsePerformanceSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps: Performance.
  * Fase BDD: THEN. Categoria: Validacion de Respuesta.
@@ -20,4 +22,22 @@ public class ApiPerformanceComponent implements StepComponent {
     @Override public String getIcon()                  { return "speed"; }
     @Override public int getDisplayOrder()             { return 110; }
     @Override public Class<?> getStepDefinitionClass() { return ResponsePerformanceSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Performance",
+            "en", "Performance",
+            "fr", "Performance"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Validacion de tiempo de respuesta y tamano del body",
+            "en", "Response time and body size validation",
+            "fr", "Validation du temps de reponse et de la taille du corps"
+        );
+    }
 }

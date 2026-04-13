@@ -112,7 +112,7 @@ class DefaultLifecycleManagerTest {
             ExecutionContext ctx = mgr.initialize(req);
 
             assertThat(ctx).isNotNull();
-            assertThat(ExecutionContext.current()).isSameAs(ctx);
+            assertThat(ExecutionContext.current()).isPresent().hasValue(ctx);
         }
 
         @Test
@@ -315,9 +315,9 @@ class DefaultLifecycleManagerTest {
             DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of());
             ExecutionContext ctx = crearContext(mgr, null);
 
-            assertThat(ExecutionContext.current()).isNotNull();
+            assertThat(ExecutionContext.current()).isPresent();
             mgr.shutdown(ctx);
-            assertThat(ExecutionContext.current()).isNull();
+            assertThat(ExecutionContext.current()).isEmpty();
         }
     }
 

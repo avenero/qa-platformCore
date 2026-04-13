@@ -329,5 +329,90 @@ class WebPluginTest {
                 .anyMatch(c -> c instanceof ScreenshotComponent);
         }
     }
+
+    // =========================================================================
+    // 6. Metadata i18n
+    // =========================================================================
+
+    @Nested
+    @DisplayName("6. Metadata i18n por componente")
+    @Order(6)
+    class I18nMetadataTests {
+
+        @Test
+        @DisplayName("Todos los componentes tienen displayNameByLocale no nulo")
+        void todosLosComponentesTienenDisplayNameByLocale() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDisplayNameByLocale())
+                    .as("displayNameByLocale para '%s'", c.getId())
+                    .isNotNull()
+            );
+        }
+
+        @Test
+        @DisplayName("Todos los componentes proveen locales ES, EN y FR en displayName")
+        void todosLosComponentesTienenTresLocalesEnDisplayName() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDisplayNameByLocale())
+                    .as("locales para '%s'", c.getId())
+                    .containsKeys("es", "en", "fr")
+            );
+        }
+
+        @Test
+        @DisplayName("Todos los componentes proveen locales ES, EN y FR en description")
+        void todosLosComponentesTienenTresLocalesEnDescription() {
+            plugin.getComponents().forEach(c ->
+                assertThat(c.getDescriptionByLocale())
+                    .as("locales en description para '%s'", c.getId())
+                    .containsKeys("es", "en", "fr")
+            );
+        }
+
+        @Test
+        @DisplayName("Ninguna traduccion de displayName es nula o vacia")
+        void ningunaTraduccionDeDisplayNameEsVacia() {
+            plugin.getComponents().forEach(c ->
+                c.getDisplayNameByLocale().values().forEach(v ->
+                    assertThat(v)
+                        .as("valor displayName para '%s'", c.getId())
+                        .isNotNull().isNotBlank()
+                )
+            );
+        }
+
+        @Test
+        @DisplayName("NavigationComponent tiene displayName EN = 'Navigation'")
+        void navigationComponentTieneDisplayNameEn() {
+            plugin.getComponents().stream()
+                .filter(c -> c instanceof NavigationComponent)
+                .findFirst()
+                .ifPresent(c ->
+                    assertThat(c.getDisplayNameByLocale().get("en")).isEqualTo("Navigation")
+                );
+        }
+
+        @Test
+        @DisplayName("BrowserConfigComponent tiene displayName FR = 'Configuration du navigateur'")
+        void browserConfigTieneDisplayNameFr() {
+            plugin.getComponents().stream()
+                .filter(c -> c instanceof BrowserConfigComponent)
+                .findFirst()
+                .ifPresent(c ->
+                    assertThat(c.getDisplayNameByLocale().get("fr")).isEqualTo("Configuration du navigateur")
+                );
+        }
+
+        @Test
+        @DisplayName("ElementValidationComponent tiene displayName EN = 'Element Validation'")
+        void elementValidationTieneDisplayNameEn() {
+            plugin.getComponents().stream()
+                .filter(c -> c instanceof ElementValidationComponent)
+                .findFirst()
+                .ifPresent(c ->
+                    assertThat(c.getDisplayNameByLocale().get("en")).isEqualTo("Element Validation")
+                );
+        }
+    }
 }
 

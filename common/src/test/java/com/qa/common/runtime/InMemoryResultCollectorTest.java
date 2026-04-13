@@ -48,6 +48,11 @@ class InMemoryResultCollectorTest {
             public <T> void registerHandlerFor(Class<T> eventType, EventHandler<T> handler) {
                 handlers.put(eventType, handler);
             }
+
+            @Override
+            public <T> void removeHandlerFor(Class<T> eventType, EventHandler<T> handler) {
+                handlers.remove(eventType);
+            }
         };
     }
 

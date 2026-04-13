@@ -4,6 +4,8 @@ import com.qa.webcore.steps.wait.WaitSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 
+import java.util.Map;
+
 /**
  * Componente de steps Web: Esperas.
  * Fase BDD: WHEN. Categoria: Esperas.
@@ -20,4 +22,22 @@ public class WaitComponent implements StepComponent {
     @Override public String getIcon()                  { return "hourglass_empty"; }
     @Override public int getDisplayOrder()             { return 110; }
     @Override public Class<?> getStepDefinitionClass() { return WaitSteps.class; }
+
+    @Override
+    public Map<String, String> getDisplayNameByLocale() {
+        return Map.of(
+            "es", "Esperas",
+            "en", "Waits",
+            "fr", "Attentes"
+        );
+    }
+
+    @Override
+    public Map<String, String> getDescriptionByLocale() {
+        return Map.of(
+            "es", "Esperas explicitas sobre elementos y condiciones",
+            "en", "Explicit waits on elements and conditions",
+            "fr", "Attentes explicites sur les elements et les conditions"
+        );
+    }
 }
