@@ -158,7 +158,7 @@ subprojects {
                     mavenLocal()
                     maven {
                         name = "GitHubPackages"
-                        url  = uri("https://maven.pkg.github.com/avenero/qa-framework-core")
+                        url  = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
                         credentials {
                             username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") ?: ""
                             password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.token") ?: ""
