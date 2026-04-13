@@ -8,7 +8,7 @@ plugins {
 }
 
 group   = "com.qa"
-version = "2.0.0"
+version = "2.0.1"
 
 // =============================================================================
 // CONFIGURACIÓN COMÚN A TODOS LOS SUBMÓDULOS
@@ -21,7 +21,7 @@ subprojects {
     apply plugin: 'com.github.spotbugs'
 
     group   = "com.qa"
-    version = "2.0.0"
+    version = "2.0.1"
 
     repositories {
         mavenLocal()
@@ -155,7 +155,7 @@ subprojects {
                     }
                 }
                 repositories {
-                    mavenLocal()
+                    //mavenLocal()
                     maven {
                         name = "GitHubPackages"
                         url  = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
