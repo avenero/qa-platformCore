@@ -415,4 +415,124 @@ class StepDiscoveryServiceTest {
             assertThatNullPointerException().isThrownBy(() -> info.getDescriptionForLocale(null));
         }
     }
+
+    // =========================================================================
+
+    @Nested
+    @DisplayName("discoverAllAsStepInfo()")
+    class DiscoverAllAsStepInfoTest {
+
+        private final Map<String, String> names = Map.of(
+                "es", "Nombre ES", "en", "Name EN", "fr", "Nom FR"
+        );
+        private final Map<String, String> descs = Map.of(
+                "es", "Descripcion ES", "en", "Description EN", "fr", "Description FR"
+        );
+
+        @Test
+        @DisplayName("Retorna un StepInfo por cada componente registrado")
+        void testRetornaUnStepInfoPorComponente() {
+            CorePlugin api = makePlugin("api", 50, Set.of("@api"), List.of(
+                    makeI18nComponent("URL Config", BddPhase.GIVEN, names, descs),
+                    makeI18nComponent("Execution",  BddPhase.WHEN,  names, descs)
+            ));
+            StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
+            List<StepInfo> stepInfos = svc.discoverAllAsStepInfo();
+
+            assertThat(stepInfos).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("StepInfo tiene layer correcto del plugin")
+        void testLayerEsNombreDePlugin() {
+            CorePlugin web = makePlugin("web", 100, Set.of("@web"), List.of(
+                    makeI18nComponent("Navigation", BddPhase.WHEN, names, descs)
+            ));
+            StepDiscoveryService svc = new StepDiscoveryService(List.of(web));
+            StepInfo info = svc.discoverAllAsStepInfo().get(0);
+
+            assertThat(info.layer()).isEqualTo("web");
+        }
+
+        @Test
+        @DisplayName("StepInfo tiene phase en nombre de constante BddPhase")
+        void testPhaseEsNombreConstante() {
+            CorePlugin api = makePlugin("api", 50, Set.of("@api"), List.of(
+                    makeI18nComponent("Setup", BddPhase.GIVEN, names, descs)
+            ));
+            StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
+            StepInfo info = svc.discoverAllAsStepInfo().get(0);
+
+            assertThat(info.phase()).isEqualTo("GIVEN");
+        }
+
+        @Test
+        @DisplayName("displayNameByLocale se copia desde el componente")
+        void testDisplayNameByLocaleCopiado() {
+            CorePlugin api = makePlugin("api", 50, Set.of("@api"), List.of(
+                    makeI18nComponent("Test", BddPhase.THEN, names, descs)
+            ));
+            StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
+            StepInfo info = svc.discoverAllAsStepInfo().get(0);
+
+            assertThat(info.displayNameByLocale()).containsKeys("es", "en", "fr");
+            assertThat(info.displayNameByLocale().get("en")).isEqualTo("Name EN");
+        }
+
+        @Test
+        @DisplayName("descriptionByLocale se copia desde el componente")
+        void testDescriptionByLocaleCopiado() {
+            CorePlugin api = makePlugin("api", 50, Set.of("@api"), List.of(
+                    makeI18nComponent("Test", BddPhase.THEN, names, descs)
+            ));
+            StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
+            StepInfo info = svc.discoverAllAsStepInfo().get(0);
+
+            assertThat(info.descriptionByLocale()).containsKeys("es", "en", "fr");
+            assertThat(info.descriptionByLocale().get("fr")).isEqualTo("Description FR");
+        }
+
+        @Test
+        @DisplayName("Componente sin i18n genera StepInfo con mapas vacios")
+        void testComponenteSinI18nGeneraMapasVacios() {
+            CorePlugin api = makePlugin("api", 50, Set.of("@api"), List.of(
+                    makeComponent("Sin i18n", BddPhase.GIVEN)
+            ));
+            StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
+            StepInfo info = svc.discoverAllAsStepInfo().get(0);
+
+            assertThat(info.displayNameByLocale()).isEmpty();
+            assertThat(info.descriptionByLocale()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Lista retornada es inmutable")
+        void testListaEsInmutable() {
+            CorePlugin api = makePlugin("api", 50, Set.of("@api"), List.of(
+                    makeComponent("c1", BddPhase.GIVEN)
+            ));
+            StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
+            List<StepInfo> stepInfos = svc.discoverAllAsStepInfo();
+            assertThrows(UnsupportedOperationException.class, () -> stepInfos.add(null));
+        }
+
+        @Test
+        @DisplayName("Sin plugins retorna lista vacia")
+        void testSinPluginsRetornaListaVacia() {
+            StepDiscoveryService svc = new StepDiscoveryService(List.of());
+            assertThat(svc.discoverAllAsStepInfo()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("getDisplayNameForLocale en StepInfo usa mapa i18n")
+        void testGetDisplayNameForLocaleEnStepInfo() {
+            CorePlugin api = makePlugin("api", 50, Set.of("@api"), List.of(
+                    makeI18nComponent("Test", BddPhase.WHEN, names, descs)
+            ));
+            StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
+            StepInfo info = svc.discoverAllAsStepInfo().get(0);
+
+            assertThat(info.getDisplayNameForLocale("fr")).isEqualTo("Nom FR");
+        }
+    }
 }

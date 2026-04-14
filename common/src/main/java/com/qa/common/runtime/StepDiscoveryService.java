@@ -143,6 +143,36 @@ public final class StepDiscoveryService {
     }
 
     /**
+     * Exporta todos los componentes como {@link StepInfo}, el DTO que consume el Backend.
+     *
+     * <p>Cada {@link StepInfo} incluye los mapas i18n copiados desde el componente,
+     * listos para serializar en {@code GET /api/steps} sin procesamiento adicional.
+     *
+     * @return lista inmutable de StepInfo; uno por componente registrado
+     */
+    public List<StepInfo> discoverAllAsStepInfo() {
+        return discoverAll().stream()
+                .map(info -> {
+                    StepComponent c = info.component();
+                    return new StepInfo(
+                            c.getId(),
+                            c.getDisplayName(),
+                            info.pluginName(),
+                            c.getId(),
+                            c.getPhase().name(),
+                            c.getCategory(),
+                            c.getIcon(),
+                            c.getDisplayOrder(),
+                            c.getDisplayName(),
+                            c.getDescription(),
+                            c.getDisplayNameByLocale(),
+                            c.getDescriptionByLocale()
+                    );
+                })
+                .collect(Collectors.toUnmodifiableList());
+    }
+
+    /**
      * Obtiene la lista de plugins registrados.
      * @return lista inmutable de plugins
      */

@@ -4,7 +4,7 @@
 [![Gradle](https://img.shields.io/badge/Gradle-8.14-blue.svg)](https://gradle.org/)
 [![Selenium](https://img.shields.io/badge/Selenium-4.27.0-green.svg)](https://www.selenium.dev/)
 [![Cucumber](https://img.shields.io/badge/Cucumber-7.18.0-brightgreen.svg)](https://cucumber.io/)
-[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://github.com/avenero/qa-platformCore)
+[![Version](https://img.shields.io/badge/version-2.0.2-blue.svg)](https://github.com/avenero/qa-platformCore)
 
 > Motor de ejecución BDD del ecosistema **CuAleon Test Engineering Platform** — framework modular de automatización para API REST, Web UI, Mobile y Base de Datos, construido sobre Cucumber en español y consumido por el Backend a través de una API de ejecución uniforme.
 
@@ -88,7 +88,7 @@ Eso es suficiente para ejecutar una prueba real sobre un sistema real. No se nec
 │   • steps propios             • steps propios                       │
 │   • config del proyecto       • config del proyecto                 │
 │                                                                     │
-│   build.gradle: implementation 'com.qa:api-core:2.0.1'            │
+│   build.gradle: implementation 'com.qa:api-core:2.0.2'            │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ dependen de
                                ▼
@@ -221,10 +221,10 @@ repositories {
 
 dependencies {
     // Elige SOLO las capas que necesitas
-    implementation 'com.qa:common:2.0.1'        // Siempre requerido
-    implementation 'com.qa:api-core:2.0.1'      // Para pruebas de API REST
-    implementation 'com.qa:web-core:2.0.1'      // Para pruebas de interfaz Web
-    implementation 'com.qa:mobile-core:2.0.1'   // Para pruebas Mobile (Android + iOS)
+    implementation 'com.qa:common:2.0.2'        // Siempre requerido
+    implementation 'com.qa:api-core:2.0.2'      // Para pruebas de API REST
+    implementation 'com.qa:web-core:2.0.2'      // Para pruebas de interfaz Web
+    implementation 'com.qa:mobile-core:2.0.2'   // Para pruebas Mobile (Android + iOS)
 }
 ```
 
@@ -316,7 +316,7 @@ Feature: Interfaz de login web
 - Las **utilidades**: JSON, texto, datos aleatorios, variables entre steps
 - La **base de datos**: conectores para Oracle, PostgreSQL, MySQL, SQL Server
 
-**Versión:** `com.qa:common:2.0.1`
+**Versión:** `com.qa:common:2.0.2`
 
 📖 **[Ver documentación completa → common/README.md](./common/README.md)**
 
@@ -332,7 +332,7 @@ Feature: Interfaz de login web
 - **12 grupos de steps**: URL, Autenticación, Headers, Cookies, Parámetros, Body, Ejecución, Status Code, Body de Respuesta, Headers de Respuesta, Performance, Seguridad
 - **ApiHelper**: fachada que conecta steps con el cliente HTTP y el validador
 
-**Versión:** `com.qa:api-core:2.0.1`
+**Versión:** `com.qa:api-core:2.0.2`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -358,7 +358,7 @@ Scenario: Verificar endpoint de salud
 - **16 componentes**: BrowserConfig, Navegación, Frames, Ventanas, Click, Input, Select, Scroll, DragDrop, Alert, Waits, ElementValidation, PageValidation, TableValidation, Screenshot, WebEnvironment
 - **WebHelper**: fachada que combina DriverManager + WaitUtils + ScreenshotUtils
 
-**Versión:** `com.qa:web-core:2.0.1`
+**Versión:** `com.qa:web-core:2.0.2`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -388,7 +388,7 @@ Scenario: El menú principal tiene los ítems correctos
 - **ElementLocatorHelper**: estrategia de localización por prefijo (`~`, `id:`, `xpath:`, `text:`...) diseñada para entrenamiento de IA de sugerencias en el FE
 - **AppiumServerManager**: health check automático + auto-start opt-in para desarrollo local
 
-**Versión:** `com.qa:mobile-core:2.0.1`
+**Versión:** `com.qa:mobile-core:2.0.2`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -564,10 +564,10 @@ https://maven.pkg.github.com/avenero/qa-platformCore
 
 | Módulo | Coordenadas Maven | Publicado |
 |--------|------------------|-----------|
-| common | `com.qa:common:2.0.1` | ✅ Sí |
-| api-core | `com.qa:api-core:2.0.1` | ✅ Sí |
-| web-core | `com.qa:web-core:2.0.1` | ✅ Sí |
-| mobile-core | `com.qa:mobile-core:2.0.1` | ✅ Sí |
+| common | `com.qa:common:2.0.2` | ✅ Sí |
+| api-core | `com.qa:api-core:2.0.2` | ✅ Sí |
+| web-core | `com.qa:web-core:2.0.2` | ✅ Sí |
+| mobile-core | `com.qa:mobile-core:2.0.2` | ✅ Sí |
 
 ### Consumir desde tu proyecto
 
@@ -583,10 +583,10 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.qa:common:2.0.1'
-    implementation 'com.qa:api-core:2.0.1'      // Solo si necesitas pruebas de API
-    implementation 'com.qa:web-core:2.0.1'      // Solo si necesitas pruebas Web
-    implementation 'com.qa:mobile-core:2.0.1'   // Solo si necesitas pruebas Mobile
+    implementation 'com.qa:common:2.0.2'
+    implementation 'com.qa:api-core:2.0.2'      // Solo si necesitas pruebas de API
+    implementation 'com.qa:web-core:2.0.2'      // Solo si necesitas pruebas Web
+    implementation 'com.qa:mobile-core:2.0.2'   // Solo si necesitas pruebas Mobile
 }
 ```
 
@@ -607,15 +607,15 @@ dependencies {
 
 ## 📊 Estado del Proyecto
 
-**Versión actual:** 2.0.1
+**Versión actual:** 2.0.2
 **Última actualización:** Abril 2026
 
 | Capa | Versión | Estado | Componentes | Build |
 |------|---------|--------|-------------|-------|
-| **common** | 2.0.1 | ✅ Estable | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
-| **api-core** | 2.0.1 | ✅ Estable | 12 componentes (~92 steps) | ✅ Verde |
-| **web-core** | 2.0.1 | ✅ Estable | 16 componentes (~80 steps) | ✅ Verde |
-| **mobile-core** | 2.0.1 | ✅ Estable | 10 componentes (~80 steps) | ✅ Verde |
+| **common** | 2.0.2 | ✅ Estable | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
+| **api-core** | 2.0.2 | ✅ Estable | 12 componentes (~92 steps) | ✅ Verde |
+| **web-core** | 2.0.2 | ✅ Estable | 16 componentes (~80 steps) | ✅ Verde |
+| **mobile-core** | 2.0.2 | ✅ Estable | 10 componentes (~80 steps) | ✅ Verde |
 
 ### ¿Qué cambió de v1.x a v2.0?
 
@@ -631,7 +631,7 @@ La versión 2.0 fue un rediseño arquitectónico completo. Los cambios más impo
 | Sin `VariableStore` central | `ExecutionContext.variables()` para todas las capas |
 | Grupo `com.scotia.qa` | Grupo `com.qa` (independiente) |
 
-### ¿Qué cambió de v2.0.0 a v2.0.1?
+### ¿Qué cambió de v2.0.0 a v2.0.2?
 
 | Área | Cambio |
 |------|--------|
