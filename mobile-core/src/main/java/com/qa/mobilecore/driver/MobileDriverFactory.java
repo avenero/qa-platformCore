@@ -182,11 +182,15 @@ public class MobileDriverFactory {
     }
 
     /**
-     * Inyecta un driver externamente. Uso exclusivo en tests unitarios del mismo paquete.
+     * Inyecta un driver externamente.
      *
-     * @param driver driver a inyectar (puede ser un mock/stub)
+     * <p><b>Uso exclusivo en tests unitarios.</b> Este método expone el estado interno
+     * para permitir dobles de prueba (mocks/stubs) desde cualquier paquete de test.
+     * No debe invocarse en código de producción.
+     *
+     * @param driver driver a inyectar (puede ser un mock/stub); {@code null} resetea el estado
      */
-    synchronized void injectDriver(AppiumDriver driver) {
+    public synchronized void injectDriver(AppiumDriver driver) {
         this.currentDriver = driver;
     }
 

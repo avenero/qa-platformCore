@@ -40,6 +40,7 @@ public class WebHooksSteps {
     // @Before — inicialización por escenario
     // =========================================================================
 
+    @SuppressWarnings("deprecation") // HOST_LEGACY: mantenida para retrocompatibilidad con proyectos legacy — ver WebConfigKeys
     @Before(value = "@web or @ui or @selenium or @browser", order = 100)
     public void beforeScenario(Scenario scenario) {
         // Nombre del módulo para el logger (ExecutionConfig tiene prioridad)
