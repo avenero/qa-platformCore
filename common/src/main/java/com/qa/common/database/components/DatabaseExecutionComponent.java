@@ -3,6 +3,7 @@ package com.qa.common.database.components;
 import com.qa.common.database.steps.DatabaseConnectionSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -13,9 +14,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("db.execution")
 public class DatabaseExecutionComponent implements StepComponent {
     @Override public String getName()                  { return "DB Execution"; }
-    @Override public String getId()                    { return "db.execution"; }
     @Override public String getDisplayName()           { return "Consultas y Sentencias SQL"; }
     @Override public String getDescription()           { return "Ejecutar SELECT, INSERT, UPDATE y DELETE con PreparedStatement (anti SQL injection)"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

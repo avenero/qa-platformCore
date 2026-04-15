@@ -1,6 +1,8 @@
 package com.qa.webcore.driver;
 
 import com.qa.common.logging.TestLogger;
+import com.qa.common.runtime.ExecutionContext;
+import com.qa.webcore.config.WebConfigKeys;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -12,40 +14,68 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.safari.SafariDriver;
 import org.openqa.selenium.safari.SafariOptions;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URL;
 import java.time.Duration;
-
 
 /**
  * Factory para la creación y configuración de WebDrivers del QA Automation Framework.
  *
- * <p><b>Soporta múltiples navegadores y modos de ejecución:</b></p>
- * <ul>
- *   <li><b>Local:</b> Usa WebDriverManager para gestión automática de drivers</li>
- *   <li><b>Grid:</b> Conecta a Selenium Grid/Hub remoto</li>
- * </ul>
+ * <h2>Estrategia de inicialización (orden de intentos)</h2>
+ * <p>Para ejecución local, {@code createLocalXxxDriver()} sigue esta secuencia:
+ * <ol>
+ *   <li><b>System Property manual</b> — si {@code webdriver.xxx.driver} ya está configurada,
+ *       se usa directamente sin intentar otras estrategias.</li>
+ *   <li><b>Selenium Manager</b> (Selenium 4.6+, automático) — descarga y cachea el driver
+ *       binario compatible con el navegador instalado. Requiere acceso a internet.</li>
+ *   <li><b>PATH del sistema</b> — busca el binario del driver en directorios comunes
+ *       de Windows/Mac/Linux. Ideal para CI/CD con drivers pre-instalados.</li>
+ * </ol>
+ * <p>Si los tres fallan se lanza {@link WebDriverInitializationException} con pasos claros
+ * de resolución.
  *
- * <p><b>Navegadores soportados:</b> Chrome, Firefox, Edge, Safari</p>
+ * <h2>Ciclo de vida vía ServiceRegistry</h2>
+ * <p>Usar {@link #createDriver(DriverConfig, ExecutionContext)} para crear el driver y
+ * registrarlo en el {@code ServiceRegistry} del contexto. Esto permite que
+ * {@link com.qa.webcore.plugin.WebPlugin#onScenarioEnd} cierre el driver automáticamente
+ * vía {@link #closeDriver(ExecutionContext)}.
+ *
+ * <h2>Navegadores soportados</h2>
+ * <p>Chrome, Firefox, Edge, Safari — en modo Local y Grid (Selenium Grid 3/4, cloud providers).
+ *
+ * @author Abel Venero
+ * @since 2.0.0
  */
 public class WebDriverFactory {
 
-    /**
-     * Enum de tipos de navegador soportados.
-     */
+    private static final Logger log = LoggerFactory.getLogger(WebDriverFactory.class);
+
+    // =========================================================================
+    // Enums
+    // =========================================================================
+
+    /** Tipos de navegador soportados. */
     public enum BrowserType {
         CHROME, FIREFOX, EDGE, SAFARI
     }
 
-    /**
-     * Enum de modos de ejecución.
-     */
+    /** Modos de ejecución del driver. */
     public enum ExecutionMode {
-        LOCAL,  // Ejecución local con WebDriverManager
-        GRID    // Ejecución remota en Selenium Grid
+        LOCAL,  // Driver local con Selenium Manager / PATH
+        GRID    // RemoteWebDriver contra Selenium Grid
     }
 
+    // =========================================================================
+    // DriverConfig — Builder pattern
+    // =========================================================================
+
     /**
-     * Configuración para crear drivers (Builder pattern).
+     * Configuración inmutable del driver (Builder pattern).
+     *
+     * <p>Construir vía: {@code new DriverConfig(BrowserType.CHROME).withHeadless(true)}.
      */
     public static class DriverConfig {
         private final BrowserType browserType;
@@ -56,9 +86,9 @@ public class WebDriverFactory {
         private boolean acceptInsecureCerts;
 
         public DriverConfig(BrowserType browserType) {
-            this.browserType = browserType;
-            this.executionMode = ExecutionMode.LOCAL;
-            this.headless = false;
+            this.browserType       = browserType;
+            this.executionMode     = ExecutionMode.LOCAL;
+            this.headless          = false;
             this.acceptInsecureCerts = true;
         }
 
@@ -69,7 +99,7 @@ public class WebDriverFactory {
 
         public DriverConfig withGrid(String gridHubUrl) {
             this.executionMode = ExecutionMode.GRID;
-            this.gridHubUrl = gridHubUrl;
+            this.gridHubUrl    = gridHubUrl;
             return this;
         }
 
@@ -83,402 +113,418 @@ public class WebDriverFactory {
             return this;
         }
 
-        // Getters
-        public BrowserType getBrowserType() {
-            return browserType;
-        }
-
-        public ExecutionMode getExecutionMode() {
-            return executionMode;
-        }
-
-        public boolean isHeadless() {
-            return headless;
-        }
-
-        public String getGridHubUrl() {
-            return gridHubUrl;
-        }
-
-        public String getProxyUrl() {
-            return proxyUrl;
-        }
-
-        public boolean isAcceptInsecureCerts() {
-            return acceptInsecureCerts;
-        }
-    }
-
-    /**
-     * Constructor privado - Factory pattern.
-     */
-    private WebDriverFactory() {
-        // Utility class
+        public BrowserType    getBrowserType()        { return browserType; }
+        public ExecutionMode  getExecutionMode()      { return executionMode; }
+        public boolean        isHeadless()            { return headless; }
+        public String         getGridHubUrl()         { return gridHubUrl; }
+        public String         getProxyUrl()           { return proxyUrl; }
+        public boolean        isAcceptInsecureCerts() { return acceptInsecureCerts; }
     }
 
     // =========================================================================
-    // MÉTODOS PÚBLICOS PRINCIPALES
+    // Constructor privado — utility class
+    // =========================================================================
+
+    private WebDriverFactory() {}
+
+    // =========================================================================
+    // API PÚBLICA — Creación
     // =========================================================================
 
     /**
-     * Crea un WebDriver con configuración simple (local, no headless).
+     * Crea un WebDriver local con configuración mínima (sin headless).
+     *
+     * @param browserType tipo de navegador
+     * @return instancia lista para usar
+     * @throws WebDriverInitializationException si no se puede inicializar el driver
      */
     public static WebDriver createDriver(BrowserType browserType) {
         return createDriver(browserType, false);
     }
 
     /**
-     * Crea un WebDriver con configuración básica.
+     * Crea un WebDriver local con control de modo headless.
+     *
+     * @param browserType tipo de navegador
+     * @param headless    {@code true} para modo sin UI
+     * @return instancia lista para usar
+     * @throws WebDriverInitializationException si no se puede inicializar el driver
      */
     public static WebDriver createDriver(BrowserType browserType, boolean headless) {
-        DriverConfig config = new DriverConfig(browserType).withHeadless(headless);
-        return createDriver(config);
+        return createDriver(new DriverConfig(browserType).withHeadless(headless));
     }
 
     /**
      * Crea un WebDriver con configuración completa.
+     *
+     * @param config configuración del driver
+     * @return instancia lista para usar
+     * @throws WebDriverInitializationException si no se puede inicializar el driver
      */
     public static WebDriver createDriver(DriverConfig config) {
-        com.qa.common.config.ConfigManager configManager =
-            com.qa.common.config.ConfigManager.getInstance();
-        String driverStrategy = configManager.get("driver.strategy", "auto");
+        String driverStrategy = resolveDriverStrategy();
+        log.info("[WebDriverFactory] Creando WebDriver: browser={} mode={} headless={} strategy={}",
+                config.getBrowserType(), config.getExecutionMode(), config.isHeadless(), driverStrategy);
 
-        TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                String.format("Creando WebDriver: %s (execution=%s, driver.strategy=%s)",
-                    config.getBrowserType(), config.getExecutionMode(), driverStrategy), null);
-
-        WebDriver driver;
-
-        if (config.getExecutionMode() == ExecutionMode.LOCAL) {
-            driver = createLocalDriver(config);
-        } else {
-            driver = createGridDriver(config);
-        }
+        WebDriver driver = (config.getExecutionMode() == ExecutionMode.LOCAL)
+                ? createLocalDriver(config)
+                : createGridDriver(config);
 
         configureDriver(driver);
+        log.info("[WebDriverFactory] ✅ WebDriver listo: {}", config.getBrowserType());
+        return driver;
+    }
 
-        TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                "✅ WebDriver creado exitosamente: " + config.getBrowserType(), null);
-
+    /**
+     * Crea un WebDriver, lo registra en el {@link ExecutionContext#registry()} y lo retorna.
+     *
+     * <p>Al estar en {@code ServiceRegistry}, {@link com.qa.webcore.plugin.WebPlugin}
+     * puede cerrar el driver automáticamente en {@code onScenarioEnd} vía
+     * {@link #closeDriver(ExecutionContext)}.
+     *
+     * @param config  configuración del driver
+     * @param context contexto de la ejecución actual; si es {@code null} no se registra
+     * @return instancia lista para usar
+     * @throws WebDriverInitializationException si no se puede inicializar el driver
+     * @since 2.2.0
+     */
+    public static WebDriver createDriver(DriverConfig config, ExecutionContext context) {
+        WebDriver driver = createDriver(config);
+        if (context != null) {
+            context.registry().registerInstance(WebDriver.class, driver);
+            log.debug("[WebDriverFactory] WebDriver registrado en ServiceRegistry del contexto");
+        }
         return driver;
     }
 
     // =========================================================================
-    // CREACIÓN DE DRIVERS LOCALES
+    // API PÚBLICA — Ciclo de vida
+    // =========================================================================
+
+    /**
+     * Cierra el WebDriver registrado en el {@link ExecutionContext#registry()}.
+     *
+     * <p>Llamado por {@link com.qa.webcore.plugin.WebPlugin#onScenarioEnd} al finalizar
+     * cada escenario. Es idempotente: si el driver ya fue cerrado o no estaba registrado,
+     * no lanza excepción.
+     *
+     * @param context contexto del que extraer el driver; si es {@code null}, no hace nada
+     * @since 2.2.0
+     */
+    public static void closeDriver(ExecutionContext context) {
+        if (context == null) {
+            log.debug("[WebDriverFactory] closeDriver() invocado con context=null — no-op");
+            return;
+        }
+        context.registry().get(WebDriver.class).ifPresentOrElse(
+            driver -> {
+                try {
+                    driver.quit();
+                    log.info("[WebDriverFactory] ✅ WebDriver cerrado vía ServiceRegistry");
+                } catch (Exception e) {
+                    // Puede ocurrir si el driver ya fue cerrado (NoSuchSessionException).
+                    // Absorbemos silenciosamente — el objetivo (driver cerrado) se cumplió.
+                    log.warn("[WebDriverFactory] Aviso al cerrar WebDriver (puede ser cierre doble): {}",
+                             e.getMessage());
+                }
+            },
+            () -> log.debug("[WebDriverFactory] No hay WebDriver en ServiceRegistry — nada que cerrar")
+        );
+    }
+
+    // =========================================================================
+    // CREACIÓN LOCAL — estrategia de fallback por navegador
     // =========================================================================
 
     private static WebDriver createLocalDriver(DriverConfig config) {
         return switch (config.getBrowserType()) {
-            case CHROME -> createLocalChromeDriver(config);
+            case CHROME  -> createLocalChromeDriver(config);
             case FIREFOX -> createLocalFirefoxDriver(config);
-            case EDGE -> createLocalEdgeDriver(config);
-            case SAFARI -> createLocalSafariDriver(config);
-            default -> throw new IllegalArgumentException("Browser no soportado: " + config.getBrowserType());
+            case EDGE    -> createLocalEdgeDriver(config);
+            case SAFARI  -> createLocalSafariDriver(config);
         };
     }
 
+    /**
+     * Crea ChromeDriver con estrategia de fallback de 3 niveles:
+     * <ol>
+     *   <li>System Property manual ({@code webdriver.chrome.driver})</li>
+     *   <li>Selenium Manager (automático en Selenium 4.6+)</li>
+     *   <li>PATH del sistema (chromedriver en directorios comunes)</li>
+     * </ol>
+     */
     private static WebDriver createLocalChromeDriver(DriverConfig config) {
-        setupChromeDriver();
+        ChromeOptions options = buildChromeOptions(config);
 
+        // Estrategia 0: System Property configurada manualmente — respetar siempre
+        String manualPath = System.getProperty("webdriver.chrome.driver");
+        if (manualPath != null && !manualPath.isEmpty()) {
+            log.debug("[WebDriverFactory] Usando System Property: webdriver.chrome.driver={}", manualPath);
+            try {
+                return new ChromeDriver(options);
+            } catch (Exception e) {
+                throw new WebDriverInitializationException(
+                        "ChromeDriver via System Property falló (path=" + manualPath + "): " + e.getMessage(), e);
+            }
+        }
+
+        // Estrategia 1: Selenium Manager (Selenium 4.6+, automático)
+        try {
+            WebDriver driver = new ChromeDriver(options);
+            log.info("[WebDriverFactory] ✅ ChromeDriver inicializado vía Selenium Manager");
+            return driver;
+        } catch (Exception seleniumManagerEx) {
+            log.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Chrome: {}", seleniumManagerEx.getMessage());
+        }
+
+        // Estrategia 2: Buscar chromedriver en PATH del sistema
+        String pathDriver = findInSystemPath("chromedriver");
+        if (pathDriver != null) {
+            System.setProperty("webdriver.chrome.driver", pathDriver);
+            try {
+                WebDriver driver = new ChromeDriver(options);
+                log.info("[WebDriverFactory] ✅ ChromeDriver inicializado desde PATH: {}", pathDriver);
+                return driver;
+            } catch (Exception pathEx) {
+                log.warn("[WebDriverFactory] ⚠  chromedriver en PATH también falló: {}", pathEx.getMessage());
+            }
+        }
+
+        throw new WebDriverInitializationException(buildInitError("ChromeDriver", "chromedriver",
+                "webdriver.chrome.driver", "https://googlechromelabs.github.io/chrome-for-testing/"));
+    }
+
+    /**
+     * Crea FirefoxDriver con estrategia de fallback de 3 niveles:
+     * <ol>
+     *   <li>System Property manual ({@code webdriver.gecko.driver})</li>
+     *   <li>Selenium Manager (automático en Selenium 4.6+)</li>
+     *   <li>PATH del sistema (geckodriver en directorios comunes)</li>
+     * </ol>
+     */
+    private static WebDriver createLocalFirefoxDriver(DriverConfig config) {
+        FirefoxOptions options = buildFirefoxOptions(config);
+
+        String manualPath = System.getProperty("webdriver.gecko.driver");
+        if (manualPath != null && !manualPath.isEmpty()) {
+            log.debug("[WebDriverFactory] Usando System Property: webdriver.gecko.driver={}", manualPath);
+            try {
+                return new FirefoxDriver(options);
+            } catch (Exception e) {
+                throw new WebDriverInitializationException(
+                        "FirefoxDriver via System Property falló (path=" + manualPath + "): " + e.getMessage(), e);
+            }
+        }
+
+        // Estrategia 1: Selenium Manager
+        try {
+            WebDriver driver = new FirefoxDriver(options);
+            log.info("[WebDriverFactory] ✅ FirefoxDriver inicializado vía Selenium Manager");
+            return driver;
+        } catch (Exception seleniumManagerEx) {
+            log.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Firefox: {}", seleniumManagerEx.getMessage());
+        }
+
+        // Estrategia 2: PATH
+        String pathDriver = findInSystemPath("geckodriver");
+        if (pathDriver != null) {
+            System.setProperty("webdriver.gecko.driver", pathDriver);
+            try {
+                WebDriver driver = new FirefoxDriver(options);
+                log.info("[WebDriverFactory] ✅ FirefoxDriver inicializado desde PATH: {}", pathDriver);
+                return driver;
+            } catch (Exception pathEx) {
+                log.warn("[WebDriverFactory] ⚠  geckodriver en PATH también falló: {}", pathEx.getMessage());
+            }
+        }
+
+        throw new WebDriverInitializationException(buildInitError("FirefoxDriver", "geckodriver",
+                "webdriver.gecko.driver", "https://github.com/mozilla/geckodriver/releases"));
+    }
+
+    /**
+     * Crea EdgeDriver con estrategia de fallback de 3 niveles:
+     * <ol>
+     *   <li>System Property manual ({@code webdriver.edge.driver})</li>
+     *   <li>Selenium Manager (automático en Selenium 4.6+)</li>
+     *   <li>PATH del sistema (msedgedriver en directorios comunes)</li>
+     * </ol>
+     */
+    private static WebDriver createLocalEdgeDriver(DriverConfig config) {
+        EdgeOptions options = buildEdgeOptions(config);
+
+        String manualPath = System.getProperty("webdriver.edge.driver");
+        if (manualPath != null && !manualPath.isEmpty()) {
+            log.debug("[WebDriverFactory] Usando System Property: webdriver.edge.driver={}", manualPath);
+            try {
+                return new EdgeDriver(options);
+            } catch (Exception e) {
+                throw new WebDriverInitializationException(
+                        "EdgeDriver via System Property falló (path=" + manualPath + "): " + e.getMessage(), e);
+            }
+        }
+
+        // Estrategia 1: Selenium Manager
+        try {
+            WebDriver driver = new EdgeDriver(options);
+            log.info("[WebDriverFactory] ✅ EdgeDriver inicializado vía Selenium Manager");
+            return driver;
+        } catch (Exception seleniumManagerEx) {
+            log.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Edge: {}", seleniumManagerEx.getMessage());
+        }
+
+        // Estrategia 2: PATH
+        String pathDriver = findInSystemPath("msedgedriver");
+        if (pathDriver != null) {
+            System.setProperty("webdriver.edge.driver", pathDriver);
+            try {
+                WebDriver driver = new EdgeDriver(options);
+                log.info("[WebDriverFactory] ✅ EdgeDriver inicializado desde PATH: {}", pathDriver);
+                return driver;
+            } catch (Exception pathEx) {
+                log.warn("[WebDriverFactory] ⚠  msedgedriver en PATH también falló: {}", pathEx.getMessage());
+            }
+        }
+
+        throw new WebDriverInitializationException(buildInitError("EdgeDriver", "msedgedriver",
+                "webdriver.edge.driver",
+                "https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/"));
+    }
+
+    /**
+     * Crea SafariDriver.
+     *
+     * <p>Safari solo funciona en macOS con {@code safaridriver} activado
+     * ({@code safaridriver --enable}). No requiere binario externo ni Selenium Manager.
+     * No soporta headless ni configuración de proxy programática.
+     */
+    private static WebDriver createLocalSafariDriver(DriverConfig config) {
+        if (config.isHeadless()) {
+            log.warn("[WebDriverFactory] Safari no soporta modo headless — se ignora la opción");
+        }
+        try {
+            WebDriver driver = new SafariDriver();
+            log.info("[WebDriverFactory] ✅ SafariDriver inicializado");
+            return driver;
+        } catch (Exception e) {
+            throw new WebDriverInitializationException(
+                    "No se pudo inicializar SafariDriver. " +
+                    "Verifique: (1) ejecutar 'safaridriver --enable' en macOS, " +
+                    "(2) habilitar 'Allow Remote Automation' en Safari → Develop.", e);
+        }
+    }
+
+    // =========================================================================
+    // CREACIÓN GRID — RemoteWebDriver
+    // =========================================================================
+
+    private static WebDriver createGridDriver(DriverConfig config) {
+        if (config.getGridHubUrl() == null || config.getGridHubUrl().isEmpty()) {
+            throw new WebDriverInitializationException(
+                    "Grid Hub URL es requerida para ExecutionMode.GRID. " +
+                    "Configure '" + WebConfigKeys.GRID_URL + "' en la configuración.");
+        }
+        try {
+            URL hubUrl = new java.net.URI(config.getGridHubUrl()).toURL();
+            WebDriver driver = switch (config.getBrowserType()) {
+                case CHROME  -> new RemoteWebDriver(hubUrl, buildChromeOptions(config));
+                case FIREFOX -> new RemoteWebDriver(hubUrl, buildFirefoxOptions(config));
+                case EDGE    -> new RemoteWebDriver(hubUrl, buildEdgeOptions(config));
+                case SAFARI  -> new RemoteWebDriver(hubUrl, buildSafariOptions());
+            };
+            log.info("[WebDriverFactory] ✅ RemoteWebDriver conectado a Grid: {}", config.getGridHubUrl());
+            return driver;
+        } catch (WebDriverInitializationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new WebDriverInitializationException(
+                    "Error conectando a Selenium Grid (" + config.getGridHubUrl() + "): " + e.getMessage(), e);
+        }
+    }
+
+    // =========================================================================
+    // OPCIONES DE NAVEGADOR — builders extraídos para reuso
+    // =========================================================================
+
+    private static ChromeOptions buildChromeOptions(DriverConfig config) {
         ChromeOptions options = new ChromeOptions();
         options.setAcceptInsecureCerts(config.isAcceptInsecureCerts());
         options.addArguments("--no-sandbox");
         options.addArguments("--start-maximized");
         options.addArguments("--remote-allow-origins=*");
         options.addArguments("--disable-dev-shm-usage");
-
         if (config.isHeadless()) {
-            options.addArguments("--headless");
+            options.addArguments("--headless=new");
         }
-
         if (config.getProxyUrl() != null) {
-            options.setProxy(createProxy(config.getProxyUrl()));
+            options.setProxy(buildProxy(config.getProxyUrl()));
         }
-
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Chrome local configurado (headless: " + config.isHeadless() + ")", null);
-
-        return new ChromeDriver(options);
+        log.debug("[WebDriverFactory] ChromeOptions: headless={} proxy={}", config.isHeadless(), config.getProxyUrl());
+        return options;
     }
 
-    /**
-     * Configuración robusta y multiplataforma de ChromeDriver con fallbacks.
-     * Funciona en: Windows, Mac, Linux.
-     * Soporta: Ambientes con/sin internet, con/sin proxy, con/sin firewall corporativo.
-     */
-    private static void setupChromeDriver() {
-        setupDriver("chromedriver", "webdriver.chrome.driver", "Chrome");
-    }
-
-    private static WebDriver createLocalFirefoxDriver(DriverConfig config) {
-        setupFirefoxDriver();
-
+    private static FirefoxOptions buildFirefoxOptions(DriverConfig config) {
         FirefoxOptions options = new FirefoxOptions();
         options.setAcceptInsecureCerts(config.isAcceptInsecureCerts());
-
         if (config.isHeadless()) {
             options.addArguments("--headless");
         }
-
         if (config.getProxyUrl() != null) {
-            options.setProxy(createProxy(config.getProxyUrl()));
+            options.setProxy(buildProxy(config.getProxyUrl()));
         }
-
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Firefox local configurado (headless: " + config.isHeadless() + ")", null);
-
-        return new FirefoxDriver(options);
+        return options;
     }
 
-    /**
-     * Configuración robusta y multiplataforma de FirefoxDriver (geckodriver) con fallbacks.
-     * Funciona en: Windows, Mac, Linux.
-     */
-    private static void setupFirefoxDriver() {
-        setupDriver("geckodriver", "webdriver.gecko.driver", "Firefox");
-    }
-
-    private static WebDriver createLocalEdgeDriver(DriverConfig config) {
-        setupEdgeDriver();
-
+    private static EdgeOptions buildEdgeOptions(DriverConfig config) {
         EdgeOptions options = new EdgeOptions();
         options.setAcceptInsecureCerts(config.isAcceptInsecureCerts());
-
         if (config.isHeadless()) {
-            options.addArguments("--headless");
+            options.addArguments("--headless=new");
         }
-
         if (config.getProxyUrl() != null) {
-            options.setProxy(createProxy(config.getProxyUrl()));
+            options.setProxy(buildProxy(config.getProxyUrl()));
         }
-
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Edge local configurado (headless: " + config.isHeadless() + ")", null);
-
-        return new EdgeDriver(options);
+        return options;
     }
 
-    /**
-     * Configuración robusta y multiplataforma de EdgeDriver (msedgedriver) con fallbacks.
-     * Funciona en: Windows, Mac, Linux.
-     */
-    private static void setupEdgeDriver() {
-        setupDriver("msedgedriver", "webdriver.edge.driver", "Edge");
-    }
-
-    private static WebDriver createLocalSafariDriver(DriverConfig config) {
-        // Safari no soporta headless ni proxy configurado programáticamente
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Safari local (headless y proxy no soportados en Safari)", null);
-
-        return new SafariDriver();
-    }
-
-    // =========================================================================
-    // CREACIÓN DE DRIVERS PARA SELENIUM GRID
-    // =========================================================================
-
-    private static WebDriver createGridDriver(DriverConfig config) {
-        if (config.getGridHubUrl() == null || config.getGridHubUrl().isEmpty()) {
-            throw new IllegalArgumentException("Grid Hub URL es requerida para modo GRID");
-        }
-
-        try {
-            // Usar URI.toURL() en lugar del constructor deprecado URL(String)
-            URL hubUrl = new java.net.URI(config.getGridHubUrl()).toURL();
-
-            return switch (config.getBrowserType()) {
-                case CHROME -> createGridChromeDriver(hubUrl, config);
-                case FIREFOX -> createGridFirefoxDriver(hubUrl, config);
-                case EDGE -> createGridEdgeDriver(hubUrl, config);
-                case SAFARI -> createGridSafariDriver(hubUrl, config);
-                default -> throw new IllegalArgumentException("Browser no soportado: " + config.getBrowserType());
-            };
-        } catch (Exception e) {
-            TestLogger.logError("WEB_DRIVER_FACTORY",
-                    "Error conectando a Selenium Grid: " + config.getGridHubUrl(), null);
-            throw new RuntimeException("Error inicializando Selenium Grid", e);
-        }
-    }
-
-    private static WebDriver createGridChromeDriver(URL hubUrl, DriverConfig config) {
-        ChromeOptions options = new ChromeOptions();
-        options.setAcceptInsecureCerts(config.isAcceptInsecureCerts());
-        options.addArguments("--no-sandbox");
-        options.addArguments("--remote-allow-origins=*");
-
-        if (config.isHeadless()) {
-            options.addArguments("--headless");
-        }
-
-        if (config.getProxyUrl() != null) {
-            options.setProxy(createProxy(config.getProxyUrl()));
-        }
-
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Chrome Grid configurado en: " + hubUrl, null);
-
-        return new RemoteWebDriver(hubUrl, options);
-    }
-
-    private static WebDriver createGridFirefoxDriver(URL hubUrl, DriverConfig config) {
-        FirefoxOptions options = new FirefoxOptions();
-        options.setAcceptInsecureCerts(config.isAcceptInsecureCerts());
-
-        if (config.isHeadless()) {
-            options.addArguments("--headless");
-        }
-
-        if (config.getProxyUrl() != null) {
-            options.setProxy(createProxy(config.getProxyUrl()));
-        }
-
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Firefox Grid configurado en: " + hubUrl, null);
-
-        return new RemoteWebDriver(hubUrl, options);
-    }
-
-    private static WebDriver createGridEdgeDriver(URL hubUrl, DriverConfig config) {
-        EdgeOptions options = new EdgeOptions();
-        options.setAcceptInsecureCerts(config.isAcceptInsecureCerts());
-
-        if (config.isHeadless()) {
-            options.addArguments("--headless");
-        }
-
-        if (config.getProxyUrl() != null) {
-            options.setProxy(createProxy(config.getProxyUrl()));
-        }
-
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Edge Grid configurado en: " + hubUrl, null);
-
-        return new RemoteWebDriver(hubUrl, options);
-    }
-
-    private static WebDriver createGridSafariDriver(URL hubUrl, DriverConfig config) {
+    private static SafariOptions buildSafariOptions() {
         SafariOptions options = new SafariOptions();
         options.setUseTechnologyPreview(true);
-        options.setCapability("browserName", "safari");
-        options.setCapability("platformName", "MAC");
-
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Safari Grid configurado en: " + hubUrl, null);
-
-        return new RemoteWebDriver(hubUrl, options);
+        return options;
     }
 
     // =========================================================================
-    // UTILIDADES
+    // UTILIDADES INTERNAS
     // =========================================================================
 
     /**
-     * Crea un objeto Proxy para configuración de navegadores.
+     * Busca el binario del driver en directorios comunes del SO.
+     *
+     * @param driverName nombre del ejecutable (chromedriver, geckodriver, msedgedriver)
+     * @return ruta absoluta si se encontró, {@code null} si no
      */
-    private static Proxy createProxy(String proxyUrl) {
-        Proxy proxy = new Proxy();
-        proxy.setHttpProxy(proxyUrl);
-        proxy.setFtpProxy(proxyUrl);
-        proxy.setSslProxy(proxyUrl);
-        proxy.setNoProxy("*.bns,localhost,127.0.0.1");
+    static String findInSystemPath(String driverName) {
+        String os = System.getProperty("os.name", "").toLowerCase();
+        String fileName = os.contains("win") ? driverName + ".exe" : driverName;
 
-        TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                "Proxy configurado: " + proxyUrl, null);
-
-        return proxy;
-    }
-
-    // =========================================================================
-    // CONFIGURACIÓN ROBUSTA DE DRIVERS (MULTIPLATAFORMA)
-    // =========================================================================
-
-    /**
-     * Configuración genérica y robusta de drivers con estrategia de fallback.
-     *
-     * <p><b>Estrategia de fallback (en orden):</b></p>
-     * <ol>
-     *   <li><b>Driver manual:</b> System Property configurado (ej: -Dwebdriver.chrome.driver=...)</li>
-     *   <li><b>WebDriverManager Framework:</b> LOCAL PATH → CACHÉ → ARTIFACTORY</li>
-     *   <li><b>PATH del sistema:</b> Busca en directorios comunes del SO</li>
-     *   <li><b>Error descriptivo:</b> Mensaje claro con instrucciones de solución</li>
-     * </ol>
-     *
-     * <p><b>Soporta:</b> Windows, Mac, Linux | Artifactory corporativo | Drivers locales</p>
-     *
-     * @param driverName Nombre del ejecutable (chromedriver, geckodriver, msedgedriver)
-     * @param propertyName System Property key (webdriver.chrome.driver, webdriver.gecko.driver, etc.)
-     * @param browserName Nombre del navegador para logs (Chrome, Firefox, Edge)
-     */
-    private static void setupDriver(String driverName, String propertyName, String browserName) {
-        // Obtener ConfigManager del framework
-        com.qa.common.config.ConfigManager config = com.qa.common.config.ConfigManager.getInstance();
-
-        // FALLBACK 1: ¿Hay driver manual configurado via System Property?
-        String manualDriverPath = System.getProperty(propertyName);
-        if (manualDriverPath != null && !manualDriverPath.isEmpty()) {
-            java.io.File manualDriver = new java.io.File(manualDriverPath);
-            if (manualDriver.exists() && manualDriver.canExecute()) {
-                TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                        String.format("✅ Usando %s manual (System Property): %s", driverName, manualDriverPath), null);
-                return;
-            } else {
-                TestLogger.logWarning("WEB_DRIVER_FACTORY",
-                        String.format("⚠️ Driver manual configurado pero no válido: %s", manualDriverPath), null);
-            }
-        }
-
-        // FALLBACK 2: Buscar en PATH del sistema
-        TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                String.format("🔍 Buscando %s en PATH del sistema...", driverName), null);
-
-        String systemDriver = findDriverInSystemPath(driverName);
-        if (systemDriver != null) {
-            System.setProperty(propertyName, systemDriver);
-            TestLogger.logInfo("WEB_DRIVER_FACTORY",
-                    String.format("✅ Usando %s desde PATH del sistema: %s", driverName, systemDriver), null);
-            return;
-        }
-
-        // TODO: Todos los fallbacks fallaron → Error descriptivo con soluciones
-        String errorMsg = buildDriverNotFoundError(driverName, propertyName, browserName);
-        TestLogger.logError("WEB_DRIVER_FACTORY", errorMsg, null);
-        throw new RuntimeException(errorMsg);
-    }
-
-
-    /**
-     * Busca el driver en directorios comunes del PATH del sistema.
-     * Soporta: Windows, Mac, Linux.
-     *
-     * @return Ruta completa del driver si se encuentra, null si no existe
-     */
-    private static String findDriverInSystemPath(String driverName) {
-        String os = System.getProperty("os.name").toLowerCase();
-        String driverFileName = driverName;
+        String[] paths;
         if (os.contains("win")) {
-            driverFileName += ".exe";
-        }
-
-        // Directorios comunes según el SO
-        String[] commonPaths;
-        if (os.contains("win")) {
-            commonPaths = new String[]{
+            paths = new String[]{
                     "C:\\webdrivers\\",
                     "C:\\Program Files\\webdrivers\\",
                     "C:\\selenium\\drivers\\",
-                    System.getenv("LOCALAPPDATA") + "\\Programs\\webdrivers\\"
+                    System.getenv("LOCALAPPDATA") != null
+                            ? System.getenv("LOCALAPPDATA") + "\\Programs\\webdrivers\\" : ""
             };
         } else if (os.contains("mac")) {
-            commonPaths = new String[]{
+            paths = new String[]{
                     "/usr/local/bin/",
                     "/usr/bin/",
                     "/opt/homebrew/bin/",
                     System.getProperty("user.home") + "/webdrivers/"
             };
         } else {
-            // Linux
-            commonPaths = new String[]{
+            paths = new String[]{
                     "/usr/local/bin/",
                     "/usr/bin/",
                     "/opt/selenium/drivers/",
@@ -486,88 +532,75 @@ public class WebDriverFactory {
             };
         }
 
-        for (String path : commonPaths) {
-            java.io.File driver = new java.io.File(path + driverFileName);
-            if (driver.exists() && driver.canExecute()) {
-                return driver.getAbsolutePath();
+        for (String dir : paths) {
+            if (dir == null || dir.isEmpty()) continue;
+            java.io.File candidate = new java.io.File(dir + fileName);
+            if (candidate.exists() && candidate.canExecute()) {
+                return candidate.getAbsolutePath();
             }
         }
-
         return null;
     }
 
+    /** Lee la estrategia de driver desde ConfigManager (para logging). */
+    private static String resolveDriverStrategy() {
+        try {
+            return com.qa.common.config.ConfigManager.getInstance()
+                    .get(WebConfigKeys.DRIVER_STRATEGY, "auto");
+        } catch (Exception e) {
+            return "auto";
+        }
+    }
+
+    /** Construye la configuración de proxy para las opciones del navegador. */
+    private static Proxy buildProxy(String proxyUrl) {
+        Proxy proxy = new Proxy();
+        proxy.setHttpProxy(proxyUrl);
+        proxy.setFtpProxy(proxyUrl);
+        proxy.setSslProxy(proxyUrl);
+        proxy.setNoProxy("*.local,localhost,127.0.0.1");
+        log.debug("[WebDriverFactory] Proxy configurado: {}", proxyUrl);
+        return proxy;
+    }
+
     /**
-     * Construye mensaje de error descriptivo simplificado.
+     * Construye el mensaje de error estándar cuando todos los intentos de inicialización fallan.
      *
-     * @param driverName Nombre del driver (chromedriver, geckodriver, etc.)
-     * @param propertyName System property key
-     * @param browserName Nombre del navegador
+     * @param driverClass  nombre de la clase de driver (ej: "ChromeDriver")
+     * @param binaryName   nombre del ejecutable (ej: "chromedriver")
+     * @param sysPropKey   clave de System Property (ej: "webdriver.chrome.driver")
+     * @param downloadUrl  URL oficial de descarga del driver
+     * @return mensaje descriptivo con pasos de resolución
      */
-    private static String buildDriverNotFoundError(String driverName, String propertyName, String browserName) {
-        String downloadUrl = getDriverDownloadUrl(browserName);
-
+    private static String buildInitError(String driverClass, String binaryName,
+                                         String sysPropKey, String downloadUrl) {
         return String.format(
-            "No se pudo configurar %s. Verifica: (1) driver.strategy en config, " +
-            "(2) DRIVER_LOCAL_PATH o ARTIFACTORY_BASE_URL, (3) Descarga manual desde %s",
-            driverName, downloadUrl);
+                "No se pudo inicializar %s. Verifique:%n" +
+                "  1. Selenium Manager: acceso a internet y versión de navegador compatible%n" +
+                "  2. PATH del sistema: '%s' ejecutable y compatible con el navegador instalado%n" +
+                "  3. Manual: -D%s=/ruta/al/%s%n" +
+                "  Descarga oficial: %s",
+                driverClass, binaryName, sysPropKey, binaryName, downloadUrl);
     }
 
     /**
-     * Construye mensaje de error para estrategia LOCAL.
-     */
-    private static String buildDriverNotFoundErrorLocal(String driverName, String propertyName, String browserName, String errorDetail) {
-        String downloadUrl = getDriverDownloadUrl(browserName);
-        return String.format(
-            "ESTRATEGIA LOCAL: %s no encontrado. Error: %s. Descarga desde: %s",
-            driverName, errorDetail, downloadUrl);
-    }
-
-    /**
-     * Construye mensaje de error para estrategia ARTIFACTORY.
-     */
-    private static String buildDriverNotFoundErrorArtifactory(String driverName, String propertyName, String browserName, String errorDetail) {
-        return String.format(
-            "ESTRATEGIA ARTIFACTORY: Error descargando %s: %s. Verifica URL base y conectividad",
-            driverName, errorDetail);
-    }
-
-    /**
-     * Obtiene la URL de descarga oficial del driver según el navegador.
-     */
-    private static String getDriverDownloadUrl(String browserName) {
-        return switch (browserName.toLowerCase()) {
-            case "chrome" -> "https://googlechromelabs.github.io/chrome-for-testing/";
-            case "firefox" -> "https://github.com/mozilla/geckodriver/releases";
-            case "edge" -> "https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/";
-            default -> "https://www.selenium.dev/documentation/webdriver/getting_started/install_drivers/";
-        };
-    }
-
-    /**
-     * Configura timeouts y maximiza ventana del driver.
-     * <p>
-     * NOTA: evitamos combinar implicit waits con explicit waits para
-     * evitar efectos secundarios en esperas. Por defecto establecemos
-     * implicit wait a 0 y recomendamos usar WebDriverWait/WaitUtils.
+     * Aplica timeouts base al driver recién creado.
+     *
+     * <p>Implicit wait en 0 para evitar interferencia con explicit waits.
+     * Page load timeout en 30s como valor base (sobreescribible por {@code WaitUtils}).
      */
     private static void configureDriver(WebDriver driver) {
         try {
-            // Deshabilitar implicit wait para evitar interacción con ExpectedConditions
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(0));
             driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
             try {
                 driver.manage().window().maximize();
             } catch (Exception e) {
-                // Algunos entornos (headless, remote) pueden lanzar excepciones al maximizar
-                TestLogger.logWarning("WEB_DRIVER_FACTORY",
-                        "No se pudo maximizar ventana del driver: " + e.getMessage(), null);
+                log.warn("[WebDriverFactory] No se pudo maximizar ventana: {}", e.getMessage());
             }
-
-            TestLogger.logDebug("WEB_DRIVER_FACTORY",
-                    "Timeouts configurados (implicit: 0s, pageLoad: 30s)", null);
+            log.debug("[WebDriverFactory] Timeouts configurados (implicit=0s, pageLoad=30s)");
         } catch (Exception e) {
-            TestLogger.logError("WEB_DRIVER_FACTORY",
-                    "Error configurando driver: " + e.getMessage(), null);
+            log.error("[WebDriverFactory] Error configurando driver: {}", e.getMessage());
         }
     }
 }

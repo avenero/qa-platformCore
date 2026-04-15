@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.interaction.AlertSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.alert")
 public class AlertComponent implements StepComponent {
     @Override public String getName()                  { return "Alertas y Dialogos"; }
-    @Override public String getId()                    { return "web.alert"; }
     @Override public String getDisplayName()           { return "Alertas y Dialogos"; }
     @Override public String getDescription()           { return "Aceptar, cancelar y leer alertas del navegador"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

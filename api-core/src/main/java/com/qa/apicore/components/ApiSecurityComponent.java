@@ -3,6 +3,7 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.validation.ResponseSecuritySteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("api.security")
 public class ApiSecurityComponent implements StepComponent {
     @Override public String getName()                  { return "Seguridad"; }
-    @Override public String getId()                    { return "api.security"; }
     @Override public String getDisplayName()           { return "Seguridad"; }
     @Override public String getDescription()           { return "Validacion de controles de seguridad HTTP"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }

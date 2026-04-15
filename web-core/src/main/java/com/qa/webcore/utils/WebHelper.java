@@ -56,6 +56,32 @@ public class WebHelper {
     }
 
     // =========================================================================
+    // ACCESO AL DRIVER
+    // =========================================================================
+
+    /**
+     * Obtiene el {@link WebDriver} activo con prioridad de fuente:
+     * <ol>
+     *   <li>{@link ExecutionContext#registry()} → {@code WebDriver.class}
+     *       (registrado por {@link com.qa.webcore.steps.WebHooksSteps} y gestionado
+     *       por {@link com.qa.webcore.plugin.WebPlugin})</li>
+     *   <li>{@link DriverManager#getDriver()} — ThreadLocal de compatibilidad</li>
+     * </ol>
+     *
+     * <p>Este es el único punto de acceso al driver dentro de WebHelper.
+     * No acceder a {@link DriverManager} directamente desde los steps.
+     *
+     * @return instancia activa del driver
+     * @throws IllegalStateException si el driver no está inicializado
+     * @since 2.2.0
+     */
+    private WebDriver resolveDriver() {
+        return ExecutionContext.current()
+                .flatMap(ctx -> ctx.registry().get(WebDriver.class))
+                .orElseGet(DriverManager::getDriver);
+    }
+
+    // =========================================================================
     // LOCALIZACIÓN Y MANIPULACIÓN DE ELEMENTOS
     // =========================================================================
 
@@ -81,7 +107,7 @@ public class WebHelper {
      * @throws org.openqa.selenium.NoSuchElementException Si el elemento no se encuentra después de todos los intentos
      */
     public WebElement getElement(String locator) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         int maxRetries = 3;
 
         StaleElementReferenceException lastStaleException = null;
@@ -232,7 +258,7 @@ public class WebHelper {
      */
     public void setText(String locator, String text) {
         WebElement element = getElement(locator);
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
 
         // Espera única y optimizada (combinada)
         waitForElementToBeInteractable(element);
@@ -423,7 +449,7 @@ public class WebHelper {
      */
     public void clicButton(String locator) {
         WebElement element = getElement(locator);
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
 
         // Wait hasta que el elemento esté clickeable
         WaitUtils.waitForElementToBeClickable(element);
@@ -587,7 +613,7 @@ public class WebHelper {
      * @return WebElement encontrado, o null si no existe
      */
     private WebElement getElementQuietly(String locator) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         int maxRetries = 2; // Menos reintentos para verificación rápida
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
@@ -689,7 +715,7 @@ public class WebHelper {
     }
 
     public boolean existText(String text) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         String pageSource = driver.getPageSource();
         return pageSource != null && pageSource.contains(text);
     }
@@ -718,7 +744,7 @@ public class WebHelper {
      */
     public boolean waitForVisibleElement(String locator, int timeoutSeconds) {
         try {
-            WebDriver driver = DriverManager.getDriver();
+            WebDriver driver = resolveDriver();
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
 
             By locatorBy = determineLocatorStrategy(locator);
@@ -792,7 +818,7 @@ public class WebHelper {
      */
     public boolean waitForElementEnabled(String locator, int timeoutSeconds) {
         try {
-            WebDriver driver = DriverManager.getDriver();
+            WebDriver driver = resolveDriver();
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
 
             // Determinar estrategia de localización
@@ -826,7 +852,7 @@ public class WebHelper {
     }
 
     public void waitFromElementNoVisible(String locator) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
         wait.until(ExpectedConditions.invisibilityOf(getElement(locator)));
     }
@@ -845,7 +871,7 @@ public class WebHelper {
      * @param timeoutSeconds Timeout máximo en segundos
      */
     public void waitForPageLoad(int timeoutSeconds) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         JavascriptExecutor js = (JavascriptExecutor) driver;
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
 
@@ -895,7 +921,7 @@ public class WebHelper {
     }
 
     public void waitCheckBox(String locator) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.elementToBeSelected(getElement(locator)));
     }
@@ -971,7 +997,7 @@ public class WebHelper {
     @SuppressWarnings("unused") // Método público disponible para uso externo
     public boolean waitForElementPresent(String locator, int timeoutSeconds) {
         try {
-            WebDriver driver = DriverManager.getDriver();
+            WebDriver driver = resolveDriver();
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
 
             By locatorBy = determineLocatorStrategy(locator);
@@ -992,7 +1018,7 @@ public class WebHelper {
     // =========================================================================
 
     public void changeIFrame(String path, String name) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         driver.switchTo().defaultContent();
         if (!path.isEmpty()) {
             driver.switchTo().frame(getElement(path));
@@ -1002,12 +1028,12 @@ public class WebHelper {
     }
 
     public void leaveIFrame() {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         driver.switchTo().defaultContent();
     }
 
     public void selectIframeByCssSelector(String cssSelector) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebElement iframe = driver.findElement(By.cssSelector(cssSelector));
         driver.switchTo().frame(iframe);
     }
@@ -1017,13 +1043,13 @@ public class WebHelper {
     // =========================================================================
 
     public void scroll(String locator) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebElement element = getElement(locator);
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", element);
     }
 
     public void scrollByDirection(String direction) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         JavascriptExecutor js = (JavascriptExecutor) driver;
         switch (direction.toLowerCase()) {
             case "arriba":
@@ -1047,33 +1073,33 @@ public class WebHelper {
     }
 
     public void clickJs(String locator) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebElement element = getElement(locator);
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
     }
 
     public void rightClick(String locator) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebElement element = getElement(locator);
         Actions actions = new Actions(driver);
         actions.contextClick(element).perform();
     }
 
     public void moveToElement(String locator) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebElement element = getElement(locator);
         Actions actions = new Actions(driver);
         actions.moveToElement(element).perform();
     }
 
     public void doClicTeclaESC() {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         Actions actions = new Actions(driver);
         actions.sendKeys(Keys.ESCAPE).perform();
     }
 
     public void checkTextAndClic(String text) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
 
         // Escapar comillas para prevenir XPath injection
         String safeText = text.replace("'", "\\'").replace("\"", "\\\"");
@@ -1094,7 +1120,7 @@ public class WebHelper {
     // =========================================================================
 
     public void clickNestedShadow(String shadowHost1, String shadowHost2, String elemento) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
         String script = "return document.querySelector(arguments[0])" +
@@ -1110,7 +1136,7 @@ public class WebHelper {
     }
 
     public void clickElementInShadow(String elemento, String shadowHost) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
         String script = "return document.querySelector(arguments[0]).shadowRoot.querySelector(arguments[1]);";
@@ -1127,7 +1153,7 @@ public class WebHelper {
     }
 
     public void isElementShadowPresent(String elemento, String host) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         JavascriptExecutor js = (JavascriptExecutor) driver;
         String script = "return document.querySelector(arguments[0]).shadowRoot.querySelector(arguments[1]) != null;";
         Object result = js.executeScript(script, host, elemento);
@@ -1145,7 +1171,7 @@ public class WebHelper {
     }
 
     public void verifyTextInNestedShadow(String elemento, String expectedText, String host1, String host2) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
         String script = "return document.querySelector(arguments[0])" +
@@ -1160,7 +1186,7 @@ public class WebHelper {
     }
 
     public void verifyTextInShadow(String elemento, String expectedText, String host) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
         String script = "return document.querySelector(arguments[0]).shadowRoot.querySelector(arguments[1]).textContent;";
@@ -1177,7 +1203,7 @@ public class WebHelper {
 
     public String changeWindowNew() {
         try {
-            WebDriver driver = DriverManager.getDriver();
+            WebDriver driver = resolveDriver();
             Set<String> windows = driver.getWindowHandles();
             for (String window : windows) {
                 driver.switchTo().window(window);
@@ -1189,18 +1215,18 @@ public class WebHelper {
     }
 
     public void backToPrincipalWindow() {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         String mainWindow = driver.getWindowHandles().iterator().next();
         driver.switchTo().window(mainWindow);
     }
 
     public void closeWindow() {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         driver.close();
     }
 
     public void closedLastWindows() {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         Set<String> windows = driver.getWindowHandles();
         if (windows.size() == 2) {
             String lastWindow = (String) windows.toArray()[1];
@@ -1211,13 +1237,13 @@ public class WebHelper {
     }
 
     public void handleTabs() {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         Set<String> windows = driver.getWindowHandles();
         windows.forEach(window -> driver.switchTo().window(window));
     }
 
     public String getWindowName() {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         return driver.getTitle();
     }
 
@@ -1227,7 +1253,7 @@ public class WebHelper {
 
     public void acceptAlert() {
         try {
-            WebDriver driver = DriverManager.getDriver();
+            WebDriver driver = resolveDriver();
             Alert alert = driver.switchTo().alert();
             alert.accept();
         } catch (NoAlertPresentException e) {
@@ -1242,7 +1268,7 @@ public class WebHelper {
      */
     public void dismissAlert() {
         try {
-            WebDriver driver = DriverManager.getDriver();
+            WebDriver driver = resolveDriver();
             Alert alert = driver.switchTo().alert();
             alert.dismiss();
             TestLogger.logInfo("WEB_HELPER", "Alerta rechazada", null);
@@ -1263,7 +1289,7 @@ public class WebHelper {
      * @since 2.0.0
      */
     public void dragAndDrop(String source, String target) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebElement sourceElement = getElement(source);
         WebElement targetElement = getElement(target);
         Actions actions = new Actions(driver);
@@ -1280,7 +1306,7 @@ public class WebHelper {
      * @since 2.0.0
      */
     public void resizeElement(String locator, int width, int height) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         WebElement element = getElement(locator);
         int currentWidth  = element.getSize().getWidth();
         int currentHeight = element.getSize().getHeight();
@@ -1329,7 +1355,7 @@ public class WebHelper {
     // =========================================================================
 
     public void setCookie(String name, String value) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         Cookie cookie = new Cookie(name, value);
         driver.manage().addCookie(cookie);
     }
@@ -1339,12 +1365,12 @@ public class WebHelper {
     // =========================================================================
 
     public void refreshPage() {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         driver.navigate().refresh();
     }
 
     public void urlValid(String expectedUrl) {
-        WebDriver driver = DriverManager.getDriver();
+        WebDriver driver = resolveDriver();
         String actualUrl = driver.getCurrentUrl();
         if (actualUrl == null || !actualUrl.equals(expectedUrl)) {
             throw new AssertionError("URL esperada: " + expectedUrl + " pero se obtuvo: " + actualUrl);
@@ -1567,7 +1593,7 @@ public class WebHelper {
 
     public void captureScreenOnFailure(Scenario scenario) {
         try {
-            WebDriver driver = DriverManager.getDriver();
+            WebDriver driver = resolveDriver();
             byte[] screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
 
             SimpleDateFormat fechaHora = new SimpleDateFormat("dd-MM-yyyy_HHmmss");

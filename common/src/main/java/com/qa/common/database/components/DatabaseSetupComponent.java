@@ -3,6 +3,7 @@ package com.qa.common.database.components;
 import com.qa.common.database.steps.DatabaseConnectionSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -13,9 +14,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("db.setup")
 public class DatabaseSetupComponent implements StepComponent {
     @Override public String getName()                  { return "DB Setup"; }
-    @Override public String getId()                    { return "db.setup"; }
     @Override public String getDisplayName()           { return "Conexion a Base de Datos"; }
     @Override public String getDescription()           { return "Establecer conexion a Oracle, PostgreSQL, MySQL o SQL Server"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

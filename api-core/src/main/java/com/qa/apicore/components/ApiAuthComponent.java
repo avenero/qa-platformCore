@@ -3,6 +3,7 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.config.AuthenticationSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("api.authentication")
 public class ApiAuthComponent implements StepComponent {
     @Override public String getName()                  { return "Autenticacion"; }
-    @Override public String getId()                    { return "api.authentication"; }
     @Override public String getDisplayName()           { return "Autenticacion"; }
     @Override public String getDescription()           { return "Bearer Token, Basic Auth, API Key, OAuth 2.0, JWT"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

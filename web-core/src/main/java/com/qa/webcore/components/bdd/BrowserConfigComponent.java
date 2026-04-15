@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.config.BrowserConfigSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.browser.config")
 public class BrowserConfigComponent implements StepComponent {
     @Override public String getName()                  { return "Configuracion de Navegador"; }
-    @Override public String getId()                    { return "web.browser.config"; }
     @Override public String getDisplayName()           { return "Configuracion de Navegador"; }
     @Override public String getDescription()           { return "Configuracion del browser, modo headless, capabilities"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

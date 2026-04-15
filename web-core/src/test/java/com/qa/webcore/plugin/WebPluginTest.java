@@ -9,6 +9,7 @@ import com.qa.webcore.utils.WebHelper;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.openqa.selenium.WebDriver;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -204,7 +205,7 @@ class WebPluginTest {
     class OnScenarioEndTests {
 
         @Test
-        @DisplayName("No lanza excepción con un ExecutionContext recién creado")
+        @DisplayName("No lanza excepción con ExecutionContext vacío (sin WebDriver registrado)")
         void noLanzaExcepcionConContextoVacio() {
             ExecutionContext ctx = ExecutionContext.builder().build();
 
@@ -213,8 +214,8 @@ class WebPluginTest {
         }
 
         @Test
-        @DisplayName("No modifica el registry (implementación actual solo hace log.debug)")
-        void noModificaElRegistry() {
+        @DisplayName("No modifica el tamaño del registry cuando no hay WebDriver registrado")
+        void noModificaElRegistrySinDriver() {
             plugin.registerServices(registry, config);
             ExecutionContext ctx = ExecutionContext.builder()
                     .registry(registry)
@@ -223,14 +224,14 @@ class WebPluginTest {
 
             plugin.onScenarioEnd(ctx);
 
+            // El registry mantiene su tamaño — el driver no estaba registrado
             assertThat(registry.size()).isEqualTo(sizeBefore);
         }
 
         @Test
-        @DisplayName("No inicializa ni cierra el WebDriver (DriverManager no afectado)")
-        void noAfectaDriverManager() {
-            // La implementación actual de onScenarioEnd solo hace log.debug,
-            // no debe tocar DriverManager (eso lo hace WebHooksSteps con @After)
+        @DisplayName("DriverManager queda sin driver inicializado tras onScenarioEnd (quitDriverSafely)")
+        void driverManagerQuedaSinDriverTrasEnd() {
+            // Sin driver en DriverManager, onScenarioEnd lo deja en false (no lanza)
             ExecutionContext ctx = ExecutionContext.builder().build();
 
             plugin.onScenarioEnd(ctx);
@@ -249,10 +250,86 @@ class WebPluginTest {
                     .build();
             plugin.onScenarioEnd(ctx);
 
-            // La instancia debe seguir disponible tras onScenarioEnd
+            // WebHelper debe seguir disponible tras onScenarioEnd
             assertThat(registry.get(WebHelper.class).orElseThrow())
                 .isSameAs(instancia);
         }
+
+        @Test
+        @DisplayName("Llama quit() en el WebDriver registrado en ServiceRegistry")
+        void llamaQuitEnDriverRegistrado() {
+            StubWebDriver stub = new StubWebDriver();
+            registry.registerInstance(WebDriver.class, stub);
+            ExecutionContext ctx = ExecutionContext.builder()
+                    .registry(registry)
+                    .build();
+
+            plugin.onScenarioEnd(ctx);
+
+            assertThat(stub.quitCalled)
+                    .as("onScenarioEnd debe llamar quit() en el WebDriver del ServiceRegistry")
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("Absorbe excepción de quit() sin propagarla (cierre defensivo)")
+        void absorbeExcepcionDeQuit() {
+            StubWebDriver stub = new StubWebDriver();
+            stub.throwOnQuit = true;
+            registry.registerInstance(WebDriver.class, stub);
+            ExecutionContext ctx = ExecutionContext.builder()
+                    .registry(registry)
+                    .build();
+
+            assertThatNoException()
+                    .as("onScenarioEnd no debe propagar excepciones del driver")
+                    .isThrownBy(() -> plugin.onScenarioEnd(ctx));
+        }
+
+        @Test
+        @DisplayName("Es idempotente: segunda llamada con driver ya cerrado no lanza")
+        void idempotenteCierreDoble() {
+            StubWebDriver stub = new StubWebDriver();
+            registry.registerInstance(WebDriver.class, stub);
+            ExecutionContext ctx = ExecutionContext.builder()
+                    .registry(registry)
+                    .build();
+
+            plugin.onScenarioEnd(ctx);          // primer cierre — exitoso
+            stub.throwOnQuit = true;             // simular "ya cerrado"
+
+            assertThatNoException()
+                    .isThrownBy(() -> plugin.onScenarioEnd(ctx)); // segundo cierre — no lanza
+        }
+    }
+
+    // =========================================================================
+    // Stub de WebDriver para tests de onScenarioEnd
+    // =========================================================================
+
+    /** Stub mínimo de {@link org.openqa.selenium.WebDriver} sin dependencia de navegador real. */
+    private static class StubWebDriver implements org.openqa.selenium.WebDriver {
+        boolean quitCalled  = false;
+        boolean throwOnQuit = false;
+
+        @Override
+        public void quit() {
+            if (throwOnQuit) throw new RuntimeException("simulated-quit");
+            quitCalled = true;
+        }
+
+        @Override public void get(String url) {}
+        @Override public String getCurrentUrl()  { return "stub://url"; }
+        @Override public String getTitle()       { return "stub"; }
+        @Override public java.util.List<org.openqa.selenium.WebElement> findElements(org.openqa.selenium.By by) { return java.util.List.of(); }
+        @Override public org.openqa.selenium.WebElement findElement(org.openqa.selenium.By by) { return null; }
+        @Override public String getPageSource()  { return ""; }
+        @Override public void close() {}
+        @Override public String getWindowHandle() { return "h1"; }
+        @Override public java.util.Set<String> getWindowHandles() { return java.util.Set.of("h1"); }
+        @Override public Options manage()        { return null; }
+        @Override public Navigation navigate()   { return null; }
+        @Override public TargetLocator switchTo() { return null; }
     }
 
     // =========================================================================
@@ -331,11 +408,57 @@ class WebPluginTest {
     }
 
     // =========================================================================
-    // 6. Metadata i18n
+    // 6. getGluePackages() — auto-derivación SPI
     // =========================================================================
 
     @Nested
-    @DisplayName("6. Metadata i18n por componente")
+    @DisplayName("6. getGluePackages()")
+    @Order(6)
+    class GetGluePackagesTests {
+
+        @Test
+        @DisplayName("No retorna lista vacia (los 16 componentes tienen step classes)")
+        void noRetornaListaVacia() {
+            assertThat(plugin.getGluePackages()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("Contiene el paquete de steps de web-core")
+        void contieneElPaqueteDeSteps() {
+            // Todos los componentes del WebPlugin tienen su clase en com.qa.webcore.steps
+            assertThat(plugin.getGluePackages())
+                .anyMatch(pkg -> pkg.startsWith("com.qa.webcore"));
+        }
+
+        @Test
+        @DisplayName("Sin duplicados: varios componentes en el mismo paquete → un entry")
+        void sinDuplicados() {
+            // 16 componentes pero todos en el mismo o pocos paquetes
+            assertThat(plugin.getGluePackages())
+                .doesNotHaveDuplicates();
+        }
+
+        @Test
+        @DisplayName("Resultado esta ordenado lexicograficamente")
+        void resultadoOrdenado() {
+            assertThat(plugin.getGluePackages())
+                .isSortedAccordingTo(String::compareTo);
+        }
+
+        @Test
+        @DisplayName("Resultado es inmutable")
+        void resultadoEsInmutable() {
+            assertThatThrownBy(() -> plugin.getGluePackages().add("com.hacked"))
+                .isInstanceOf(UnsupportedOperationException.class);
+        }
+    }
+
+    // =========================================================================
+    // 7. Metadata i18n
+    // =========================================================================
+
+    @Nested
+    @DisplayName("7. Metadata i18n por componente")
     @Order(6)
     class I18nMetadataTests {
 

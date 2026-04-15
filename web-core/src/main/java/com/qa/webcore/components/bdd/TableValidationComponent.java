@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.validation.TableValidationSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.validation.table")
 public class TableValidationComponent implements StepComponent {
     @Override public String getName()                  { return "Validacion de Tablas"; }
-    @Override public String getId()                    { return "web.validation.table"; }
     @Override public String getDisplayName()           { return "Validacion de Tablas"; }
     @Override public String getDescription()           { return "Filas, columnas, cabeceras y busqueda en tablas"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }

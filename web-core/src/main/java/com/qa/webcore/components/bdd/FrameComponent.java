@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.navigation.FrameSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.frame")
 public class FrameComponent implements StepComponent {
     @Override public String getName()                  { return "Frames e iFrames"; }
-    @Override public String getId()                    { return "web.frame"; }
     @Override public String getDisplayName()           { return "Frames e iFrames"; }
     @Override public String getDescription()           { return "Cambio de contexto a frames e iFrames"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.mobilecore.steps.validation.AppStateValidationSteps;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -18,13 +19,11 @@ import java.util.Map;
  * @since 2.0.0
  * @see AppStateValidationSteps
  */
+@StepId("mobile.validation.app-state")
 public class AppStateValidationComponent implements StepComponent {
 
     @Override
     public String getName() { return "Validacion Estado de App"; }
-
-    @Override
-    public String getId() { return "mobile.validation.app-state"; }
 
     @Override
     public String getDisplayName() { return "Estado de la Aplicacion"; }

@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.navigation.WindowSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.window")
 public class WindowComponent implements StepComponent {
     @Override public String getName()                  { return "Ventanas y Pestanas"; }
-    @Override public String getId()                    { return "web.window"; }
     @Override public String getDisplayName()           { return "Ventanas y Pestanas"; }
     @Override public String getDescription()           { return "Gestion de multiples ventanas y pestanas"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

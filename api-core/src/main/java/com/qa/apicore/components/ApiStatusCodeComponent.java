@@ -3,6 +3,7 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.validation.StatusCodeSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("api.status")
 public class ApiStatusCodeComponent implements StepComponent {
     @Override public String getName()                  { return "Status Code"; }
-    @Override public String getId()                    { return "api.status"; }
     @Override public String getDisplayName()           { return "Status Code"; }
     @Override public String getDescription()           { return "Validacion del codigo de estado HTTP"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }

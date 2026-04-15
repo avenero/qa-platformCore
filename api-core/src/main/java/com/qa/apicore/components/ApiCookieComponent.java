@@ -3,6 +3,7 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.config.CookieSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("api.cookies")
 public class ApiCookieComponent implements StepComponent {
     @Override public String getName()                  { return "Cookies"; }
-    @Override public String getId()                    { return "api.cookies"; }
     @Override public String getDisplayName()           { return "Cookies"; }
     @Override public String getDescription()           { return "Gestion de cookies en la peticion HTTP"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

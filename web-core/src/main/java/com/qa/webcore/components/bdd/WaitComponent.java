@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.wait.WaitSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.wait")
 public class WaitComponent implements StepComponent {
     @Override public String getName()                  { return "Esperas"; }
-    @Override public String getId()                    { return "web.wait"; }
     @Override public String getDisplayName()           { return "Esperas"; }
     @Override public String getDescription()           { return "Esperas explicitas sobre elementos y condiciones"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

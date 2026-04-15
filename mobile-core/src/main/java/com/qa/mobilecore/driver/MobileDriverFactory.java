@@ -1,7 +1,11 @@
 package com.qa.mobilecore.driver;
 
+import com.qa.common.config.ConfigManager;
 import com.qa.common.logging.TestLogger;
+import com.qa.mobilecore.appium.AppiumServerManager;
+import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.model.DeviceDescriptor;
+import com.qa.mobilecore.model.DeviceType;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.android.options.UiAutomator2Options;
@@ -13,15 +17,35 @@ import java.net.URL;
 import java.time.Duration;
 
 /**
- * Factory para crear instancias de {@link AppiumDriver}.
+ * Factory para crear y gestionar el ciclo de vida del {@link AppiumDriver} por escenario.
+ *
+ * <p>Combina el patrón factory (creación de sesiones Appium) con la gestión del ciclo
+ * de vida: una instancia de esta clase vive un escenario BDD y se registra en el
+ * {@link com.qa.common.runtime.ServiceRegistry} por {@link com.qa.mobilecore.plugin.MobilePlugin}.
+ *
+ * <h2>Ciclo de vida</h2>
+ * <pre>
+ * MobilePlugin.registerServices()      → registra MobileDriverFactory (lazy)
+ * [primer step mobile]                 → driver() → getOrCreateDriver() → crea AppiumDriver
+ * MobilePlugin.onScenarioEnd()         → quitIfCreated()  → cierra AppiumDriver
+ * </pre>
+ *
+ * <h2>Estrategia de creación del dispositivo</h2>
+ * <ol>
+ *   <li>Si {@link #setDevice(DeviceDescriptor)} fue llamado (p.ej. desde
+ *       {@code MobileHelper.initSession()}), usa ese dispositivo.</li>
+ *   <li>Si no, resuelve el dispositivo desde {@code ConfigManager}
+ *       (prioridad: ExecutionConfig → System Properties → env → archivos).</li>
+ * </ol>
+ *
+ * <p>{@link #getOrCreateDriver()} es thread-safe (synchronized) y lazy: el driver
+ * se crea solo cuando se necesita por primera vez en el escenario.
+ *
+ * <p>El método estático {@link #create(DeviceDescriptor, DriverConfig)} se mantiene
+ * por compatibilidad con llamadas directas existentes.
  *
  * <p>Soporta Android (UiAutomator2) e iOS (XCUITest) con las APIs modernas de Appium 8+.
  * No utiliza {@code DesiredCapabilities} ni {@code TouchAction} (deprecados).
- *
- * <p>El ciclo de vida del driver (ThreadLocal, quit) es responsabilidad de
- * {@link MobileDriverManager}. Esta clase solo crea drivers, no los gestiona.
- *
- * <p><b>Análogo a:</b> {@code WebDriverFactory} de {@code web-core}.
  *
  * <p><b>Modos de ejecución:</b>
  * <ul>
@@ -31,22 +55,153 @@ import java.time.Duration;
  *
  * @author Abel Venero
  * @since 2.0.0
+ * @since 2.2.0 Refactorizado a clase de instancia con ciclo de vida por escenario
  */
-public final class MobileDriverFactory {
+public class MobileDriverFactory {
 
-    private MobileDriverFactory() {}
+    private final ConfigManager config;
+
+    /** Driver activo para este escenario. volatile para visibilidad inmediata entre hilos. */
+    private volatile AppiumDriver currentDriver;
+
+    /**
+     * Dispositivo configurado explícitamente (p.ej. via {@link #setDevice}).
+     * Tiene prioridad sobre la resolución automática desde config.
+     */
+    private volatile DeviceDescriptor configuredDevice;
 
     // =========================================================================
-    // API principal — crear desde DeviceDescriptor (uso normal)
+    // Constructor
+    // =========================================================================
+
+    /**
+     * Crea una nueva instancia que lee configuración de {@link ConfigManager}.
+     * Invocado por el supplier lazy de {@link com.qa.common.runtime.ServiceRegistry}.
+     */
+    public MobileDriverFactory() {
+        this.config = ConfigManager.getInstance();
+    }
+
+    // =========================================================================
+    // API de ciclo de vida — instancia
+    // =========================================================================
+
+    /**
+     * Retorna el driver activo o lo crea si aún no existe (lazy singleton por escenario).
+     *
+     * <p>Thread-safe: synchronized para evitar creación doble en ejecuciones paralelas.
+     *
+     * @return AppiumDriver activo para este escenario
+     * @throws MobileDriverInitializationException si no es posible iniciar la sesión Appium
+     * @since 2.2.0
+     */
+    public synchronized AppiumDriver getOrCreateDriver() {
+        if (currentDriver != null) {
+            return currentDriver;
+        }
+
+        DeviceDescriptor device = (configuredDevice != null)
+                ? configuredDevice
+                : resolveDeviceFromConfig();
+
+        DriverConfig driverConfig = buildDriverConfigFromConfig();
+
+        boolean autoStart      = config.getBoolean(MobileConfigKeys.APPIUM_AUTO_START, false);
+        int     startupTimeout = config.getInt(MobileConfigKeys.APPIUM_STARTUP_TIMEOUT_SEC, 30);
+        AppiumServerManager.ensureRunning(device.getAppiumServerUrl(), autoStart, startupTimeout);
+
+        TestLogger.logInfo("MOBILE_FACTORY",
+                "Creando AppiumDriver lazy para: " + device.getId(), null);
+
+        try {
+            currentDriver = create(device, driverConfig);
+        } catch (MobileDriverInitializationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MobileDriverInitializationException(
+                    "No se pudo iniciar la sesión Appium para el dispositivo '"
+                    + device.getId() + "': " + e.getMessage(), e);
+        }
+
+        // Actualizar ThreadLocal para compatibilidad con código que usa MobileDriverManager
+        MobileDriverManager.setDriver(currentDriver);
+
+        TestLogger.logInfo("MOBILE_FACTORY",
+                "AppiumDriver creado y asignado al hilo: " + Thread.currentThread().getName(), null);
+        return currentDriver;
+    }
+
+    /**
+     * Cierra el driver activo y limpia la referencia interna.
+     *
+     * <p>Es idempotente: si el driver ya fue cerrado o nunca se creó, no lanza excepción.
+     * Los errores de cierre (p.ej. sesión ya terminada en el servidor) se absorben y se loguean.
+     *
+     * @since 2.2.0
+     */
+    public synchronized void quitIfCreated() {
+        if (currentDriver == null) {
+            TestLogger.logInfo("MOBILE_FACTORY",
+                    "quitIfCreated: no hay AppiumDriver activo, nada que cerrar", null);
+            return;
+        }
+        try {
+            currentDriver.quit();
+            TestLogger.logInfo("MOBILE_FACTORY", "AppiumDriver cerrado correctamente", null);
+        } catch (Exception e) {
+            TestLogger.logWarning("MOBILE_FACTORY",
+                    "Aviso al cerrar AppiumDriver (sesión posiblemente ya terminada): "
+                    + e.getMessage(), null);
+        } finally {
+            currentDriver    = null;
+            configuredDevice = null;
+        }
+    }
+
+    /**
+     * @return {@code true} si el driver fue creado y aún no fue cerrado
+     * @since 2.2.0
+     */
+    public synchronized boolean isDriverCreated() {
+        return currentDriver != null;
+    }
+
+    /**
+     * Establece el dispositivo a usar en la próxima llamada a {@link #getOrCreateDriver()}.
+     *
+     * <p>Debe llamarse antes de {@link #getOrCreateDriver()} para que tenga efecto.
+     * Llamado típicamente por {@code MobileHelper.initSession(DeviceDescriptor)}.
+     *
+     * @param device descriptor del dispositivo; puede ser null para resetear a config
+     * @since 2.2.0
+     */
+    public synchronized void setDevice(DeviceDescriptor device) {
+        this.configuredDevice = device;
+        TestLogger.logInfo("MOBILE_FACTORY",
+                "Dispositivo configurado: " + (device != null ? device.getId() : "null"), null);
+    }
+
+    /**
+     * Inyecta un driver externamente. Uso exclusivo en tests unitarios del mismo paquete.
+     *
+     * @param driver driver a inyectar (puede ser un mock/stub)
+     */
+    synchronized void injectDriver(AppiumDriver driver) {
+        this.currentDriver = driver;
+    }
+
+    // =========================================================================
+    // API estática — crear desde DeviceDescriptor (uso directo / backward compat)
     // =========================================================================
 
     /**
      * Crea un {@link AppiumDriver} a partir de un {@link DeviceDescriptor} y las
      * propiedades de la app extraídas de {@link DriverConfig}.
      *
-     * <p>Este es el método de entrada principal, invocado por {@code MobileHelper}.
+     * <p>Este método permanece estático para compatibilidad con llamadas directas
+     * existentes que no pasan por el ciclo de vida de la instancia.
      *
-     * @param device descriptor del dispositivo (plataforma, udid, server URL)
+     * @param device      descriptor del dispositivo (plataforma, udid, server URL)
      * @param driverConfig configuración de la app y timeouts
      * @return AppiumDriver listo para usar
      */
@@ -65,6 +220,48 @@ public final class MobileDriverFactory {
         TestLogger.logInfo("MOBILE_FACTORY",
             "AppiumDriver creado exitosamente para: " + device.getId(), null);
         return driver;
+    }
+
+    // =========================================================================
+    // Resolución de configuración (instancia)
+    // =========================================================================
+
+    private DeviceDescriptor resolveDeviceFromConfig() {
+        String typeStr  = config.get(MobileConfigKeys.DEVICE_TYPE, "ANDROID_EMULATOR");
+        String platform = config.get(MobileConfigKeys.PLATFORM, "Android");
+        String version  = config.get(MobileConfigKeys.PLATFORM_VERSION, "");
+        String name     = config.get(MobileConfigKeys.DEVICE_NAME, "");
+        String udid     = config.get(MobileConfigKeys.UDID, "");
+        String url      = config.get(MobileConfigKeys.APPIUM_SERVER_URL, "http://localhost:4723");
+        String id       = config.get(MobileConfigKeys.DEVICE_ID, "device-default");
+
+        DeviceType type;
+        try {
+            type = DeviceType.valueOf(typeStr.toUpperCase());
+        } catch (Exception e) {
+            type = platform.equalsIgnoreCase("iOS")
+                ? DeviceType.IOS_SIMULATOR
+                : DeviceType.ANDROID_EMULATOR;
+        }
+
+        return DeviceDescriptor.builder(id, type)
+                .platformName(platform)
+                .platformVersion(version)
+                .deviceName(name)
+                .udid(udid.isBlank() ? null : udid)
+                .appiumServerUrl(url)
+                .build();
+    }
+
+    private DriverConfig buildDriverConfigFromConfig() {
+        return new DriverConfig()
+                .withAppPath(config.get(MobileConfigKeys.APP_PATH, ""))
+                .withAppPackage(config.get(MobileConfigKeys.APP_PACKAGE, ""))
+                .withAppActivity(config.get(MobileConfigKeys.APP_ACTIVITY, ""))
+                .withBundleId(config.get(MobileConfigKeys.BUNDLE_ID, ""))
+                .withAutoLaunch(config.getBoolean(MobileConfigKeys.APP_AUTO_LAUNCH, true))
+                .withNoReset(config.getBoolean(MobileConfigKeys.APP_NO_RESET, false))
+                .withImplicitWait(config.getInt(MobileConfigKeys.IMPLICIT_WAIT_SEC, 10));
     }
 
     // =========================================================================

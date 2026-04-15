@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.mobilecore.steps.interaction.ContextSwitchSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("mobile.context")
 public class ContextSwitchComponent implements StepComponent {
     @Override public String getName()                  { return "Cambio de Contexto"; }
-    @Override public String getId()                    { return "mobile.context"; }
     @Override public String getDisplayName()           { return "Cambio de Contexto"; }
     @Override public String getDescription()           { return "Cambiar entre contexto nativo y WebView"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

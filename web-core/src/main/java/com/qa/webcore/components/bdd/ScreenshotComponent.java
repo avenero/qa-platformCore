@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.validation.ScreenshotSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.screenshot")
 public class ScreenshotComponent implements StepComponent {
     @Override public String getName()                  { return "Capturas de Pantalla"; }
-    @Override public String getId()                    { return "web.screenshot"; }
     @Override public String getDisplayName()           { return "Capturas de Pantalla"; }
     @Override public String getDescription()           { return "Capturar evidencia y adjuntar al reporte"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }

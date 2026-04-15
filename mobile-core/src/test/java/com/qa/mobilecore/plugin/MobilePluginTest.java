@@ -5,15 +5,21 @@ import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.ServiceRegistry;
 import com.qa.common.runtime.StepComponent;
+import com.qa.mobilecore.driver.MobileDriverFactory;
+import com.qa.mobilecore.driver.MobileDriverManager;
 import com.qa.mobilecore.helper.MobileHelper;
+import io.appium.java_client.AppiumDriver;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 /**
  * Tests unitarios para MobilePlugin.
@@ -32,6 +38,12 @@ class MobilePluginTest {
     @BeforeEach
     void setUp() {
         plugin = new MobilePlugin();
+    }
+
+    @AfterEach
+    void tearDown() {
+        ExecutionContext.deactivate();
+        try { MobileDriverManager.quitDriverSafely(); } catch (Exception ignored) {}
     }
 
     // =========================================================================
@@ -216,30 +228,157 @@ class MobilePluginTest {
         void testOnScenarioStartNoException() {
             ExecutionContext ctx = ExecutionContext.builder().scenarioId("test-mobile").build();
             ctx.activate();
-            try {
-                // Solo valida que no se lanza excepcion (el plugin hace auto-scan interno)
-                // Si DevicePool.initialize() falla por ausencia de ADB/simctl, es aceptable en CI
-                org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-                    () -> plugin.onScenarioStart(ctx)
-                );
-            } finally {
-                ExecutionContext.deactivate();
-            }
+            // Solo valida que no se lanza excepcion (el plugin hace auto-scan interno)
+            // Si DevicePool.initialize() falla por ausencia de ADB/simctl, es aceptable en CI
+            assertThatNoException().isThrownBy(() -> plugin.onScenarioStart(ctx));
         }
 
         @Test
-        @DisplayName("onScenarioEnd() no lanza excepcion cuando MobileHelper no fue creado")
-        void testOnScenarioEndWithoutDriver() {
-            ExecutionContext ctx = ExecutionContext.builder().scenarioId("test-mobile-end").build();
-            ctx.activate();
-            try {
-                // MobileHelper no fue registrado → get() debe retornar Optional.empty()
-                org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-                    () -> plugin.onScenarioEnd(ctx)
-                );
-            } finally {
-                ExecutionContext.deactivate();
-            }
+        @DisplayName("onScenarioEnd() no lanza excepcion cuando registry esta vacio")
+        void testOnScenarioEndRegistryVacio() {
+            ExecutionContext ctx = ExecutionContext.builder()
+                    .registry(new ServiceRegistry())
+                    .build();
+            // Ningún servicio registrado → get() retorna Optional.empty() en ambos casos
+            assertThatNoException().isThrownBy(() -> plugin.onScenarioEnd(ctx));
+        }
+
+        @Test
+        @DisplayName("onScenarioEnd() no lanza excepcion cuando MobileDriverFactory no fue registrada")
+        void testOnScenarioEndSinFactory() {
+            ServiceRegistry registry = new ServiceRegistry();
+            // Solo helper, sin factory
+            registry.registerLazy(MobileHelper.class, MobileHelper::new);
+            ExecutionContext ctx = ExecutionContext.builder().registry(registry).build();
+
+            assertThatNoException().isThrownBy(() -> plugin.onScenarioEnd(ctx));
+        }
+
+        @Test
+        @DisplayName("onScenarioEnd() llama quitIfCreated() en la MobileDriverFactory registrada")
+        void testOnScenarioEndLlamaQuitIfCreated() {
+            // Arrange: inyectar factory mock con driver activo
+            MobileDriverFactory factory = new MobileDriverFactory();
+            AppiumDriver mockDriver = Mockito.mock(AppiumDriver.class);
+            factory.injectDriver(mockDriver);   // driver "activo" sin servidor real
+
+            ServiceRegistry registry = new ServiceRegistry();
+            registry.registerInstance(MobileDriverFactory.class, factory);
+            ExecutionContext ctx = ExecutionContext.builder().registry(registry).build();
+
+            // Act
+            plugin.onScenarioEnd(ctx);
+
+            // Assert: quit() fue llamado en el driver
+            Mockito.verify(mockDriver, Mockito.times(1)).quit();
+            assertThat(factory.isDriverCreated()).isFalse();
+        }
+
+        @Test
+        @DisplayName("onScenarioEnd() absorbe excepcion de quit() sin propagarla")
+        void testOnScenarioEndAbsorbeExcepcionDeQuit() {
+            MobileDriverFactory factory = new MobileDriverFactory();
+            AppiumDriver mockDriver = Mockito.mock(AppiumDriver.class);
+            Mockito.doThrow(new RuntimeException("session gone")).when(mockDriver).quit();
+            factory.injectDriver(mockDriver);
+
+            ServiceRegistry registry = new ServiceRegistry();
+            registry.registerInstance(MobileDriverFactory.class, factory);
+            ExecutionContext ctx = ExecutionContext.builder().registry(registry).build();
+
+            assertThatNoException()
+                    .as("onScenarioEnd no debe propagar excepciones del driver")
+                    .isThrownBy(() -> plugin.onScenarioEnd(ctx));
+        }
+
+        @Test
+        @DisplayName("onScenarioEnd() es idempotente: segunda llamada con driver ya cerrado no lanza")
+        void testOnScenarioEndIdempotente() {
+            MobileDriverFactory factory = new MobileDriverFactory();
+            AppiumDriver mockDriver = Mockito.mock(AppiumDriver.class);
+            factory.injectDriver(mockDriver);
+
+            ServiceRegistry registry = new ServiceRegistry();
+            registry.registerInstance(MobileDriverFactory.class, factory);
+            ExecutionContext ctx = ExecutionContext.builder().registry(registry).build();
+
+            plugin.onScenarioEnd(ctx);                // primer cierre exitoso
+            Mockito.doThrow(new RuntimeException("already closed")).when(mockDriver).quit();
+
+            assertThatNoException().isThrownBy(() -> plugin.onScenarioEnd(ctx)); // segundo cierre
+        }
+
+        @Test
+        @DisplayName("registerServices() registra MobileDriverFactory en el registry")
+        void testRegisterServicesRegistraFactory() {
+            ServiceRegistry registry = new ServiceRegistry();
+            ExecutionConfig config = new ExecutionConfig.Builder().build();
+
+            plugin.registerServices(registry, config);
+
+            assertThat(registry.isRegistered(MobileDriverFactory.class))
+                    .as("MobileDriverFactory debe estar registrada")
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("registerServices() registra MobileHelper con factory inyectada (misma instancia)")
+        void testRegisterServicesHelperConFactoryInyectada() {
+            ServiceRegistry registry = new ServiceRegistry();
+            ExecutionConfig config = new ExecutionConfig.Builder().build();
+
+            plugin.registerServices(registry, config);
+
+            // Al resolver ambos, deben ser singletons (misma instancia en llamadas repetidas)
+            MobileDriverFactory f1 = registry.get(MobileDriverFactory.class).orElseThrow();
+            MobileDriverFactory f2 = registry.get(MobileDriverFactory.class).orElseThrow();
+            assertThat(f1).isSameAs(f2);
+
+            MobileHelper h1 = registry.get(MobileHelper.class).orElseThrow();
+            MobileHelper h2 = registry.get(MobileHelper.class).orElseThrow();
+            assertThat(h1).isSameAs(h2);
+        }
+    }
+
+    // =========================================================================
+    // getGluePackages() — auto-derivación SPI
+    // =========================================================================
+
+    @Nested
+    @DisplayName("getGluePackages() — derivacion automatica de paquetes")
+    class GetGluePackagesTests {
+
+        @Test
+        @DisplayName("No retorna lista vacia (los 10 componentes tienen step classes)")
+        void noRetornaListaVacia() {
+            assertThat(plugin.getGluePackages()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("Contiene el paquete de steps de mobile-core")
+        void contieneElPaqueteDeSteps() {
+            assertThat(plugin.getGluePackages())
+                .anyMatch(pkg -> pkg.startsWith("com.qa.mobilecore"));
+        }
+
+        @Test
+        @DisplayName("Sin duplicados: multiples componentes en el mismo paquete → un entry")
+        void sinDuplicados() {
+            assertThat(plugin.getGluePackages()).doesNotHaveDuplicates();
+        }
+
+        @Test
+        @DisplayName("Resultado esta ordenado lexicograficamente")
+        void resultadoOrdenado() {
+            assertThat(plugin.getGluePackages())
+                .isSortedAccordingTo(String::compareTo);
+        }
+
+        @Test
+        @DisplayName("Resultado es inmutable")
+        void resultadoEsInmutable() {
+            assertThatThrownBy(() -> plugin.getGluePackages().add("com.hacked"))
+                .isInstanceOf(UnsupportedOperationException.class);
         }
     }
 

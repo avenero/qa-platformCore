@@ -226,7 +226,7 @@ class DefaultLifecycleManagerTest {
             DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of(api, db));
             ExecutionContext ctx = crearContext(mgr, "@api @db");
 
-            mgr.onScenarioStart(ctx, List.of("@db", "@api"));
+            mgr.onScenarioStart(ctx, ScenarioMetadata.ofTags("test", List.of("@db", "@api")));
 
             // db (order=0) debe invocarse antes que api (order=50)
             int dbIdx  = callLog.indexOf("onScenarioStart:db");
@@ -243,7 +243,7 @@ class DefaultLifecycleManagerTest {
             DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of(api, db));
             ExecutionContext ctx = crearContext(mgr, "@api @db");
 
-            mgr.onScenarioEnd(ctx, List.of("@db", "@api"));
+            mgr.onScenarioEnd(ctx, ScenarioMetadata.ofTags("test", List.of("@db", "@api")));
 
             // api (order=50) debe cerrarse antes que db (order=0) → orden inverso
             int dbIdx  = callLog.indexOf("onScenarioEnd:db");
@@ -256,16 +256,26 @@ class DefaultLifecycleManagerTest {
         void testOnScenarioStartContextNull() {
             DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of());
             assertThatNullPointerException()
-                    .isThrownBy(() -> mgr.onScenarioStart(null, List.of("@api")));
+                    .isThrownBy(() -> mgr.onScenarioStart(null,
+                            ScenarioMetadata.ofTags("test", List.of("@api"))));
         }
 
         @Test
-        @DisplayName("onScenarioStart con tags null no lanza excepcion")
-        void testOnScenarioStartTagsNullNoLanza() {
+        @DisplayName("onScenarioStart con metadata null lanza NullPointerException")
+        void testOnScenarioStartMetadataNullLanzaException() {
+            DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of());
+            ExecutionContext ctx = crearContext(mgr, null);
+            assertThatNullPointerException()
+                    .isThrownBy(() -> mgr.onScenarioStart(ctx, null));
+        }
+
+        @Test
+        @DisplayName("onScenarioStart con tags vacios en metadata no lanza excepcion")
+        void testOnScenarioStartTagsVaciosNoLanza() {
             DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of());
             ExecutionContext ctx = crearContext(mgr, null);
             org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-                    () -> mgr.onScenarioStart(ctx, null)
+                    () -> mgr.onScenarioStart(ctx, ScenarioMetadata.ofTags("sin-tags", List.of()))
             );
         }
 
@@ -290,9 +300,54 @@ class DefaultLifecycleManagerTest {
 
             // No debe lanzar; el plugin bueno debe ejecutarse igual
             org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-                    () -> mgr.onScenarioStart(ctx, List.of("@bad"))
+                    () -> mgr.onScenarioStart(ctx,
+                            ScenarioMetadata.ofTags("test-bad", List.of("@bad")))
             );
             assertThat(callLog).contains("onScenarioStart:good");
+        }
+
+        @Test
+        @DisplayName("onScenarioStart filtra plugins por tags de ScenarioMetadata")
+        void testOnScenarioStartFiltraPorMetadataTags() {
+            CorePlugin api    = makePlugin("api",    50,  Set.of("@api"));
+            CorePlugin mobile = makePlugin("mobile", 150, Set.of("@mobile"));
+
+            DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of(api, mobile));
+            ExecutionContext ctx = crearContext(mgr, "@api @mobile");
+
+            // Solo @api en el escenario → solo api se activa
+            mgr.onScenarioStart(ctx, ScenarioMetadata.ofTags("solo-api", List.of("@api")));
+
+            assertThat(callLog).contains("onScenarioStart:api");
+            assertThat(callLog).doesNotContain("onScenarioStart:mobile");
+        }
+
+        @Test
+        @DisplayName("onScenarioEnd con metadata null lanza NullPointerException")
+        void testOnScenarioEndMetadataNullLanzaException() {
+            DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of());
+            ExecutionContext ctx = crearContext(mgr, null);
+            assertThatNullPointerException()
+                    .isThrownBy(() -> mgr.onScenarioEnd(ctx, null));
+        }
+
+        @Test
+        @DisplayName("ScenarioMetadata completo se usa correctamente en onScenarioStart")
+        void testScenarioMetadataCompletoEnOnScenarioStart() {
+            CorePlugin api = makePlugin("api", 50, Set.of("@api"));
+
+            DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of(api));
+            ExecutionContext ctx = crearContext(mgr, "@api");
+
+            ScenarioMetadata meta = ScenarioMetadata.of(
+                    "Login con credenciales válidas",
+                    List.of("@api", "@smoke"),
+                    "classpath:features/api/login.feature",
+                    12);
+
+            org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                    () -> mgr.onScenarioStart(ctx, meta));
+            assertThat(callLog).contains("onScenarioStart:api");
         }
     }
 

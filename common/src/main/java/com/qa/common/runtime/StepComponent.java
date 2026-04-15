@@ -1,5 +1,7 @@
 package com.qa.common.runtime;
 
+import com.qa.common.runtime.annotation.StepId;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,10 +17,22 @@ import java.util.Set;
  * por el Backend para exponer una API estructurada y por el Frontend para construir
  * la paleta visual de diseño de escenarios.
  *
+ * <h2>Convención de IDs</h2>
+ * <p>El ID de un componente es su <strong>contrato público con el Backend y el Frontend</strong>.
+ * La forma canónica de declararlo es mediante la anotación {@link StepId} en la clase implementadora:
+ * <pre>
+ *   &#64;StepId("api.authentication")
+ *   public class ApiAuthComponent implements StepComponent { ... }
+ * </pre>
+ * <p>Si la clase no lleva {@code @StepId}, {@link #getId()} deriva el ID del nombre del componente
+ * (lowercase, espacios → puntos). Ver {@link StepId} para el formato completo y el contrato
+ * de estabilidad.
+ *
  * @author Abel Venero
  * @since 2.0.0
  * @see CorePlugin
  * @see BddPhase
+ * @see StepId
  */
 public interface StepComponent {
 
@@ -63,12 +77,34 @@ public interface StepComponent {
     // =========================================================================
 
     /**
-     * Identificador único del componente.
-     * Ejemplo: "api.authentication", "web.navigation", "mobile.gesture".
-     * Por defecto se construye a partir del nombre en minúsculas con puntos.
-     * @return ID único, nunca null
+     * Identificador único y estable del componente.
+     *
+     * <p><strong>Orden de prioridad:</strong>
+     * <ol>
+     *   <li>Valor de la anotación {@link StepId} declarada en la clase implementadora.</li>
+     *   <li>Derivación automática: {@code getName()} en lowercase con espacios y
+     *       barras reemplazados por puntos.</li>
+     * </ol>
+     *
+     * <p>Se recomienda siempre declarar {@code @StepId} en la clase concreta para que
+     * el ID sea explícito, visible y reforzado como contrato estable.
+     *
+     * <p>Ejemplos de IDs válidos:
+     * <ul>
+     *   <li>{@code "api.authentication"}</li>
+     *   <li>{@code "web.browser.config"}</li>
+     *   <li>{@code "mobile.device.config"}</li>
+     *   <li>{@code "db.setup"}</li>
+     * </ul>
+     *
+     * @return ID único, nunca null ni blank
+     * @see StepId
      */
     default String getId() {
+        StepId annotation = this.getClass().getAnnotation(StepId.class);
+        if (annotation != null && !annotation.value().isBlank()) {
+            return annotation.value();
+        }
         return getName().toLowerCase().replace(" ", ".").replace("/", ".");
     }
 
@@ -123,6 +159,61 @@ public interface StepComponent {
      */
     default Set<String> getActivationTags() {
         return Set.of();
+    }
+
+    // =========================================================================
+    // Ciclo de vida — deprecación y migración
+    // =========================================================================
+
+    /**
+     * Indica si este componente está marcado como deprecado.
+     *
+     * <p>Un componente deprecado sigue siendo funcional pero señaliza al Backend y al
+     * Frontend que existe una alternativa más actualizada, identificada por
+     * {@link #getReplacementStepId()}. El motor de lint BDD usa este flag para:
+     * <ul>
+     *   <li>Emitir advertencias al compilar/validar escenarios que usen el ID deprecated.</li>
+     *   <li>Sugerir la migración automática al {@code replacementStepId} en el Scenario Builder.</li>
+     *   <li>Reportar al Backend el estado de los escenarios que requieren actualización.</li>
+     * </ul>
+     *
+     * <p>La implementación por defecto lee el atributo {@link StepId#deprecated()} de la
+     * anotación {@link StepId} declarada en la clase concreta. Retorna {@code false} si la
+     * clase no lleva la anotación o si el atributo no está marcado.
+     *
+     * @return {@code true} si el componente está deprecado; {@code false} por defecto
+     * @see StepId#deprecated()
+     * @see #getReplacementStepId()
+     */
+    default boolean isDeprecated() {
+        StepId annotation = this.getClass().getAnnotation(StepId.class);
+        return annotation != null && annotation.deprecated();
+    }
+
+    /**
+     * Retorna el {@code stepId} del componente que reemplaza a este, si está deprecado.
+     *
+     * <p>El Backend usa este valor para:
+     * <ul>
+     *   <li>Sugerir al Frontend qué componente seleccionar en lugar del deprecado.</li>
+     *   <li>Migrar automáticamente escenarios persistidos durante operaciones de lint/import.</li>
+     *   <li>Validar que el reemplazo existe en el catálogo ({@link StepDiscoveryService#resolveStep}).</li>
+     * </ul>
+     *
+     * <p>La implementación por defecto lee {@link StepId#replacedBy()} de la anotación
+     * {@link StepId}. Retorna {@code null} si la clase no lleva la anotación, si
+     * {@link #isDeprecated()} es {@code false}, o si {@code replacedBy} está vacío.
+     *
+     * @return ID del componente sucesor, o {@code null} si no aplica o no está declarado
+     * @see StepId#replacedBy()
+     * @see #isDeprecated()
+     */
+    default String getReplacementStepId() {
+        StepId annotation = this.getClass().getAnnotation(StepId.class);
+        if (annotation != null && !annotation.replacedBy().isBlank()) {
+            return annotation.replacedBy();
+        }
+        return null;
     }
 
     // =========================================================================

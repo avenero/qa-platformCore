@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.mobilecore.steps.validation.MobileElementValidationSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("mobile.validation")
 public class MobileElementValidationComponent implements StepComponent {
     @Override public String getName()                  { return "Validacion de Elementos Mobile"; }
-    @Override public String getId()                    { return "mobile.validation"; }
     @Override public String getDisplayName()           { return "Validacion de Elementos Mobile"; }
     @Override public String getDescription()           { return "Visibilidad, texto y estado de elementos nativos"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }

@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.interaction.ClickSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.click")
 public class ClickComponent implements StepComponent {
     @Override public String getName()                  { return "Clicks e Interacciones"; }
-    @Override public String getId()                    { return "web.click"; }
     @Override public String getDisplayName()           { return "Clicks e Interacciones"; }
     @Override public String getDescription()           { return "Click, doble click, click derecho, hover, shadow DOM"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

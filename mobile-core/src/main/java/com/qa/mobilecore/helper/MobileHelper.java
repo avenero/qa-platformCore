@@ -2,7 +2,6 @@ package com.qa.mobilecore.helper;
 
 import com.qa.common.config.ConfigManager;
 import com.qa.common.logging.TestLogger;
-import com.qa.mobilecore.appium.AppiumServerManager;
 import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.driver.MobileDriverFactory;
 import com.qa.mobilecore.driver.MobileDriverManager;
@@ -34,30 +33,54 @@ import java.util.Set;
  * MobileHelper mobile = ExecutionContext.requireCurrent().service(MobileHelper.class);
  * </pre>
  *
- * <p><b>Gestión del driver:</b> el {@link AppiumDriver} se crea de forma lazy
- * (primera vez que un step lo necesita). El ciclo de vida completo es:
- * <ol>
- *   <li>{@link #initSession(DeviceDescriptor)} — crea el driver y lo registra en
- *       {@link MobileDriverManager}</li>
- *   <li>Los steps llaman a {@link #driver()} para obtener el driver ya creado</li>
- *   <li>{@link #quitSession()} — cierra el driver al finalizar el escenario</li>
- * </ol>
+ * <h2>Gestión del driver</h2>
+ * <p>El {@link AppiumDriver} se gestiona internamente a través de {@link MobileDriverFactory}:
+ * <ul>
+ *   <li>{@link #initSession(DeviceDescriptor)} — configura el dispositivo en la factory y
+ *       fuerza la creación inmediata del driver.</li>
+ *   <li>{@link #driver()} — siempre delega a {@link MobileDriverFactory#getOrCreateDriver()}
+ *       (lazy, idempotente).</li>
+ *   <li>{@link #quitSession()} — libera el dispositivo del pool y cierra el driver
+ *       a través de la factory.</li>
+ * </ul>
  *
  * @author Abel Venero
  * @since 2.0.0
+ * @since 2.2.0 driver() delega a MobileDriverFactory.getOrCreateDriver() (lazy)
  */
 public class MobileHelper {
 
-    private final ConfigManager config;
+    private final ConfigManager       config;
+    private final MobileDriverFactory mobileDriverFactory;
 
     /** Descriptor del dispositivo asignado a esta sesión (null hasta initSession). */
     private DeviceDescriptor assignedDevice;
 
-    /** Config de driver construida a partir de ExecutionConfig/properties. */
-    private MobileDriverFactory.DriverConfig driverConfig;
+    // =========================================================================
+    // Constructores
+    // =========================================================================
 
+    /**
+     * Constructor por defecto: crea una nueva {@link MobileDriverFactory}.
+     * Usado por el registry cuando {@code MobilePlugin} no inyecta una factory.
+     */
     public MobileHelper() {
-        this.config = ConfigManager.getInstance();
+        this(new MobileDriverFactory());
+    }
+
+    /**
+     * Constructor con inyección de factory.
+     * Usado por {@code MobilePlugin.registerServices()} para compartir la misma
+     * instancia de factory entre el plugin y el helper dentro del mismo escenario.
+     *
+     * @param mobileDriverFactory factory de drivers para este escenario (no puede ser null)
+     */
+    public MobileHelper(MobileDriverFactory mobileDriverFactory) {
+        if (mobileDriverFactory == null) {
+            throw new IllegalArgumentException("MobileDriverFactory no puede ser null");
+        }
+        this.mobileDriverFactory = mobileDriverFactory;
+        this.config              = ConfigManager.getInstance();
     }
 
     // =========================================================================
@@ -66,21 +89,20 @@ public class MobileHelper {
 
     /**
      * Inicializa la sesión Appium para el dispositivo dado.
-     * Invocado por {@code MobilePlugin.onScenarioStart()} o por un step de configuración.
+     *
+     * <p>Configura el dispositivo en la factory y fuerza la creación del driver.
+     * Si el driver ya fue creado (llamada redundante), retorna sin hacer nada adicional.
+     *
+     * <p>Invocado por un step de configuración (p.ej. "Dado que configuro el dispositivo...").
      *
      * @param device descriptor del dispositivo a usar
      */
     public void initSession(DeviceDescriptor device) {
         this.assignedDevice = device;
-        this.driverConfig   = buildDriverConfig();
+        mobileDriverFactory.setDevice(device);
 
-        boolean autoStart   = config.getBoolean(MobileConfigKeys.APPIUM_AUTO_START, false);
-        int startupTimeout  = config.getInt(MobileConfigKeys.APPIUM_STARTUP_TIMEOUT_SEC, 30);
-
-        AppiumServerManager.ensureRunning(device.getAppiumServerUrl(), autoStart, startupTimeout);
-
-        AppiumDriver d = MobileDriverFactory.create(device, driverConfig);
-        MobileDriverManager.setDriver(d);
+        // getOrCreateDriver() verifica el servidor Appium, crea el driver y actualiza el ThreadLocal.
+        mobileDriverFactory.getOrCreateDriver();
 
         TestLogger.logInfo("MOBILE_HELPER",
             "Sesion iniciada para dispositivo: " + device.getId(), null);
@@ -88,28 +110,43 @@ public class MobileHelper {
 
     /**
      * Cierra la sesión Appium y libera el dispositivo en el pool.
+     *
+     * <p>Es idempotente: puede llamarse varias veces sin efecto secundario.
+     * Invocado desde {@code MobilePlugin.onScenarioEnd()} (modo plugin) o desde
+     * {@code MobileHooksSteps.afterScenario()} (modo standalone).
      */
     public void quitSession() {
+        // 1. Liberar el dispositivo del pool de ejecución
         if (assignedDevice != null) {
             DevicePool.getInstance().release(assignedDevice.getId());
             TestLogger.logInfo("MOBILE_HELPER",
                 "Dispositivo liberado del pool: " + assignedDevice.getId(), null);
+            assignedDevice = null;
         }
+        // 2. Cerrar el driver vía factory (idempotente si ya fue cerrado)
+        mobileDriverFactory.quitIfCreated();
+        // 3. Safety-net: limpiar ThreadLocal aunque factory ya haya llamado quit()
         MobileDriverManager.quitDriverSafely();
     }
 
     /**
-     * Obtiene el driver activo. Lanza excepción si la sesión no fue iniciada.
+     * Obtiene el driver activo. Si no existe aún, lo crea de forma lazy.
+     *
+     * <p>Siempre delega a {@link MobileDriverFactory#getOrCreateDriver()}, que es
+     * thread-safe y garantiza una única instancia por escenario.
+     *
+     * @return AppiumDriver activo para este escenario
+     * @throws com.qa.mobilecore.driver.MobileDriverInitializationException si no puede crear sesión
      */
     public AppiumDriver driver() {
-        return MobileDriverManager.getDriver();
+        return mobileDriverFactory.getOrCreateDriver();
     }
 
     /**
-     * @return true si hay una sesión Appium activa
+     * @return {@code true} si hay una sesión Appium activa (driver creado y no cerrado)
      */
     public boolean hasActiveSession() {
-        return MobileDriverManager.isInitialized();
+        return mobileDriverFactory.isDriverCreated();
     }
 
     // =========================================================================
@@ -327,7 +364,6 @@ public class MobileHelper {
     // =========================================================================
 
     public void setGpsLocation(double lat, double lon) {
-        // mobile:setLocation funciona tanto en Android (UiAutomator2) como en iOS (XCUITest)
         try {
             driver().executeScript("mobile:setLocation",
                 Map.of("latitude", lat, "longitude", lon, "altitude", 0.0));
@@ -450,7 +486,7 @@ public class MobileHelper {
     }
 
     // =========================================================================
-    // Resolución de dispositivo y config
+    // Resolución de dispositivo desde config (uso interno y desde steps GIVEN)
     // =========================================================================
 
     /**
@@ -496,16 +532,5 @@ public class MobileHelper {
             .udid(udid.isBlank() ? null : udid)
             .appiumServerUrl(url)
             .build();
-    }
-
-    private MobileDriverFactory.DriverConfig buildDriverConfig() {
-        return new MobileDriverFactory.DriverConfig()
-            .withAppPath(config.get(MobileConfigKeys.APP_PATH, ""))
-            .withAppPackage(config.get(MobileConfigKeys.APP_PACKAGE, ""))
-            .withAppActivity(config.get(MobileConfigKeys.APP_ACTIVITY, ""))
-            .withBundleId(config.get(MobileConfigKeys.BUNDLE_ID, ""))
-            .withAutoLaunch(config.getBoolean(MobileConfigKeys.APP_AUTO_LAUNCH, true))
-            .withNoReset(config.getBoolean(MobileConfigKeys.APP_NO_RESET, false))
-            .withImplicitWait(config.getInt(MobileConfigKeys.IMPLICIT_WAIT_SEC, 10));
     }
 }

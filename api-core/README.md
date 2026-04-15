@@ -28,6 +28,7 @@
 10. [Patrones de Diseño Usados](#10-patrones-de-diseño-usados)
 11. [Dependencias del Módulo](#11-dependencias-del-módulo)
 12. [Estado Actual y Pendientes](#12-estado-actual-y-pendientes)
+13. [Convención de IDs de Step](#13-convención-de-ids-de-step)
 
 ---
 
@@ -1074,6 +1075,48 @@ El plugin se activa automáticamente para cualquier escenario que tenga los tags
 | Interfaces (contratos) | 3 |
 | Implementaciones | 4 |
 | Fábricas | 3 |
+
+---
+
+---
+
+## 13. Convención de IDs de Step
+
+Todos los componentes de `api-core` declaran su `stepId` con la anotación `@StepId`. Estos IDs son el **contrato con el Backend**: se persisten en la base de datos al guardar escenarios y ejecuciones, y deben mantenerse estables entre releases.
+
+### Catálogo de IDs — api-core
+
+| `stepId` | Clase | Fase BDD | Descripción |
+|----------|-------|----------|-------------|
+| `api.url` | `ApiUrlComponent` | GIVEN | URL base, ambiente y protocolo |
+| `api.authentication` | `ApiAuthComponent` | GIVEN | Bearer Token, Basic Auth, API Key, OAuth 2.0, JWT |
+| `api.headers` | `ApiHeaderComponent` | GIVEN | Cabeceras HTTP de la petición |
+| `api.cookies` | `ApiCookieComponent` | GIVEN | Cookies de la petición |
+| `api.parameters` | `ApiParameterComponent` | GIVEN | Query params y path params |
+| `api.body` | `ApiRequestBodyComponent` | GIVEN | Cuerpo de la petición (JSON, form, multipart) |
+| `api.execution` | `ApiExecutionComponent` | WHEN | Ejecución HTTP (GET, POST, PUT, PATCH, DELETE) |
+| `api.status` | `ApiStatusCodeComponent` | THEN | Validación del código de estado HTTP |
+| `api.response.body` | `ApiResponseBodyComponent` | THEN | Validación del cuerpo de respuesta (JSONPath, schema) |
+| `api.response.headers` | `ApiResponseHeaderComponent` | THEN | Validación de cabeceras de respuesta |
+| `api.performance` | `ApiPerformanceComponent` | THEN | Validación de tiempos de respuesta |
+| `api.security` | `ApiSecurityComponent` | THEN | Validaciones de seguridad (headers, TLS) |
+
+### Reglas de uso
+
+- **No cambiar un `stepId`** sin marcar el anterior `deprecated = true` y declarar `replacedBy`.
+- **No renombrar** la clase `StepComponent` en producción sin mantener el mismo `@StepId`.
+- Si se agrega un nuevo componente, seguir el formato `api.{dominio}[.{subdominio}]`.
+
+```java
+// Ejemplo: cómo el Backend resuelve un componente por ID
+discovery.resolveStep("api.authentication")
+         .map(info -> info.getDisplayNameForLocale("en"))
+         .orElse("(no encontrado)");
+// → "Authentication"
+```
+
+> Para la convención general (formato, ciclo de deprecación, reglas globales) ver
+> [common/README.md — Convención de IDs de Step](../common/README.md#14-convención-de-ids-de-step).
 
 ---
 

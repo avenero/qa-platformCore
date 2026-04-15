@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.mobilecore.steps.interaction.GestureSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("mobile.gesture")
 public class GestureComponent implements StepComponent {
     @Override public String getName()                  { return "Gestos"; }
-    @Override public String getId()                    { return "mobile.gesture"; }
     @Override public String getDisplayName()           { return "Gestos"; }
     @Override public String getDescription()           { return "Tap, long press, swipe, pinch, zoom"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

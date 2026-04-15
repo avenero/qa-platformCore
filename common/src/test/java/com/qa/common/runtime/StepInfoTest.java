@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Tests unitarios para {@link StepInfo}.
  *
- * <p>Verifica contrato de construccion, inmutabilidad de mapas i18n
- * y los helpers de resolución por locale.
+ * <p>Verifica contrato de construccion, inmutabilidad de mapas i18n,
+ * los helpers de resolución por locale y el modelo de deprecación.
  *
  * @author Abel Venero
  * @since 2.1.0
@@ -35,6 +35,7 @@ class StepInfoTest {
             "fr", "Envoi de requetes REST"
     );
 
+    /** Instancia completa no-deprecated para los tests generales. */
     private StepInfo buildFull() {
         return new StepInfo(
                 "api.execution",
@@ -48,7 +49,29 @@ class StepInfoTest {
                 "Ejecucion HTTP",
                 "Envio de peticiones REST",
                 DISPLAY_NAMES,
-                DESCRIPTIONS
+                DESCRIPTIONS,
+                false,
+                null
+        );
+    }
+
+    /** Instancia que simula un step deprecated con reemplazo declarado. */
+    private StepInfo buildDeprecated() {
+        return new StepInfo(
+                "api.body",
+                "Request Body",
+                "api",
+                "api.body",
+                "GIVEN",
+                "Configuracion de Peticion",
+                "description",
+                60,
+                "Request Body",
+                "Cuerpo de la peticion",
+                Map.of("es", "Request Body", "en", "Request Body"),
+                Map.of("es", "Cuerpo de la peticion", "en", "Request body"),
+                true,
+                "api.request.body"
         );
     }
 
@@ -78,12 +101,24 @@ class StepInfoTest {
         }
 
         @Test
+        @DisplayName("deprecated es false por defecto en componentes normales")
+        void deprecatedFalsePorDefecto() {
+            assertThat(buildFull().deprecated()).isFalse();
+        }
+
+        @Test
+        @DisplayName("replacementStepId es null por defecto en componentes no deprecados")
+        void replacementStepIdNullPorDefecto() {
+            assertThat(buildFull().replacementStepId()).isNull();
+        }
+
+        @Test
         @DisplayName("id null lanza NullPointerException")
         void idNullLanzaException() {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     null, "p", "api", "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), Map.of()
+                    Map.of(), Map.of(), false, null
             )).withMessageContaining("id");
         }
 
@@ -93,7 +128,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", null, "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), Map.of()
+                    Map.of(), Map.of(), false, null
             )).withMessageContaining("layer");
         }
 
@@ -103,7 +138,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", "api", null, "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), Map.of()
+                    Map.of(), Map.of(), false, null
             )).withMessageContaining("componentId");
         }
 
@@ -113,7 +148,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", "api", "api.x", null,
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), Map.of()
+                    Map.of(), Map.of(), false, null
             )).withMessageContaining("phase");
         }
 
@@ -123,7 +158,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", "api", "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    null, Map.of()
+                    null, Map.of(), false, null
             )).withMessageContaining("displayNameByLocale");
         }
 
@@ -133,8 +168,75 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", "api", "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), null
+                    Map.of(), null, false, null
             )).withMessageContaining("descriptionByLocale");
+        }
+    }
+
+    // =========================================================================
+    // Modelo de deprecación
+    // =========================================================================
+
+    @Nested
+    @DisplayName("Modelo de deprecacion")
+    class DeprecacionTest {
+
+        @Test
+        @DisplayName("deprecated true se almacena correctamente")
+        void deprecatedTrueSeAlmacena() {
+            assertThat(buildDeprecated().deprecated()).isTrue();
+        }
+
+        @Test
+        @DisplayName("replacementStepId se almacena correctamente cuando hay reemplazo")
+        void replacementStepIdConReemplazo() {
+            assertThat(buildDeprecated().replacementStepId()).isEqualTo("api.request.body");
+        }
+
+        @Test
+        @DisplayName("hasReplacement retorna true cuando replacementStepId no es null")
+        void hasReplacementCuandoHayReemplazo() {
+            assertThat(buildDeprecated().hasReplacement()).isTrue();
+        }
+
+        @Test
+        @DisplayName("hasReplacement retorna false cuando replacementStepId es null")
+        void hasReplacementFalseCuandoEsNull() {
+            StepInfo sinReemplazo = new StepInfo(
+                    "api.old", "Old", "api", "api.old", "GIVEN",
+                    "cat", "icon", 10, "Old Step", "desc",
+                    Map.of(), Map.of(), true, null
+            );
+            assertThat(sinReemplazo.hasReplacement()).isFalse();
+        }
+
+        @Test
+        @DisplayName("hasReplacement retorna false cuando replacementStepId es blank")
+        void hasReplacementFalseCuandoEsBlank() {
+            StepInfo conBlank = new StepInfo(
+                    "api.old2", "Old2", "api", "api.old2", "GIVEN",
+                    "cat", "icon", 10, "Old2", "desc",
+                    Map.of(), Map.of(), true, "   "
+            );
+            assertThat(conBlank.hasReplacement()).isFalse();
+        }
+
+        @Test
+        @DisplayName("Un step no-deprecated tiene hasReplacement false")
+        void noDeprecatedTieneHasReplacementFalse() {
+            assertThat(buildFull().hasReplacement()).isFalse();
+        }
+
+        @Test
+        @DisplayName("replacementStepId puede ser null aunque deprecated sea false")
+        void replacementStepIdNullConDeprecatedFalse() {
+            StepInfo info = new StepInfo(
+                    "api.url", "p", "api", "api.url", "GIVEN",
+                    "cat", "icon", 10, "URL", "desc",
+                    Map.of(), Map.of(), false, null
+            );
+            assertThat(info.deprecated()).isFalse();
+            assertThat(info.replacementStepId()).isNull();
         }
     }
 
@@ -171,7 +273,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "x", "p", "api", "x", "GIVEN",
                     "cat", "icon", 1, "dn", "desc",
-                    mutableNames, Map.of()
+                    mutableNames, Map.of(), false, null
             );
 
             mutableNames.put("es", "Nombre Modificado");
@@ -218,7 +320,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "api.execution", "p", "api", "api.execution", "WHEN",
                     "cat", "icon", 10, null, null,
-                    Map.of(), Map.of()
+                    Map.of(), Map.of(), false, null
             );
             assertThat(info.getDisplayNameForLocale("en")).isEqualTo("api.execution");
         }
@@ -229,7 +331,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "api.url", "p", "api", "api.url", "GIVEN",
                     "cat", "icon", 10, "URL / Ambiente", "desc",
-                    Map.of(), Map.of()
+                    Map.of(), Map.of(), false, null
             );
             assertThat(info.getDisplayNameForLocale("en")).isEqualTo("URL / Ambiente");
         }
@@ -281,7 +383,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "api.x", "p", "api", "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", null,
-                    Map.of(), Map.of()
+                    Map.of(), Map.of(), false, null
             );
             assertThat(info.getDescriptionForLocale("en")).isEmpty();
         }
@@ -316,6 +418,20 @@ class StepInfoTest {
         @DisplayName("toString contiene el id del componente")
         void toStringContieneId() {
             assertThat(buildFull().toString()).contains("api.execution");
+        }
+
+        @Test
+        @DisplayName("Dos StepInfo con distinto deprecated NO son iguales")
+        void deprecatedDistintoDaInstanciasDistintas() {
+            StepInfo normal = buildFull();
+            StepInfo deprecated = new StepInfo(
+                    "api.execution", "HTTP Execution", "api", "api.execution",
+                    "WHEN", "Ejecucion", "send", 70,
+                    "Ejecucion HTTP", "Envio de peticiones REST",
+                    DISPLAY_NAMES, DESCRIPTIONS,
+                    true, "api.execution.v2"
+            );
+            assertThat(normal).isNotEqualTo(deprecated);
         }
     }
 }

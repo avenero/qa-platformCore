@@ -3,18 +3,33 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.config.RequestBodySteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
 /**
- * Componente de steps: Request Body.
- * Fase BDD: GIVEN. Categoria: Configuracion de Peticion.
+ * Componente de steps: Request Body (DEPRECATED).
+ *
+ * <p>Este componente está marcado como <strong>deprecated</strong> desde la versión 2.1.0.
+ * El stepId {@code "api.body"} fue renombrado a {@code "api.request.body"} para reflejar
+ * con mayor precisión su responsabilidad y alinearse con la convención de nomenclatura.
+ *
+ * <p><strong>Migración:</strong> Reemplazar el uso de {@code "api.body"} por
+ * {@code "api.request.body"} en todos los escenarios persistidos. El componente
+ * sucesor {@code "api.request.body"} estará disponible desde la versión 2.2.0.
+ *
+ * <p>Este componente se mantiene activo durante el ciclo de deprecación para garantizar
+ * retrocompatibilidad con escenarios persistidos en la base de datos antes de la migración.
+ *
  * @author Abel Venero
  * @since 2.0.0
+ * @deprecated Usar stepId {@code "api.request.body"} disponible desde v2.2.0.
  */
+@SuppressWarnings("DeprecatedIsStillUsed") // el plugin lo registra durante el ciclo de deprecación
+@Deprecated(since = "2.1.0", forRemoval = false)
+@StepId(value = "api.body", deprecated = true, replacedBy = "api.request.body")
 public class ApiRequestBodyComponent implements StepComponent {
     @Override public String getName()                  { return "Request Body"; }
-    @Override public String getId()                    { return "api.body"; }
     @Override public String getDisplayName()           { return "Request Body"; }
     @Override public String getDescription()           { return "Cuerpo de la peticion: JSON, XML, form-data, template"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

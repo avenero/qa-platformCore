@@ -80,7 +80,8 @@ public class CucumberRuntimeEngine {
      * <ol>
      *   <li>Inicializar {@link ExecutionContext} via {@link LifecycleManager}</li>
      *   <li>Crear un {@link InMemoryResultCollector} para capturar resultados</li>
-     *   <li>Invocar Cucumber Runtime con los argumentos construidos</li>
+     *   <li>Crear un {@link ScenarioLifecycleBridge} que notifica a plugins por escenario</li>
+     *   <li>Invocar Cucumber Runtime con ambos plugins adicionales</li>
      *   <li>Construir y retornar {@link ExecutionResult} inmutable</li>
      *   <li>Garantizar shutdown del contexto en el bloque finally</li>
      * </ol>
@@ -92,14 +93,14 @@ public class CucumberRuntimeEngine {
         Objects.requireNonNull(request, "request no puede ser null");
         log.info("Iniciando ejecucion BDD: features={}, glue={}, tags='{}'",
                 request.getFeaturePaths().size(),
-                request.getGluePaths().size(),
+                request.isGlueAutoResolved() ? "auto(SPI)" : request.getGluePaths().size(),
                 request.getConfig().getTags());
 
         ExecutionContext context = lifecycleManager.initialize(request);
         InMemoryResultCollector collector = new InMemoryResultCollector();
 
         try {
-            byte exitStatus = runCucumber(request, collector);
+            byte exitStatus = runCucumber(request, context, collector);
             log.info("Cucumber Runtime finalizado con exit status: {}", exitStatus);
 
             ExecutionResult result = collector.buildResult();
@@ -130,13 +131,25 @@ public class CucumberRuntimeEngine {
     /**
      * Invoca el Cucumber Runtime con los argumentos construidos.
      *
-     * <p>Metodo protegido para permitir override en tests.
+     * <p>Registra dos plugins adicionales:
+     * <ol>
+     *   <li>{@link InMemoryResultCollector} — captura resultados de la ejecución</li>
+     *   <li>{@link ScenarioLifecycleBridge} — conecta eventos Cucumber con el ciclo de vida
+     *       de plugins ({@code onScenarioStart}/{@code onScenarioEnd} por escenario)</li>
+     * </ol>
+     *
+     * <p><b>Nota para subclases:</b> este método es {@code protected} para permitir
+     * override en tests de integración. Si se sobreescribe, asegurarse de instanciar
+     * el {@link ScenarioLifecycleBridge} o de invocar los callbacks manualmente.
      *
      * @param request   solicitud de ejecucion
+     * @param context   contexto activo (activado en ThreadLocal por {@code initialize()})
      * @param collector listener que captura resultados en memoria
      * @return exit status de Cucumber (0 = exito, != 0 = fallo)
      */
-    protected byte runCucumber(ExecutionRequest request, InMemoryResultCollector collector) {
+    protected byte runCucumber(ExecutionRequest request,
+                               ExecutionContext context,
+                               InMemoryResultCollector collector) {
         try {
             List<String> args = buildCucumberArgs(request);
             log.debug("Cucumber args: {}", args);
@@ -145,9 +158,14 @@ public class CucumberRuntimeEngine {
             RuntimeOptionsBuilder optionsBuilder = parser.parse(args.toArray(new String[0]));
             RuntimeOptions runtimeOptions = optionsBuilder.build();
 
+            // Bridge que notifica onScenarioStart/onScenarioEnd a los plugins
+            // por cada TestCaseStarted/TestCaseFinished que Cucumber emite.
+            ScenarioLifecycleBridge lifecycleBridge =
+                    new ScenarioLifecycleBridge(lifecycleManager, context);
+
             io.cucumber.core.runtime.Runtime runtime = io.cucumber.core.runtime.Runtime.builder()
                     .withRuntimeOptions(runtimeOptions)
-                    .withAdditionalPlugins(collector)
+                    .withAdditionalPlugins(collector, lifecycleBridge)
                     .withClassLoader(() -> Thread.currentThread().getContextClassLoader())
                     .build();
 
@@ -165,9 +183,9 @@ public class CucumberRuntimeEngine {
      *
      * <p>Orden:
      * <ol>
-     *   <li>--glue paths (uno por cada glue path)</li>
-     *   <li>--tags (si estan definidos en la configuracion)</li>
-     *   <li>--monochrome (salida sin color para logs estructurados)</li>
+     *   <li>--glue paths — derivados de plugins SPI si el request no los especifica explícitamente</li>
+     *   <li>--tags — si están definidos en la configuración</li>
+     *   <li>--monochrome — salida sin color para logs estructurados</li>
      *   <li>feature paths al final (posicionales, sin flag)</li>
      * </ol>
      *
@@ -177,8 +195,9 @@ public class CucumberRuntimeEngine {
     private List<String> buildCucumberArgs(ExecutionRequest request) {
         List<String> args = new ArrayList<>();
 
-        // Glue paths: paquetes donde Cucumber busca step definitions y hooks
-        for (String glue : request.getGluePaths()) {
+        // Glue paths: paquetes donde Cucumber busca step definitions y hooks.
+        // Se usan los explícitos del request si los hay; si no, se derivan de los plugins SPI.
+        for (String glue : resolveGluePaths(request)) {
             args.add("--glue");
             args.add(glue);
         }
@@ -197,6 +216,41 @@ public class CucumberRuntimeEngine {
         args.addAll(request.getFeaturePaths());
 
         return args;
+    }
+
+    /**
+     * Resuelve los paquetes de glue para una ejecución.
+     *
+     * <p>Estrategia con prioridad:
+     * <ol>
+     *   <li>Si el request provee gluePaths explícitos → se usan tal cual (override del caller).</li>
+     *   <li>Si el request tiene gluePaths vacío → se derivan automáticamente de todos los plugins
+     *       descubiertos vía SPI, invocando {@link CorePlugin#getGluePackages()} en cada uno.</li>
+     * </ol>
+     *
+     * <p>La derivación automática garantiza que el Backend no necesita conocer los paquetes
+     * de steps de cada módulo. Añadir un nuevo plugin al classpath es suficiente.
+     *
+     * @param request solicitud de ejecucion
+     * @return lista de paquetes Java (sin duplicados, ordenada), nunca null ni vacía si hay plugins
+     * @since 2.2.0
+     */
+    List<String> resolveGluePaths(ExecutionRequest request) {
+        if (!request.isGlueAutoResolved()) {
+            log.debug("[SPI] Usando glue paths explícitos del request ({}): {}",
+                    request.getGluePaths().size(), request.getGluePaths());
+            return request.getGluePaths();
+        }
+
+        List<String> derived = discoveryService.resolveGluePaths();
+        log.info("[SPI] Glue paths auto-derivados de {} plugins: {}",
+                discoveryService.getPlugins().size(), derived);
+
+        if (derived.isEmpty()) {
+            log.warn("[SPI] Ningún glue path derivado de los plugins. "
+                    + "Verificar que los plugins tengan componentes con getStepDefinitionClass() no nulo.");
+        }
+        return derived;
     }
 
     // --- Accessors ---

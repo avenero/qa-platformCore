@@ -26,6 +26,8 @@
 10. [Configuración](#10-configuración)
 11. [Patrones de diseño usados](#11-patrones-de-diseño-usados)
 12. [Troubleshooting](#12-troubleshooting)
+13. [Integración con el Backend (CuAleon)](#13-integración-con-el-backend-cualeon)
+14. [Convención de IDs de Step](#14-convención-de-ids-de-step)
 
 ---
 
@@ -834,6 +836,52 @@ List<StepComponent> webComponents = discovery.discoverAll()
 ```
 
 El plugin se activa con los tags `@web`, `@ui`, `@browser` o `@selenium`. No requiere configuración adicional en el `ExecutionRequest` — la URL de navegación se pasa como parámetro en los steps.
+
+---
+
+## 14. Convención de IDs de Step
+
+Todos los componentes de `web-core` declaran su `stepId` con la anotación `@StepId`. Estos IDs son el **contrato con el Backend**: se persisten en la base de datos al guardar escenarios y ejecuciones, y deben mantenerse estables entre releases.
+
+### Catálogo de IDs — web-core
+
+| `stepId` | Clase | Fase BDD | Descripción |
+|----------|-------|----------|-------------|
+| `web.browser.config` | `BrowserConfigComponent` | GIVEN | Configuración del navegador, modo headless, capabilities |
+| `web.environment` | `WebEnvironmentComponent` | GIVEN | Variables de entorno y configuración de ambiente |
+| `web.navigation` | `NavigationComponent` | GIVEN/WHEN | Navegar a URLs, historial, recargar página |
+| `web.click` | `ClickComponent` | WHEN | Clic, doble clic, clic derecho sobre elementos |
+| `web.input` | `InputComponent` | WHEN | Escribir texto, limpiar campos, subir archivos |
+| `web.select` | `SelectComponent` | WHEN | Seleccionar opciones en dropdowns y listas |
+| `web.scroll` | `ScrollComponent` | WHEN | Scroll en la página y dentro de elementos |
+| `web.dragdrop` | `DragDropComponent` | WHEN | Arrastrar y soltar elementos |
+| `web.frame` | `FrameComponent` | WHEN | Cambiar contexto a frames/iframes |
+| `web.window` | `WindowComponent` | WHEN | Gestión de ventanas y tabs del navegador |
+| `web.alert` | `AlertComponent` | WHEN | Aceptar, rechazar y leer alertas del navegador |
+| `web.wait` | `WaitComponent` | WHEN | Esperas explícitas e implícitas sobre elementos |
+| `web.screenshot` | `ScreenshotComponent` | THEN | Captura de pantalla en steps de validación |
+| `web.validation.element` | `ElementValidationComponent` | THEN | Visibilidad, texto, atributos de elementos |
+| `web.validation.page` | `PageValidationComponent` | THEN | Título, URL, contenido general de la página |
+| `web.validation.table` | `TableValidationComponent` | THEN | Filas, columnas y celdas de tablas HTML |
+
+### Reglas de uso
+
+- **No cambiar un `stepId`** sin marcar el anterior `deprecated = true` y declarar `replacedBy`.
+- Si se agrega un nuevo componente web, seguir el formato `web.{dominio}[.{subdominio}]`.
+- Los componentes de validación comparten el prefijo `web.validation.` para agruparlos visualmente en el Scenario Builder.
+
+```java
+// Ejemplo: resolver el componente de navegación
+discovery.resolveStep("web.navigation")
+         .map(info -> info.getDisplayNameForLocale("en"))
+         .orElse("(no encontrado)");
+// → "Navigation"
+```
+
+> Para la convención general (formato, ciclo de deprecación, reglas globales) ver
+> [common/README.md — Convención de IDs de Step](../common/README.md#14-convención-de-ids-de-step).
+
+---
 
 > 📖 **Documentación relacionada:**
 > - [common/README.md](../common/README.md) — Motor de ejecución y contrato con el Backend

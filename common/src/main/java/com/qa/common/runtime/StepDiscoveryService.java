@@ -6,31 +6,73 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
- * Servicio de descubrimiento de steps agrupados por componente.
+ * Servicio de descubrimiento de steps agrupados por componente y por método individual.
  *
  * <p>Escanea todos los {@link CorePlugin} registrados y extrae sus
- * {@link StepComponent}s, proporcionando metadata estructurada para:
+ * {@link StepComponent}s, proporcionando metadata estructurada en dos niveles de
+ * granularidad para:
  * <ul>
- *   <li>El Backend: endpoint {@code GET /api/steps} que expone componentes disponibles</li>
+ *   <li>El Backend: endpoint {@code GET /api/steps} que expone el catálogo completo</li>
  *   <li>El Frontend: paleta visual de componentes BDD para el Scenario Builder</li>
  *   <li>El Engine: glue paths necesarios para una ejecucion</li>
  * </ul>
+ *
+ * <h2>Modelo de dos niveles</h2>
+ * <p>El catálogo opera en dos granularidades complementarias:
+ * <ol>
+ *   <li><strong>Nivel componente</strong> — {@link #discoverAll()}: agrupa steps por
+ *       responsabilidad. Ejemplo: {@code "api.authentication"} agrupa todos los steps
+ *       de autenticación HTTP.</li>
+ *   <li><strong>Nivel step</strong> — {@link #discoverAllStepDefs()}: cada método
+ *       individual {@code @Given/@When/@Then}. Ejemplo: el step
+ *       {@code "api.authentication.bearer.rut"} con patrón
+ *       {@code "agrego autenticación Bearer para RUT {string}"}.</li>
+ * </ol>
+ * <p>El nivel step es construido por {@link StepMethodScanner} vía reflexión sobre
+ * {@link StepComponent#getStepDefinitionClass()}.
+ *
+ * <h2>Resolución por ID (bridge BE ↔ Core)</h2>
+ * <p>El Backend puede resolver de forma unívoca tanto un componente como un step individual
+ * sin recorrer todos los plugins:
+ * <pre>
+ *   // Nivel componente
+ *   Optional&lt;ComponentInfo&gt; info = discovery.resolveStep("api.authentication");
+ *   info.ifPresent(c -> engine.execute(buildRequest(c)));
+ *
+ *   // Nivel step individual
+ *   Optional&lt;StepDefinitionInfo&gt; sdi = discovery.resolveStepDef("api.authentication.bearer.rut");
+ *   sdi.ifPresent(s -> log.info("Patrón: {}", s.cucumberPattern()));
+ * </pre>
+ *
+ * <h2>Validación de IDs</h2>
+ * <p>Al inicializarse, el servicio valida que no existan IDs duplicados entre todos los
+ * componentes. Si los hay, emite una advertencia en el log (no falla la aplicación, para no
+ * romper entornos con plugins de terceros). Puede forzarse la verificación programática con
+ * {@link #validateIds()}.
  *
  * @author Abel Venero
  * @since 2.0.0
  * @see CorePlugin#getComponents()
  * @see StepComponent
+ * @see StepId
+ * @see StepMethodScanner
+ * @see StepDefinitionInfo
  */
 public final class StepDiscoveryService {
 
     private static final Logger log = LoggerFactory.getLogger(StepDiscoveryService.class);
 
     private final List<CorePlugin> plugins;
+
+    /** Escáner de reflexión para el nivel 2 del catálogo (steps individuales). */
+    private final StepMethodScanner stepMethodScanner = new StepMethodScanner();
 
     /**
      * Constructor con plugins explicitamente proporcionados (para testing).
@@ -40,6 +82,7 @@ public final class StepDiscoveryService {
         Objects.requireNonNull(plugins, "plugins no puede ser null");
         this.plugins = List.copyOf(plugins);
         log.debug("StepDiscoveryService inicializado con {} plugins", this.plugins.size());
+        validateIds();
     }
 
     /**
@@ -97,6 +140,57 @@ public final class StepDiscoveryService {
     }
 
     /**
+     * Resuelve un componente por su {@code stepId} estable.
+     *
+     * <p>Este método es el <strong>bridge principal</strong> para que el Backend resuelva
+     * un {@link StepComponent} a partir del ID persistido en la base de datos, sin recorrer
+     * todos los plugins manualmente. Se usa en:
+     * <ul>
+     *   <li>Ejecución asíncrona: mapear {@code stepId} → glue path del escenario</li>
+     *   <li>Export documental: resolver metadata del componente para generar documentación</li>
+     *   <li>Lint BDD: verificar que todos los step IDs del escenario existen en el catálogo</li>
+     *   <li>Import (Swagger/Postman/User Story): sugerir el componente más afín</li>
+     * </ul>
+     *
+     * <p>Ejemplo de uso:
+     * <pre>
+     *   discovery.resolveStep("api.authentication")
+     *       .map(ComponentInfo::component)
+     *       .ifPresent(c -> log.info("Encontrado: {}", c.getDisplayName()));
+     * </pre>
+     *
+     * <p>Si el {@code stepId} corresponde a un componente marcado como
+     * {@link StepId#deprecated() deprecated}, se emite una advertencia en el log indicando
+     * el ID de reemplazo (si está declarado).
+     *
+     * @param stepId identificador estable del componente (ej: {@code "api.authentication"})
+     * @return {@link Optional} con el primer {@link ComponentInfo} que coincida, o vacío si no existe
+     */
+    public Optional<ComponentInfo> resolveStep(String stepId) {
+        Objects.requireNonNull(stepId, "stepId no puede ser null");
+        Optional<ComponentInfo> found = discoverAll().stream()
+                .filter(info -> stepId.equals(info.component().getId()))
+                .findFirst();
+
+        found.ifPresent(info -> {
+            StepComponent c = info.component();
+            if (c.isDeprecated()) {
+                String replacement = c.getReplacementStepId() != null
+                        ? "'" + c.getReplacementStepId() + "'"
+                        : "(sin reemplazo declarado)";
+                log.warn("StepId '{}' está marcado como DEPRECATED. Reemplazo: {}. "
+                        + "Actualiza los escenarios que usen este ID.", stepId, replacement);
+            }
+        });
+
+        if (found.isEmpty()) {
+            log.debug("resolveStep('{}') → no encontrado en {} plugins", stepId, plugins.size());
+        }
+
+        return found;
+    }
+
+    /**
      * Agrupa todos los componentes por fase BDD.
      *
      * @return mapa: fase BDD → lista de componentes
@@ -145,8 +239,14 @@ public final class StepDiscoveryService {
     /**
      * Exporta todos los componentes como {@link StepInfo}, el DTO que consume el Backend.
      *
-     * <p>Cada {@link StepInfo} incluye los mapas i18n copiados desde el componente,
-     * listos para serializar en {@code GET /api/steps} sin procesamiento adicional.
+     * <p>Cada {@link StepInfo} incluye:
+     * <ul>
+     *   <li>Mapas i18n copiados desde el componente, listos para serializar en
+     *       {@code GET /api/steps} sin procesamiento adicional.</li>
+     *   <li>Flags de deprecación: {@link StepInfo#deprecated()} y
+     *       {@link StepInfo#replacementStepId()}, propagados desde
+     *       {@link StepComponent#isDeprecated()} y {@link StepComponent#getReplacementStepId()}.</li>
+     * </ul>
      *
      * @return lista inmutable de StepInfo; uno por componente registrado
      */
@@ -166,10 +266,46 @@ public final class StepDiscoveryService {
                             c.getDisplayName(),
                             c.getDescription(),
                             c.getDisplayNameByLocale(),
-                            c.getDescriptionByLocale()
+                            c.getDescriptionByLocale(),
+                            c.isDeprecated(),
+                            c.getReplacementStepId()
                     );
                 })
                 .collect(Collectors.toUnmodifiableList());
+    }
+
+    /**
+     * Verifica que no existan IDs duplicados entre todos los componentes registrados.
+     *
+     * <p>Un ID duplicado es un error de configuración: el Backend no podría resolver
+     * unívocamente un componente por {@code stepId}. Si se detectan duplicados, se emite
+     * una advertencia en el log con los IDs afectados. No lanza excepción para no romper
+     * entornos con plugins de terceros.
+     *
+     * <p>Este método se llama automáticamente en el constructor. También puede invocarse
+     * programáticamente (ej: en tests de integración o al arrancar el Backend).
+     *
+     * @return conjunto de IDs duplicados; vacío si todo es correcto
+     */
+    public Set<String> validateIds() {
+        List<String> allIds = discoverAll().stream()
+                .map(info -> info.component().getId())
+                .collect(Collectors.toList());
+
+        Set<String> duplicates = allIds.stream()
+                .filter(id -> allIds.stream().filter(id::equals).count() > 1)
+                .collect(Collectors.toSet());
+
+        if (!duplicates.isEmpty()) {
+            log.warn("⚠️  StepDiscoveryService detectó IDs de step DUPLICADOS: {}. "
+                    + "Esto impedirá la resolución unívoca por stepId desde el Backend. "
+                    + "Revisá los componentes afectados y asigná IDs únicos con @StepId.",
+                    duplicates);
+        } else {
+            log.debug("Validación de IDs OK: {} componentes con IDs únicos", allIds.size());
+        }
+
+        return duplicates;
     }
 
     /**
@@ -178,6 +314,130 @@ public final class StepDiscoveryService {
      */
     public List<CorePlugin> getPlugins() {
         return plugins;
+    }
+
+    /**
+     * Retorna todos los paquetes de glue derivados de los plugins descubiertos.
+     *
+     * <p>Agrega los paquetes de {@link CorePlugin#getGluePackages()} de cada plugin,
+     * elimina duplicados y ordena el resultado. El {@link CucumberRuntimeEngine} usa
+     * este método cuando {@code ExecutionRequest.getGluePaths()} está vacío.
+     *
+     * <p>El Backend puede invocar este método en {@code CoreEngineConfig} para obtener
+     * los paquetes de steps automáticamente, sin mantener ninguna lista manual:
+     * <pre>
+     *   StepDiscoveryService discovery = StepDiscoveryService.withServiceLoader();
+     *   List&lt;String&gt; glue = discovery.resolveGluePaths();
+     *   // glue = ["com.qa.apicore.steps", "com.qa.webcore.steps", ...]
+     * </pre>
+     *
+     * @return lista inmutable de paquetes Java, sin duplicados y ordenada; nunca null
+     * @since 2.2.0
+     */
+    public List<String> resolveGluePaths() {
+        List<String> paths = plugins.stream()
+                .flatMap(p -> p.getGluePackages().stream())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toUnmodifiableList());
+        log.debug("resolveGluePaths(): {} paquetes de {} plugins", paths.size(), plugins.size());
+        return paths;
+    }
+
+    // =========================================================================
+    // Nivel 2 — descubrimiento de steps individuales (métodos @Given/@When/@Then)
+    // =========================================================================
+
+    /**
+     * Descubre todos los steps individuales de todos los plugins.
+     *
+     * <p>Para cada {@link ComponentInfo} retornado por {@link #discoverAll()}, el
+     * {@link StepMethodScanner} escanea vía reflexión la clase indicada por
+     * {@link StepComponent#getStepDefinitionClass()} y detecta todos los métodos
+     * anotados con {@code @Given}, {@code @When} o {@code @Then}.
+     *
+     * <p>Los componentes cuyo {@code getStepDefinitionClass()} retorna {@code null}
+     * (aún no implementados) se omiten silenciosamente.
+     *
+     * <p>Ejemplo de uso desde el Backend (endpoint {@code GET /api/steps/defs}):
+     * <pre>
+     *   List&lt;StepDefinitionInfo&gt; defs = discovery.discoverAllStepDefs();
+     *   // serializar a JSON y devolver al Frontend para autocompletar el Scenario Builder
+     * </pre>
+     *
+     * @return lista inmutable de {@link StepDefinitionInfo}; nunca null, puede estar vacía
+     * @since 2.2.0
+     */
+    public List<StepDefinitionInfo> discoverAllStepDefs() {
+        return stepMethodScanner.scanAll(discoverAll());
+    }
+
+    /**
+     * Resuelve un step individual por su {@code stepDefId} estable.
+     *
+     * <p>El Backend usa este método para resolver el patrón y los parámetros de un step
+     * a partir de su ID persistido, sin recorrer todos los plugins manualmente.
+     *
+     * <p>Si el {@code stepDefId} pertenece a un step marcado como
+     * {@link com.qa.common.runtime.annotation.StepDef#deprecated() deprecated},
+     * se emite una advertencia en el log indicando el ID de reemplazo si está declarado.
+     *
+     * @param stepDefId ID estable del step individual (ej: {@code "api.authentication.bearer.rut"})
+     * @return {@link Optional} con el primer {@link StepDefinitionInfo} que coincida,
+     *         o vacío si no existe
+     * @since 2.2.0
+     */
+    public Optional<StepDefinitionInfo> resolveStepDef(String stepDefId) {
+        Objects.requireNonNull(stepDefId, "stepDefId no puede ser null");
+        Optional<StepDefinitionInfo> found = discoverAllStepDefs().stream()
+                .filter(sdi -> stepDefId.equals(sdi.stepDefId()))
+                .findFirst();
+
+        found.ifPresent(sdi -> {
+            if (sdi.deprecated()) {
+                String replacement = sdi.hasReplacement()
+                        ? "'" + sdi.replacementStepDefId() + "'"
+                        : "(sin reemplazo declarado)";
+                log.warn("StepDefId '{}' está marcado como DEPRECATED. Reemplazo: {}. "
+                        + "Actualiza los escenarios que usen este ID.", stepDefId, replacement);
+            }
+        });
+
+        if (found.isEmpty()) {
+            log.debug("resolveStepDef('{}') → no encontrado en {} plugins", stepDefId, plugins.size());
+        }
+        return found;
+    }
+
+    /**
+     * Descubre todos los steps individuales de un componente específico.
+     *
+     * <p>Permite al Backend obtener los steps de un componente por su {@code componentId}
+     * sin recorrer el catálogo completo. Útil para el Scenario Builder cuando el usuario
+     * selecciona un componente y se quiere expandir su lista de steps.
+     *
+     * @param componentId ID del componente padre (valor de su {@code @StepId})
+     * @return lista inmutable de {@link StepDefinitionInfo} del componente; vacía si no hay
+     * @since 2.2.0
+     */
+    public List<StepDefinitionInfo> discoverStepDefsByComponent(String componentId) {
+        Objects.requireNonNull(componentId, "componentId no puede ser null");
+        return discoverAllStepDefs().stream()
+                .filter(sdi -> componentId.equals(sdi.componentId()))
+                .collect(Collectors.toUnmodifiableList());
+    }
+
+    /**
+     * Cantidad total de steps individuales descubiertos en todos los plugins.
+     *
+     * <p>Suma los steps de todos los componentes de todos los plugins. Equivale a
+     * {@code discoverAllStepDefs().size()} pero puede usarse como métrica rápida.
+     *
+     * @return total de steps individuales
+     * @since 2.2.0
+     */
+    public int totalStepDefs() {
+        return discoverAllStepDefs().size();
     }
 
     @Override
@@ -254,4 +514,3 @@ public final class StepDiscoveryService {
         }
     }
 }
-

@@ -21,6 +21,7 @@
 11. [Reportes — reporting/](#11-reportes--reporting)
 12. [Cómo usar Common en otro módulo](#12-cómo-usar-common-en-otro-módulo)
 13. [Dependencias](#13-dependencias)
+14. [Convención de IDs de Step](#14-convención-de-ids-de-step)
 
 ---
 
@@ -74,7 +75,16 @@ common/
     │   ├── DefaultLifecycleManager.java ← Gestiona ciclo de vida de plugins
     │   ├── LifecycleManager.java        ← Interfaz del lifecycle manager
     │   ├── InMemoryResultCollector.java ← Colecta resultados en memoria
-    │   ├── StepDiscoveryService.java    ← Descubre steps disponibles
+    │   ├── ScenarioMetadata.java        ← Record: metadata de un escenario (2.1.0)
+    │   ├── ScenarioLifecycleBridge.java ← Bridge Cucumber events → LifecycleManager (2.1.0)
+    │   ├── StepDiscoveryService.java    ← Descubre steps (nivel componente y nivel método)
+    │   ├── StepInfo.java                ← DTO nivel componente (para el Backend)
+    │   ├── StepDefinitionInfo.java      ← DTO nivel step individual (2.2.0) ⭐
+    │   ├── ParamInfo.java               ← DTO parámetro de un step (2.2.0)
+    │   ├── StepMethodScanner.java       ← Scanner reflexivo @Given/@When/@Then (2.2.0) ⭐
+    │   ├── annotation/
+    │   │   ├── StepId.java              ← @StepId en clase StepComponent (ID estable)
+    │   │   └── StepDef.java             ← @StepDef en método step (ID nivel método) (2.2.0)
     │   └── events/                      ← Eventos del ciclo de vida
     │
     ├── logging/                         ← SISTEMA DE LOGGING
@@ -646,6 +656,146 @@ cd qa-frameworks-core
 | **PostgreSQL** | 42.x | Driver PostgreSQL |
 | **MySQL Connector** | 8.x | Driver MySQL |
 | **MSSQL JDBC** | 12.x | Driver SQL Server |
+
+---
+
+## 13. Catálogo de Steps — Modelo de Dos Niveles (v2.2.0)
+
+El `StepDiscoveryService` expone el catálogo en dos granularidades complementarias:
+
+### Nivel 1: Componente (`StepInfo`)
+
+Agrupa steps por responsabilidad. Cada `StepComponent` es un grupo cohesivo de steps.
+
+```java
+// Endpoint sugerido: GET /api/steps
+List<StepInfo> components = discovery.discoverAllAsStepInfo();
+// → [{id: "api.authentication", layer: "api", phase: "GIVEN", ...}, ...]
+
+// Resolver un componente por su ID
+Optional<ComponentInfo> info = discovery.resolveStep("api.authentication");
+```
+
+### Nivel 2: Step Individual (`StepDefinitionInfo`)
+
+Representa cada método `@Given/@When/@Then` con su patrón Cucumber y parámetros. Usa reflexión sobre `StepComponent.getStepDefinitionClass()`.
+
+```java
+// Endpoint sugerido: GET /api/steps/defs
+List<StepDefinitionInfo> defs = discovery.discoverAllStepDefs();
+// → [{stepDefId: "api.auth.bearer.rut",
+//     cucumberPattern: "agrego autenticación Bearer para RUT {string}",
+//     phase: GIVEN, layer: "api", componentId: "api.authentication",
+//     params: [{position:0, name:"rut", javaType:"String", cucumberToken:"{string}"}]}, ...]
+
+// Resolver un step individual por su ID
+Optional<StepDefinitionInfo> sdi = discovery.resolveStepDef("api.auth.bearer.rut");
+
+// Obtener todos los steps de un componente
+List<StepDefinitionInfo> authSteps = discovery.discoverStepDefsByComponent("api.authentication");
+```
+
+### Declarar IDs estables con `@StepDef`
+
+La anotación `@StepDef` en el método de step declara su ID estable. Sin ella, el scanner deriva un ID como `{componentId}#{methodName}` (menos estable ante renombrados):
+
+```java
+// En AuthenticationSteps.java
+@StepDef("api.authentication.bearer.rut")        // ID estable declarado explícitamente
+@Given("agrego autenticación Bearer para RUT {string}")
+public void agregoAutenticacionBearerParaRUT(String rut) { ... }
+
+// Ciclo de deprecación a nivel step
+@StepDef(value = "api.auth.old", deprecated = true, replacedBy = "api.auth.bearer.rut")
+@Given("patron viejo")
+public void patronViejo() { ... }
+```
+
+### Extracción de parámetros
+
+El scanner mapea tokens del patrón Cucumber a parámetros Java por posición:
+
+| Patrón | Parámetro Java | `cucumberToken` | `javaType` |
+|--------|---------------|-----------------|------------|
+| `{string}` | `String rut` | `"{string}"` | `"String"` |
+| `{int}` | `int code` | `"{int}"` | `"int"` |
+| *(sin token)* | `Map<String,String> claims` | `null` | `"Map"` |
+
+Los parámetros sin token (`cucumberToken == null`) son DataTable o DocString inyectados por Cucumber.
+
+---
+
+## 14. Convención de IDs de Step
+
+El **ID de un step component** (`stepId`) es el identificador estable que el Backend almacena en la base de datos para referenciar un componente de steps dentro de escenarios, ejecuciones, exports y operaciones de lint/import. Es el contrato de integración entre Core, Backend y Frontend.
+
+### Formato canónico
+
+```
+{capa}.{dominio}[.{subdominio}]
+```
+
+| Segmento | Descripción | Ejemplos |
+|----------|-------------|---------|
+| `{capa}` | Capa origen del componente | `api`, `web`, `mobile`, `db` |
+| `{dominio}` | Responsabilidad principal (lowercase, sin espacios) | `authentication`, `navigation`, `device.config` |
+| `{subdominio}` | *(Opcional)* Refinamiento cuando hay varios componentes en el mismo dominio | `response.body`, `validation.element` |
+
+### Cómo declarar un ID
+
+Toda clase que implementa `StepComponent` **debe** llevar la anotación `@StepId`:
+
+```java
+import com.qa.common.runtime.annotation.StepId;
+
+@StepId("api.authentication")
+public class ApiAuthComponent implements StepComponent {
+    // No es necesario hacer @Override de getId() — la anotación lo resuelve
+    ...
+}
+```
+
+La anotación tiene precedencia sobre cualquier implementación del método `getId()`. El método `StepComponent.getId()` la lee automáticamente vía reflexión en tiempo de ejecución.
+
+### Reglas de estabilidad
+
+> ⚠️ El `stepId` es un **contrato público**. El Backend lo persiste en la base de datos. Cambiar un ID sin deprecación previa romperá escenarios existentes.
+
+| Regla | Detalle |
+|-------|---------|
+| **No cambiar IDs sin deprecar primero** | Si se debe renombrar un componente, mantener el ID anterior marcado como `deprecated = true` durante al menos una release. |
+| **Declarar `replacedBy`** | Al deprecar, indicar el ID del sucesor para que el Backend pueda migrar automáticamente los escenarios persistidos. |
+| **Unicidad obligatoria** | No pueden existir dos componentes con el mismo `stepId` en el classpath. `StepDiscoveryService` detecta duplicados al inicializar y emite una advertencia. |
+| **Formato consistente** | Lowercase, separado con puntos, sin espacios ni guiones bajos. Se permiten guiones en el último segmento (`app-state`, `drag-drop`) solo si mejoran la legibilidad. |
+
+### Ciclo de deprecación
+
+```java
+// Release N — marcar el ID anterior como deprecated
+@StepId(value = "api.old.url", deprecated = true, replacedBy = "api.url")
+public class ApiUrlComponent implements StepComponent { ... }
+
+// Release N+1 — usar el nuevo ID
+@StepId("api.url")
+public class ApiUrlComponent implements StepComponent { ... }
+```
+
+### Resolución desde el Backend
+
+El `StepDiscoveryService` expone `resolveStep(String stepId)` como bridge principal:
+
+```java
+// En un servicio del Backend (ej: ScenarioExecutionService)
+StepDiscoveryService discovery = CucumberRuntimeEngine.withServiceLoader().getDiscoveryService();
+
+Optional<StepDiscoveryService.ComponentInfo> info = discovery.resolveStep("api.authentication");
+
+info.ifPresent(c -> {
+    // c.component() → el StepComponent
+    // c.pluginName() → "api"
+    // c.getDisplayNameForLocale("en") → "Authentication"
+});
+```
 
 ---
 

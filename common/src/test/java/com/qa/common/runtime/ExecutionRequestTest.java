@@ -107,7 +107,7 @@ class ExecutionRequestTest {
     class ToStringTests {
 
         @Test
-        @DisplayName("toString contiene conteos de features y glue")
+        @DisplayName("toString con glue explicito muestra el conteo numerico")
         void toStringContieneConteos() {
             ExecutionRequest request = ExecutionRequest.of(
                     List.of("a.feature", "b.feature"),
@@ -116,6 +116,104 @@ class ExecutionRequestTest {
 
             String str = request.toString();
             assertThat(str).contains("features=2").contains("glue=1");
+        }
+
+        @Test
+        @DisplayName("toString con glue auto muestra 'auto(SPI)'")
+        void toStringConGlueAutoMuestraLabel() {
+            ExecutionRequest request = ExecutionRequest.of(
+                    List.of("a.feature"), config);
+
+            assertThat(request.toString()).contains("auto(SPI)");
+        }
+    }
+
+    // =========================================================================
+    // Factory method SPI (2 argumentos) — @since 2.2.0
+    // =========================================================================
+
+    @Nested
+    @DisplayName("of(featurePaths, config) — modo SPI sin gluePaths")
+    class FactorySinGlueTests {
+
+        @Test
+        @DisplayName("Crea request con gluePaths vacio")
+        void creaRequestConGlueVacio() {
+            ExecutionRequest request = ExecutionRequest.of(
+                    List.of("login.feature"), config);
+
+            assertThat(request.getGluePaths()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("isGlueAutoResolved() retorna true")
+        void isGlueAutoResolvedRetornaTrue() {
+            ExecutionRequest request = ExecutionRequest.of(
+                    List.of("login.feature"), config);
+
+            assertThat(request.isGlueAutoResolved()).isTrue();
+        }
+
+        @Test
+        @DisplayName("featurePaths y config se preservan")
+        void featurePathsYConfigSePreservan() {
+            List<String> features = List.of("a.feature", "b.feature");
+            ExecutionRequest request = ExecutionRequest.of(features, config);
+
+            assertThat(request.getFeaturePaths()).containsExactlyInAnyOrderElementsOf(features);
+            assertThat(request.getConfig()).isSameAs(config);
+        }
+
+        @Test
+        @DisplayName("featurePaths null lanza NullPointerException")
+        void featurePathsNullLanzaNPE() {
+            assertThatThrownBy(() -> ExecutionRequest.of(null, config))
+                    .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("config null lanza NullPointerException")
+        void configNullLanzaNPE() {
+            assertThatThrownBy(() -> ExecutionRequest.of(List.of("f.feature"), (ExecutionConfig) null))
+                    .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("gluePaths resultante es inmutable")
+        void gluePathsEsInmutable() {
+            ExecutionRequest request = ExecutionRequest.of(List.of("f.feature"), config);
+
+            assertThatThrownBy(() -> request.getGluePaths().add("com.qa.steps"))
+                    .isInstanceOf(UnsupportedOperationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("isGlueAutoResolved()")
+    class IsGlueAutoResolvedTests {
+
+        @Test
+        @DisplayName("Retorna false cuando se proporcionan gluePaths explícitos")
+        void retornsFalseConGlueExplicito() {
+            ExecutionRequest request = ExecutionRequest.of(
+                    List.of("f.feature"), List.of("com.qa.steps"), config);
+
+            assertThat(request.isGlueAutoResolved()).isFalse();
+        }
+
+        @Test
+        @DisplayName("Retorna true cuando gluePaths es vacio (factory de 3 args con lista vacia)")
+        void retornsTrueConGlueVacioExplicito() {
+            ExecutionRequest request = ExecutionRequest.of(
+                    List.of("f.feature"), List.of(), config);
+
+            assertThat(request.isGlueAutoResolved()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Retorna true con factory de 2 args")
+        void retornsTrueConFactory2Args() {
+            assertThat(ExecutionRequest.of(List.of("f.feature"), config).isGlueAutoResolved()).isTrue();
         }
     }
 }

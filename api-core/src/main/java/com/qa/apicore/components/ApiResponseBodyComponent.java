@@ -3,6 +3,7 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.validation.ResponseBodySteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("api.response.body")
 public class ApiResponseBodyComponent implements StepComponent {
     @Override public String getName()                  { return "Response Body"; }
-    @Override public String getId()                    { return "api.response.body"; }
     @Override public String getDisplayName()           { return "Response Body"; }
     @Override public String getDescription()           { return "Validacion y extraccion del cuerpo de respuesta JSON"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }

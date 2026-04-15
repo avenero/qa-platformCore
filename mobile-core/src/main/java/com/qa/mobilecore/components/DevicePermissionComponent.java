@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.mobilecore.steps.device.DevicePermissionSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("mobile.permissions")
 public class DevicePermissionComponent implements StepComponent {
     @Override public String getName()                  { return "Permisos del Dispositivo"; }
-    @Override public String getId()                    { return "mobile.permissions"; }
     @Override public String getDisplayName()           { return "Permisos del Dispositivo"; }
     @Override public String getDescription()           { return "Conceder o denegar permisos del sistema operativo"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

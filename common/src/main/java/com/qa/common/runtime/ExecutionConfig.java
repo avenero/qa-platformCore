@@ -14,6 +14,30 @@ import java.util.Optional;
  *
  * <p>Una vez construido, es thread-safe e inmutable.
  *
+ * <h2>Claves de configuración oficiales por módulo</h2>
+ *
+ * <p>Las claves que se pueden enviar en {@link Builder#property(String, String)} /
+ * {@link Builder#properties(java.util.Map)} están centralizadas en las clases de constantes
+ * de cada módulo. Usar siempre esas constantes en lugar de cadenas literales:
+ *
+ * <ul>
+ *   <li><b>Web/Selenium</b> — {@code com.qa.webcore.config.WebConfigKeys}
+ *       <br>Principales: {@code "web.browser"}, {@code "web.headless"},
+ *       {@code "web.base.url"}, {@code "web.grid.enabled"}, {@code "web.grid.url"},
+ *       {@code "driver.strategy"}
+ *   </li>
+ *   <li><b>Mobile/Appium</b> — {@code com.qa.mobilecore.config.MobileConfigKeys}
+ *       <br>Principales: {@code "mobile.platform"}, {@code "mobile.device.id"},
+ *       {@code "mobile.appium.server.url"}, {@code "mobile.app.path"}
+ *   </li>
+ * </ul>
+ *
+ * <p><b>Nota de arquitectura:</b> {@code ExecutionConfig} pertenece al módulo {@code common}
+ * y no puede importar directamente las clases de constantes de módulos superiores
+ * ({@code web-core}, {@code mobile-core}) para evitar dependencias circulares.
+ * Los valores de clave se documentan aquí como referencia; la fuente de verdad son
+ * las clases {@code WebConfigKeys} y {@code MobileConfigKeys} en sus respectivos módulos.
+ *
  * @author Abel Venero
  * @since 2.0.0
  */

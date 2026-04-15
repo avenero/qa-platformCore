@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.interaction.InputSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.input")
 public class InputComponent implements StepComponent {
     @Override public String getName()                  { return "Entrada de Texto"; }
-    @Override public String getId()                    { return "web.input"; }
     @Override public String getDisplayName()           { return "Entrada de Texto"; }
     @Override public String getDescription()           { return "Escribir texto, limpiar campos, teclado"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

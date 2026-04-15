@@ -3,6 +3,7 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.config.HeaderSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("api.headers")
 public class ApiHeaderComponent implements StepComponent {
     @Override public String getName()                  { return "Headers"; }
-    @Override public String getId()                    { return "api.headers"; }
     @Override public String getDisplayName()           { return "Headers"; }
     @Override public String getDescription()           { return "Gestion de cabeceras HTTP de la peticion"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

@@ -1,14 +1,16 @@
 package com.qa.webcore.plugin;
 
-import com.qa.webcore.components.bdd.*;
 import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.ServiceRegistry;
 import com.qa.common.runtime.StepComponent;
 import com.qa.webcore.components.bdd.*;
+import com.qa.webcore.driver.DriverManager;
+import com.qa.webcore.driver.WebDriverFactory;
 import com.qa.webcore.utils.WebHelper;
 
+import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +21,29 @@ import java.util.Set;
  * Plugin de Web para el runtime de ejecución BDD.
  *
  * <p>Registra los servicios Selenium ({@link WebHelper}) y declara los
- * 16 componentes de steps Web organizados por responsabilidad (Fase 2).
+ * 16 componentes de steps Web organizados por responsabilidad.
+ *
+ * <h2>Ciclo de vida del WebDriver</h2>
+ * <p>El driver es <b>lazy</b>: no se crea en {@link #onScenarioStart}, sino en el
+ * {@code @Before} hook de Cucumber ({@link com.qa.webcore.steps.WebHooksSteps}),
+ * que también lo registra en el {@link ServiceRegistry} del contexto.
+ *
+ * <p>En {@link #onScenarioEnd} este plugin recupera el driver del {@code ServiceRegistry}
+ * vía {@link WebDriverFactory#closeDriver(ExecutionContext)} y lo cierra. De esta forma
+ * el cierre del driver es responsabilidad del ciclo de vida SPI del plugin, no solo del
+ * hook {@code @After} de Cucumber.
+ *
+ * <pre>
+ * Cucumber Runtime
+ *   ├─ @Before (WebHooksSteps)  → crea driver, registra en ServiceRegistry + DriverManager
+ *   ├─ [steps del escenario]
+ *   ├─ @After  (WebHooksSteps)  → screenshot si fallo, limpia cookies
+ *   └─ TestCaseFinished
+ *         └─► ScenarioLifecycleBridge
+ *               └─► WebPlugin.onScenarioEnd()
+ *                     └─► WebDriverFactory.closeDriver(ctx)  ← cierre autoritativo
+ *                     └─► DriverManager.quitDriverSafely()   ← limpieza ThreadLocal
+ * </pre>
  *
  * @author Abel Venero
  * @since 2.0.0
@@ -27,6 +51,10 @@ import java.util.Set;
 public class WebPlugin implements CorePlugin {
 
     private static final Logger log = LoggerFactory.getLogger(WebPlugin.class);
+
+    // =========================================================================
+    // Metadatos del plugin
+    // =========================================================================
 
     @Override
     public String getName() { return "web"; }
@@ -39,27 +67,65 @@ public class WebPlugin implements CorePlugin {
     @Override
     public int getOrder() { return 100; }
 
+    // =========================================================================
+    // Servicios
+    // =========================================================================
+
     @Override
     public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
         log.debug("[WebPlugin] Registrando servicios Web...");
         registry.registerLazy(WebHelper.class, WebHelper::new);
-        log.info("[WebPlugin] Servicio registrado: WebHelper");
+        log.info("[WebPlugin] Servicio registrado: WebHelper (lazy)");
     }
 
+    // =========================================================================
+    // Ciclo de vida por escenario
+    // =========================================================================
+
+    /**
+     * Callback al inicio de cada escenario.
+     *
+     * <p>El driver es <b>lazy</b>: se crea en el {@code @Before} hook de Cucumber
+     * ({@link com.qa.webcore.steps.WebHooksSteps#beforeScenario}), no aquí.
+     * Este método solo emite un log de trazabilidad.
+     */
     @Override
     public void onScenarioStart(ExecutionContext context) {
-        log.debug("[WebPlugin] onScenarioStart");
-    }
-
-    @Override
-    public void onScenarioEnd(ExecutionContext context) {
-        log.debug("[WebPlugin] onScenarioEnd");
+        log.debug("[WebPlugin] onScenarioStart — driver lazy, se creará en @Before de Cucumber");
     }
 
     /**
-     * Declara los 16 componentes de steps Web (Fase 2).
-     * Cada componente apunta a su clase específica según DISENO-STEPS-POR-COMPONENTES.md §4.
+     * Callback al final de cada escenario.
+     *
+     * <p>Recupera el {@link WebDriver} del {@link ServiceRegistry} del contexto
+     * y lo cierra vía {@link WebDriverFactory#closeDriver(ExecutionContext)}.
+     * Adicionalmente limpia el {@link DriverManager} ThreadLocal como safety-net.
+     *
+     * <p>Es idempotente: si el driver ya fue cerrado (o nunca se registró), no lanza excepción.
      */
+    @Override
+    public void onScenarioEnd(ExecutionContext context) {
+        log.debug("[WebPlugin] onScenarioEnd — cerrando WebDriver si existe en ServiceRegistry");
+        // Cierre autoritativo vía ServiceRegistry (registrado por WebHooksSteps.beforeScenario)
+        WebDriverFactory.closeDriver(context);
+        // Safety-net: limpia el ThreadLocal de DriverManager para evitar leaks entre escenarios
+        DriverManager.quitDriverSafely();
+        log.debug("[WebPlugin] onScenarioEnd — completado");
+    }
+
+    // =========================================================================
+    // Componentes de steps (16)
+    // =========================================================================
+
+    /**
+     * Declara los 16 componentes de steps Web.
+     * Cada componente agrupa steps cohesivos por responsabilidad y fase BDD.
+     *
+     * <p><em>Nota de deprecación:</em> {@code DragDropComponent} (stepId {@code "web.dragdrop"})
+     * se incluye durante el ciclo de transición hacia {@code "web.drag.drop"} (v2.2.0).
+     * Remover en v2.3.0 una vez migrados todos los escenarios persistidos.
+     */
+    @SuppressWarnings("deprecation")
     @Override
     public List<StepComponent> getComponents() {
         return List.of(

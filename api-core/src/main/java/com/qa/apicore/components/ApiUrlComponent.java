@@ -3,6 +3,7 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.config.UrlConfigSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("api.url")
 public class ApiUrlComponent implements StepComponent {
     @Override public String getName()                  { return "URL / Ambiente"; }
-    @Override public String getId()                    { return "api.url"; }
     @Override public String getDisplayName()           { return "URL / Ambiente"; }
     @Override public String getDescription()           { return "Configuracion de base URL, ambiente y protocolo"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

@@ -19,6 +19,7 @@
 - [Cómo se usa — Quick Start](#-cómo-se-usa--quick-start)
 - [Las 4 capas explicadas](#-las-4-capas-explicadas)
 - [Matriz de tecnologías](#-matriz-de-tecnologías)
+- [Convención de IDs de Step](#-convención-de-ids-de-step)
 - [CI/CD Pipeline](#-cicd-pipeline)
 - [Publicación en GitHub Packages](#-publicación-en-github-packages)
 - [Estado del proyecto](#-estado-del-proyecto)
@@ -781,6 +782,100 @@ open common/build/reports/checkstyle/main.html
 # 6. Ver reporte SpotBugs
 open common/build/reports/spotbugs/main.html
 ```
+
+---
+
+## 🏷️ Convención de IDs de Step
+
+El **`stepId`** es el identificador estable que conecta los componentes del Core con el Backend y el Frontend. Es el contrato que permite al Backend resolver un componente por nombre, persistir escenarios y ejecuciones, y al Frontend construir la paleta visual del Scenario Builder.
+
+### Formato
+
+```
+{capa}.{dominio}[.{subdominio}]
+```
+
+| Capa | Prefijo | Módulo |
+|------|---------|--------|
+| API REST | `api.` | `api-core` |
+| Web UI | `web.` | `web-core` |
+| Mobile | `mobile.` | `mobile-core` |
+| Base de Datos | `db.` | `common/database` |
+
+### Tabla de todos los IDs del framework (v2.1.0)
+
+**api-core (12):**
+
+| `stepId` | Fase | Propósito |
+|----------|------|-----------|
+| `api.url` | GIVEN | URL base y ambiente |
+| `api.authentication` | GIVEN | Auth: Bearer, Basic, API Key, OAuth |
+| `api.headers` | GIVEN | Cabeceras HTTP |
+| `api.cookies` | GIVEN | Cookies |
+| `api.parameters` | GIVEN | Query y path params |
+| `api.body` | GIVEN | Cuerpo de la petición |
+| `api.execution` | WHEN | Ejecutar petición HTTP |
+| `api.status` | THEN | Validar código de estado |
+| `api.response.body` | THEN | Validar cuerpo de respuesta |
+| `api.response.headers` | THEN | Validar cabeceras de respuesta |
+| `api.performance` | THEN | Validar tiempos de respuesta |
+| `api.security` | THEN | Validaciones de seguridad |
+
+**web-core (16):**
+
+| `stepId` | Fase | Propósito |
+|----------|------|-----------|
+| `web.browser.config` | GIVEN | Configurar navegador |
+| `web.environment` | GIVEN | Variables de ambiente |
+| `web.navigation` | GIVEN/WHEN | Navegar URLs |
+| `web.click` | WHEN | Clic sobre elementos |
+| `web.input` | WHEN | Escribir en campos |
+| `web.select` | WHEN | Seleccionar en dropdowns |
+| `web.scroll` | WHEN | Scroll en página |
+| `web.dragdrop` | WHEN | Arrastrar y soltar |
+| `web.frame` | WHEN | Cambiar a iframes |
+| `web.window` | WHEN | Gestión de tabs/ventanas |
+| `web.alert` | WHEN | Alertas del navegador |
+| `web.wait` | WHEN | Esperas explícitas |
+| `web.screenshot` | THEN | Captura de pantalla |
+| `web.validation.element` | THEN | Validar elementos |
+| `web.validation.page` | THEN | Validar página |
+| `web.validation.table` | THEN | Validar tablas HTML |
+
+**mobile-core (10):**
+
+| `stepId` | Fase | Propósito |
+|----------|------|-----------|
+| `mobile.device.config` | GIVEN | Configurar dispositivo |
+| `mobile.app.management` | GIVEN/WHEN | Gestionar ciclo de vida de la app |
+| `mobile.permissions` | GIVEN | Permisos del SO |
+| `mobile.sensor` | GIVEN/WHEN | GPS, red, modo avión |
+| `mobile.gesture` | WHEN | Gestos táctiles |
+| `mobile.element` | WHEN/THEN | Interactuar con elementos nativos |
+| `mobile.context` | WHEN/THEN | Cambiar contexto nativo/WebView |
+| `mobile.notification` | WHEN/THEN | Notificaciones push |
+| `mobile.validation` | THEN | Validar elementos mobile |
+| `mobile.validation.app-state` | THEN | Validar estado de la app |
+
+**common/database (3):**
+
+| `stepId` | Fase | Propósito |
+|----------|------|-----------|
+| `db.setup` | GIVEN | Conectar a la base de datos |
+| `db.execution` | WHEN | Ejecutar queries SQL |
+| `db.validation` | THEN | Validar resultados de queries |
+
+### Regla de oro
+
+> **Nunca cambies un `stepId` sin deprecar primero el ID anterior.** El Backend lo persiste. Si lo cambias sin avisar, los escenarios guardados en la BD apuntarán a un componente inexistente.
+
+```java
+// Ciclo de deprecación correcto:
+@StepId(value = "api.old.url", deprecated = true, replacedBy = "api.url")
+public class ApiUrlComponent implements StepComponent { ... }
+```
+
+Para el detalle completo ver [common/README.md — Convención de IDs de Step](./common/README.md#14-convención-de-ids-de-step).
 
 ---
 

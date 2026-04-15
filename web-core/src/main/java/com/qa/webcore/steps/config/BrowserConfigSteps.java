@@ -2,6 +2,7 @@ package com.qa.webcore.steps.config;
 
 import com.qa.common.http.exceptions.FrameworkBusinessException;
 import com.qa.common.runtime.ExecutionContext;
+import com.qa.webcore.config.WebConfigKeys;
 import com.qa.webcore.driver.WebDriverFactory.BrowserType;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.en.Given;
@@ -21,7 +22,7 @@ public class BrowserConfigSteps {
             throws FrameworkBusinessException {
         BrowserType browser = helper.parseBrowserType(browserName);
         boolean headless = helper.parseBoolean(headlessStr);
-        ExecutionContext.requireCurrent().variables().set("web.browser.type", browser);
-        ExecutionContext.requireCurrent().variables().set("web.headless.override", headless);
+        ExecutionContext.requireCurrent().variables().set(WebConfigKeys.BROWSER_RUNTIME_VAR, browser);
+        ExecutionContext.requireCurrent().variables().set(WebConfigKeys.HEADLESS_RUNTIME_VAR, headless);
     }
 }

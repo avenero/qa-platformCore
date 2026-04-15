@@ -1,5 +1,6 @@
 package com.qa.common.runtime;
 
+import com.qa.common.runtime.annotation.StepId;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -194,6 +195,117 @@ class StepComponentTest {
         void retornaTresLocales() {
             StepComponent component = new I18nStepComponent();
             assertThat(component.getDisplayNameByLocale()).hasSize(3);
+        }
+    }
+
+    // =========================================================================
+    // Deprecacion — isDeprecated() / getReplacementStepId()
+    // =========================================================================
+
+    /**
+     * Componente sin @StepId — para verificar que los defaults retornan false/null.
+     */
+    static class NoAnnotationComponent implements StepComponent {
+        @Override public String getName()                  { return "No Annotation"; }
+        @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
+        @Override public Class<?> getStepDefinitionClass() { return NoAnnotationComponent.class; }
+    }
+
+    /**
+     * Componente con @StepId pero sin marcar como deprecated.
+     */
+    @StepId("test.active")
+    static class ActiveAnnotatedComponent implements StepComponent {
+        @Override public String getName()                  { return "Active"; }
+        @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
+        @Override public Class<?> getStepDefinitionClass() { return ActiveAnnotatedComponent.class; }
+    }
+
+    /**
+     * Componente con @StepId deprecated y replacedBy declarado.
+     */
+    @StepId(value = "test.old.id", deprecated = true, replacedBy = "test.new.id")
+    static class DeprecatedWithReplacementComponent implements StepComponent {
+        @Override public String getName()                  { return "Old Component"; }
+        @Override public BddPhase getPhase()               { return BddPhase.THEN; }
+        @Override public Class<?> getStepDefinitionClass() { return DeprecatedWithReplacementComponent.class; }
+    }
+
+    /**
+     * Componente con @StepId deprecated pero sin replacedBy (reemplazo no declarado aún).
+     */
+    @StepId(value = "test.orphan.id", deprecated = true)
+    static class DeprecatedWithoutReplacementComponent implements StepComponent {
+        @Override public String getName()                  { return "Orphan Component"; }
+        @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
+        @Override public Class<?> getStepDefinitionClass() { return DeprecatedWithoutReplacementComponent.class; }
+    }
+
+    @Nested
+    @DisplayName("Ciclo de vida — isDeprecated() y getReplacementStepId()")
+    class DeprecacionTests {
+
+        @Test
+        @DisplayName("isDeprecated retorna false cuando no hay @StepId")
+        void isDeprecatedFalseSinAnotacion() {
+            StepComponent c = new NoAnnotationComponent();
+            assertThat(c.isDeprecated()).isFalse();
+        }
+
+        @Test
+        @DisplayName("isDeprecated retorna false cuando @StepId no está marcado deprecated")
+        void isDeprecatedFalseConAnotacionActiva() {
+            StepComponent c = new ActiveAnnotatedComponent();
+            assertThat(c.isDeprecated()).isFalse();
+        }
+
+        @Test
+        @DisplayName("isDeprecated retorna true cuando @StepId tiene deprecated = true")
+        void isDeprecatedTrueConAnotacionDeprecada() {
+            StepComponent c = new DeprecatedWithReplacementComponent();
+            assertThat(c.isDeprecated()).isTrue();
+        }
+
+        @Test
+        @DisplayName("isDeprecated retorna true aunque no haya replacedBy")
+        void isDeprecatedTrueSinReemplazo() {
+            StepComponent c = new DeprecatedWithoutReplacementComponent();
+            assertThat(c.isDeprecated()).isTrue();
+        }
+
+        @Test
+        @DisplayName("getReplacementStepId retorna null cuando no hay @StepId")
+        void getReplacementStepIdNullSinAnotacion() {
+            StepComponent c = new NoAnnotationComponent();
+            assertThat(c.getReplacementStepId()).isNull();
+        }
+
+        @Test
+        @DisplayName("getReplacementStepId retorna null cuando @StepId no es deprecated")
+        void getReplacementStepIdNullCuandoActivo() {
+            StepComponent c = new ActiveAnnotatedComponent();
+            assertThat(c.getReplacementStepId()).isNull();
+        }
+
+        @Test
+        @DisplayName("getReplacementStepId retorna el ID de reemplazo cuando está declarado")
+        void getReplacementStepIdRetornaReemplazo() {
+            StepComponent c = new DeprecatedWithReplacementComponent();
+            assertThat(c.getReplacementStepId()).isEqualTo("test.new.id");
+        }
+
+        @Test
+        @DisplayName("getReplacementStepId retorna null cuando deprecated pero sin replacedBy")
+        void getReplacementStepIdNullSinReplacedBy() {
+            StepComponent c = new DeprecatedWithoutReplacementComponent();
+            assertThat(c.getReplacementStepId()).isNull();
+        }
+
+        @Test
+        @DisplayName("getId sigue retornando el ID de la anotacion aunque este deprecated")
+        void getIdRetornaIdOriginalAunqueDeprecado() {
+            StepComponent c = new DeprecatedWithReplacementComponent();
+            assertThat(c.getId()).isEqualTo("test.old.id");
         }
     }
 

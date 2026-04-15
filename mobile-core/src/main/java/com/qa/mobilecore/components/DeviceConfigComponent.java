@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.mobilecore.steps.config.DeviceConfigSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("mobile.device.config")
 public class DeviceConfigComponent implements StepComponent {
     @Override public String getName()                  { return "Configuracion de Dispositivo"; }
-    @Override public String getId()                    { return "mobile.device.config"; }
     @Override public String getDisplayName()           { return "Configuracion de Dispositivo"; }
     @Override public String getDescription()           { return "Configurar capacidades del dispositivo (plataforma, version, UDID)"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

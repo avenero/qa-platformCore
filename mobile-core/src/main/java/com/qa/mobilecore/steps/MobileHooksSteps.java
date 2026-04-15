@@ -4,8 +4,6 @@ import com.qa.common.config.ConfigManager;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.mobilecore.driver.MobileDriverManager;
-import com.qa.mobilecore.helper.MobileHelper;
-import com.qa.mobilecore.model.DeviceDescriptor;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
@@ -13,17 +11,26 @@ import io.cucumber.java.Scenario;
 /**
  * Hooks de ciclo de vida de Cucumber para la capa mobile-core.
  *
- * <p><b>Flujo de ejecución por escenario:</b>
+ * <h2>Flujo de ejecución por escenario</h2>
  * <ol>
- *   <li>{@link #beforeScenario} — inicializa contexto de logging; la sesión Appium
- *       se crea de forma lazy cuando el primer step la necesita</li>
+ *   <li>{@link #beforeScenario} — inicializa el contexto de logging; la sesión Appium
+ *       se crea de forma lazy cuando el primer step llama a {@code MobileHelper.driver()}</li>
  *   <li>[Steps GIVEN/WHEN/THEN] — acceden al driver vía {@code MobileHelper}</li>
- *   <li>{@link #afterScenario} — captura screenshot si el escenario falló, luego
- *       cierra la sesión Appium y libera el dispositivo del pool</li>
+ *   <li>{@link #afterScenario} — captura screenshot si el escenario falló; el cierre
+ *       del driver es responsabilidad del ciclo de vida SPI ({@code MobilePlugin.onScenarioEnd})
+ *       cuando hay un {@link ExecutionContext} activo</li>
  * </ol>
+ *
+ * <h2>Nota sobre el cierre del driver</h2>
+ * <p>Cuando hay un {@link ExecutionContext} activo (runtime con lifecycle engine),
+ * el cierre autoritativo lo realiza {@link com.qa.mobilecore.plugin.MobilePlugin#onScenarioEnd}
+ * vía {@link com.qa.mobilecore.driver.MobileDriverFactory#quitIfCreated()}.
+ * Este hook solo cierra el driver como safety-net para escenarios ejecutados
+ * sin el engine (ejecución directa con Cucumber runner standalone).
  *
  * @author Abel Venero
  * @since 2.0.0
+ * @since 2.2.0 Cierre del driver delegado a MobilePlugin.onScenarioEnd en modo plugin
  */
 public class MobileHooksSteps {
 
@@ -41,13 +48,22 @@ public class MobileHooksSteps {
         // No forzar creación aquí — el pool y el servidor se inicializan en MobilePlugin.onScenarioStart()
     }
 
+    /**
+     * Hook de post-escenario.
+     *
+     * <p><b>Nota sobre el cierre del driver:</b>
+     * Cuando hay un {@link ExecutionContext} activo (runtime con lifecycle engine),
+     * el cierre autoritativo lo realiza {@link com.qa.mobilecore.plugin.MobilePlugin#onScenarioEnd}.
+     * Este hook solo cierra el driver como safety-net para escenarios ejecutados
+     * sin el engine (ejecución directa con Cucumber runner standalone).
+     */
     @After(value = "@mobile or @ios or @android or @appium", order = 150)
     public void afterScenario(Scenario scenario) {
         TestLogger.logInfo("MOBILE_HOOKS",
             "Finalizando escenario mobile: " + scenario.getName()
             + " | Estado: " + scenario.getStatus(), null);
 
-        // Captura de screenshot ante fallo (si el driver fue inicializado)
+        // 1. Captura de screenshot ante fallo (si el driver fue inicializado)
         if (scenario.isFailed() && MobileDriverManager.isInitialized()) {
             try {
                 org.openqa.selenium.TakesScreenshot ts =
@@ -61,17 +77,12 @@ public class MobileHooksSteps {
             }
         }
 
-        // Cierre de sesión via MobileHelper (libera pool + quit driver)
-        ExecutionContext.current()
-            .flatMap(ctx -> ctx.registry().get(MobileHelper.class))
-            .ifPresentOrElse(
-                MobileHelper::quitSession,
-                () -> {
-                    // Si MobileHelper no fue inicializado (escenario sin steps mobile),
-                    // asegurar que el driver quede limpio de todas formas
-                    MobileDriverManager.quitDriverSafely();
-                }
-            );
+        // 2. Safety-net: cierra el driver SOLO si NO hay ExecutionContext activo (modo standalone).
+        //    Con ExecutionContext, MobilePlugin.onScenarioEnd se encarga del cierre autoritativo.
+        if (ExecutionContext.current().isEmpty()) {
+            MobileDriverManager.quitDriverSafely();
+            TestLogger.logInfo("MOBILE_HOOKS", "Driver cerrado (modo standalone)", null);
+        }
 
         TestLogger.clearTestContext();
     }

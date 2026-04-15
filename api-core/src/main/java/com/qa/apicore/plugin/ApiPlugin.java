@@ -102,7 +102,12 @@ public class ApiPlugin implements CorePlugin {
      *
      * <p>Cada componente apunta a su clase específica de steps
      * según {@code DISENO-STEPS-POR-COMPONENTES.md §3}.
+     *
+     * <p><em>Nota de deprecación:</em> {@code ApiRequestBodyComponent} (stepId {@code "api.body"})
+     * se incluye durante el ciclo de transición hacia {@code "api.request.body"} (v2.2.0).
+     * Remover en v2.3.0 una vez que todos los escenarios persistidos hayan sido migrados.
      */
+    @SuppressWarnings("deprecation")
     @Override
     public List<StepComponent> getComponents() {
         return List.of(
@@ -112,7 +117,7 @@ public class ApiPlugin implements CorePlugin {
                 new ApiHeaderComponent(),
                 new ApiCookieComponent(),
                 new ApiParameterComponent(),
-                new ApiRequestBodyComponent(),
+                new ApiRequestBodyComponent(), // @deprecated — reemplazar por "api.request.body" en v2.2.0 (TODO: remover en v2.3.0)
                 // WHEN — Ejecución
                 new ApiExecutionComponent(),
                 // THEN — Validación

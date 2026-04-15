@@ -3,6 +3,7 @@ package com.qa.webcore.components.bdd;
 import com.qa.webcore.steps.config.WebEnvironmentSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("web.environment")
 public class WebEnvironmentComponent implements StepComponent {
     @Override public String getName()                  { return "Ambiente Web"; }
-    @Override public String getId()                    { return "web.environment"; }
     @Override public String getDisplayName()           { return "Ambiente Web"; }
     @Override public String getDescription()           { return "URL base, timeouts, cookies de configuracion"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

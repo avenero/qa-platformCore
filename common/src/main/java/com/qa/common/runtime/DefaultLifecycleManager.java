@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -79,14 +80,17 @@ public final class DefaultLifecycleManager implements LifecycleManager {
     }
 
     @Override
-    public void onScenarioStart(ExecutionContext context, Collection<String> scenarioTags) {
+    public void onScenarioStart(ExecutionContext context, ScenarioMetadata scenarioMetadata) {
         Objects.requireNonNull(context, "context no puede ser null");
-        Collection<String> tags = scenarioTags != null ? scenarioTags : Collections.emptyList();
+        Objects.requireNonNull(scenarioMetadata, "scenarioMetadata no puede ser null");
 
-        List<CorePlugin> activePlugins = resolveActivePluginsFromTags(tags);
+        List<CorePlugin> activePlugins = resolveActivePluginsFromTags(scenarioMetadata.tags());
 
-        // Validar que los tags del escenario activen al menos un plugin conocido
-        validateScenarioLayerTags(tags, activePlugins);
+        // Advertir si el escenario tiene tags de capa pero ningún plugin los reconoce
+        validateScenarioLayerTags(scenarioMetadata.tags(), activePlugins);
+
+        log.debug("onScenarioStart: '{}' → {} plugin(s) activos",
+                scenarioMetadata.name(), activePlugins.size());
 
         for (CorePlugin plugin : activePlugins) {
             try {
@@ -98,18 +102,25 @@ public final class DefaultLifecycleManager implements LifecycleManager {
 
         context.eventBus().publish(ExecutionEvent.of(
                 ExecutionEvent.Type.SCENARIO_START,
-                "Escenario iniciado con tags: " + tags));
+                scenarioMetadata.name(),
+                Map.of(
+                        "tags", scenarioMetadata.tags(),
+                        "uri",  scenarioMetadata.uri(),
+                        "line", scenarioMetadata.line())));
     }
 
     @Override
-    public void onScenarioEnd(ExecutionContext context, Collection<String> scenarioTags) {
+    public void onScenarioEnd(ExecutionContext context, ScenarioMetadata scenarioMetadata) {
         Objects.requireNonNull(context, "context no puede ser null");
-        Collection<String> tags = scenarioTags != null ? scenarioTags : Collections.emptyList();
+        Objects.requireNonNull(scenarioMetadata, "scenarioMetadata no puede ser null");
 
-        List<CorePlugin> activePlugins = resolveActivePluginsFromTags(tags);
-        // Invocar en orden inverso para limpieza
+        List<CorePlugin> activePlugins = resolveActivePluginsFromTags(scenarioMetadata.tags());
+        // Invocar en orden inverso (LIFO) para limpieza simétrica
         List<CorePlugin> reversed = new ArrayList<>(activePlugins);
         Collections.reverse(reversed);
+
+        log.debug("onScenarioEnd: '{}' → {} plugin(s) activos (orden inverso)",
+                scenarioMetadata.name(), reversed.size());
 
         for (CorePlugin plugin : reversed) {
             try {
@@ -121,7 +132,11 @@ public final class DefaultLifecycleManager implements LifecycleManager {
 
         context.eventBus().publish(ExecutionEvent.of(
                 ExecutionEvent.Type.SCENARIO_END,
-                "Escenario finalizado con tags: " + tags));
+                scenarioMetadata.name(),
+                Map.of(
+                        "tags", scenarioMetadata.tags(),
+                        "uri",  scenarioMetadata.uri(),
+                        "line", scenarioMetadata.line())));
     }
 
     @Override

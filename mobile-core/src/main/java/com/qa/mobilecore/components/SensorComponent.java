@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.mobilecore.steps.device.SensorSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("mobile.sensor")
 public class SensorComponent implements StepComponent {
     @Override public String getName()                  { return "Sensores del Dispositivo"; }
-    @Override public String getId()                    { return "mobile.sensor"; }
     @Override public String getDisplayName()           { return "Sensores del Dispositivo"; }
     @Override public String getDescription()           { return "Simular GPS, acelerometro, bateria"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

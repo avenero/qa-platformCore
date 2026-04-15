@@ -1,8 +1,10 @@
 package com.qa.common.config;
 
 import com.qa.common.logging.TestLogger;
+import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.utils.ConfigurationUtilities;
 
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -13,34 +15,59 @@ import java.util.regex.Pattern;
  * <p>Esta clase proporciona una API simple sobre {@link ConfigurationUtilities},
  * diseñada para facilitar el uso en componentes del Core y plugins.
  *
- * <p><b>🎯 Propósito:</b>
+ * <p><b>Propósito:</b>
  * <ul>
  *   <li>API simple: {@code config.get("key")} para steps y plugins</li>
- *   <li>Orden de precedencia: -D > ENV > config-{env}.properties > defaults</li>
+ *   <li>Orden de precedencia: ExecutionContext &gt; -D &gt; ENV &gt; config-{env}.properties &gt; defaults</li>
  *   <li>Resolución automática de variables: {@code ${VAR}}</li>
  *   <li>Detección automática de ambiente (dev/qa/prod)</li>
  * </ul>
  *
- * <p><b>Orden de precedencia de configuración:</b>
+ * <p><b>Orden de precedencia de configuración (de mayor a menor):</b>
  * <ol>
- *   <li><b>System Properties</b> - {@code -Dkey=value} en línea de comandos</li>
- *   <li><b>Environment Variables</b> - {@code export KEY=value}</li>
- *   <li><b>Archivo específico de ambiente</b> - {@code config-{env}.properties}</li>
- *   <li><b>Archivo base</b> - {@code config.properties}</li>
- *   <li><b>Valor por defecto</b> - Proporcionado en código</li>
+ *   <li><b>ExecutionContext activo</b> — {@code ExecutionContext.current().config().getProperty(key)}.
+ *       Sólo aplica cuando hay un contexto de ejecución en el hilo actual (durante la ejecución BDD).
+ *       Permite aislar configuración por ejecución sin afectar otros hilos ni el singleton global.
+ *       Los valores en {@link com.qa.common.runtime.ExecutionConfig#getProperty(String)} son
+ *       definitivos: no se aplica resolución {@code ${VAR}} sobre ellos.</li>
+ *   <li><b>System Properties</b> — {@code -Dkey=value} en línea de comandos</li>
+ *   <li><b>Environment Variables</b> — {@code export KEY=value}</li>
+ *   <li><b>Archivo específico de ambiente</b> — {@code config-{env}.properties}</li>
+ *   <li><b>Archivo base</b> — {@code config.properties}</li>
+ *   <li><b>Valor por defecto</b> — proporcionado en código</li>
  * </ol>
  *
  * <p><b>Arquitectura:</b>
  * <pre>
- * ConfigManager (Facade simple)
- *      ↓ delega a
+ * ConfigManager (Facade execution-aware)
+ *      │
+ *      ├─ step 0: ExecutionContext.current().config().getProperty(key)  ← per-ejecución (ThreadLocal)
+ *      ├─ step 1: System.getProperty(key)                               ← -D flags globales
+ *      ├─ step 2: System.getenv(key)                                    ← variables de entorno
+ *      ├─ step 3: loadedProperties.getProperty(key)                     ← archivos config-*.properties
+ *      └─ step 4: null / defaultValue                                   ← fallback
+ *      ↓ delega lectura de archivos a
  * ConfigurationUtilities (Utilidades de lectura de archivos)
  * </pre>
  *
+ * <p><b>Aislamiento por ejecución:</b>
+ * El step 0 utiliza {@link ExecutionContext#current()}, que es un {@link ThreadLocal}.
+ * Esto garantiza que cada hilo de ejecución ve su propia configuración sin interferir
+ * con otros hilos (soporte para ejecución paralela de escenarios BDD).
+ * En contextos sin ejecución activa (health-checks, {@code main}, etc.) el step 0
+ * no produce valor y la cadena continúa normalmente, sin ningún NPE.
+ *
+ * <p><b>Cambio de contrato en 2.1.0:</b> se agregó el step 0 (ExecutionContext).
+ * Las llamadas existentes a {@link #get(String)} y {@link #getWithPriority(String, String)}
+ * funcionan sin cambios; ahora simplemente ven primero la configuración de la ejecución
+ * activa cuando existe.
+ *
  * @author QA Frameworks Core
- * @version 2.0.0
+ * @version 2.1.0
  * @since 1.0.3
  * @see ConfigurationUtilities
+ * @see ExecutionContext
+ * @see com.qa.common.runtime.ExecutionConfig
  */
 public class ConfigManager {
 
@@ -57,7 +84,6 @@ public class ConfigManager {
     private ConfigManager() {
         this.environment = resolveEnvironment();
         this.loadedProperties = loadConfigurationProperties();
-
         log.info("✅ ConfigManager inicializado - Ambiente: {}", environment);
     }
 
@@ -73,11 +99,18 @@ public class ConfigManager {
         return instance;
     }
 
+    // =========================================================================
+    // MÉTODOS PÚBLICOS PRINCIPALES
+    // =========================================================================
+
     /**
      * Obtiene un valor de configuración.
      *
      * <p>Orden de búsqueda:
      * <ol>
+     *   <li><b>ExecutionContext activo</b> — {@code ExecutionContext.current().config().getProperty(key)}.
+     *       Solo cuando hay una ejecución BDD en curso en el hilo actual. Los valores son definitivos
+     *       (sin resolución de {@code ${VAR}}).</li>
      *   <li>System.getProperty(key)</li>
      *   <li>System.getenv(key)</li>
      *   <li>Archivo de configuración cargado</li>
@@ -87,20 +120,27 @@ public class ConfigManager {
      * @return valor configurado o null si no existe
      */
     public String get(String key) {
-        // 1. System Property (máxima prioridad)
+        // 0. ExecutionContext activo (mayor prioridad cuando hay ejecución BDD en curso)
+        //    ThreadLocal → seguro en escenarios paralelos, sin NPE si no hay contexto.
+        Optional<String> executionValue = resolveFromExecutionContext(key);
+        if (executionValue.isPresent()) {
+            return executionValue.get();
+        }
+
+        // 1. System Property (máxima prioridad global)
         String value = System.getProperty(key);
 
-        // 2. Environment Variable
+        // 2. Environment Variable (raw key)
         if (value == null) {
             value = System.getenv(key);
         }
 
-        // 3. Configuration file
+        // 3. Archivo de configuración
         if (value == null && loadedProperties != null) {
             value = loadedProperties.getProperty(key);
         }
 
-        // 4. Resolver variables ${VAR} si existen
+        // 4. Resolver variables ${VAR} si existen (solo para fuentes globales, no para ExecutionContext)
         if (value != null) {
             value = resolveEnvironmentVariables(value);
         }
@@ -111,7 +151,7 @@ public class ConfigManager {
     /**
      * Obtiene un valor de configuración con valor por defecto.
      *
-     * @param key clave de configuración
+     * @param key          clave de configuración
      * @param defaultValue valor por defecto
      * @return valor configurado o defaultValue si no existe
      */
@@ -123,7 +163,7 @@ public class ConfigManager {
     /**
      * Obtiene un valor entero de configuración.
      *
-     * @param key clave de configuración
+     * @param key          clave de configuración
      * @param defaultValue valor por defecto
      * @return valor configurado como int o defaultValue
      */
@@ -142,7 +182,7 @@ public class ConfigManager {
     /**
      * Obtiene un valor booleano de configuración.
      *
-     * @param key clave de configuración
+     * @param key          clave de configuración
      * @param defaultValue valor por defecto
      * @return valor configurado como boolean o defaultValue
      */
@@ -156,10 +196,12 @@ public class ConfigManager {
      *
      * <p>Orden de precedencia (de mayor a menor prioridad):</p>
      * <ol>
-     *   <li><b>System Property</b> - {@code -Dkey=value} (máxima prioridad)</li>
-     *   <li><b>Variable de Entorno</b> - {@code KEY_UPPER}</li>
-     *   <li><b>Archivo de configuración</b> - {@code config-app.properties}</li>
-     *   <li><b>Valor por defecto</b> - parámetro {@code defaultValue} (mínima prioridad)</li>
+     *   <li><b>ExecutionContext activo</b> — {@code ExecutionContext.current().config().getProperty(key)}.
+     *       Solo cuando hay una ejecución BDD activa en el hilo actual.</li>
+     *   <li><b>System Property</b> — {@code -Dkey=value} (máxima prioridad global)</li>
+     *   <li><b>Variable de Entorno</b> — {@code KEY_UPPER} (key.toUpperCase().replace('.','_'))</li>
+     *   <li><b>Archivo de configuración</b> — {@code config-app.properties}</li>
+     *   <li><b>Valor por defecto</b> — parámetro {@code defaultValue} (mínima prioridad)</li>
      * </ol>
      *
      * <p><b>Casos de uso:</b></p>
@@ -167,40 +209,35 @@ public class ConfigManager {
      *   <li>Parametrizar navegador: {@code getWithPriority("web.browser", "chrome")}</li>
      *   <li>Override desde Jenkins: {@code -Dweb.browser=firefox}</li>
      *   <li>Override desde variables: {@code export WEB_BROWSER=edge}</li>
+     *   <li>Override por ejecución: {@code ExecutionConfig.property("web.browser", "safari")}</li>
      * </ul>
      *
-     * <p><b>Ejemplo:</b></p>
-     * <pre>{@code
-     * // Configuración en config-app.properties:
-     * web.browser=chrome
-     *
-     * // Ejecución:
-     * ./gradlew test -Dweb.browser=firefox
-     *
-     * // Resultado:
-     * String browser = config.getWithPriority("web.browser", "chrome");
-     * // → "firefox" (System Property tiene prioridad sobre config file)
-     * }</pre>
-     *
-     * <p><b>Conversión de nombres:</b></p>
+     * <p><b>Conversión de nombres para variables de entorno:</b></p>
      * <pre>
-     * Key: "web.browser"        → Env Var: "WEB_BROWSER"
+     * Key: "web.browser"           → Env Var: "WEB_BROWSER"
      * Key: "driver.chrome.version" → Env Var: "DRIVER_CHROME_VERSION"
      * </pre>
      *
-     * @param key Clave de configuración (ej: "web.browser", "web.headless")
-     * @param defaultValue Valor por defecto si no se encuentra en ninguna fuente
-     * @return Valor resuelto según orden de prioridad
+     * @param key          clave de configuración (ej: "web.browser", "web.headless")
+     * @param defaultValue valor por defecto si no se encuentra en ninguna fuente
+     * @return valor resuelto según orden de prioridad
      */
     public String getWithPriority(String key, String defaultValue) {
-        // 1. System Property (-Dkey=value) - PRIORIDAD MÁXIMA
+        // 0. ExecutionContext activo (mayor prioridad cuando hay ejecución BDD en curso)
+        Optional<String> executionValue = resolveFromExecutionContext(key);
+        if (executionValue.isPresent()) {
+            log.debug("✓ [{}] Usando ExecutionContext config: {}", key, executionValue.get());
+            return executionValue.get();
+        }
+
+        // 1. System Property (-Dkey=value) - PRIORIDAD MÁXIMA GLOBAL
         String sysProp = System.getProperty(key);
         if (sysProp != null && !sysProp.isEmpty()) {
             log.debug("✓ [{}] Usando System Property: {}", key, sysProp);
             return sysProp;
         }
 
-        // 2. Variable de entorno (KEY → KEY_UPPER)
+        // 2. Variable de entorno normalizada (key → KEY_UPPER)
         String envKey = key.toUpperCase().replace('.', '_');
         String envVar = System.getenv(envKey);
         if (envVar != null && !envVar.isEmpty()) {
@@ -208,7 +245,7 @@ public class ConfigManager {
             return envVar;
         }
 
-        // 3. Archivo de configuración (config-app.properties)
+        // 3. Archivo de configuración (via get() que también resuelve ${VAR})
         String configValue = get(key);
         if (configValue != null && !configValue.isEmpty()) {
             log.debug("✓ [{}] Usando config file: {}", key, configValue);
@@ -223,7 +260,7 @@ public class ConfigManager {
     /**
      * Obtiene un valor long de configuración.
      *
-     * @param key clave de configuración
+     * @param key          clave de configuración
      * @param defaultValue valor por defecto
      * @return valor configurado como long o defaultValue
      */
@@ -240,10 +277,10 @@ public class ConfigManager {
     }
 
     /**
-     * Verifica si existe una configuración.
+     * Verifica si existe una configuración (incluyendo ExecutionContext activo).
      *
      * @param key clave de configuración
-     * @return true si existe, false si no
+     * @return true si existe en cualquiera de las fuentes, false si no
      */
     public boolean contains(String key) {
         return get(key) != null;
@@ -259,17 +296,46 @@ public class ConfigManager {
     }
 
     /**
-     * Permite forzar recarga de configuración.
-     * Útil en tests o cuando cambia el ambiente.
+     * Permite forzar recarga de configuración (archivos y propiedades globales).
+     *
+     * <p>No afecta los {@link ExecutionContext} activos en otros hilos,
+     * ya que su configuración es inmutable y está en ThreadLocal.</p>
      */
     public synchronized void reload() {
         this.loadedProperties = loadConfigurationProperties();
         log.info("🔄 Configuración recargada para ambiente: {}", environment);
     }
 
-    // =================================================================================
+    // =========================================================================
     // MÉTODOS PRIVADOS
-    // =================================================================================
+    // =========================================================================
+
+    /**
+     * Intenta resolver la clave desde el {@link ExecutionContext} activo del hilo actual.
+     *
+     * <p>Usa {@link ExecutionContext#current()} (ThreadLocal) para obtener la configuración
+     * específica de la ejecución en curso. Si no hay contexto activo, o si el contexto no
+     * tiene un valor para la clave, retorna {@link Optional#empty()}.
+     *
+     * <p>Los valores de {@link com.qa.common.runtime.ExecutionConfig} son valores finales
+     * (ya resueltos por el Backend), por lo que NO se aplica resolución de {@code ${VAR}}.
+     *
+     * <p>El bloque try-catch es defensivo: un fallo en el acceso al ThreadLocal nunca debe
+     * romper la cadena de resolución de ConfigManager.
+     *
+     * @param key clave a buscar
+     * @return Optional con el valor si existe en la ejecución activa, vacío en caso contrario
+     */
+    private Optional<String> resolveFromExecutionContext(String key) {
+        try {
+            return ExecutionContext.current()
+                    .flatMap(ctx -> ctx.config().getProperty(key));
+        } catch (Exception e) {
+            // Defensivo: jamás romper la cadena de resolución por un error en ExecutionContext
+            log.debug("No se pudo acceder a ExecutionContext para clave '{}': {}", key, e.getMessage());
+            return Optional.empty();
+        }
+    }
 
     /**
      * Resuelve el ambiente desde System Properties o Environment Variables.
@@ -295,7 +361,6 @@ public class ConfigManager {
      *   <li>config-{env}.properties (ej: config-qa.properties)</li>
      *   <li>config-app.properties (nombre estándar recomendado)</li>
      *   <li>config.properties (fallback genérico)</li>
-     *   <li>Cualquier archivo config-*.properties encontrado</li>
      * </ol>
      *
      * @return Properties cargado o vacío si no existe
@@ -347,7 +412,11 @@ public class ConfigManager {
     }
 
     /**
-     * Resuelve variables de entorno en formato ${VAR}.
+     * Resuelve variables de entorno en formato {@code ${VAR}}.
+     *
+     * <p>Aplica SOLO a valores obtenidos desde System Properties, variables de entorno
+     * y archivos de configuración. Los valores de {@link com.qa.common.runtime.ExecutionConfig}
+     * no pasan por este método (son valores finales ya resueltos por el Backend).
      *
      * <p>Ejemplo:
      * <pre>

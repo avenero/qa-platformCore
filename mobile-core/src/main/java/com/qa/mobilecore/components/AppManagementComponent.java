@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.mobilecore.steps.config.AppManagementSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("mobile.app.management")
 public class AppManagementComponent implements StepComponent {
     @Override public String getName()                  { return "Gestion de App"; }
-    @Override public String getId()                    { return "mobile.app.management"; }
     @Override public String getDisplayName()           { return "Gestion de App"; }
     @Override public String getDescription()           { return "Instalar, lanzar y cerrar la aplicacion movil"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }

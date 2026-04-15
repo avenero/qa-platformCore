@@ -314,6 +314,49 @@ Entonces guardo el estado de la app como "${appState}"
 
 ---
 
+---
+
+## Convención de IDs de Step
+
+Todos los componentes de `mobile-core` declaran su `stepId` con la anotación `@StepId`. Estos IDs son el **contrato con el Backend**: se persisten en la base de datos al guardar escenarios y ejecuciones, y deben mantenerse estables entre releases.
+
+### Catálogo de IDs — mobile-core
+
+| `stepId` | Clase | Fase BDD | Descripción |
+|----------|-------|----------|-------------|
+| `mobile.device.config` | `DeviceConfigComponent` | GIVEN | Plataforma, device ID, orientación, server Appium |
+| `mobile.app.management` | `AppManagementComponent` | GIVEN/WHEN | Instalar, lanzar, cerrar, reiniciar la app |
+| `mobile.permissions` | `DevicePermissionComponent` | GIVEN | Permisos del SO (cámara, ubicación, notificaciones) |
+| `mobile.sensor` | `SensorComponent` | GIVEN/WHEN | GPS, red, modo avión, rotación de dispositivo |
+| `mobile.gesture` | `GestureComponent` | WHEN | Tap, swipe, long press, scroll, pinch, zoom |
+| `mobile.element` | `NativeElementComponent` | WHEN/THEN | Escribir, tocar, validar elementos nativos |
+| `mobile.context` | `ContextSwitchComponent` | WHEN/THEN | Cambio de contexto nativo ↔ WebView |
+| `mobile.notification` | `NotificationComponent` | WHEN/THEN | Panel de notificaciones, leer y descartar |
+| `mobile.validation` | `MobileElementValidationComponent` | THEN | Visibilidad, texto, atributos y listas de elementos |
+| `mobile.validation.app-state` | `AppStateValidationComponent` | THEN | Estado de la app: abierta, instalada, orientación |
+
+> **Nota sobre guiones:** El segmento `app-state` usa guión (`-`) por legibilidad; es una excepción
+> permitida por la convención cuando mejora la claridad. En general se prefieren puntos.
+
+### Reglas de uso
+
+- **No cambiar un `stepId`** sin marcar el anterior `deprecated = true` y declarar `replacedBy`.
+- Si se agrega un nuevo componente mobile, seguir el formato `mobile.{dominio}[.{subdominio}]`.
+- Los dos componentes de validación comparten el prefijo `mobile.validation[.*]` para agruparlos en el Scenario Builder.
+
+```java
+// Ejemplo: resolver el componente de gestos
+discovery.resolveStep("mobile.gesture")
+         .map(info -> info.getDisplayNameForLocale("en"))
+         .orElse("(no encontrado)");
+// → "Gestures"
+```
+
+> Para la convención general (formato, ciclo de deprecación, reglas globales) ver
+> [common/README.md — Convención de IDs de Step](../common/README.md#14-convención-de-ids-de-step).
+
+---
+
 > **Documentación relacionada:**
 > - [common/README.md](../common/README.md) — Motor de ejecución y contrato con el Backend
 > - [api-core/README.md](../api-core/README.md) — Capa de pruebas de API REST

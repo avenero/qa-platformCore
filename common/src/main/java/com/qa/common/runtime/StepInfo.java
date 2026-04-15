@@ -20,6 +20,17 @@ import java.util.Objects;
  * para uso documental; el Backend puede enriquecerlo con los patrones Cucumber
  * reales via reflexión sobre {@code getStepDefinitionClass()}.
  *
+ * <h2>Deprecación</h2>
+ * <p>Cuando {@link #deprecated()} es {@code true}, el componente está marcado para
+ * migración. El campo {@link #replacementStepId()} contiene el {@code stepId} del
+ * componente sucesor (puede ser {@code null} si no hay reemplazo declarado aún).
+ * El Backend y el Frontend deben:
+ * <ul>
+ *   <li>Mostrar una advertencia visual en el Scenario Builder.</li>
+ *   <li>Ofrecer migración automática hacia {@link #replacementStepId()} si está presente.</li>
+ *   <li>Bloquear la creación de <em>nuevos</em> usos del componente deprecado.</li>
+ * </ul>
+ *
  * @author Abel Venero
  * @since 2.1.0
  * @see StepComponent
@@ -37,11 +48,16 @@ public record StepInfo(
         String displayName,
         String description,
         Map<String, String> displayNameByLocale,
-        Map<String, String> descriptionByLocale
+        Map<String, String> descriptionByLocale,
+        boolean deprecated,
+        String replacementStepId
 ) {
 
     /**
      * Compact constructor: valida campos requeridos e impone inmutabilidad en los mapas.
+     *
+     * <p>{@code replacementStepId} es nullable: solo tiene valor cuando
+     * {@link #deprecated()} es {@code true} y se declaró un sucesor conocido.
      */
     public StepInfo {
         Objects.requireNonNull(id, "id no puede ser null");
@@ -52,6 +68,7 @@ public record StepInfo(
         Objects.requireNonNull(descriptionByLocale, "descriptionByLocale no puede ser null");
         displayNameByLocale = Map.copyOf(displayNameByLocale);
         descriptionByLocale = Map.copyOf(descriptionByLocale);
+        // replacementStepId: nullable — null cuando no hay reemplazo declarado
     }
 
     // =========================================================================
@@ -92,5 +109,21 @@ public record StepInfo(
             return localized;
         }
         return description != null ? description : "";
+    }
+
+    // =========================================================================
+    // Deprecation helpers
+    // =========================================================================
+
+    /**
+     * Indica si este step tiene un reemplazo conocido declarado.
+     *
+     * <p>Conveniencia para evitar comparar {@link #replacementStepId()} contra null
+     * en los consumers (Backend / Frontend).
+     *
+     * @return {@code true} si {@link #replacementStepId()} no es null ni blank
+     */
+    public boolean hasReplacement() {
+        return replacementStepId != null && !replacementStepId.isBlank();
     }
 }

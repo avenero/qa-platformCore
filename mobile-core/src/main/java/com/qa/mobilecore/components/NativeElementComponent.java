@@ -3,6 +3,7 @@ package com.qa.mobilecore.components;
 import com.qa.mobilecore.steps.interaction.NativeElementSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("mobile.element")
 public class NativeElementComponent implements StepComponent {
     @Override public String getName()                  { return "Elementos Nativos"; }
-    @Override public String getId()                    { return "mobile.element"; }
     @Override public String getDisplayName()           { return "Elementos Nativos"; }
     @Override public String getDescription()           { return "Interaccion con elementos de la UI nativa"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }

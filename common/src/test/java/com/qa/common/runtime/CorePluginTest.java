@@ -152,5 +152,132 @@ class CorePluginTest {
             assertThat(plugin.getActivationTags()).containsExactlyInAnyOrder("@api", "@rest");
         }
     }
+
+    // =========================================================================
+    // getGluePackages() — nuevo default method @since 2.2.0
+    // =========================================================================
+
+    @Nested
+    @DisplayName("getGluePackages() — derivacion automatica de paquetes SPI")
+    class GetGluePackagesTests {
+
+        @Test
+        @DisplayName("Plugin sin componentes retorna lista vacia")
+        void sinComponentesRetornaListaVacia() {
+            CorePlugin plugin = new MinimalPlugin(); // getComponents() = []
+            assertThat(plugin.getGluePackages()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Plugin con un componente retorna el paquete de su step class")
+        void conUnComponenteRetornaPaquete() {
+            CorePlugin plugin = new FullPlugin();
+            // FullPlugin.getComponents() tiene un componente con getStepDefinitionClass() = FullPlugin.class
+            // FullPlugin.class está en com.qa.common.runtime (paquete del test)
+            List<String> glue = plugin.getGluePackages();
+
+            assertThat(glue).isNotEmpty();
+            assertThat(glue).contains(FullPlugin.class.getPackageName());
+        }
+
+        @Test
+        @DisplayName("Paquetes duplicados se deduplicn: dos componentes en el mismo paquete → un entry")
+        void paquetesDuplicadosSeDeduplicaN() {
+            CorePlugin plugin = new CorePlugin() {
+                @Override public String getName() { return "dup-test"; }
+                @Override public Set<String> getActivationTags() { return Set.of("@dup"); }
+                @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
+                @Override public void onScenarioStart(ExecutionContext ctx) {}
+                @Override public void onScenarioEnd(ExecutionContext ctx) {}
+
+                @Override
+                public List<StepComponent> getComponents() {
+                    // Dos componentes en el MISMO paquete
+                    StepComponent comp1 = new StepComponent() {
+                        @Override public String getName() { return "c1"; }
+                        @Override public BddPhase getPhase() { return BddPhase.GIVEN; }
+                        @Override public Class<?> getStepDefinitionClass() { return MinimalPlugin.class; }
+                    };
+                    StepComponent comp2 = new StepComponent() {
+                        @Override public String getName() { return "c2"; }
+                        @Override public BddPhase getPhase() { return BddPhase.WHEN; }
+                        @Override public Class<?> getStepDefinitionClass() { return FullPlugin.class; }
+                    };
+                    return List.of(comp1, comp2); // ambas en com.qa.common.runtime
+                }
+            };
+
+            List<String> glue = plugin.getGluePackages();
+
+            assertThat(glue).hasSize(1);
+            assertThat(glue).containsExactly(MinimalPlugin.class.getPackageName());
+        }
+
+        @Test
+        @DisplayName("Componente con getStepDefinitionClass() == null se omite")
+        void componenteConNullStepClassSeOmite() {
+            CorePlugin plugin = new CorePlugin() {
+                @Override public String getName() { return "null-test"; }
+                @Override public Set<String> getActivationTags() { return Set.of("@null"); }
+                @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
+                @Override public void onScenarioStart(ExecutionContext ctx) {}
+                @Override public void onScenarioEnd(ExecutionContext ctx) {}
+
+                @Override
+                public List<StepComponent> getComponents() {
+                    return List.of(
+                        new StepComponent() {
+                            @Override public String getName() { return "pendiente"; }
+                            @Override public BddPhase getPhase() { return BddPhase.WHEN; }
+                            @Override public Class<?> getStepDefinitionClass() { return null; } // no impl aún
+                        }
+                    );
+                }
+            };
+
+            assertThat(plugin.getGluePackages()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Resultado es inmutable (List.of / toUnmodifiableList)")
+        void resultadoEsInmutable() {
+            CorePlugin plugin = new FullPlugin();
+            List<String> glue = plugin.getGluePackages();
+
+            assertThatThrownBy(() -> glue.add("com.qa.hacked"))
+                .isInstanceOf(UnsupportedOperationException.class);
+        }
+
+        @Test
+        @DisplayName("Resultado esta ordenado lexicograficamente")
+        void resultadoEstaOrdenado() {
+            CorePlugin plugin = new CorePlugin() {
+                @Override public String getName() { return "order-test"; }
+                @Override public Set<String> getActivationTags() { return Set.of("@order"); }
+                @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
+                @Override public void onScenarioStart(ExecutionContext ctx) {}
+                @Override public void onScenarioEnd(ExecutionContext ctx) {}
+
+                @Override
+                public List<StepComponent> getComponents() {
+                    // Dos paquetes distintos
+                    StepComponent compZ = new StepComponent() {
+                        @Override public String getName() { return "z"; }
+                        @Override public BddPhase getPhase() { return BddPhase.WHEN; }
+                        @Override public Class<?> getStepDefinitionClass() { return java.util.zip.ZipEntry.class; }
+                    };
+                    StepComponent compA = new StepComponent() {
+                        @Override public String getName() { return "a"; }
+                        @Override public BddPhase getPhase() { return BddPhase.GIVEN; }
+                        @Override public Class<?> getStepDefinitionClass() { return java.awt.Color.class; }
+                    };
+                    return List.of(compZ, compA); // z va primero en lista, pero 'a' debe ir primero alfabéticamente
+                }
+            };
+
+            List<String> glue = plugin.getGluePackages();
+            assertThat(glue).isSortedAccordingTo(String::compareTo);
+        }
+    }
 }
 

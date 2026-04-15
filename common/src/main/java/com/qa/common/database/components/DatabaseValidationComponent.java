@@ -3,6 +3,7 @@ package com.qa.common.database.components;
 import com.qa.common.database.steps.DatabaseConnectionSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -13,9 +14,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("db.validation")
 public class DatabaseValidationComponent implements StepComponent {
     @Override public String getName()                  { return "DB Validation"; }
-    @Override public String getId()                    { return "db.validation"; }
     @Override public String getDisplayName()           { return "Validacion de Resultados DB"; }
     @Override public String getDescription()           { return "Validar existencia de resultados, valores de columnas y extraer datos al contexto del escenario"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }

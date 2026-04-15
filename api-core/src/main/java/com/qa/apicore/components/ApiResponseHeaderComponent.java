@@ -3,6 +3,7 @@ package com.qa.apicore.components;
 import com.qa.apicore.steps.validation.ResponseHeaderSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
+import com.qa.common.runtime.annotation.StepId;
 
 import java.util.Map;
 
@@ -12,9 +13,9 @@ import java.util.Map;
  * @author Abel Venero
  * @since 2.0.0
  */
+@StepId("api.response.headers")
 public class ApiResponseHeaderComponent implements StepComponent {
     @Override public String getName()                  { return "Response Headers"; }
-    @Override public String getId()                    { return "api.response.headers"; }
     @Override public String getDisplayName()           { return "Response Headers"; }
     @Override public String getDescription()           { return "Validacion de cabeceras de respuesta"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }

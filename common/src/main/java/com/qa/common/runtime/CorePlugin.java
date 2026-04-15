@@ -1,7 +1,9 @@
 package com.qa.common.runtime;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Contrato que cada módulo (api-core, web-core, mobile-core, database) debe implementar.
@@ -97,6 +99,46 @@ public interface CorePlugin {
      */
     default List<StepComponent> getComponents() {
         return List.of();
+    }
+
+    /**
+     * Retorna los paquetes Java donde Cucumber debe buscar step definitions y hooks de este plugin.
+     *
+     * <p>La implementación por defecto deriva los paquetes automáticamente desde las clases
+     * declaradas en {@link #getComponents()}, eliminando duplicados y ordenando el resultado.
+     * Los plugins pueden sobrescribir este método para incluir paquetes adicionales (ej: un
+     * paquete de hooks separado del paquete principal de steps).
+     *
+     * <p>El {@link CucumberRuntimeEngine} usa este método para construir los argumentos
+     * {@code --glue} cuando {@code ExecutionRequest.getGluePaths()} está vacío, liberando
+     * al Backend de mantener una lista manual de paquetes.
+     *
+     * <p>Los componentes cuya {@link StepComponent#getStepDefinitionClass()} retorna
+     * {@code null} (aún no implementados) se omiten silenciosamente.
+     *
+     * <p><b>Ejemplo para un plugin que necesita un paquete de hooks extra:</b>
+     * <pre>
+     * {@literal @}Override
+     * public List&lt;String&gt; getGluePackages() {
+     *     List&lt;String&gt; base = CorePlugin.super.getGluePackages();
+     *     List&lt;String&gt; result = new ArrayList&lt;&gt;(base);
+     *     result.add("com.qa.mymodule.hooks");
+     *     result.sort(Comparator.naturalOrder());
+     *     return Collections.unmodifiableList(result);
+     * }
+     * </pre>
+     *
+     * @return lista de paquetes Java sin duplicados, ordenada y nunca null
+     * @since 2.2.0
+     */
+    default List<String> getGluePackages() {
+        return getComponents().stream()
+                .map(StepComponent::getStepDefinitionClass)
+                .filter(Objects::nonNull)
+                .map(Class::getPackageName)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toUnmodifiableList());
     }
 
     /**
