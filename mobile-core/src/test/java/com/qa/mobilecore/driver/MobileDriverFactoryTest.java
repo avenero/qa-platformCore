@@ -16,12 +16,12 @@ import static org.assertj.core.api.Assertions.*;
  *   <li>{@code isDriverCreated()} — estado inicial y tras ciclo de vida</li>
  *   <li>{@code quitIfCreated()} — sin driver, con driver, idempotente, absorbe excepción</li>
  *   <li>{@code setDevice()} — no lanza, acepta null</li>
- *   <li>{@code injectDriver()} — método de soporte de tests (package-private)</li>
+ *   <li>{@code injectDriver()} — método de soporte de tests (público, solo para dobles)</li>
  *   <li>{@link MobileDriverInitializationException} — contrato de excepción</li>
  * </ul>
  *
  * <p><b>Estrategia:</b> sin servidor Appium real. Se usa {@code Mockito.mock(AppiumDriver.class)}
- * e {@code injectDriver()} (package-private) para inyectar drivers falsos. Los métodos
+ * e {@code injectDriver()} para inyectar drivers falsos. Los métodos
  * {@code getOrCreateDriver()} y {@code resolveDeviceFromConfig()} requieren infraestructura
  * real (Appium server) por lo que no se invocan directamente en estos tests unitarios.
  *

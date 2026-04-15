@@ -122,6 +122,7 @@ class ScenarioLifecycleBridgeTest {
     /**
      * {@link TestCase} stub con los campos mínimos necesarios.
      */
+    @SuppressWarnings("deprecation") // getLine / getScenarioDesignation: aún requeridos por TestCase (Cucumber)
     private static class StubTestCase implements TestCase {
         private final String name;
         private final List<String> tags;
