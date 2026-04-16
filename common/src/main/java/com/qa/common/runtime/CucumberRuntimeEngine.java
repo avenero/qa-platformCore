@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.cucumber.plugin.ConcurrentEventListener;
+import io.cucumber.plugin.Plugin;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -196,10 +197,10 @@ public class CucumberRuntimeEngine {
                     new ScenarioLifecycleBridge(lifecycleManager, context);
 
             // Combinar plugins base + listeners adicionales del caller
-            Object[] allPlugins = Stream.concat(
+            Plugin[] allPlugins = Stream.concat(
                     Stream.of(collector, lifecycleBridge),
                     additionalListeners.stream()
-            ).toArray();
+            ).toArray(Plugin[]::new);
 
             io.cucumber.core.runtime.Runtime runtime = io.cucumber.core.runtime.Runtime.builder()
                     .withRuntimeOptions(runtimeOptions)
