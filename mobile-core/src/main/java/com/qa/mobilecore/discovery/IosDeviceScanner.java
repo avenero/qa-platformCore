@@ -116,7 +116,7 @@ public class IosDeviceScanner {
             JsonNode root    = MAPPER.readTree(json);
             JsonNode devices = root.path("devices");
 
-            Iterator<Map.Entry<String, JsonNode>> runtimes = devices.fields();
+            Iterator<Map.Entry<String, JsonNode>> runtimes = devices.properties().iterator();
             while (runtimes.hasNext()) {
                 Map.Entry<String, JsonNode> runtimeEntry = runtimes.next();
                 String runtimeKey = runtimeEntry.getKey(); // e.g. "com.apple.CoreSimulator.SimRuntime.iOS-17-0"

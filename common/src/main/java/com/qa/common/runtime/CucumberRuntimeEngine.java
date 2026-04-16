@@ -7,12 +7,15 @@ import io.cucumber.core.options.RuntimeOptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.cucumber.plugin.ConcurrentEventListener;
+
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
@@ -90,17 +93,43 @@ public class CucumberRuntimeEngine {
      * @return resultado de la ejecucion, nunca null
      */
     public ExecutionResult execute(ExecutionRequest request) {
+        return execute(request, List.of());
+    }
+
+    /**
+     * Ejecuta una suite BDD con listeners adicionales de Cucumber (ej: step-level events).
+     *
+     * <p>Variante que permite al Backend (u otro caller) inyectar
+     * {@link ConcurrentEventListener} adicionales que reciben eventos por paso y escenario
+     * en tiempo real — sin necesidad de subclasificar el engine.
+     *
+     * <p>Ejemplo de uso desde el Backend:
+     * <pre>
+     *   ConcurrentEventListener stepBridge = new StepEventBridge(webSocketCallback);
+     *   ExecutionResult result = engine.execute(request, List.of(stepBridge));
+     * </pre>
+     *
+     * @param request             solicitud de ejecucion, no null
+     * @param additionalListeners listeners Cucumber extras (pueden capturar TestStepFinished, etc.)
+     * @return resultado de la ejecucion, nunca null
+     * @since 2.1.0
+     */
+    public ExecutionResult execute(ExecutionRequest request,
+                                   List<ConcurrentEventListener> additionalListeners) {
         Objects.requireNonNull(request, "request no puede ser null");
-        log.info("Iniciando ejecucion BDD: features={}, glue={}, tags='{}'",
+        Objects.requireNonNull(additionalListeners, "additionalListeners no puede ser null");
+
+        log.info("Iniciando ejecucion BDD: features={}, glue={}, tags='{}', extraListeners={}",
                 request.getFeaturePaths().size(),
                 request.isGlueAutoResolved() ? "auto(SPI)" : request.getGluePaths().size(),
-                request.getConfig().getTags());
+                request.getConfig().getTags(),
+                additionalListeners.size());
 
         ExecutionContext context = lifecycleManager.initialize(request);
         InMemoryResultCollector collector = new InMemoryResultCollector();
 
         try {
-            byte exitStatus = runCucumber(request, context, collector);
+            byte exitStatus = runCucumber(request, context, collector, additionalListeners);
             log.info("Cucumber Runtime finalizado con exit status: {}", exitStatus);
 
             ExecutionResult result = collector.buildResult();
@@ -131,25 +160,28 @@ public class CucumberRuntimeEngine {
     /**
      * Invoca el Cucumber Runtime con los argumentos construidos.
      *
-     * <p>Registra dos plugins adicionales:
+     * <p>Registra plugins adicionales:
      * <ol>
      *   <li>{@link InMemoryResultCollector} — captura resultados de la ejecución</li>
      *   <li>{@link ScenarioLifecycleBridge} — conecta eventos Cucumber con el ciclo de vida
      *       de plugins ({@code onScenarioStart}/{@code onScenarioEnd} por escenario)</li>
+     *   <li>Listeners adicionales inyectados por el caller (ej: step-level event bridge)</li>
      * </ol>
      *
      * <p><b>Nota para subclases:</b> este método es {@code protected} para permitir
      * override en tests de integración. Si se sobreescribe, asegurarse de instanciar
      * el {@link ScenarioLifecycleBridge} o de invocar los callbacks manualmente.
      *
-     * @param request   solicitud de ejecucion
-     * @param context   contexto activo (activado en ThreadLocal por {@code initialize()})
-     * @param collector listener que captura resultados en memoria
+     * @param request             solicitud de ejecucion
+     * @param context             contexto activo (activado en ThreadLocal por {@code initialize()})
+     * @param collector           listener que captura resultados en memoria
+     * @param additionalListeners listeners Cucumber extras inyectados por el caller
      * @return exit status de Cucumber (0 = exito, != 0 = fallo)
      */
     protected byte runCucumber(ExecutionRequest request,
                                ExecutionContext context,
-                               InMemoryResultCollector collector) {
+                               InMemoryResultCollector collector,
+                               List<ConcurrentEventListener> additionalListeners) {
         try {
             List<String> args = buildCucumberArgs(request);
             log.debug("Cucumber args: {}", args);
@@ -163,9 +195,15 @@ public class CucumberRuntimeEngine {
             ScenarioLifecycleBridge lifecycleBridge =
                     new ScenarioLifecycleBridge(lifecycleManager, context);
 
+            // Combinar plugins base + listeners adicionales del caller
+            Object[] allPlugins = Stream.concat(
+                    Stream.of(collector, lifecycleBridge),
+                    additionalListeners.stream()
+            ).toArray();
+
             io.cucumber.core.runtime.Runtime runtime = io.cucumber.core.runtime.Runtime.builder()
                     .withRuntimeOptions(runtimeOptions)
-                    .withAdditionalPlugins(collector, lifecycleBridge)
+                    .withAdditionalPlugins(allPlugins)
                     .withClassLoader(() -> Thread.currentThread().getContextClassLoader())
                     .build();
 

@@ -377,6 +377,7 @@ class WebPluginTest {
                 .anyMatch(c -> c instanceof WindowComponent);
         }
 
+        @SuppressWarnings("deprecation") // DragDropComponent: deprecated desde 2.1.0, aún registrado durante ciclo de migración
         @Test
         @DisplayName("Incluye los 6 componentes de Interacción")
         void incluyeComponentesDeInteraccion() {

@@ -129,6 +129,7 @@ class WebConfigKeysTest {
             assertThat(WebConfigKeys.IMPLICIT_WAIT_SEC).isEqualTo("web.implicit.wait.sec");
         }
 
+        @SuppressWarnings("deprecation") // HOST_LEGACY: deprecated desde 2.2.0 — test verifica la constante existe con el valor correcto
         @Test
         @DisplayName("HOST_LEGACY tiene el valor 'host'")
         void testHostLegacy() {
