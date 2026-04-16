@@ -8,7 +8,7 @@ plugins {
 }
 
 group   = "com.qa"
-version = "2.0.4"
+version = "2.0.5"
 
 // =============================================================================
 // CONFIGURACIÓN COMÚN A TODOS LOS SUBMÓDULOS
@@ -21,7 +21,7 @@ subprojects {
     apply plugin: 'com.github.spotbugs'
 
     group   = "com.qa"
-    version = "2.0.4"
+    version = "2.0.5"
 
     repositories {
         mavenLocal()
