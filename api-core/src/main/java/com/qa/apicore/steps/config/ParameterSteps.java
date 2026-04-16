@@ -5,6 +5,7 @@ import com.qa.apicore.interfaces.HttpClient;
 import com.qa.apicore.interfaces.HttpRequestBuilder;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.runtime.annotation.StepDef;
 import io.cucumber.java.en.Given;
 import java.util.Map;
 
@@ -35,6 +36,8 @@ public class ParameterSteps {
         TestLogger.logInfo("PARAM_STEPS", "Query param agregado: " + param, null);
     }
 
+    @StepDef(value = "api.parameters.legacy-queryparam",
+             deprecated = true, replacedBy = "api.parameters#agregoElQueryParamConValor")
     @Given("agrego el queryparam {string} con el valor {string}")
     public void agregoElQueryparamConElValor(String param, String value) {
         var vars = ExecutionContext.requireCurrent().variables();

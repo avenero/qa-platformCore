@@ -122,6 +122,19 @@ public class GestureSteps {
     }
 
     // =========================================================================
+    // NUEVOS STEPS GENÉRICOS — Gestures v2.2.1
+    // =========================================================================
+
+    /**
+     * Hace tap en coordenadas absolutas de la pantalla.
+     */
+    @When("hago tap en las coordenadas ({int}, {int})")
+    public void hagoTapEnCoordenadas(int x, int y) {
+        mobile().tapAt(x, y);
+        TestLogger.logInfo("GESTURE", "Tap en coordenadas (" + x + ", " + y + ")", null);
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 

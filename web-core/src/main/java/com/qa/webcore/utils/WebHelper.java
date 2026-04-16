@@ -2253,5 +2253,157 @@ public class WebHelper {
             );
         };
     }
+
+    // =========================================================================
+    // NUEVOS MÉTODOS — v2.2.1 (requeridos por steps genéricos)
+    // =========================================================================
+
+    /**
+     * Presiona una tecla del teclado (Enter, Tab, Escape, etc.).
+     */
+    public void pressKey(String keyName) {
+        WebDriver driver = resolveDriver();
+        Keys key = mapKeyName(keyName);
+        new Actions(driver).sendKeys(key).perform();
+        TestLogger.logInfo("WEB_HELPER", "Tecla presionada: " + keyName, null);
+    }
+
+    /**
+     * Presiona una tecla del teclado sobre un elemento específico.
+     */
+    public void pressKeyOnElement(String locator, String keyName) {
+        WebElement element = getElement(locator);
+        Keys key = mapKeyName(keyName);
+        element.sendKeys(key);
+        TestLogger.logInfo("WEB_HELPER", "Tecla '" + keyName + "' presionada en: " + locator, null);
+    }
+
+    /**
+     * Hace doble clic en un elemento.
+     */
+    public void doubleClick(String locator) {
+        WebDriver driver = resolveDriver();
+        WebElement element = getElement(locator);
+        new Actions(driver).doubleClick(element).perform();
+        TestLogger.logInfo("WEB_HELPER", "Doble clic en: " + locator, null);
+    }
+
+    /**
+     * Limpia el contenido de un campo de texto.
+     */
+    public void clearField(String locator) {
+        WebElement element = getElement(locator);
+        element.clear();
+        TestLogger.logInfo("WEB_HELPER", "Campo limpiado: " + locator, null);
+    }
+
+    /**
+     * Sube un archivo en un campo input[type=file].
+     */
+    public void uploadFile(String filePath, String locator) {
+        WebElement element = getElement(locator);
+        File file = new File(filePath);
+        Assertions.assertThat(file.exists())
+            .as("El archivo '%s' debe existir", filePath)
+            .isTrue();
+        element.sendKeys(file.getAbsolutePath());
+        TestLogger.logInfo("WEB_HELPER", "Archivo subido en '" + locator + "': " + filePath, null);
+    }
+
+    /**
+     * Espera hasta que un texto sea visible en la página.
+     */
+    public void waitForTextVisible(String text, int timeoutSeconds) {
+        WebDriver driver = resolveDriver();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+            By.xpath("//*[contains(text(),'" + text.replace("'", "\\'") + "')]")));
+        TestLogger.logInfo("WEB_HELPER", "Texto visible: " + text, null);
+    }
+
+    /**
+     * Cuenta el número de elementos que coinciden con un locator.
+     */
+    public int countElements(String locator) {
+        WebDriver driver = resolveDriver();
+        List<WebElement> elements;
+        try {
+            elements = driver.findElements(By.cssSelector(locator));
+        } catch (InvalidSelectorException e) {
+            elements = driver.findElements(By.xpath(locator));
+        }
+        TestLogger.logInfo("WEB_HELPER", "Elementos encontrados para '" + locator + "': " + elements.size(), null);
+        return elements.size();
+    }
+
+    /**
+     * Valida que un elemento tenga un atributo con un valor específico.
+     */
+    public void validateAttributeValue(String locator, String attribute, String expectedValue) {
+        WebElement element = getElement(locator);
+        String actual = element.getAttribute(attribute);
+        Assertions.assertThat(actual)
+            .as("Atributo '%s' del elemento '%s'", attribute, locator)
+            .isEqualTo(resolveVariables(expectedValue));
+        TestLogger.logInfo("WEB_HELPER",
+            "Atributo '" + attribute + "' validado en '" + locator + "': " + actual, null);
+    }
+
+    /**
+     * Valida que un elemento tenga una clase CSS específica.
+     */
+    public void validateHasCssClass(String locator, String cssClass) {
+        WebElement element = getElement(locator);
+        String classes = element.getAttribute("class");
+        Assertions.assertThat(classes)
+            .as("El elemento '%s' debería tener la clase CSS '%s'", locator, cssClass)
+            .contains(cssClass);
+        TestLogger.logInfo("WEB_HELPER", "Clase CSS '" + cssClass + "' presente en: " + locator, null);
+    }
+
+    /**
+     * Valida el estado de selección de un checkbox.
+     */
+    public void validateCheckboxSelected(String locator, boolean expectedSelected) {
+        WebElement element = getElement(locator);
+        Assertions.assertThat(element.isSelected())
+            .as("El checkbox '%s' debería estar %s",
+                locator, expectedSelected ? "seleccionado" : "no seleccionado")
+            .isEqualTo(expectedSelected);
+        TestLogger.logInfo("WEB_HELPER",
+            "Checkbox '" + locator + "' " + (expectedSelected ? "seleccionado" : "no seleccionado") + " (OK)", null);
+    }
+
+    /**
+     * Obtiene el valor de un atributo de un elemento.
+     */
+    public String getAttributeValue(String locator, String attribute) {
+        WebElement element = getElement(locator);
+        return element.getAttribute(attribute);
+    }
+
+    private Keys mapKeyName(String keyName) {
+        return switch (keyName.toUpperCase().trim()) {
+            case "ENTER", "RETURN" -> Keys.ENTER;
+            case "TAB" -> Keys.TAB;
+            case "ESCAPE", "ESC" -> Keys.ESCAPE;
+            case "BACKSPACE", "BACK_SPACE" -> Keys.BACK_SPACE;
+            case "DELETE", "DEL" -> Keys.DELETE;
+            case "SPACE" -> Keys.SPACE;
+            case "ARROW_UP", "UP" -> Keys.ARROW_UP;
+            case "ARROW_DOWN", "DOWN" -> Keys.ARROW_DOWN;
+            case "ARROW_LEFT", "LEFT" -> Keys.ARROW_LEFT;
+            case "ARROW_RIGHT", "RIGHT" -> Keys.ARROW_RIGHT;
+            case "HOME" -> Keys.HOME;
+            case "END" -> Keys.END;
+            case "PAGE_UP" -> Keys.PAGE_UP;
+            case "PAGE_DOWN" -> Keys.PAGE_DOWN;
+            case "F1" -> Keys.F1;
+            case "F5" -> Keys.F5;
+            case "F12" -> Keys.F12;
+            default -> throw new IllegalArgumentException(
+                "Tecla no soportada: " + keyName + ". Usar: ENTER, TAB, ESCAPE, BACKSPACE, DELETE, SPACE, ARROW_UP/DOWN/LEFT/RIGHT, HOME, END, etc.");
+        };
+    }
 }
 

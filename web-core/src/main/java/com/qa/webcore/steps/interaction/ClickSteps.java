@@ -1,5 +1,6 @@
 package com.qa.webcore.steps.interaction;
 
+import com.qa.common.runtime.annotation.StepDef;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
@@ -53,9 +54,36 @@ public class ClickSteps {
         helper.moveToElement(locator);
     }
 
+    @StepDef(value = "web.click.legacy-cerrar-banner",
+             deprecated = true, replacedBy = "web.click#presionoLaTecla",
+             displayName = "cerrar banner lateral (DEPRECATED — usar presiono la tecla)")
     @And("cerrar banner lateral")
     public void cerrarBannerShadowHome() {
         helper.doClicTeclaESC();
+    }
+
+    /**
+     * Presiona una tecla del teclado (Enter, Escape, Tab, etc.) — step genérico.
+     */
+    @When("presiono la tecla {string}")
+    public void presionoLaTecla(String tecla) {
+        helper.pressKey(tecla);
+    }
+
+    /**
+     * Presiona una tecla del teclado en un elemento específico.
+     */
+    @When("presiono la tecla {string} en el elemento {string}")
+    public void presionoLaTeclaEnElElemento(String tecla, String locator) {
+        helper.pressKeyOnElement(tecla, locator);
+    }
+
+    /**
+     * Hace doble clic en un elemento.
+     */
+    @When("hago doble clic en el elemento {string}")
+    public void hagoDobleClicEnElElemento(String locator) {
+        helper.doubleClick(locator);
     }
 
     @And("verifico si existe el elemento {string} con host {string} y hago clic")

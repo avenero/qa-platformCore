@@ -1336,5 +1336,87 @@ public class ApiHelper {
             String.format("Se agotaron %d intentos esperando '%s' = '%s' en %s %s",
                 maxAttempts, jsonPath, processedExpected, method, processedEndpoint));
     }
+
+    // =========================================================================
+    // NUEVOS MÉTODOS — v2.2.1 (requeridos por steps genéricos)
+    // =========================================================================
+
+    /**
+     * Valida que la respuesta cumpla un JSON Schema cargado desde un archivo.
+     */
+    public void validateResponseSchemaFromFile(String filePath) throws FrameworkBusinessException {
+        try {
+            String schema = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(resolve(filePath))));
+            validateResponseSchema(schema);
+        } catch (java.io.IOException e) {
+            throw new FrameworkBusinessException("validateResponseSchemaFromFile",
+                "No se pudo leer el archivo de esquema: " + filePath + " — " + e.getMessage());
+        }
+    }
+
+    /**
+     * Valida que un campo JSON tenga formato de fecha válido.
+     */
+    public void validateJsonPathDateFormat(String jsonPath, String dateFormat) throws FrameworkBusinessException {
+        try {
+            HttpResponse response = getLastResponse();
+            Object value = JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
+            if (value == null) {
+                throw new FrameworkBusinessException("validateJsonPathDateFormat",
+                    "El campo '" + jsonPath + "' es null");
+            }
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(dateFormat);
+            sdf.setLenient(false);
+            sdf.parse(value.toString());
+            TestLogger.logInfo("API_HELPER", "Fecha validada en '" + jsonPath + "': " + value, null);
+        } catch (java.text.ParseException e) {
+            throw new FrameworkBusinessException("validateJsonPathDateFormat",
+                "El campo '" + jsonPath + "' no tiene formato de fecha válido '" + dateFormat + "'");
+        }
+    }
+
+    /**
+     * Extrae todos los valores de un array JSON y los guarda como variable (lista serializada).
+     */
+    public void extractJsonArrayValues(String jsonPath, String variable) throws FrameworkBusinessException {
+        HttpResponse response = getLastResponse();
+        Object value = JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
+        if (value == null) {
+            throw new FrameworkBusinessException("extractJsonArrayValues",
+                "El campo '" + jsonPath + "' es null o no existe");
+        }
+        ExecutionContext.requireCurrent().variables().set(variable, value.toString());
+        TestLogger.logInfo("API_HELPER",
+            "Array '" + jsonPath + "' guardado como '" + variable + "'", null);
+    }
+
+    /**
+     * Valida que un campo JSON sea null.
+     */
+    public void validateJsonPathIsNull(String jsonPath) throws FrameworkBusinessException {
+        HttpResponse response = getLastResponse();
+        Object value = JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
+        if (value != null && !"null".equals(value.toString())) {
+            throw new FrameworkBusinessException("validateJsonPathIsNull",
+                "Se esperaba null en '" + jsonPath + "' pero se encontró: " + value);
+        }
+        TestLogger.logInfo("API_HELPER", "Campo '" + jsonPath + "' es null (OK)", null);
+    }
+
+    /**
+     * Configura el timeout para la siguiente petición HTTP.
+     */
+    public void setTimeout(int millis) {
+        httpClient.setTimeout(millis);
+        TestLogger.logInfo("API_HELPER", "Timeout configurado: " + millis + "ms", null);
+    }
+
+    /**
+     * Configura la codificación de la petición HTTP.
+     */
+    public void setEncoding(String encoding) {
+        httpClient.addHeader("Accept-Charset", encoding);
+        TestLogger.logInfo("API_HELPER", "Encoding configurado: " + encoding, null);
+    }
 }
 

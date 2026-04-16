@@ -78,4 +78,32 @@ public record ParamInfo(
     public boolean hasCucumberToken() {
         return cucumberToken != null;
     }
+
+    /**
+     * Indica si este parámetro es un DocString de Cucumber.
+     *
+     * <p>Un parámetro DocString no tiene token en el patrón ({@code cucumberToken == null})
+     * y su tipo Java es {@code String}. El motor Cucumber lo inyecta desde el bloque
+     * de triple comillas ({@code """}) que sigue al step en el feature file.
+     *
+     * @return {@code true} si es un parámetro DocString
+     * @since 2.2.1
+     */
+    public boolean isDocString() {
+        return !hasCucumberToken() && "String".equals(javaType);
+    }
+
+    /**
+     * Indica si este parámetro es un DataTable de Cucumber.
+     *
+     * <p>Un parámetro DataTable no tiene token en el patrón ({@code cucumberToken == null})
+     * y su tipo Java es {@code DataTable}, {@code Map} o {@code List}.
+     *
+     * @return {@code true} si es un parámetro DataTable
+     * @since 2.2.1
+     */
+    public boolean isDataTable() {
+        return !hasCucumberToken()
+                && ("DataTable".equals(javaType) || "Map".equals(javaType) || "List".equals(javaType));
+    }
 }

@@ -198,8 +198,8 @@ public class CucumberRuntimeEngine {
 
             // Combinar plugins base + listeners adicionales del caller
             Plugin[] allPlugins = Stream.concat(
-                    Stream.of(collector, lifecycleBridge),
-                    additionalListeners.stream()
+                    Stream.of((Plugin) collector, (Plugin) lifecycleBridge),
+                    additionalListeners.stream().map(Plugin.class::cast)
             ).toArray(Plugin[]::new);
 
             io.cucumber.core.runtime.Runtime runtime = io.cucumber.core.runtime.Runtime.builder()

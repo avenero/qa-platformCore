@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
  *       por posición (el parámetro en posición {@code i} corresponde al token {@code i}).</li>
  *   <li>Resuelve el {@code stepDefId} desde {@link StepDef} si está presente, o lo deriva
  *       como {@code {componentId}#{methodName}}.</li>
+ *   <li>Propaga los mapas i18n del componente padre al {@link StepDefinitionInfo} (v2.3.0).</li>
  * </ol>
  *
  * <h2>Comportamiento ante clases nulas o sin steps</h2>
@@ -45,15 +47,24 @@ import java.util.stream.Collectors;
  * <p>Cucumber puede inyectar {@code DataTable} o {@code DocString} como último parámetro
  * de un método sin que aparezcan como tokens {@code {}} en el patrón. El scanner detecta
  * este caso: si hay más parámetros Java que tokens en el patrón, los parámetros restantes
- * reciben {@code cucumberToken = null} en su {@link ParamInfo}.
+ * reciben {@code cucumberToken = null} en su {@link ParamInfo}, y su {@link ParamSchema}
+ * reflejará el tipo estructurado correspondiente ({@code "table"}, {@code "json"},
+ * {@code "docstring"}).
  *
- * <h2>Limitaciones conocidas (skeleton v2.2.0)</h2>
+ * <h2>I18n propagada desde el componente (v2.3.0)</h2>
+ * <p>Los mapas {@code displayNameByLocale} y {@code descriptionByLocale} del
+ * {@link StepComponent} se propagan a todos sus {@link StepDefinitionInfo}. En este
+ * corte inicial, todos los steps de un componente comparten los mismos mapas. El soporte
+ * de i18n por step individual se planifica para una versión futura vía
+ * {@link com.qa.common.runtime.annotation.StepDef}.
+ *
+ * <h2>Limitaciones conocidas</h2>
  * <ul>
  *   <li>Solo procesa anotaciones en inglés ({@code io.cucumber.java.en.*}).
- *       Las variantes en español ({@code io.cucumber.java.es.*}) y francés se agregarán
+ *       Las variantes en español ({@code io.cucumber.java.es.*}) se agregarán
  *       en una versión futura.</li>
  *   <li>{@code @And} y {@code @But} no son procesados: su fase BDD es ambigua estáticamente
- *       (depende del contexto en el feature file). Se documentará en ADR-003.</li>
+ *       (depende del contexto en el feature file). Ver ADR-003.</li>
  *   <li>Los nombres de parámetros son correctos solo si se compiló con {@code -parameters};
  *       sin ese flag, el fallback es {@code "arg0"}, {@code "arg1"}, etc.</li>
  * </ul>
@@ -62,6 +73,7 @@ import java.util.stream.Collectors;
  * @since 2.2.0
  * @see StepDefinitionInfo
  * @see ParamInfo
+ * @see ParamSchema
  * @see StepDiscoveryService#discoverAllStepDefs()
  * @see com.qa.common.runtime.annotation.StepDef
  */
@@ -112,7 +124,9 @@ public final class StepMethodScanner {
             return scanClass(
                     stepClass,
                     componentInfo.pluginName(),
-                    componentInfo.component().getId());
+                    componentInfo.component().getId(),
+                    componentInfo.component().getDisplayNameByLocale(),
+                    componentInfo.component().getDescriptionByLocale());
         } catch (Exception e) {
             log.warn("Error escaneando la clase de steps '{}' del componente '{}': {}",
                     stepClass.getName(), componentInfo.component().getId(), e.getMessage());
@@ -124,9 +138,21 @@ public final class StepMethodScanner {
     // Private — lógica central de escaneo
     // =========================================================================
 
+    /**
+     * Escanea todos los métodos de una clase de steps y construye la lista de
+     * {@link StepDefinitionInfo}.
+     *
+     * @param stepClass           clase con anotaciones Cucumber
+     * @param layer               nombre del plugin (ej: "api", "web")
+     * @param componentId         ID del componente padre
+     * @param displayNameByLocale mapas i18n del componente padre (propagados a cada step)
+     * @param descriptionByLocale mapas i18n del componente padre (propagados a cada step)
+     */
     private List<StepDefinitionInfo> scanClass(Class<?> stepClass,
                                                String layer,
-                                               String componentId) {
+                                               String componentId,
+                                               Map<String, String> displayNameByLocale,
+                                               Map<String, String> descriptionByLocale) {
         List<StepDefinitionInfo> result = new ArrayList<>();
 
         for (Method method : stepClass.getMethods()) {
@@ -157,7 +183,9 @@ public final class StepMethodScanner {
                     componentId,
                     displayName,
                     deprecated,
-                    replacementId
+                    replacementId,
+                    displayNameByLocale != null ? displayNameByLocale : Map.of(),
+                    descriptionByLocale != null ? descriptionByLocale : Map.of()
             ));
 
             log.debug("Step descubierto: [{}] '{}' → stepDefId='{}'",
@@ -270,8 +298,8 @@ public final class StepMethodScanner {
     // =========================================================================
 
     /**
-     * Par inmutable de (fase BDD, patrón Cucumber) extraído de una anotación {@code @Given/@When/@Then}.
-     * Solo se usa internamente dentro del escáner.
+     * Par inmutable de (fase BDD, patrón Cucumber) extraído de una anotación
+     * {@code @Given/@When/@Then}. Solo se usa internamente dentro del escáner.
      */
     private record PhaseAndPattern(BddPhase phase, String pattern) {}
 }

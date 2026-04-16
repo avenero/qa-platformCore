@@ -3,6 +3,7 @@ package com.qa.apicore.steps;
 import com.qa.apicore.utils.ApiHelper;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.runtime.annotation.StepDef;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import java.util.UUID;
@@ -23,6 +24,8 @@ public class VariableSteps {
         vars.set(vars.resolve(variableName), vars.resolve(value));
     }
 
+    @StepDef(value = "api.variables.legacy-key-value",
+             deprecated = true, replacedBy = "api.variables#almacenoElValorComo")
     @Given("establezco la key {string} con el valor {string}")
     public void establescoLaKeyConElValor(String key, String value) {
         var vars = ExecutionContext.requireCurrent().variables();

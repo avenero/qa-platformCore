@@ -799,6 +799,126 @@ info.ifPresent(c -> {
 
 ---
 
+## 15. Catálogo de Steps a nivel método — API v2.3.0
+
+> Contrato de catálogo step-level para macros/CustomSteps, lint BDD y sugerencias IA.
+
+### 15.1 Modelo de dos niveles
+
+| Nivel | Clase | Descripción |
+|---|---|---|
+| **Componente** | `StepInfo` | Agrupa steps por responsabilidad (ej: `api.authentication`). Expuesto en `GET /api/steps`. |
+| **Step individual** | `StepDefinitionInfo` | Un método Cucumber concreto (ej: `api.authentication.bearer.identifier`). Expuesto en `GET /api/steps/defs`. |
+
+### 15.2 `ParamSchema` — tipos lógicos de parámetros
+
+`ParamSchema` es la vista semántica de un parámetro, orientada al consumo por el Backend y el FE:
+
+| Tipo lógico | Tipos Java que lo generan | Uso en FE |
+|---|---|---|
+| `string` | `String`, CharSequence | Text input |
+| `number` | `int`, `Integer`, `long`, `double`, `BigDecimal`… | Number input |
+| `boolean` | `boolean`, `Boolean` | Toggle / checkbox |
+| `json` | `Map` (DataTable como mapa) | JSON editor |
+| `list` | `List` (DataTable como lista) | Tabla de filas |
+| `table` | `DataTable` nativo | Data table editor |
+| `docstring` | `String` sin token Cucumber | Text area multilínea |
+
+Obtención desde el Backend:
+```java
+StepDefinitionInfo sdi = discovery.findById("api.url.set-endpoint").orElseThrow();
+sdi.paramSchemas().forEach(schema ->
+    log.info("param={} type={} required={}", schema.name(), schema.type(), schema.required()));
+```
+
+### 15.3 `StepDefinitionInfo` enriquecido (v2.3.0)
+
+Desde v2.3.0, `StepDefinitionInfo` incluye:
+
+```
+stepDefId()            → "api.authentication.bearer.identifier"
+cucumberPattern()      → "agrego autenticación Bearer con identificador {string}"
+phase()                → BddPhase.GIVEN
+layer()                → "api"
+componentId()          → "api.authentication"
+params()               → List<ParamInfo>  (reflexión Java)
+paramSchemas()         → List<ParamSchema> (tipos lógicos — derivado de params())
+displayName()          → "Autenticación Bearer por identificador"
+displayNameByLocale()  → {"es": "...", "en": "...", "fr": "..."} (heredado del componente)
+descriptionByLocale()  → {"es": "...", "en": "...", "fr": "..."} (heredado del componente)
+deprecated()           → false
+replacementStepDefId() → null
+```
+
+### 15.4 API de `StepDiscoveryService` — nivel step
+
+```java
+StepDiscoveryService discovery = StepDiscoveryService.withServiceLoader();
+
+// Catálogo completo de steps individuales
+List<StepDefinitionInfo> catalog = discovery.discoverAllSteps();
+
+// Resolución directa por ID (bridge BE ↔ Core)
+Optional<StepDefinitionInfo> sdi = discovery.findById("api.authentication.bearer.identifier");
+sdi.ifPresent(s -> {
+    log.info("Patrón: {}", s.cucumberPattern());
+    log.info("Nombre ES: {}", s.getDisplayNameForLocale("es"));
+    s.paramSchemas().forEach(p ->
+        log.info("  {} : {} required={}", p.name(), p.type(), p.required()));
+});
+
+// También disponibles (nombres legacy, misma semántica):
+List<StepDefinitionInfo> all  = discovery.discoverAllStepDefs();   // = discoverAllSteps()
+Optional<StepDefinitionInfo>  = discovery.resolveStepDef("id");    // = findById("id")
+```
+
+### 15.5 Convención de IDs con `@StepDef`
+
+Los IDs de step explícitos se declaran con la anotación `@StepDef` (en el método) y siguen el formato:
+
+```
+{componentId}.{sub-id}
+```
+
+Ejemplos:
+```java
+@StepDef("api.url.set-endpoint")        // componente: api.url
+@StepDef("api.authentication.basic")    // componente: api.authentication
+@StepDef("web.navigation.go-to-url")    // componente: web.navigation
+@StepDef("mobile.device.config.platform") // componente: mobile.device.config
+```
+
+Sin `@StepDef`, el scanner deriva el ID como `{componentId}#{methodName}` (menos estable frente a renombrados).
+
+**Contrato de estabilidad:** una vez publicado, un `@StepDef` ID es un contrato público. Para cambiarlo:
+```java
+// Paso 1 (mínimo una release): marcar como deprecated
+@StepDef(value = "api.url.legacy-ambiente",
+         deprecated = true, replacedBy = "api.url.set-endpoint")
+@Given("configuro el ambiente {string}")
+public void configuroElAmbiente(String env) { ... }
+
+// Paso 2 (release siguiente): eliminar el step antiguo
+```
+
+### 15.6 Steps anotados por módulo (referencia)
+
+| Módulo | Componente | IDs canónicos |
+|---|---|---|
+| api-core | `api.url` | `api.url.set-endpoint`, `api.url.set-base-path`, `api.url.set-host`, `api.url.set-full-url`, `api.url.set-protocol`, `api.url.set-timeout`, `api.url.set-encoding` |
+| api-core | `api.authentication` | `api.authentication.client-credentials`, `api.authentication.bearer.identifier`, `api.authentication.custom-token`, `api.authentication.basic`, `api.authentication.oauth2`, `api.authentication.api-key.header`, `api.authentication.api-key.query`, `api.authentication.jwt`, `api.authentication.none` |
+| api-core | `api.execution` | `api.execution.execute`, `api.execution.get`, `api.execution.post`, `api.execution.put`, `api.execution.patch`, `api.execution.delete`, `api.execution.with-timeout`, `api.execution.poll-status`, `api.execution.poll-field` |
+| api-core | `api.status` | `api.status.exact`, `api.status.success`, `api.status.client-error`, `api.status.server-error`, `api.status.range`, `api.status.not` |
+| web-core | `web.navigation` | `web.navigation.go-to-url`, `web.navigation.refresh`, `web.navigation.back`, `web.navigation.forward` |
+| web-core | `web.input` | `web.input.type-text`, `web.input.type-from-variable`, `web.input.type-random-name`, `web.input.type-if-exists`, `web.input.clear`, `web.input.upload-file` |
+| mobile-core | `mobile.device.config` | `mobile.device.config.platform`, `mobile.device.config.device-id`, `mobile.device.config.platform-version`, `mobile.device.config.emulator`, `mobile.device.config.physical`, `mobile.device.config.ios-simulator`, `mobile.device.config.appium-server`, `mobile.device.config.orientation`, `mobile.device.config.capabilities`, `mobile.device.config.udid` |
+
+> Los steps del resto de componentes (headers, body, response, click, gestos, etc.) están
+> **pendientes de anotar** con `@StepDef`. Sus IDs derivados siguen el patrón
+> `{componentId}#{methodName}` hasta que se agreguen las anotaciones explícitas.
+
+---
+
 > 📖 **Documentación relacionada:**
 > - [api-core/README.md](../api-core/README.md) — Capa de pruebas de API
 > - [web-core/README.md](../web-core/README.md) — Capa de pruebas Web

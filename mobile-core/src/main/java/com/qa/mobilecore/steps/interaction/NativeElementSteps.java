@@ -2,6 +2,7 @@ package com.qa.mobilecore.steps.interaction;
 
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.runtime.annotation.StepDef;
 import com.qa.mobilecore.helper.MobileHelper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -32,6 +33,8 @@ public class NativeElementSteps {
             "Texto ingresado en '" + resolvedLocator + "': " + resolvedText, null);
     }
 
+    @StepDef(value = "mobile.native-element.legacy-escribo",
+             deprecated = true, replacedBy = "mobile.native-element#ingresarTextoNativo")
     @When("escribo {string} en el campo {string}")
     public void escriboEnCampo(String text, String locator) {
         ingresarTextoNativo(text, locator);
@@ -44,6 +47,8 @@ public class NativeElementSteps {
         TestLogger.logInfo("NATIVE_EL", "Tap en boton: " + resolved, null);
     }
 
+    @StepDef(value = "mobile.native-element.legacy-toco-boton",
+             deprecated = true, replacedBy = "mobile.native-element#presionoBotonNativo")
     @When("toco el boton {string}")
     public void tocoElBoton(String locator) {
         presionoBotonNativo(locator);
@@ -56,6 +61,8 @@ public class NativeElementSteps {
         TestLogger.logInfo("NATIVE_EL", "Campo limpiado: " + resolved, null);
     }
 
+    @StepDef(value = "mobile.native-element.legacy-borro-campo",
+             deprecated = true, replacedBy = "mobile.native-element#limpioElCampoNativo")
     @When("borro el contenido del campo {string}")
     public void borroContenidoCampo(String locator) {
         limpioElCampoNativo(locator);
@@ -83,6 +90,8 @@ public class NativeElementSteps {
     // Validaciones de elementos (THEN)
     // =========================================================================
 
+    @StepDef(value = "mobile.native-element.legacy-verifico-visible",
+             deprecated = true, replacedBy = "mobile.validation#verificoElementoVisible")
     @Then("verifico que el elemento nativo {string} este visible")
     public void verificoElementoNativoVisible(String locator) {
         String resolved = ctx().variables().resolve(locator);
@@ -175,6 +184,67 @@ public class NativeElementSteps {
         ctx().variables().set(resolvedVar, text);
         TestLogger.logInfo("NATIVE_EL",
             "Texto de '" + resolvedLocator + "' guardado como '" + resolvedVar + "': " + text, null);
+    }
+
+    // =========================================================================
+    // NUEVOS STEPS GENÉRICOS — Interacción v2.2.1
+    // =========================================================================
+
+    /**
+     * Espera hasta que el elemento sea visible (timeout configurable internamente).
+     */
+    @When("espero hasta que el elemento {string} sea visible")
+    public void esperarElementoVisible(String locator) {
+        String resolved = ctx().variables().resolve(locator);
+        mobile().waitForVisible(resolved);
+        TestLogger.logInfo("NATIVE_EL", "Elemento visible: " + resolved, null);
+    }
+
+    /**
+     * Espera un número específico de segundos (hard wait, útil en mobile).
+     */
+    @When("espero {int} segundos")
+    public void esperarSegundos(int seconds) {
+        try {
+            Thread.sleep(seconds * 1000L);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        TestLogger.logInfo("NATIVE_EL", "Esperó " + seconds + " segundos", null);
+    }
+
+    /**
+     * Espera hasta que un texto aparezca en pantalla.
+     */
+    @When("espero hasta que el texto {string} aparezca en pantalla")
+    public void esperarTextoEnPantalla(String text) {
+        String resolved = ctx().variables().resolve(text);
+        mobile().waitForText(resolved);
+        TestLogger.logInfo("NATIVE_EL", "Texto visible: " + resolved, null);
+    }
+
+    /**
+     * Presiona una tecla de sistema del dispositivo (Back, Home, Recent).
+     */
+    @When("presiono la tecla de sistema {string}")
+    public void presionoTeclaSistema(String key) {
+        String resolved = ctx().variables().resolve(key);
+        mobile().pressSystemKey(resolved);
+        TestLogger.logInfo("NATIVE_EL", "Tecla de sistema presionada: " + resolved, null);
+    }
+
+    /**
+     * Guarda el valor de un atributo de un elemento como variable.
+     */
+    @Given("guardo el valor del atributo {string} del elemento {string} como {string}")
+    public void guardoAtributoComoVariable(String attribute, String locator, String variable) {
+        String resolvedLocator = ctx().variables().resolve(locator);
+        String resolvedAttr    = ctx().variables().resolve(attribute);
+        String resolvedVar     = ctx().variables().resolve(variable);
+        String value = mobile().getAttribute(resolvedLocator, resolvedAttr);
+        ctx().variables().set(resolvedVar, value);
+        TestLogger.logInfo("NATIVE_EL",
+            "Atributo '" + resolvedAttr + "' guardado como '" + resolvedVar + "': " + value, null);
     }
 
     // =========================================================================

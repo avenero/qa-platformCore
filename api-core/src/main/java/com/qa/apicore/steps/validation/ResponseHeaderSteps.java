@@ -51,4 +51,28 @@ public class ResponseHeaderSteps {
             ExecutionContext.requireCurrent().variables().set(variable, headerValue);
         }
     }
+
+    // =========================================================================
+    // NUEVOS STEPS GENÉRICOS — Validación v2.2.1
+    // =========================================================================
+
+    /**
+     * Valida que un header de respuesta NO esté presente.
+     */
+    @Then("valido que el header {string} NO esté presente")
+    public void validoHeaderNoEstePresente(String header) {
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header))
+            .as("El header '%s' NO debería estar presente", header)
+            .isNull();
+    }
+
+    /**
+     * Valida que el header de respuesta exista (sin importar su valor).
+     */
+    @Then("valido que el header {string} esté presente")
+    public void validoHeaderEstePresente(String header) {
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header))
+            .as("El header '%s' debería estar presente", header)
+            .isNotNull();
+    }
 }

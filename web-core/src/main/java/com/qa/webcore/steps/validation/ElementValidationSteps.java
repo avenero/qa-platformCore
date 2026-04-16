@@ -1,5 +1,6 @@
 package com.qa.webcore.steps.validation;
 
+import com.qa.common.runtime.annotation.StepDef;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
@@ -17,6 +18,8 @@ public class ElementValidationSteps {
     private final WebHelper helper = new WebHelper();
     private Scenario scenario;
 
+    @StepDef(value = "web.element-validation.legacy-verifico-existe",
+             deprecated = true, replacedBy = "web.element-validation#elElementoDebeSerVisible")
     @Then("verifico si existe el elemento {string}")
     public void verificoSiExisteElElemento(String locator) {
         Assertions.assertThat(helper.waitForVisibleElement(locator))
@@ -38,6 +41,8 @@ public class ElementValidationSteps {
         helper.captureScreen(scenario);
     }
 
+    @StepDef(value = "web.element-validation.legacy-desactivado",
+             deprecated = true, replacedBy = "web.element-validation#verificoQueElElementoEsteDeshabilitado")
     @Then("verifico que el elemento {string} este desactivado")
     public void verificoQueElElementoEsteDesactivado(String locator) {
         Assertions.assertThat(helper.isActive(locator))
@@ -59,6 +64,8 @@ public class ElementValidationSteps {
         helper.captureScreen(scenario);
     }
 
+    @StepDef(value = "web.element-validation.legacy-activo",
+             deprecated = true, replacedBy = "web.element-validation#verificoQueElElementoEstehabilitado")
     @Then("verifico que el elemento {string} este activo")
     public void verificoQueElElementoEsteActivo(String locator) {
         Assertions.assertThat(helper.isActive(locator))
@@ -221,6 +228,8 @@ public class ElementValidationSteps {
         helper.validateTooltip(locator, expectedTooltip);
     }
 
+    @StepDef(value = "web.element-validation.legacy-mensaje-visible",
+             deprecated = true, replacedBy = "web.element-validation#elElementoDebeSerVisible")
     @Then("el mensaje {string} debe estar visible")
     public void elMensajeDebeEstarVisible(String locator) {
         helper.validateMessageIsVisible(locator);
@@ -256,16 +265,22 @@ public class ElementValidationSteps {
         helper.validateFieldIsEmpty(locator);
     }
 
+    @StepDef(value = "web.element-validation.legacy-campo-habilitado",
+             deprecated = true, replacedBy = "web.element-validation#verificoQueElElementoEstehabilitado")
     @Then("el campo {string} debe estar habilitado")
     public void elCampoDebeEstarHabilitado(String locator) {
         helper.validateButtonIsEnabled(locator);
     }
 
+    @StepDef(value = "web.element-validation.legacy-boton-activo",
+             deprecated = true, replacedBy = "web.element-validation#verificoQueElElementoEstehabilitado")
     @Then("el boton {string} debe estar activo")
     public void elBotonDebeEstarActivo(String locator) {
         helper.validateButtonIsEnabled(locator);
     }
 
+    @StepDef(value = "web.element-validation.legacy-boton-inactivo",
+             deprecated = true, replacedBy = "web.element-validation#verificoQueElElementoEsteDeshabilitado")
     @Then("el boton {string} debe estar inactivo")
     public void elBotonDebeEstarInactivo(String locator) {
         helper.validateButtonIsDisabled(locator);
@@ -294,5 +309,52 @@ public class ElementValidationSteps {
     @Then("el mensaje {string} debe contener el texto de la variable {string}")
     public void elMensajeDebeContenerElTextoDeLaVariable(String locator, String varName) {
         helper.validateMessageContainsText(locator, helper.getTextVariableTemp(varName));
+    }
+
+    // =========================================================================
+    // NUEVOS STEPS GENÉRICOS — Validación v2.2.1
+    // =========================================================================
+
+    /**
+     * Verifica la cantidad de elementos que coinciden con un locator.
+     */
+    @Then("verifico que la cantidad de elementos {string} sea {int}")
+    public void verificoCantidadDeElementos(String locator, int expectedCount) {
+        int actual = helper.countElements(locator);
+        Assertions.assertThat(actual)
+            .as("Cantidad de elementos '%s'", locator)
+            .isEqualTo(expectedCount);
+    }
+
+    /**
+     * Verifica que un elemento tenga un atributo con un valor específico.
+     */
+    @Then("verifico que el elemento {string} tenga el atributo {string} con valor {string}")
+    public void verificoAtributoConValor(String locator, String attribute, String expectedValue) {
+        helper.validateAttributeValue(locator, attribute, expectedValue);
+    }
+
+    /**
+     * Verifica que un elemento tenga una clase CSS específica.
+     */
+    @Then("verifico que el elemento {string} tenga la clase CSS {string}")
+    public void verificoClaseCss(String locator, String cssClass) {
+        helper.validateHasCssClass(locator, cssClass);
+    }
+
+    /**
+     * Verifica que un checkbox esté seleccionado.
+     */
+    @Then("verifico que el checkbox {string} este seleccionado")
+    public void verificoCheckboxSeleccionado(String locator) {
+        helper.validateCheckboxSelected(locator, true);
+    }
+
+    /**
+     * Verifica que un checkbox NO esté seleccionado.
+     */
+    @Then("verifico que el checkbox {string} no este seleccionado")
+    public void verificoCheckboxNoSeleccionado(String locator) {
+        helper.validateCheckboxSelected(locator, false);
     }
 }

@@ -61,7 +61,7 @@ import java.util.stream.StreamSupport;
  * @since 2.0.0
  * @see CorePlugin#getComponents()
  * @see StepComponent
- * @see StepId
+ * @see com.qa.common.runtime.annotation.StepId
  * @see StepMethodScanner
  * @see StepDefinitionInfo
  */
@@ -160,7 +160,7 @@ public final class StepDiscoveryService {
      * </pre>
      *
      * <p>Si el {@code stepId} corresponde a un componente marcado como
-     * {@link StepId#deprecated() deprecated}, se emite una advertencia en el log indicando
+     * {@link com.qa.common.runtime.annotation.StepId#deprecated() deprecated}, se emite una advertencia en el log indicando
      * el ID de reemplazo (si está declarado).
      *
      * @param stepId identificador estable del componente (ej: {@code "api.authentication"})
@@ -438,6 +438,81 @@ public final class StepDiscoveryService {
      */
     public int totalStepDefs() {
         return discoverAllStepDefs().size();
+    }
+
+    // =========================================================================
+    // API step-level v2.3.0 — contrato público para macros, lint e IA
+    // =========================================================================
+
+    /**
+     * Descubre todos los steps individuales de todos los plugins como {@link StepDefinitionInfo}.
+     *
+     * <p>Esta es la API de catálogo de nivel step recomendada para consumo desde el Backend
+     * (macros / CustomSteps, lint BDD, sugerencias IA). Cada {@link StepDefinitionInfo}
+     * incluye:
+     * <ul>
+     *   <li>ID estable ({@link StepDefinitionInfo#stepDefId()}) — explícito via
+     *       {@link com.qa.common.runtime.annotation.StepDef} o derivado.</li>
+     *   <li>Patrón Cucumber Expression ({@link StepDefinitionInfo#cucumberPattern()}).</li>
+     *   <li>Fase BDD ({@link StepDefinitionInfo#phase()}).</li>
+     *   <li>Capa y componente padre ({@link StepDefinitionInfo#layer()},
+     *       {@link StepDefinitionInfo#componentId()}).</li>
+     *   <li>Vista semántica de parámetros ({@link StepDefinitionInfo#paramSchemas()})
+     *       con tipos lógicos ({@code "string"}, {@code "number"}, {@code "boolean"},
+     *       {@code "json"}, etc.).</li>
+     *   <li>Mapas i18n propagados del componente padre
+     *       ({@link StepDefinitionInfo#displayNameByLocale()},
+     *       {@link StepDefinitionInfo#descriptionByLocale()}).</li>
+     *   <li>Flags de deprecación ({@link StepDefinitionInfo#deprecated()},
+     *       {@link StepDefinitionInfo#replacementStepDefId()}).</li>
+     * </ul>
+     *
+     * <p>Ejemplo desde el Backend:
+     * <pre>
+     *   StepDiscoveryService discovery = StepDiscoveryService.withServiceLoader();
+     *   List&lt;StepDefinitionInfo&gt; catalog = discovery.discoverAllSteps();
+     *   // Serializar a JSON y exponer en GET /api/steps/defs
+     * </pre>
+     *
+     * <p>Equivalente funcional a {@link #discoverAllStepDefs()}.
+     *
+     * @return lista inmutable de {@link StepDefinitionInfo}; nunca null, puede estar vacía
+     * @since 2.3.0
+     * @see #discoverAllStepDefs()
+     * @see #findById(String)
+     */
+    public List<StepDefinitionInfo> discoverAllSteps() {
+        return discoverAllStepDefs();
+    }
+
+    /**
+     * Resuelve un step individual por su {@code stepId} estable.
+     *
+     * <p>API de resolución directa para el Backend. Permite mapear un {@code stepId}
+     * persistido en la BD a su metadata completa sin recorrer el catálogo manualmente:
+     * <pre>
+     *   discovery.findById("api.authentication.bearer.identifier")
+     *       .ifPresent(sdi -> {
+     *           log.info("Patrón: {}", sdi.cucumberPattern());
+     *           sdi.paramSchemas().forEach(p ->
+     *               log.info("  {} : {}", p.name(), p.type()));
+     *       });
+     * </pre>
+     *
+     * <p>Si el step está deprecado, se emite una advertencia en el log con el ID de reemplazo.
+     *
+     * <p>Equivalente funcional a {@link #resolveStepDef(String)}.
+     *
+     * @param stepId ID estable del step individual (ej: {@code "api.authentication.bearer.identifier"})
+     * @return {@link java.util.Optional} con el primer {@link StepDefinitionInfo} que coincida,
+     *         o vacío si no existe
+     * @throws NullPointerException si {@code stepId} es null
+     * @since 2.3.0
+     * @see #resolveStepDef(String)
+     * @see StepDefinitionInfo#stepDefId()
+     */
+    public java.util.Optional<StepDefinitionInfo> findById(String stepId) {
+        return resolveStepDef(stepId);
     }
 
     @Override
