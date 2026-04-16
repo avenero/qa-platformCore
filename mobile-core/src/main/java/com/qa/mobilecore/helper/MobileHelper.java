@@ -14,9 +14,13 @@ import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.remote.SupportsContextSwitching;
 import io.appium.java_client.remote.SupportsRotation;
+import org.openqa.selenium.By;
 import org.openqa.selenium.ScreenOrientation;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -483,6 +487,56 @@ public class MobileHelper {
 
     public void zoom(String locator) {
         GestureHelper.zoom(driver(), findElement(locator));
+    }
+
+    // =========================================================================
+    // Nuevos métodos — v2.2.1 (requeridos por steps genéricos)
+    // =========================================================================
+
+    /**
+     * Espera hasta que un elemento sea visible (timeout por defecto 15s).
+     */
+    public void waitForVisible(String locator) {
+        WebDriverWait wait = new WebDriverWait(driver(), Duration.ofSeconds(15));
+        wait.until(ExpectedConditions.visibilityOf(findElement(locator)));
+        TestLogger.logInfo("MOBILE_HELPER", "Elemento visible: " + locator, null);
+    }
+
+    /**
+     * Espera hasta que un texto aparezca en pantalla.
+     */
+    public void waitForText(String text) {
+        WebDriverWait wait = new WebDriverWait(driver(), Duration.ofSeconds(15));
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+            By.xpath("//*[contains(@text,'" + text.replace("'", "\\'") + "')]")));
+        TestLogger.logInfo("MOBILE_HELPER", "Texto visible: " + text, null);
+    }
+
+    /**
+     * Presiona una tecla de sistema del dispositivo (Back, Home, Recent).
+     */
+    public void pressSystemKey(String key) {
+        AppiumDriver appiumDriver = driver();
+        switch (key.toUpperCase().trim()) {
+            case "BACK" -> appiumDriver.navigate().back();
+            case "HOME" -> ((io.appium.java_client.android.AndroidDriver) appiumDriver)
+                    .pressKey(new io.appium.java_client.android.nativekey.KeyEvent(
+                        io.appium.java_client.android.nativekey.AndroidKey.HOME));
+            case "RECENT", "APP_SWITCH" -> ((io.appium.java_client.android.AndroidDriver) appiumDriver)
+                    .pressKey(new io.appium.java_client.android.nativekey.KeyEvent(
+                        io.appium.java_client.android.nativekey.AndroidKey.APP_SWITCH));
+            default -> throw new IllegalArgumentException(
+                "Tecla de sistema no soportada: " + key + ". Usar: BACK, HOME, RECENT");
+        }
+        TestLogger.logInfo("MOBILE_HELPER", "Tecla de sistema presionada: " + key, null);
+    }
+
+    /**
+     * Hace tap en coordenadas absolutas de la pantalla.
+     */
+    public void tapAt(int x, int y) {
+        GestureHelper.tapAt(driver(), x, y);
+        TestLogger.logInfo("MOBILE_HELPER", "Tap en coordenadas (" + x + ", " + y + ")", null);
     }
 
     // =========================================================================

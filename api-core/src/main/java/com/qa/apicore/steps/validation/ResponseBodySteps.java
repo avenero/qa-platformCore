@@ -118,4 +118,59 @@ public class ResponseBodySteps {
     public void validoCampoMenorQue(String jsonPath, int threshold) throws FrameworkBusinessException {
         apiHelper().validateJsonFieldLessThan(jsonPath, threshold);
     }
+
+    // =========================================================================
+    // NUEVOS STEPS GENÉRICOS — Validación v2.2.1
+    // =========================================================================
+
+    /**
+     * Valida que el response body sea exactamente igual al DocString proporcionado.
+     */
+    @Then("valido que el response body sea exactamente")
+    public void validoResponseBodyExacto(String expectedBody) {
+        String actual = apiHelper().getLastResponse().getBody();
+        Assertions.assertThat(actual)
+            .as("El response body debería ser exactamente el esperado")
+            .isEqualTo(expectedBody.trim());
+    }
+
+    /**
+     * Valida que la respuesta cumpla un esquema JSON cargado desde archivo.
+     */
+    @Then("valido que la respuesta cumpla el esquema JSON desde el archivo {string}")
+    public void validoEsquemaJsonDesdeArchivo(String filePath) throws FrameworkBusinessException {
+        apiHelper().validateResponseSchemaFromFile(filePath);
+    }
+
+    /**
+     * Valida que un campo sea una fecha con formato específico.
+     */
+    @Then("valido que el campo {string} sea una fecha con formato {string}")
+    public void validoCampoFechaConFormato(String jsonPath, String dateFormat) throws FrameworkBusinessException {
+        apiHelper().validateJsonPathDateFormat(jsonPath, dateFormat);
+    }
+
+    /**
+     * Extrae todos los valores de un array JSON y los guarda como variable.
+     */
+    @Then("extraigo todos los valores del array {string} y los guardo como {string}")
+    public void extraigoValoresArray(String jsonPath, String variable) throws FrameworkBusinessException {
+        apiHelper().extractJsonArrayValues(jsonPath, variable);
+    }
+
+    /**
+     * Valida que el campo sea null.
+     */
+    @Then("valido que el campo {string} sea null")
+    public void validoCampoSeaNull(String jsonPath) throws FrameworkBusinessException {
+        apiHelper().validateJsonPathIsNull(jsonPath);
+    }
+
+    /**
+     * Valida que el campo sea un booleano con valor específico.
+     */
+    @Then("valido que el campo {string} sea {string} como booleano")
+    public void validoCampoBooleano(String jsonPath, String boolValue) throws FrameworkBusinessException {
+        apiHelper().validateJsonPathValue(jsonPath, boolValue);
+    }
 }

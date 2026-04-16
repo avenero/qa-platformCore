@@ -7,18 +7,26 @@ import com.qa.common.http.exceptions.FrameworkTechnicalException;
 import com.qa.common.http.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.runtime.annotation.StepDef;
 import com.qa.common.utils.JsonUtilities;
 import io.cucumber.java.en.When;
 
 /**
- * Steps de ejecucion de peticiones HTTP.
- * Migrado de ApiSteps.java + nuevos steps (GET/POST/PUT/PATCH/DELETE directos).
+ * Steps de ejecución de peticiones HTTP.
+ *
+ * <p>Componente padre: {@code api.execution}
+ * ({@link com.qa.apicore.components.ApiExecutionComponent}).
+ * Fase BDD: WHEN.
+ *
+ * <p>Todos los steps canónicos llevan {@link StepDef} con ID explícito para garantizar
+ * estabilidad frente a refactorizaciones. El formato es {@code api.execution.<sub-id>}.
+ *
  * @author Abel Venero
  * @since 2.0.0
  */
 public class HttpExecutionSteps {
 
-    // ─── Obtención de servicios desde el ServiceRegistry (Fase 3 — Task 105) ───
+    // ─── Obtención de servicios desde el ServiceRegistry ───────────────────────
 
     private HttpClient getHttpClient() {
         return ExecutionContext.current()
@@ -30,51 +38,82 @@ public class HttpExecutionSteps {
         return ApiHelper.forCurrentContext();
     }
 
+    // =========================================================================
+    // Steps canónicos de ejecución
+    // =========================================================================
+
+    /**
+     * Ejecuta una petición HTTP con el método especificado ({@code GET}, {@code POST},
+     * {@code PUT}, {@code PATCH}, {@code DELETE}) contra el endpoint configurado.
+     * Es el step principal de ejecución HTTP.
+     */
+    @StepDef(value = "api.execution.execute",
+             displayName = "Ejecutar petición HTTP")
     @When("ejecuto una petición {string}")
     public void ejecutoUnaPeticionAlEndpoint(String method) throws FrameworkTechnicalException {
         ejecutarPeticionHttp(method, true);
     }
 
-    @When("ejecuto la consulta con el metodo {string}")
-    public void ejecutoLaConsultaConElMetodo(String method) throws FrameworkTechnicalException {
-        ejecutarPeticionHttp(method, true);
-    }
-
-    @When("ejecuto la consulta con el metodo {string} sin redireccion")
-    public void ejecutoLaConsultaConElMetodoSinRedireccion(String method) throws FrameworkTechnicalException {
-        ejecutarPeticionHttp(method, false);
-    }
-
+    /**
+     * Ejecuta GET contra un endpoint dado directamente en el step (sin paso previo de config).
+     */
+    @StepDef(value = "api.execution.get",
+             displayName = "Ejecutar GET")
     @When("ejecuto GET a {string}")
     public void ejecutoGet(String endpoint) throws FrameworkTechnicalException {
         getApiHelper().configureEndpoint(endpoint);
         ejecutarPeticionHttp("GET", true);
     }
 
+    /**
+     * Ejecuta POST contra un endpoint dado directamente en el step.
+     */
+    @StepDef(value = "api.execution.post",
+             displayName = "Ejecutar POST")
     @When("ejecuto POST a {string}")
     public void ejecutoPost(String endpoint) throws FrameworkTechnicalException {
         getApiHelper().configureEndpoint(endpoint);
         ejecutarPeticionHttp("POST", true);
     }
 
+    /**
+     * Ejecuta PUT contra un endpoint dado directamente en el step.
+     */
+    @StepDef(value = "api.execution.put",
+             displayName = "Ejecutar PUT")
     @When("ejecuto PUT a {string}")
     public void ejecutoPut(String endpoint) throws FrameworkTechnicalException {
         getApiHelper().configureEndpoint(endpoint);
         ejecutarPeticionHttp("PUT", true);
     }
 
+    /**
+     * Ejecuta PATCH contra un endpoint dado directamente en el step.
+     */
+    @StepDef(value = "api.execution.patch",
+             displayName = "Ejecutar PATCH")
     @When("ejecuto PATCH a {string}")
     public void ejecutoPatch(String endpoint) throws FrameworkTechnicalException {
         getApiHelper().configureEndpoint(endpoint);
         ejecutarPeticionHttp("PATCH", true);
     }
 
+    /**
+     * Ejecuta DELETE contra un endpoint dado directamente en el step.
+     */
+    @StepDef(value = "api.execution.delete",
+             displayName = "Ejecutar DELETE")
     @When("ejecuto DELETE a {string}")
     public void ejecutoDelete(String endpoint) throws FrameworkTechnicalException {
         getApiHelper().configureEndpoint(endpoint);
         ejecutarPeticionHttp("DELETE", true);
     }
 
+    /**
+     * Ejecuta una petición configurando un timeout máximo de espera.
+     */
+    @StepDef(value = "api.execution.with-timeout",
+             displayName = "Ejecutar petición con timeout")
     @When("ejecuto la petición y espero {int} segundos máximo")
     public void ejecutoConTimeout(int timeoutSeconds) throws FrameworkTechnicalException {
         getHttpClient().setTimeout(timeoutSeconds * 1000);
@@ -82,7 +121,7 @@ public class HttpExecutionSteps {
     }
 
     // =========================================================================
-    // NUEVOS STEPS — Polling / Retry para endpoints asíncronos
+    // Polling / Retry para endpoints asíncronos
     // =========================================================================
 
     /**
@@ -95,6 +134,8 @@ public class HttpExecutionSteps {
      *      con máximo 10 intentos cada 3 segundos
      * </pre>
      */
+    @StepDef(value = "api.execution.poll-status",
+             displayName = "Reintentar hasta código de estado esperado")
     @When("reintento {string} al endpoint {string} hasta que el código sea {int} con máximo {int} intentos cada {int} segundos")
     public void reintentoHastaQueCodigoSea(String method, String endpointKey,
                                            int expectedCode, int maxAttempts, int waitSeconds)
@@ -112,15 +153,47 @@ public class HttpExecutionSteps {
      *      con máximo 15 intentos cada 5 segundos
      * </pre>
      */
+    @StepDef(value = "api.execution.poll-field",
+             displayName = "Reintentar hasta que campo JSON tenga valor esperado")
     @When("reintento {string} al endpoint {string} hasta que el campo {string} sea {string} con máximo {int} intentos cada {int} segundos")
     public void reintentoHastaQueCampoSea(String method, String endpointKey,
                                           String jsonPath, String expectedValue,
                                           int maxAttempts, int waitSeconds)
             throws FrameworkTechnicalException {
-        getApiHelper().pollUntilJsonFieldEquals(method, endpointKey, jsonPath, expectedValue, maxAttempts, waitSeconds);
+        getApiHelper().pollUntilJsonFieldEquals(method, endpointKey, jsonPath, expectedValue,
+                maxAttempts, waitSeconds);
     }
 
-    private void ejecutarPeticionHttp(String method, boolean followRedirects) throws FrameworkTechnicalException {
+    // =========================================================================
+    // Step DEPRECATED
+    // =========================================================================
+
+    /**
+     * @deprecated usar {@link #ejecutoUnaPeticionAlEndpoint(String)}.
+     */
+    @Deprecated(since = "2.1.0", forRemoval = false)
+    @StepDef(value = "api.execution.legacy-consulta",
+             deprecated = true, replacedBy = "api.execution.execute",
+             displayName = "ejecuto la consulta (DEPRECATED)")
+    @When("ejecuto la consulta con el metodo {string}")
+    public void ejecutoLaConsultaConElMetodo(String method) throws FrameworkTechnicalException {
+        ejecutarPeticionHttp(method, true);
+    }
+
+    @StepDef(value = "api.execution.no-redirect",
+             displayName = "Ejecutar petición sin redirección")
+    @When("ejecuto la consulta con el metodo {string} sin redireccion")
+    public void ejecutoLaConsultaConElMetodoSinRedireccion(String method)
+            throws FrameworkTechnicalException {
+        ejecutarPeticionHttp(method, false);
+    }
+
+    // =========================================================================
+    // Helper interno
+    // =========================================================================
+
+    private void ejecutarPeticionHttp(String method, boolean followRedirects)
+            throws FrameworkTechnicalException {
         try {
             HttpClient httpClient = getHttpClient();
             switch (method.toUpperCase()) {

@@ -2,6 +2,7 @@ package com.qa.mobilecore.steps.device;
 
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.runtime.annotation.StepDef;
 import com.qa.mobilecore.helper.MobileHelper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
@@ -34,6 +35,8 @@ public class SensorSteps {
         TestLogger.logInfo("SENSOR", "GPS simulado: " + lat + ", " + lon, null);
     }
 
+    @StepDef(value = "mobile.sensor.legacy-configuro-gps",
+             deprecated = true, replacedBy = "mobile.sensor#simularUbicacionGps")
     @Given("configuro la ubicacion GPS a latitud {double} y longitud {double}")
     public void configuroUbicacionGps(double lat, double lon) {
         simularUbicacionGps(lat, lon);
@@ -50,6 +53,8 @@ public class SensorSteps {
         TestLogger.logInfo("SENSOR", "Red simulada: " + resolved, null);
     }
 
+    @StepDef(value = "mobile.sensor.legacy-configuro-red",
+             deprecated = true, replacedBy = "mobile.sensor#simularEstadoRed")
     @Given("configuro el estado de la conexion de red como {string}")
     public void configuroEstadoRed(String condition) {
         simularEstadoRed(condition);

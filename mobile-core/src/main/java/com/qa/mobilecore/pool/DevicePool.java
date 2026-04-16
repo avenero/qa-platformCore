@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <p><b>Ciclo de vida:</b>
  * <ol>
- *   <li>{@link #initialize()} — escanea dispositivos y los registra (llamado por MobilePlugin)</li>
+ *   <li>{@link #initialize(boolean)} — escanea dispositivos y los registra (llamado por MobilePlugin)</li>
  *   <li>{@link #acquire(String)} — asigna un dispositivo a una ejecución (thread-safe via CAS)</li>
  *   <li>{@link #release(String)} — libera el dispositivo al finalizar la ejecución</li>
  * </ol>

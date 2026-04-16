@@ -181,6 +181,24 @@ public class MobileElementValidationSteps {
     }
 
     // =========================================================================
+    // NUEVOS STEPS GENÉRICOS — Validación v2.2.1
+    // =========================================================================
+
+    /**
+     * Verifica la cantidad de elementos que coinciden con un locator.
+     */
+    @Then("verifico que existan {int} elementos {string}")
+    public void verificoCantidadElementos(int expectedCount, String locator) {
+        String resolved = ctx().variables().resolve(locator);
+        List<WebElement> items = mobile().findElements(resolved);
+        Assertions.assertThat(items)
+            .as("Cantidad de elementos '%s'", resolved)
+            .hasSize(expectedCount);
+        TestLogger.logInfo("MOBILE_VAL",
+            "Cantidad de '" + resolved + "' = " + items.size() + " (OK)", null);
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
