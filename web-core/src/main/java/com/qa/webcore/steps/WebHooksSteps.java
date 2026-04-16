@@ -49,25 +49,39 @@ public class WebHooksSteps {
                 .orElseGet(() -> ConfigManager.getInstance().get("framework.module.name", "PLATFORM"));
         TestLogger.setFramework(moduleName);
 
-        if (!DriverManager.isDriverInitialized()) {
-            BrowserType browser   = resolveBrowser();
-            boolean     headless  = resolveHeadless();
+        java.util.Optional<ExecutionContext> ctxOpt = ExecutionContext.current();
 
-            WebDriver driver = WebDriverFactory.createDriver(browser, headless);
+        // Verificar presencia de driver: ServiceRegistry cuando hay contexto, DriverManager en standalone.
+        // Esto garantiza que el driver vive en el ExecutionContext y no en un singleton global.
+        boolean driverPresente = ctxOpt
+                .map(ctx -> ctx.registry().isRegistered(WebDriver.class))
+                .orElseGet(DriverManager::isDriverInitialized);
 
-            // 1. Almacenar en DriverManager (ThreadLocal, compatibilidad)
-            DriverManager.setDriver(driver);
+        if (!driverPresente) {
+            BrowserType browser  = resolveBrowser();
+            boolean     headless = resolveHeadless();
+            WebDriverFactory.DriverConfig driverConfig =
+                    new WebDriverFactory.DriverConfig(browser).withHeadless(headless);
 
-            // 2. Registrar en ServiceRegistry para lifecycle SPI (WebPlugin.onScenarioEnd)
-            ExecutionContext.current().ifPresent(ctx ->
-                    ctx.registry().registerInstance(WebDriver.class, driver));
+            if (ctxOpt.isPresent()) {
+                // Modo con lifecycle engine: crear y registrar atómicamente en el ServiceRegistry
+                // del contexto activo. DriverManager NO se actualiza deliberadamente: el driver
+                // vive exclusivamente en el contexto y se limpia con WebPlugin.onScenarioEnd.
+                WebDriverFactory.createDriver(driverConfig, ctxOpt.get());
+            } else {
+                // Modo standalone (sin engine de lifecycle): DriverManager como única fuente.
+                WebDriver standaloneDriver = WebDriverFactory.createDriver(driverConfig);
+                DriverManager.setDriver(standaloneDriver);
+            }
 
             TestLogger.logInfo("WEB_HOOKS", "Driver inicializado",
                     java.util.Map.of("browser", browser.name(), "headless", headless));
         }
 
-        // Navegar a URL base y preparar ventana
-        WebDriver driver = DriverManager.getDriver();
+        // Navegar a URL base — prioridad: ServiceRegistry del contexto → DriverManager standalone
+        WebDriver driver = ctxOpt
+                .flatMap(ctx -> ctx.registry().get(WebDriver.class))
+                .orElseGet(DriverManager::getDriver);
         String baseUrl = helper.getConfigProperty(WebConfigKeys.HOST_LEGACY, "about:blank");
         driver.navigate().to(baseUrl);
         driver.manage().window().maximize();
@@ -97,8 +111,11 @@ public class WebHooksSteps {
             if (scenario.isFailed()) {
                 helper.captureScreenOnFailure(scenario);
             }
-            // 2. Limpiar cookies mientras el driver aún está abierto
-            WebDriver current = DriverManager.getDriverOrNull();
+            // 2. Limpiar cookies mientras el driver aún está abierto.
+            //    Prioridad: ServiceRegistry del contexto → DriverManager standalone.
+            WebDriver current = ExecutionContext.current()
+                    .flatMap(ctx -> ctx.registry().get(WebDriver.class))
+                    .orElseGet(DriverManager::getDriverOrNull);
             if (current != null) {
                 try {
                     current.manage().deleteAllCookies();

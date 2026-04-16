@@ -461,11 +461,11 @@ El Backend de CuAleon integra este Core como librería Java. Estas son las **5 c
 
 | Clase | Rol | Descripción |
 |-------|-----|-------------|
-| `CucumberRuntimeEngine` | **Entry point** | `execute(ExecutionRequest) → ExecutionResult` |
-| `ExecutionRequest` | **Input** | Feature paths, tags, variables de entorno, config |
-| `ExecutionResult` | **Output** | Estado final, métricas, escenarios pasados/fallados |
-| `StepDiscoveryService` | **Catálogo** | Lista todos los `StepComponent` disponibles por plugin |
-| `EventSubscriber` | **Streaming** | Interfaz implementada por el adapter WebSocket del Backend |
+| `CucumberRuntimeEngine` | **Entry point** | `execute(ExecutionRequest)` o `execute(ExecutionRequest, List<ConcurrentEventListener>)` con listeners extras para step/scenario events |
+| `ExecutionRequest` | **Input** | Feature paths, glue paths (auto via SPI), `ExecutionConfig` (browser, base.url, mobile, etc.) |
+| `ExecutionResult` | **Output** | Estado final, métricas, escenarios pasados/fallados, duración |
+| `ExecutionConfig` | **Config** | Configuración inmutable por ejecución: browser, base.url, web.headless, mobile.platform, etc. |
+| `StepDiscoveryService` | **Catálogo** | Lista todos los `StepComponent` y `StepDefinitionInfo` disponibles por plugin |
 
 ### Flujo de integración
 
@@ -648,42 +648,302 @@ La versión 2.0 fue un rediseño arquitectónico completo. Los cambios más impo
 
 ## ✅ Mejores Prácticas
 
-### Organización de un proyecto de pruebas
+### Flujo completo con ejemplo: CReacion de un Steps de API
 
 ```
-qa-mi-proyecto/
-├── src/test/
-│   ├── java/com/mi/proyecto/
-│   │   ├── runner/
-│   │   │   └── RunCucumberTest.java      ← Configuración del runner
-│   │   └── steps/
-│   │       └── MisStepsEspecificos.java  ← Steps propios del proyecto
-│   └── resources/
-│       ├── features/
-│       │   ├── api/
-│       │   │   └── login-api.feature
-│       │   └── web/
-│       │       └── login-web.feature
-│       └── config-app.properties         ← Configuración del proyecto
-├── .env.local                            ← Variables de entorno (no commitear)
-└── build.gradle
+┌──────────────────────────────────────────────────────────────────────────┐
+│  CORE — Definición del Step                                              │
+│                                                                          │
+│  api-core/src/main/java/com/qa/apicore/                                 │
+│                                                                          │
+│  1. ApiPlugin.java (CorePlugin SPI)                                      │
+│     ├─ getId() → "api"                                                   │
+│     ├─ getActivationTags() → [@api, @rest, @http, @service]             │
+│     ├─ getOrder() → 50                                                   │
+│     ├─ registerServices(ServiceRegistry) → registra:                     │
+│     │   ├─ HttpClient.class → lazy → HttpClientFactory.create()          │
+│     │   ├─ AuthenticationService.class → lazy → AuthServiceFactory...    │
+│     │   └─ ApiHelper.class → lazy → new ApiHelper(httpClient, ...)      │
+│     ├─ onScenarioStart(ctx) → httpClient.reset() (limpia estado)        │
+│     ├─ onScenarioEnd(ctx) → httpClient.cleanup()                        │
+│     └─ getComponents() → [ApiUrlComponent, ApiAuthComponent, ...]       │
+│                                                                          │
+│  2. ApiUrlComponent.java (StepComponent — metadata)                      │
+│     ├─ getId() → "api.url"                                              │
+│     ├─ getName() → "URL & Ambiente"                                      │
+│     ├─ getPhase() → GIVEN                                               │
+│     ├─ getCategory() → "Configuracion"                                  │
+│     ├─ getDisplayNameByLocale() → {es:"URL y Ambiente", en:"URL..."}    │
+│     └─ getStepDefinitionClass() → UrlConfigSteps.class                  │
+│                                                                          │
+│  3. UrlConfigSteps.java (Cucumber step definitions)                      │
+│     ├─ @Given("configuro el endpoint {string}")                         │
+│     │   @StepId("api.url.configureEndpoint")                            │
+│     │   public void configureEndpoint(String endpoint) {                │
+│     │       ApiHelper api = ExecutionContext.current()                   │
+│     │           .service(ApiHelper.class);  ← del ServiceRegistry       │
+│     │       api.setEndpoint(endpoint);                                  │
+│     │   }                                                                │
+│     ├─ @Given("configuro la URL base {string}")                         │
+│     │   @StepId("api.url.configureBaseUrl")                             │
+│     │   ...                                                              │
+│     └─ (7 métodos total)                                                │
+│                                                                          │
+│  META-INF/services/com.qa.common.runtime.CorePlugin                     │
+│     → com.qa.apicore.plugin.ApiPlugin                                   │
+└──────────────────────────────────────────────────────────────────────────┘
+                            │ SPI Discovery
+                            ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  BACKEND — Descubrimiento y Catálogo                                     │
+│                                                                          │
+│  Al arrancar Spring Boot:                                                │
+│                                                                          │
+│  1. CoreEngineConfig.coreRuntimeEngine()                                │
+│     → CucumberRuntimeEngine.withServiceLoader()                         │
+│     → ServiceLoader.load(CorePlugin.class) encuentra:                   │
+│       [DatabasePlugin(0), ApiPlugin(50), WebPlugin(100), Mobile(150)]   │
+│                                                                          │
+│  2. CoreEngineConfig.coreStepDiscoveryService(engine)                   │
+│     → engine.getDiscoveryService()                                      │
+│     → StepDiscoveryService con 4 plugins y ~250 steps                   │
+│                                                                          │
+│  3. StepDiscoveryAdapter.@PostConstruct.buildCatalog()                  │
+│     → coreDiscovery.discoverAllStepDefs()                               │
+│     → Escanea UrlConfigSteps.class vía reflexión                        │
+│     → Encuentra @Given("configuro el endpoint {string}")                │
+│       + @StepId("api.url.configureEndpoint")                            │
+│     → Crea StepInfo:                                                    │
+│       { stepId: "api.url.configureEndpoint",                            │
+│         pattern: "configuro el endpoint {string}",                      │
+│         phase: "GIVEN", layer: "API",                                   │
+│         componentId: "api.url",                                         │
+│         componentName: "URL & Ambiente",                                │
+│         parameters: [{name:"endpoint", type:"string", required:true}],  │
+│         displayNameByLocale: {es:"URL y Ambiente", en:"URL & Env"} }    │
+│                                                                          │
+│  4. StepCatalogController → GET /api/catalog/steps                      │
+│     → Retorna lista de StepInfo al Frontend                             │
+└──────────────────────────────────────────────────────────────────────────┘
+                            │ REST API
+                            ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  FRONTEND — UI del Catálogo y Scenario Builder                           │
+│                                                                          │
+│  1. StepPalette.tsx                                                      │
+│     → useQuery(stepsApi.getComponentsWithSteps('api'))                  │
+│     → Renderiza steps agrupados por componente:                         │
+│                                                                          │
+│     ┌─ URL & Ambiente (GIVEN) ──────────────────────┐                   │
+│     │  ◆ configuro el endpoint {string}              │                   │
+│     │  ◆ configuro la URL base {string}              │                   │
+│     └────────────────────────────────────────────────┘                   │
+│                                                                          │
+│  2. Usuario arrastra "configuro el endpoint {string}"                   │
+│     → ScenarioCanvas agrega ScenarioStep:                               │
+│       { stepId: "api.url.configureEndpoint",                            │
+│         pattern: "configuro el endpoint {string}",                      │
+│         phase: "GIVEN", layer: "API",                                   │
+│         componentId: "api.url",                                         │
+│         parameters: { param1: "/api/v1/users" } }   ← inline editing   │
+│                                                                          │
+│  3. Usuario hace clic "Guardar"                                         │
+│     → POST /api/features/{id}/scenarios                                 │
+│       { name: "Login exitoso",                                          │
+│         tags: ["@api", "@smoke"],                                       │
+│         steps: [                                                         │
+│           { stepId: "api.url.configureEndpoint",                        │
+│             phase: "GIVEN", layer: "API",                               │
+│             parameters: { param1: "/api/v1/users" } },                  │
+│           ...                                                            │
+│         ] }                                                              │
+│                                                                          │
+│  4. Usuario hace clic "Ejecutar"                                        │
+│     → Selecciona ambiente (Environment con baseUrl)                     │
+│     → POST /api/executions                                              │
+│       { projectId, environmentId, scenarioIds: [uuid],                  │
+│         layer: "api" }                                                   │
+└──────────────────────────────────────────────────────────────────────────┘
+                            │ POST /api/executions
+                            ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  BACKEND — Generación de Gherkin y Ejecución                             │
+│                                                                          │
+│  1. ExecutionController.launch()                                        │
+│     → TestExecutionService.launchExecution()                            │
+│       → Crea Execution(PENDING) + triggeredBy(user)                     │
+│       → asyncRunner.run(executionId, request)                           │
+│       → HTTP 202 Accepted                                               │
+│                                                                          │
+│  2. ExecutionAsyncRunner.run() [@Async]                                 │
+│     → Status → RUNNING, WS → EXECUTION_STARTED                         │
+│     → FeatureGeneratorService.generate():                               │
+│       │  Para cada step del escenario:                                  │
+│       │   stepResolutionService.resolve("api.url.configureEndpoint")    │
+│       │   → StepDiscoveryPort.findById("api.url.configureEndpoint")    │
+│       │   → pattern: "configuro el endpoint {string}"                   │
+│       │  GherkinStepRenderer.resolve(pattern, {param1: "/api/v1..."})   │
+│       │   → 'configuro el endpoint "/api/v1/users"'                     │
+│       │                                                                  │
+│       └→ Genera:                                                        │
+│          Feature: Ejecución abc-123                                     │
+│            @api @smoke                                                   │
+│            Scenario: Login exitoso                                       │
+│              Given configuro el endpoint "/api/v1/users"                │
+│              When envío la petición "POST"                               │
+│              Then el código de respuesta es 200                          │
+│                                                                          │
+│  3. buildExecutionConfig():                                             │
+│     → ExecutionConfig { environment: "QA",                              │
+│         properties: { "base.url": "https://api-qa.example.com" } }     │
+│                                                                          │
+│  4. coreExecutionBridge.execute(feature, config, eventCallback)         │
+└──────────────────────────────────────────────────────────────────────────┘
+                            │ Core Engine
+                            ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  CORE — Ejecución del Step                                               │
+│                                                                          │
+│  1. CucumberRuntimeEngine.execute(request, [stepBridge])                │
+│     → LifecycleManager.initialize(request)                              │
+│       → Crea ExecutionContext:                                          │
+│         ├─ ExecutionConfig (con base.url, etc.)                         │
+│         ├─ ServiceRegistry (vacío, se llenará por plugins)              │
+│         ├─ VariableStore (vacío)                                        │
+│         └─ EventBus                                                     │
+│       → ExecutionContext se activa en ThreadLocal                        │
+│                                                                          │
+│  2. Cucumber Runtime ejecuta el .feature                                │
+│     → ScenarioLifecycleBridge recibe TestCaseStarted                    │
+│       → Extrae tags del escenario: [@api, @smoke]                       │
+│       → LifecycleManager.resolveActivePlugins(tags)                     │
+│         → @api coincide con ApiPlugin.activationTags → ACTIVO           │
+│         → @web NO coincide → WebPlugin INACTIVO                         │
+│       → ApiPlugin.onScenarioStart(context):                            │
+│         → ServiceRegistry ya tiene HttpClient, ApiHelper (lazy)         │
+│         → httpClient.reset() limpia estado previo                       │
+│                                                                          │
+│  3. Cucumber ejecuta: Given configuro el endpoint "/api/v1/users"       │
+│     → UrlConfigSteps.configureEndpoint("/api/v1/users")                │
+│     → ExecutionContext.current() → el ThreadLocal activo                │
+│     → ctx.service(ApiHelper.class) → lazy init:                        │
+│       → HttpClientFactory.create() → BaseHttpClient (Unirest)          │
+│       → BaseHttpClient lee base.url de ConfigManager:                   │
+│         → ConfigManager.get("base.url")                                │
+│         → Prioridad: ExecutionContext config > System > env > file      │
+│         → Retorna "https://api-qa.example.com" del ExecutionConfig     │
+│     → api.setEndpoint("/api/v1/users")                                 │
+│       → host = "https://api-qa.example.com/api/v1/users"               │
+│                                                                          │
+│  4. StepEventBridge captura TestStepFinished                            │
+│     → Emite StepEvent al callback                                      │
+│     → ExecutionAsyncRunner lo recibe                                    │
+│     → notificationPort.notifyStepFinished()                            │
+│     → WebSocket → /topic/executions/{id}                               │
+│     → FE actualiza en real-time                                        │
+│                                                                          │
+│  5. ScenarioLifecycleBridge recibe TestCaseFinished                     │
+│     → ApiPlugin.onScenarioEnd(context):                                │
+│       → httpClient.cleanup() libera conexiones                          │
+│     → ServiceRegistry.destroyAll() si hay AutoCloseable                 │
+│                                                                          │
+│  6. LifecycleManager.shutdown(context)                                  │
+│     → ExecutionContext desactivado del ThreadLocal                       │
+│     → Recursos liberados                                                │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Tags — cómo y cuándo usarlos
+### FLUJO: Step de Web (Selenium)
 
-```gherkin
-# Tag de CAPA (obligatorio): activa el plugin correcto
-@api    → pruebas de API REST
-@web    → pruebas de interfaz web
-@mobile → pruebas de app móvil
+```
+Diferencias clave vs API:
 
-# Tags de TIPO (opcionales): para filtrar ejecuciones
-@smoke      → prueba rápida de que nada está roto
-@regression → prueba completa del sistema
-@security   → pruebas de seguridad
+1. PLUGIN ACTIVACIÓN:
+   Tags: @web, @ui, @browser, @selenium
+   WebPlugin.registerServices(registry):
+     → WebHelper.class → lazy → new WebHelper(driverManager, waitUtils, ...)
+   
+   WebPlugin.onScenarioStart(ctx):
+     → Lee config: web.browser = "chrome", web.headless = "true"
+     → WebDriverFactory.createDriver(browser, headless)
+       → WebDriverManager.chromedriver().setup()  (auto-descarga binario)
+       → new ChromeDriver(chromeOptions)           (headless si config dice)
+     → DriverManager.setDriver(driver)             (ThreadLocal)
+   
+   WebPlugin.onScenarioEnd(ctx):
+     → DriverManager.quitDriver()                  (cierra browser)
 
-# Ejecutar solo @smoke de @api:
-./gradlew test -Dcucumber.filter.tags="@api and @smoke"
+2. STEP EJEMPLO — NavigationSteps.java:
+   @Given("navego a la URL {string}")
+   @StepId("web.navigation.navigateToUrl")
+   public void navigateToUrl(String url) {
+       WebHelper web = ExecutionContext.current().service(WebHelper.class);
+       web.navigateTo(url);
+       // → DriverManager.getDriver().get(url)
+   }
+
+3. CONFIG BRIDGE (BE → Core):
+   ExecutionConfig {
+     browser: "chrome",
+     properties: {
+       "web.browser": "chrome",
+       "web.headless": "true",
+       "base.url": "https://web-qa.example.com"
+     }
+   }
+```
+
+
+###FLUJO: Step de Mobile (Appium)
+
+```
+Diferencias clave vs Web:
+
+1. PLUGIN ACTIVACIÓN:
+   Tags: @mobile, @ios, @android, @appium
+   MobilePlugin.registerServices(registry):
+     → MobileDriverFactory.class → lazy → new MobileDriverFactory(ctx)
+     → MobileHelper.class → lazy → new MobileHelper(factory, ...)
+   
+   MobilePlugin.onScenarioStart(ctx):
+     → Lee config: mobile.platform = "ANDROID"
+     → MobileDriverFactory.getOrCreateDriver()
+       → Lee mobile.device.id, mobile.appium.server.url, mobile.app.path
+       → UiAutomator2Options options = new UiAutomator2Options()
+       → options.setDeviceName(deviceId)
+       → options.setApp(appPath)
+       → new AndroidDriver(new URL(appiumUrl), options)
+     → MobileDriverManager.setDriver(driver) (ThreadLocal)
+   
+   MobilePlugin.onScenarioEnd(ctx):
+     → MobileDriverManager.quitDriver() (cierra sesión Appium)
+     → DevicePool.release(deviceId)       (libera dispositivo)
+
+2. STEP EJEMPLO — GestureSteps.java:
+   @When("hago tap en el elemento {string}")
+   @StepId("mobile.gesture.tapElement")
+   public void tapElement(String locator) {
+       MobileHelper mobile = ExecutionContext.current()
+           .service(MobileHelper.class);
+       mobile.tap(locator);
+       // → ElementLocatorHelper.find(locator) con estrategia module-first:
+       //   "~accessibilityId" → AppiumBy.accessibilityId(...)
+       //   "id:com.app/btn"   → AppiumBy.id(...)
+       //   "xpath://..."      → AppiumBy.xpath(...)
+       // → GestureHelper.tap(element) via W3C Actions API
+   }
+
+3. CONFIG BRIDGE (BE → Core):
+   ExecutionConfig {
+     properties: {
+       "mobile.platform": "ANDROID",
+       "mobile.device.id": "emulator-5554",
+       "mobile.appium.server.url": "http://127.0.0.1:4723",
+       "mobile.app.path": "/path/to/app.apk",
+       "base.url": "https://api-qa.example.com"  (para steps API mixtos)
+     }
+   }
+
 ```
 
 ### Variables entre steps
