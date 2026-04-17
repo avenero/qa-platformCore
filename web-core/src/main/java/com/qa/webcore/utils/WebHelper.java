@@ -2341,7 +2341,7 @@ public class WebHelper {
      */
     public void validateAttributeValue(String locator, String attribute, String expectedValue) {
         WebElement element = getElement(locator);
-        String actual = element.getAttribute(attribute);
+        String actual = element.getDomAttribute(attribute);
         Assertions.assertThat(actual)
             .as("Atributo '%s' del elemento '%s'", attribute, locator)
             .isEqualTo(resolveVariables(expectedValue));
@@ -2354,7 +2354,7 @@ public class WebHelper {
      */
     public void validateHasCssClass(String locator, String cssClass) {
         WebElement element = getElement(locator);
-        String classes = element.getAttribute("class");
+        String classes = element.getDomAttribute("class");
         Assertions.assertThat(classes)
             .as("El elemento '%s' debería tener la clase CSS '%s'", locator, cssClass)
             .contains(cssClass);
@@ -2379,7 +2379,8 @@ public class WebHelper {
      */
     public String getAttributeValue(String locator, String attribute) {
         WebElement element = getElement(locator);
-        return element.getAttribute(attribute);
+        String value = element.getDomAttribute(attribute);
+        return value != null ? value : element.getDomProperty(attribute);
     }
 
     private Keys mapKeyName(String keyName) {
