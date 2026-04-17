@@ -41,8 +41,13 @@ public class RequestBodySteps {
     /**
      * Establece el request body JSON desde DocString (con Content-Type: application/json automático).
      * Ideal para payloads JSON extensos.
+     *
+     * <p>El parámetro {@code jsonBody} llega como bloque DocString (triple comillas).
+     * El Scenario Builder detecta automáticamente este parámetro como tipo {@code docstring}
+     * y renderiza un editor JSON en el canvas.</p>
      */
-    @StepDef("api.request-body.set-json-docstring")
+    @StepDef(value = "api.request-body.set-json-docstring",
+             displayName = "Establecer body JSON (DocString)")
     @Given("establezco el request body JSON")
     public void establezcoElRequestBodyJson(String jsonBody) {
         apiHelper().setJsonBodyFromString(jsonBody);
