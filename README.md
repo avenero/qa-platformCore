@@ -4,7 +4,7 @@
 [![Gradle](https://img.shields.io/badge/Gradle-8.14-blue.svg)](https://gradle.org/)
 [![Selenium](https://img.shields.io/badge/Selenium-4.27.0-green.svg)](https://www.selenium.dev/)
 [![Cucumber](https://img.shields.io/badge/Cucumber-7.18.0-brightgreen.svg)](https://cucumber.io/)
-[![Version](https://img.shields.io/badge/version-2.0.2-blue.svg)](https://github.com/avenero/qa-platformCore)
+[![Version](https://img.shields.io/badge/version-2.0.8--SNAPSHOT-blue.svg)](https://github.com/avenero/qa-platformCore)
 
 > Motor de ejecución BDD del ecosistema **CuAleon Test Engineering Platform** — framework modular de automatización para API REST, Web UI, Mobile y Base de Datos, construido sobre Cucumber en español y consumido por el Backend a través de una API de ejecución uniforme.
 
@@ -89,7 +89,7 @@ Eso es suficiente para ejecutar una prueba real sobre un sistema real. No se nec
 │   • steps propios             • steps propios                       │
 │   • config del proyecto       • config del proyecto                 │
 │                                                                     │
-│   build.gradle: implementation 'com.qa:api-core:2.0.2'            │
+│   build.gradle: implementation "com.qa:api-core:${coreVersion}"    │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ dependen de
                                ▼
@@ -222,10 +222,10 @@ repositories {
 
 dependencies {
     // Elige SOLO las capas que necesitas
-    implementation 'com.qa:common:2.0.2'        // Siempre requerido
-    implementation 'com.qa:api-core:2.0.2'      // Para pruebas de API REST
-    implementation 'com.qa:web-core:2.0.2'      // Para pruebas de interfaz Web
-    implementation 'com.qa:mobile-core:2.0.2'   // Para pruebas Mobile (Android + iOS)
+    implementation "com.qa:common:${coreVersion}"        // Siempre requerido
+    implementation "com.qa:api-core:${coreVersion}"      // Para pruebas de API REST
+    implementation "com.qa:web-core:${coreVersion}"      // Para pruebas de interfaz Web
+    implementation "com.qa:mobile-core:${coreVersion}"   // Para pruebas Mobile (Android + iOS)
 }
 ```
 
@@ -317,7 +317,7 @@ Feature: Interfaz de login web
 - Las **utilidades**: JSON, texto, datos aleatorios, variables entre steps
 - La **base de datos**: conectores para Oracle, PostgreSQL, MySQL, SQL Server
 
-**Versión:** `com.qa:common:2.0.2`
+**Versión:** gestionada desde `gradle.properties`
 
 📖 **[Ver documentación completa → common/README.md](./common/README.md)**
 
@@ -333,7 +333,7 @@ Feature: Interfaz de login web
 - **12 grupos de steps**: URL, Autenticación, Headers, Cookies, Parámetros, Body, Ejecución, Status Code, Body de Respuesta, Headers de Respuesta, Performance, Seguridad
 - **ApiHelper**: fachada que conecta steps con el cliente HTTP y el validador
 
-**Versión:** `com.qa:api-core:2.0.2`
+**Versión:** gestionada desde `gradle.properties`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -359,7 +359,7 @@ Scenario: Verificar endpoint de salud
 - **16 componentes**: BrowserConfig, Navegación, Frames, Ventanas, Click, Input, Select, Scroll, DragDrop, Alert, Waits, ElementValidation, PageValidation, TableValidation, Screenshot, WebEnvironment
 - **WebHelper**: fachada que combina DriverManager + WaitUtils + ScreenshotUtils
 
-**Versión:** `com.qa:web-core:2.0.2`
+**Versión:** gestionada desde `gradle.properties`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -389,7 +389,7 @@ Scenario: El menú principal tiene los ítems correctos
 - **ElementLocatorHelper**: estrategia de localización por prefijo (`~`, `id:`, `xpath:`, `text:`...) diseñada para entrenamiento de IA de sugerencias en el FE
 - **AppiumServerManager**: health check automático + auto-start opt-in para desarrollo local
 
-**Versión:** `com.qa:mobile-core:2.0.2`
+**Versión:** gestionada desde `gradle.properties`
 
 **Ejemplo rápido:**
 ```gherkin
@@ -501,38 +501,19 @@ List<StepComponent> allSteps = discovery.discoverAll();
 
 ## 🚦 CI/CD Pipeline
 
-El pipeline corre automáticamente con cada push a `master` y se compone de dos jobs secuenciales.
+El flujo oficial separa validación continua y publicación release:
+
+- `ci.yml`: corre en PRs hacia `develop`/`master` y en pushes a `develop`/`master`. Ejecuta tests, cobertura y análisis estático, pero no publica artefactos.
+- `publish.yml`: corre solo desde `master`, tags de release o ejecución manual. Revalida y publica únicamente versiones sin sufijo `-SNAPSHOT`.
+
+La política completa de ramas, promoción y versionado vive en [`CORE_JAR_FLOW.md`](./CORE_JAR_FLOW.md).
 
 ### Flujo general
 
 ```
-push → master
-      │
-      ▼
-┌─────────────────────────────────────────────────────┐
-│  JOB 1: quality  (ubuntu-latest)                    │
-│                                                     │
-│  1. Checkout (completo)                             │
-│  2. JDK 21 Temurin                                  │
-│  3. Cache Gradle                                    │
-│  4. ./gradlew test jacocoTestReport --continue      │
-│  5. ./gradlew checkstyleMain --continue             │
-│  6. ./gradlew spotbugsMain --continue               │
-│  7. Upload artefactos (test-results, jacoco,        │
-│     static-analysis) → retención 30 días            │
-└──────────────────────┬──────────────────────────────┘
-                       │ solo si quality pasa
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│  JOB 2: publish  (ubuntu-latest)                    │
-│                                                     │
-│  1. Checkout                                        │
-│  2. JDK 21 Temurin                                  │
-│  3. Cache Gradle                                    │
-│  4. ./gradlew publish --no-daemon                   │
-│     → common, api-core, web-core, mobile-core       │
-│        a GitHub Packages                            │
-└─────────────────────────────────────────────────────┘
+feature/* -> PR -> develop -> CI
+develop -> PR -> master -> publish.yml
+feature/* -> publishToMavenLocal -> BE local validation
 ```
 
 ### Herramientas de calidad incluidas (sin dependencias externas)
@@ -555,7 +536,7 @@ push → master
 
 ## 📤 Publicación en GitHub Packages
 
-Los artefactos se publican automáticamente al pasar el job `quality`. El repositorio es:
+Los artefactos release se publican solo desde `master` o tags de release. El repositorio es:
 
 ```
 https://maven.pkg.github.com/avenero/qa-platformCore
@@ -565,15 +546,16 @@ https://maven.pkg.github.com/avenero/qa-platformCore
 
 | Módulo | Coordenadas Maven | Publicado |
 |--------|------------------|-----------|
-| common | `com.qa:common:2.0.2` | ✅ Sí |
-| api-core | `com.qa:api-core:2.0.2` | ✅ Sí |
-| web-core | `com.qa:web-core:2.0.2` | ✅ Sí |
-| mobile-core | `com.qa:mobile-core:2.0.2` | ✅ Sí |
+| common | `com.qa:common:<release-version>` | ✅ Sí |
+| api-core | `com.qa:api-core:<release-version>` | ✅ Sí |
+| web-core | `com.qa:web-core:<release-version>` | ✅ Sí |
+| mobile-core | `com.qa:mobile-core:<release-version>` | ✅ Sí |
 
 ### Consumir desde tu proyecto
 
 ```groovy
 repositories {
+    mavenLocal() // Primero para validar cambios locales del Core
     maven {
         url = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
         credentials {
@@ -584,39 +566,39 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.qa:common:2.0.2'
-    implementation 'com.qa:api-core:2.0.2'      // Solo si necesitas pruebas de API
-    implementation 'com.qa:web-core:2.0.2'      // Solo si necesitas pruebas Web
-    implementation 'com.qa:mobile-core:2.0.2'   // Solo si necesitas pruebas Mobile
+    implementation "com.qa:common:${coreVersion}"
+    implementation "com.qa:api-core:${coreVersion}"      // Solo si necesitas pruebas de API
+    implementation "com.qa:web-core:${coreVersion}"      // Solo si necesitas pruebas Web
+    implementation "com.qa:mobile-core:${coreVersion}"   // Solo si necesitas pruebas Mobile
 }
 ```
 
 ### Publicar localmente (desarrollo)
 
 ```bash
-# Publicar en Maven Local (~/.m2/repository)
+# Flujo oficial para desarrollo e integración local
 ./gradlew clean build publishToMavenLocal
 
-# Publicar a GitHub Packages manualmente (requiere GITHUB_ACTOR y GITHUB_TOKEN)
-./gradlew publish --no-daemon
+# El Backend puede validar la versión local con:
+# ./gradlew clean test -PcoreVersion=2.0.8-SNAPSHOT --refresh-dependencies
 ```
 
-> **Importante:** GitHub Packages Maven **no permite sobreescribir versiones** ya publicadas.
-> Si recibes un error `409 Conflict`, debes incrementar la versión en `build.gradle` antes de volver a publicar.
+> `publishToMavenLocal` es el camino oficial para validar cambios entre repos antes de promover una release.
+> La guía operativa completa está en [`CORE_JAR_FLOW.md`](./CORE_JAR_FLOW.md).
 
 ---
 
 ## 📊 Estado del Proyecto
 
-**Versión actual:** 2.0.2
+**Versión de desarrollo:** 2.0.8-SNAPSHOT
 **Última actualización:** Abril 2026
 
 | Capa | Versión | Estado | Componentes | Build |
 |------|---------|--------|-------------|-------|
-| **common** | 2.0.2 | ✅ Estable | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
-| **api-core** | 2.0.2 | ✅ Estable | 12 componentes (~92 steps) | ✅ Verde |
-| **web-core** | 2.0.2 | ✅ Estable | 16 componentes (~80 steps) | ✅ Verde |
-| **mobile-core** | 2.0.2 | ✅ Estable | 10 componentes (~80 steps) | ✅ Verde |
+| **common** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
+| **api-core** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 12 componentes (~92 steps) | ✅ Verde |
+| **web-core** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 16 componentes (~80 steps) | ✅ Verde |
+| **mobile-core** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 10 componentes (~80 steps) | ✅ Verde |
 
 ### ¿Qué cambió de v1.x a v2.0?
 
@@ -632,7 +614,7 @@ La versión 2.0 fue un rediseño arquitectónico completo. Los cambios más impo
 | Sin `VariableStore` central | `ExecutionContext.variables()` para todas las capas |
 | Grupo `com.scotia.qa` | Grupo `com.qa` (independiente) |
 
-### ¿Qué cambió de v2.0.0 a v2.0.2?
+### ¿Qué cambió en la estrategia de releases?
 
 | Área | Cambio |
 |------|--------|
@@ -987,7 +969,7 @@ DB_PASSWORD=mi-password
 
 ### Proceso para contribuir
 
-1. Crea un branch desde `master`:
+1. Crea un branch desde `develop`:
    ```bash
    git checkout -b feature/nueva-funcionalidad
    ```
@@ -999,7 +981,14 @@ DB_PASSWORD=mi-password
    ./gradlew clean build
    ```
 
-4. Crea un Pull Request hacia `master`
+4. Valida integración local si el cambio afecta artefactos publicados:
+   ```bash
+   ./gradlew clean publishToMavenLocal
+   ```
+
+5. Crea un Pull Request hacia `develop`
+
+6. Promueve a `master` solo cuando la versión esté lista para release sin sufijo `-SNAPSHOT`
 
 ### Convenciones de código
 

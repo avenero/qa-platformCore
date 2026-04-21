@@ -1,6 +1,6 @@
-# 📖 Guía de Configuración - Scotia QA Framework
+# 📖 Guía de Configuración - CuAleon Core
 
-> **Framework**: Scotia QA Framework v1.0.0  
+> **Framework**: CuAleon Core v2.0.x  
 > **Última actualización**: Diciembre 16, 2025  
 > **Autor**: Abel Venero
 
@@ -593,67 +593,64 @@ Remove-Item -Recurse -Force $env:USERPROFILE\.m2\repository\com\scotia\qa\
 
 | **Bloque** | **Propósito** | **Configuración** |
 |------------|---------------|-------------------|
-| `repositories` | **DESCARGAR** dependencias | mavenLocal → Artifactory → mavenCentral |
-| `publishing.repositories` | **PUBLICAR** artefactos | mavenLocal (único) |
+| `repositories` | **DESCARGAR** dependencias | mavenLocal → GitHub Packages (`qa-platformCore`) → mavenCentral |
+| `publishing.repositories` | **PUBLICAR** artefactos | GitHub Packages solo para releases |
 
 ---
 
 ### 📥 Descargar Dependencias
 
-**En `build.gradle` del módulo**:
+**En el consumidor (`qa-platformBE` o proyecto de pruebas)**:
 
 ```groovy
 repositories {
-    // Switch entre mavenLocal (desarrollo) y Artifactory (CI/CD)
-    if (project.hasProperty('useArtifactory') && project.property('useArtifactory') == 'true') {
-        // CI/CD: Priorizar Artifactory
-        maven { url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository' }
-        mavenLocal()
-        mavenCentral()
-    } else {
-        // Desarrollo: Priorizar mavenLocal, pero incluir Artifactory como fallback
-        mavenLocal()
-        maven { url 'https://artifactory.cldevops.chl.bns/artifactory/external-repository' }
-        mavenCentral()
+    mavenLocal()
+    maven {
+        url = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
+        credentials {
+            username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") ?: ""
+            password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.token") ?: ""
+        }
     }
+    mavenCentral()
 }
 ```
 
 **Uso**:
 
 ```bash
-# Desarrollo (usa mavenLocal primero)
+# Desarrollo e integración local
 ./gradlew build
 
-# CI/CD (usa Artifactory primero)
-./gradlew build -PuseArtifactory=true
+# Validar una versión local no liberada del Core
+./gradlew clean test -PcoreVersion=2.0.8-SNAPSHOT --refresh-dependencies
 ```
 
 ---
 
 ### 📤 Publicar Artefactos
 
-**Solo para el framework**:
+**Solo para `qa-platformCore`**:
 
 ```bash
-cd /path/to/qa-scotia-frameworks
-./gradlew publishToMavenLocal
+cd /path/to/qa-platformCore
+./gradlew clean publishToMavenLocal
 ```
 
 **Resultado**:
 ```
-~/.m2/repository/com/scotia/qa/
-├── common/1.0.0/
-│   ├── common-1.0.0.jar
-│   ├── common-1.0.0.pom
-│   ├── common-1.0.0-sources.jar
-│   └── common-1.0.0-javadoc.jar
-├── api-core/1.0.0/
-├── web-core/1.0.0/
-└── mobile-core/1.0.0/
+~/.m2/repository/com/qa/
+├── common/2.0.8-SNAPSHOT/
+│   ├── common-2.0.8-SNAPSHOT.jar
+│   ├── common-2.0.8-SNAPSHOT.pom
+│   ├── common-2.0.8-SNAPSHOT-sources.jar
+│   └── common-2.0.8-SNAPSHOT-javadoc.jar
+├── api-core/2.0.8-SNAPSHOT/
+├── web-core/2.0.8-SNAPSHOT/
+└── mobile-core/2.0.8-SNAPSHOT/
 ```
 
-**⚠️ Nota**: Los módulos de prueba **NO** publican artefactos, solo consumen.
+**⚠️ Nota**: Los consumidores **no** deben publicar artefactos del Core. Para desarrollo diario se usa `publishToMavenLocal`; GitHub Packages queda reservado para releases desde `master`.
 
 ---
 
@@ -821,12 +818,17 @@ Si no tienes permisos de administrador:
 
 ### 🔧 Para Desarrolladores del Framework
 
-#### **Publicar todas las capas**:
+#### **Flujo oficial de prueba local**:
 
 ```bash
-cd /path/to/qa-scotia-frameworks
-./gradlew clean build -x test
+cd /path/to/qa-platformCore
 ./gradlew publishToMavenLocal
+```
+
+Luego, desde `qa-platformBE`:
+
+```bash
+./gradlew clean test -PcoreVersion=2.0.8-SNAPSHOT --refresh-dependencies
 ```
 
 #### **Publicar capa específica**:
@@ -842,17 +844,17 @@ cd /path/to/qa-scotia-frameworks
 
 ```bash
 # macOS/Linux
-ls -la ~/.m2/repository/com/scotia/qa/common/1.0.0/
+ls -la ~/.m2/repository/com/qa/common/2.0.8-SNAPSHOT/
 
 # Windows
-dir %USERPROFILE%\.m2\repository\com\scotia\qa\common\1.0.0\
+dir %USERPROFILE%\.m2\repository\com\qa\common\2.0.8-SNAPSHOT\
 ```
 
 **Artefactos esperados**:
-- `common-1.0.0.jar` (Código compilado)
-- `common-1.0.0.pom` (Metadatos Maven)
-- `common-1.0.0-sources.jar` (Código fuente)
-- `common-1.0.0-javadoc.jar` (Documentación JavaDoc)
+- `common-2.0.8-SNAPSHOT.jar` (Código compilado)
+- `common-2.0.8-SNAPSHOT.pom` (Metadatos Maven)
+- `common-2.0.8-SNAPSHOT-sources.jar` (Código fuente)
+- `common-2.0.8-SNAPSHOT-javadoc.jar` (Documentación JavaDoc)
 
 ---
 
@@ -862,13 +864,13 @@ Si tienes problemas con versiones viejas:
 
 ```bash
 # macOS/Linux
-rm -rf ~/.m2/repository/com/scotia/qa/
+rm -rf ~/.m2/repository/com/qa/
 
 # Windows PowerShell
-Remove-Item -Recurse -Force $env:USERPROFILE\.m2\repository\com\scotia\qa\
+Remove-Item -Recurse -Force $env:USERPROFILE\.m2\repository\com\qa\
 
 # Republicar
-cd /path/to/qa-scotia-frameworks
+cd /path/to/qa-platformCore
 ./gradlew clean publishToMavenLocal
 ```
 
@@ -925,7 +927,7 @@ echo $env:DB_URL  # Windows PowerShell
 
 **Error**:
 ```
-Could not resolve com.scotia.qa:common:1.0.0
+Could not resolve com.qa:common:2.0.8-SNAPSHOT
 ```
 
 **Causa**: Framework no publicado en mavenLocal o artefactos corruptos.
@@ -934,8 +936,8 @@ Could not resolve com.scotia.qa:common:1.0.0
 
 ```bash
 # 1. Limpiar y republicar framework
-cd /path/to/qa-scotia-frameworks
-rm -rf ~/.m2/repository/com/scotia/qa/
+cd /path/to/qa-platformCore
+rm -rf ~/.m2/repository/com/qa/
 ./gradlew clean publishToMavenLocal
 
 # 2. Actualizar dependencias en módulo
@@ -990,8 +992,8 @@ cd /path/to/tu-modulo
    - Mensajes de error de 200 líneas a 5 líneas
 
 3. **Gradle**: Repositorios en cascada
-   - Artifactory siempre disponible como fallback
-   - Orden: mavenLocal → Artifactory → mavenCentral
+   - El flujo local oficial usa `mavenLocal()` primero
+   - El consumo remoto estable apunta a GitHub Packages de `qa-platformCore`
 
 4. **Eliminación**: Estrategia de scripts en META-INF
    - Scripts ya NO se incluyen en JARs
@@ -1039,6 +1041,6 @@ cd /path/to/tu-modulo
 ---
 
 **Preparado por**: Abel Venero  
-**Versión**: 1.0.0  
+**Versión**: 2.0.x
 **Última actualización**: Diciembre 16, 2025
 

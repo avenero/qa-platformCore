@@ -7,8 +7,8 @@ plugins {
     id "com.github.spotbugs" version "6.0.18" apply false
 }
 
-group   = "com.qa"
-version = "2.0.7"
+group = findProperty("coreGroup") ?: "com.qa"
+version = findProperty("coreVersion") ?: "0.0.0-SNAPSHOT"
 
 // =============================================================================
 // CONFIGURACIÓN COMÚN A TODOS LOS SUBMÓDULOS
@@ -20,8 +20,8 @@ subprojects {
     apply plugin: 'checkstyle'
     apply plugin: 'com.github.spotbugs'
 
-    group   = "com.qa"
-    version = "2.0.7"
+    group = rootProject.group
+    version = rootProject.version
 
     repositories {
         mavenLocal()
@@ -139,28 +139,27 @@ subprojects {
     }
 
     // =========================================================================
-    // PUBLICACIÓN A GITHUB PACKAGES
+    // PUBLICACIÓN CENTRALIZADA
+    // - `publishToMavenLocal`: flujo oficial para desarrollo/integración local
+    // - `publish`: solo para versiones release sin sufijo SNAPSHOT
     // =========================================================================
-    afterEvaluate {
-        if (!project.name.equals('api-core')) {
-            publishing {
-                publications {
-                    mavenJava(MavenPublication) {
-                        from components.java
-                        groupId    = project.group
-                        artifactId = project.name
-                        version    = project.version
-                    }
-                }
-                repositories {
-                    //mavenLocal()
-                    maven {
-                        name = "GitHubPackages"
-                        url  = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
-                        credentials {
-                            username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") ?: ""
-                            password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.token") ?: ""
-                        }
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                groupId = project.group
+                artifactId = project.name
+                version = project.version
+            }
+        }
+        repositories {
+            if (!project.version.toString().endsWith('-SNAPSHOT')) {
+                maven {
+                    name = "GitHubPackages"
+                    url = uri(findProperty("githubPackagesRepoUrl") ?: "https://maven.pkg.github.com/avenero/qa-platformCore")
+                    credentials {
+                        username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") ?: ""
+                        password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.token") ?: ""
                     }
                 }
             }

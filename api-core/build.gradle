@@ -140,50 +140,32 @@ javadoc {
 }
 
 // =================================================================================
-// CONFIGURACIÓN DE PUBLICACIÓN MAVEN LOCAL
+// METADATOS DE PUBLICACIÓN
+// La publicación y repositorios se configuran en el build.gradle raíz.
+// Aquí solo se personaliza el POM de `api-core`.
 // =================================================================================
 publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
+    publications.named('mavenJava', MavenPublication) {
+        // JavaDoc y Sources ya incluidos por withJavadocJar() y withSourcesJar()
+        // NO agregar manualmente para evitar duplicados
+        pom {
+            name = 'QA Framework - API Core'
+            description = 'Framework de automatización QA - Módulo API Core con Cucumber Steps para testing de APIs REST'
+            url = 'https://github.com/avenero/qa-platformCore'
 
-            groupId = project.group
-            artifactId = project.name
-            version = project.version
-
-            // JavaDoc y Sources ya incluidos por withJavadocJar() y withSourcesJar()
-            // NO agregar manualmente para evitar duplicados
-
-            pom {
-                name = 'QA Framework - API Core'
-                description = 'Framework de automatización QA - Módulo API Core con Cucumber Steps para testing de APIs REST'
-                url = 'https://github.com/avenero/qa-platformCore'
-
-                licenses {
-                    license {
-                        name = 'Proprietary'
-                        url  = 'https://github.com/avenero/qa-platformCore'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id = 'qa-team'
-                        name = 'QA Automation Team'
-                        email = 'qa-team@internal.com'
-                    }
+            licenses {
+                license {
+                    name = 'Proprietary'
+                    url  = 'https://github.com/avenero/qa-platformCore'
                 }
             }
-        }
-    }
 
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url  = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") ?: ""
-                password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.token") ?: ""
+            developers {
+                developer {
+                    id = 'qa-team'
+                    name = 'QA Automation Team'
+                    email = 'qa-team@internal.com'
+                }
             }
         }
     }

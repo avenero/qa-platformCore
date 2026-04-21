@@ -1,4 +1,4 @@
-# 📊 Sistema de Reporting - Scotia QA Framework
+# 📊 Sistema de Reporting - QA Framework
 
 > **Sistema unificado de reportes que integra Extent Reports HTML y Jira/Xray para generación automática y distribución de resultados de tests.**
 
@@ -134,10 +134,10 @@ reporting/
 
 ```groovy
 dependencies {
-    // Framework Scotia QA (incluye reporting)
-    testImplementation 'com.scotia.qa:common:1.0.0'
-    testImplementation 'com.scotia.qa:api-core:1.0.0'  // Si usas API
-    testImplementation 'com.scotia.qa:web-core:1.0.0'  // Si usas WEB
+    // Framework CuAleon Core (incluye reporting)
+    testImplementation "com.qa:common:${coreVersion}"
+    testImplementation "com.qa:api-core:${coreVersion}"  // Si usas API
+    testImplementation "com.qa:web-core:${coreVersion}"  // Si usas WEB
 }
 ```
 
