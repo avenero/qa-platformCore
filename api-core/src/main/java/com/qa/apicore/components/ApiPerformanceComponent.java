@@ -15,14 +15,41 @@ import java.util.Map;
  */
 @StepId("api.performance")
 public class ApiPerformanceComponent implements StepComponent {
-    @Override public String getName()                  { return "Performance"; }
-    @Override public String getDisplayName()           { return "Performance"; }
-    @Override public String getDescription()           { return "Validacion de tiempo de respuesta y tamano del body"; }
-    @Override public BddPhase getPhase()               { return BddPhase.THEN; }
-    @Override public String getCategory()              { return "Validacion de Respuesta"; }
-    @Override public String getIcon()                  { return "speed"; }
-    @Override public int getDisplayOrder()             { return 110; }
-    @Override public Class<?> getStepDefinitionClass() { return ResponsePerformanceSteps.class; }
+
+    /** Display order for this component in the UI step palette. */
+    private static final int DISPLAY_ORDER = 110;
+    @Override
+    public String getName() {
+        return "Performance";
+    }
+    @Override
+    public String getDisplayName() {
+        return "Performance";
+    }
+    @Override
+    public String getDescription() {
+        return "Validacion de tiempo de respuesta y tamano del body";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.THEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Validacion de Respuesta";
+    }
+    @Override
+    public String getIcon() {
+        return "speed";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return ResponsePerformanceSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

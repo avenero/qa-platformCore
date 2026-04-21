@@ -18,7 +18,7 @@ import org.openqa.selenium.WebDriver;
  * Fase BDD: WHEN.
  *
  * <p>Todos los steps canónicos llevan {@link StepDef} con ID explícito para garantizar
- * estabilidad frente a refactorizaciones. El formato es {@code web.navigation.<sub-id>}.
+ * estabilidad frente a refactorizaciones. El formato es {@code web.navigation.SUB_ID}.
  *
  * @author Abel Venero
  * @since 2.0.0
@@ -92,7 +92,9 @@ public class NavigationSteps {
     @StepDef(value = "web.navigation.legacy-completo-flujo",
              deprecated = true,
              displayName = "completo el flujo navegando… (DEPRECATED — macro de negocio, usar steps individuales)")
-    @Given("completo el flujo navegando a {string} con campos {string} {string} {string} con textos {string} {string} {string} y presionando {string}")
+    @Given("completo el flujo navegando a {string} con campos {string} {string}"
+        + " {string} con textos {string} {string} {string} y presionando {string}")
+    @SuppressWarnings("checkstyle:LineLength")
     public void completoElFlujoNavegandoConCamposYPresionando(
             String url, String c1, String c2, String c3,
             String t1, String t2, String t3, String boton) {
@@ -100,8 +102,12 @@ public class NavigationSteps {
         driver.navigate().to(url);
         WaitUtils.waitForPageReady();
         helper.setTextWithWait(t1, c1);
-        if (c2 != null && !c2.trim().isEmpty()) helper.setTextWithWait(t2, c2);
-        if (c3 != null && !c3.trim().isEmpty()) helper.setTextWithWait(t3, c3);
+        if (c2 != null && !c2.trim().isEmpty()) {
+            helper.setTextWithWait(t2, c2);
+        }
+        if (c3 != null && !c3.trim().isEmpty()) {
+            helper.setTextWithWait(t3, c3);
+        }
         helper.clicButton(boton);
         helper.captureScreen(scenario);
     }

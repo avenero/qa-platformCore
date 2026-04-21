@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * <p><b>Manejo de errores:</b> cualquier excepción en el ciclo de vida se loggea
  * pero no aborta la ejecución del escenario. Esto es intencional: un error en
  * {@code onScenarioStart} de un plugin no debe bloquear el paso de Cucumber.
- * El plugin problemático emite un warning en log y la ejecución continúa.
+ * El plugin problemático emite un warning en LOG y la ejecución continúa.
  *
  * <p><b>Flujo de integración:</b>
  * <pre>
@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
  */
 public final class ScenarioLifecycleBridge implements ConcurrentEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(ScenarioLifecycleBridge.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ScenarioLifecycleBridge.class);
 
     private final LifecycleManager lifecycleManager;
     private final ExecutionContext  context;
@@ -106,13 +106,13 @@ public final class ScenarioLifecycleBridge implements ConcurrentEventListener {
     private void onTestCaseStarted(TestCaseStarted event) {
         TestCase testCase = event.getTestCase();
         ScenarioMetadata metadata = buildMetadata(testCase);
-        log.debug("Escenario iniciado: '{}' [{}:{}] tags={}",
+        LOG.debug("Escenario iniciado: '{}' [{}:{}] tags={}",
                 metadata.name(), metadata.uri(), metadata.line(), metadata.tags());
         try {
             lifecycleManager.onScenarioStart(context, metadata);
         } catch (Exception e) {
             // No abortar la ejecución del escenario por un error en el lifecycle
-            log.error("Error en onScenarioStart del LifecycleManager para escenario '{}': {}",
+            LOG.error("Error en onScenarioStart del LifecycleManager para escenario '{}': {}",
                     metadata.name(), e.getMessage(), e);
         }
     }
@@ -124,13 +124,13 @@ public final class ScenarioLifecycleBridge implements ConcurrentEventListener {
     private void onTestCaseFinished(TestCaseFinished event) {
         TestCase testCase = event.getTestCase();
         ScenarioMetadata metadata = buildMetadata(testCase);
-        log.debug("Escenario finalizado: '{}' [{}:{}] resultado={}",
+        LOG.debug("Escenario finalizado: '{}' [{}:{}] resultado={}",
                 metadata.name(), metadata.uri(), metadata.line(), event.getResult().getStatus());
         try {
             lifecycleManager.onScenarioEnd(context, metadata);
         } catch (Exception e) {
             // No abortar la finalización del escenario por un error en el lifecycle
-            log.error("Error en onScenarioEnd del LifecycleManager para escenario '{}': {}",
+            LOG.error("Error en onScenarioEnd del LifecycleManager para escenario '{}': {}",
                     metadata.name(), e.getMessage(), e);
         }
     }
@@ -150,9 +150,7 @@ public final class ScenarioLifecycleBridge implements ConcurrentEventListener {
      * @return metadata inmutable del escenario
      */
     private ScenarioMetadata buildMetadata(TestCase testCase) {
-        Set<String> tags = testCase.getTags()
-                .stream()
-                .collect(Collectors.toUnmodifiableSet());
+        Set<String> tags = testCase.getTags().stream().collect(Collectors.toUnmodifiableSet());
 
         return new ScenarioMetadata(
                 testCase.getName(),

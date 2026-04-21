@@ -15,13 +15,16 @@ import java.util.Map;
  */
 @StepId("mobile.notification")
 public class NotificationComponent implements StepComponent {
+
+    private static final int DISPLAY_ORDER = 70;
+
     @Override public String getName()                  { return "Notificaciones"; }
     @Override public String getDisplayName()           { return "Notificaciones"; }
     @Override public String getDescription()           { return "Interaccion con notificaciones push y del sistema"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
     @Override public String getCategory()              { return "Interaccion Mobile"; }
     @Override public String getIcon()                  { return "notifications"; }
-    @Override public int getDisplayOrder()             { return 70; }
+    @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return NotificationSteps.class; }
 
     @Override

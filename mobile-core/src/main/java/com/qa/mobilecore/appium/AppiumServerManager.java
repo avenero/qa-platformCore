@@ -38,6 +38,8 @@ public final class AppiumServerManager {
 
     private static final int HEALTH_CHECK_TIMEOUT_MS = 3_000;
     private static final int STARTUP_POLL_INTERVAL_MS = 1_000;
+    private static final int DEFAULT_APPIUM_PORT = 4723;
+    private static final long MILLIS_PER_SECOND = 1000L;
 
     private AppiumServerManager() {}
 
@@ -151,7 +153,7 @@ public final class AppiumServerManager {
                     while ((line = r.readLine()) != null) {
                         TestLogger.logInfo("APPIUM_SERVER", "[appium] " + line, null);
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) { }
             }, "appium-output-reader");
             reader.setDaemon(true);
             reader.start();
@@ -167,7 +169,7 @@ public final class AppiumServerManager {
     }
 
     private static void waitForAppium(String serverUrl, int timeoutSec) {
-        long deadline = System.currentTimeMillis() + (timeoutSec * 1000L);
+        long deadline = System.currentTimeMillis() + (timeoutSec * MILLIS_PER_SECOND);
         TestLogger.logInfo("APPIUM_SERVER",
             "Esperando que Appium este listo (timeout: " + timeoutSec + "s)...", null);
 
@@ -194,7 +196,7 @@ public final class AppiumServerManager {
         try {
             return URI.create(serverUrl).getPort();
         } catch (Exception e) {
-            return 4723;
+            return DEFAULT_APPIUM_PORT;
         }
     }
 

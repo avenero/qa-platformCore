@@ -22,6 +22,8 @@ import java.util.Map;
 @StepId("mobile.validation.app-state")
 public class AppStateValidationComponent implements StepComponent {
 
+    private static final int DISPLAY_ORDER = 95;
+
     @Override
     public String getName() { return "Validacion Estado de App"; }
 
@@ -44,7 +46,7 @@ public class AppStateValidationComponent implements StepComponent {
     public String getIcon() { return "mobile_friendly"; }
 
     @Override
-    public int getDisplayOrder() { return 95; }
+    public int getDisplayOrder() { return DISPLAY_ORDER; }
 
     @Override
     public Class<?> getStepDefinitionClass() { return AppStateValidationSteps.class; }
@@ -61,9 +63,12 @@ public class AppStateValidationComponent implements StepComponent {
     @Override
     public Map<String, String> getDescriptionByLocale() {
         return Map.of(
-            "es", "Valida el estado global de la app mobile: foreground/background, instalacion, orientacion del dispositivo y sesion activa",
-            "en", "Validates the global state of the mobile app: foreground/background, installation, device orientation and active session",
-            "fr", "Valide l'etat global de l'application mobile : premier plan/arriere-plan, installation, orientation du dispositif et session active"
+            "es", "Valida el estado global de la app mobile: foreground/background, "
+                + "instalacion, orientacion del dispositivo y sesion activa",
+            "en", "Validates the global state of the mobile app: foreground/background, "
+                + "installation, device orientation and active session",
+            "fr", "Valide l'etat global de l'application mobile : premier plan/arriere-plan, "
+                + "installation, orientation du dispositif et session active"
         );
     }
 }

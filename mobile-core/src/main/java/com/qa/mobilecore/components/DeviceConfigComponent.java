@@ -15,13 +15,18 @@ import java.util.Map;
  */
 @StepId("mobile.device.config")
 public class DeviceConfigComponent implements StepComponent {
+
+    private static final int DISPLAY_ORDER = 10;
+
     @Override public String getName()                  { return "Configuracion de Dispositivo"; }
     @Override public String getDisplayName()           { return "Configuracion de Dispositivo"; }
-    @Override public String getDescription()           { return "Configurar capacidades del dispositivo (plataforma, version, UDID)"; }
+    @Override public String getDescription()           {
+        return "Configurar capacidades del dispositivo (plataforma, version, UDID)";
+    }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
     @Override public String getCategory()              { return "Configuracion Mobile"; }
     @Override public String getIcon()                  { return "phone_android"; }
-    @Override public int getDisplayOrder()             { return 10; }
+    @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return DeviceConfigSteps.class; }
 
     @Override

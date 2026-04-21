@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.scroll")
 public class ScrollComponent implements StepComponent {
-    @Override public String getName()                  { return "Scroll"; }
-    @Override public String getDisplayName()           { return "Scroll"; }
-    @Override public String getDescription()           { return "Scroll hacia elementos o direcciones"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Interaccion"; }
-    @Override public String getIcon()                  { return "swap_vert"; }
-    @Override public int getDisplayOrder()             { return 90; }
-    @Override public Class<?> getStepDefinitionClass() { return ScrollSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 90;
+
+    @Override
+    public String getName() {
+        return "Scroll";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Scroll";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Scroll hacia elementos o direcciones";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Interaccion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "swap_vert";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return ScrollSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

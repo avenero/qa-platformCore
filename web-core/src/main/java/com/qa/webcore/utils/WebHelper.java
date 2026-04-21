@@ -1,13 +1,27 @@
 package com.qa.webcore.utils;
 
-import com.qa.common.http.exceptions.FrameworkBusinessException;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.webcore.driver.DriverManager;
 import com.qa.webcore.driver.WebDriverFactory;
 import io.cucumber.java.Scenario;
 import org.assertj.core.api.Assertions;
-import org.openqa.selenium.*;
+import org.openqa.selenium.Alert;
+import org.openqa.selenium.By;
+import org.openqa.selenium.Cookie;
+import org.openqa.selenium.ElementNotInteractableException;
+import org.openqa.selenium.InvalidElementStateException;
+import org.openqa.selenium.InvalidSelectorException;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
+import org.openqa.selenium.NoAlertPresentException;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
@@ -19,7 +33,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Clase helper con métodos auxiliares para WebSteps.
@@ -48,8 +72,26 @@ public class WebHelper {
     // CONSTANTES DE CONFIGURACIÓN
     // =========================================================================
 
-    /** Timeout por defecto para waits explícitos (en segundos) */
+    /** Timeout por defecto para waits explícitos (en segundos). */
     private static final int DEFAULT_WAIT_SECONDS = 15;
+
+    /** Timeout extendido para operaciones lentas (en segundos). */
+    private static final int EXTENDED_WAIT_SECONDS = 30;
+
+    /** Timeout largo para carga de página (en segundos). */
+    private static final int PAGE_LOAD_WAIT_SECONDS = 90;
+
+    /** Timeout para esperas de habilitacion de elemento (en segundos). */
+    private static final int ENABLE_WAIT_SECONDS = 10;
+
+    /** Pausa de estabilizacion tras carga de pagina (en milisegundos). */
+    private static final long PAGE_STABILIZE_MS = 300;
+
+    /** Pausa interna de reintentos cortos (en milisegundos). */
+    private static final long SHORT_RETRY_MS = 1000;
+
+    /** Milliseconds per second, used for converting seconds-based timeouts. */
+    private static final long MILLIS_PER_SECOND = 1000L;
 
     public WebHelper() {
         // Constructor vacío - todas las operaciones delegadas a ScenarioContext estático
@@ -76,9 +118,8 @@ public class WebHelper {
      * @since 2.2.0
      */
     private WebDriver resolveDriver() {
-        return ExecutionContext.current()
-                .flatMap(ctx -> ctx.registry().get(WebDriver.class))
-                .orElseGet(DriverManager::getDriver);
+        return ExecutionContext.current().flatMap(ctx -> ctx.registry().get(WebDriver.class)).
+                orElseGet(DriverManager::getDriver);
     }
 
     // =========================================================================
@@ -104,14 +145,16 @@ public class WebHelper {
      *
      * @param locator Identificador del elemento (id, name, xpath o cssSelector)
      * @return WebElement encontrado
-     * @throws org.openqa.selenium.NoSuchElementException Si el elemento no se encuentra después de todos los intentos
+     * @throws NoSuchElementException Si el elemento no se encuentra después de todos los intentos
      */
     public WebElement getElement(String locator) {
         WebDriver driver = resolveDriver();
-        int maxRetries = 3;
+        final int maxRetries = 3;
+        final long staleRetryMs = 500;
+        final long notFoundRetryMs = 300;
 
         StaleElementReferenceException lastStaleException = null;
-        org.openqa.selenium.NoSuchElementException lastNotFoundException = null;
+        NoSuchElementException lastNotFoundException = null;
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
@@ -121,24 +164,27 @@ public class WebHelper {
                 lastStaleException = e;
                 if (attempt < maxRetries) {
                     TestLogger.logDebug("WEB_HELPER",
-                        "Elemento stale, reintentando (intento " + attempt + "/" + maxRetries + "): " + locator, null);
-                    WaitUtils.waitMillisecondsQuiet(500);
+                        "Elemento stale, reintentando (intento " + attempt + "/" + maxRetries + "): " + locator,
+                        null);
+                    WaitUtils.waitMillisecondsQuiet(staleRetryMs);
                 } else {
                     TestLogger.logError("WEB_HELPER",
                         "Elemento stale después de " + maxRetries + " intentos: " + locator, null);
                 }
 
-            } catch (org.openqa.selenium.NoSuchElementException e) {
+            } catch (NoSuchElementException e) {
                 lastNotFoundException = e;
                 if (attempt < maxRetries) {
                     // Solo log DEBUG, no ERROR - es parte del comportamiento normal de retry
                     TestLogger.logDebug("WEB_HELPER",
-                        "Elemento no encontrado, reintentando (intento " + attempt + "/" + maxRetries + "): " + locator, null);
-                    WaitUtils.waitMillisecondsQuiet(300);
+                        "Elemento no encontrado, reintentando (intento " + attempt
+                        + "/" + maxRetries + "): " + locator, null);
+                    WaitUtils.waitMillisecondsQuiet(notFoundRetryMs);
                 } else {
                     // Solo ERROR en el último intento
                     TestLogger.logError("WEB_HELPER",
-                        "No se pudo localizar el elemento después de " + maxRetries + " intentos: " + locator, null);
+                        "No se pudo localizar el elemento después de " + maxRetries + " intentos: " + locator,
+                        null);
                 }
             }
         }
@@ -159,7 +205,7 @@ public class WebHelper {
      * @param driver WebDriver instance
      * @param locator Identificador del elemento
      * @return WebElement encontrado
-     * @throws org.openqa.selenium.NoSuchElementException Si ninguna estrategia funciona
+     * @throws NoSuchElementException Si ninguna estrategia funciona
      */
     private WebElement findElementWithStrategy(WebDriver driver, String locator) {
         List<String> attemptedStrategies = new ArrayList<>();
@@ -168,7 +214,7 @@ public class WebHelper {
         try {
             attemptedStrategies.add("id");
             return driver.findElement(By.id(locator));
-        } catch (org.openqa.selenium.NoSuchElementException | InvalidSelectorException e1) {
+        } catch (NoSuchElementException | InvalidSelectorException ignored) {
             // Continuar a siguiente estrategia
         }
 
@@ -176,7 +222,7 @@ public class WebHelper {
         try {
             attemptedStrategies.add("name");
             return driver.findElement(By.name(locator));
-        } catch (org.openqa.selenium.NoSuchElementException | InvalidSelectorException e2) {
+        } catch (NoSuchElementException | InvalidSelectorException ignored) {
             // Continuar a siguiente estrategia
         }
 
@@ -185,7 +231,7 @@ public class WebHelper {
             try {
                 attemptedStrategies.add("xpath");
                 return driver.findElement(By.xpath(locator));
-            } catch (org.openqa.selenium.NoSuchElementException | InvalidSelectorException e3) {
+            } catch (NoSuchElementException | InvalidSelectorException ignored) {
                 // Continuar a siguiente estrategia
             }
         }
@@ -195,7 +241,7 @@ public class WebHelper {
             try {
                 attemptedStrategies.add("cssSelector");
                 return driver.findElement(By.cssSelector(locator));
-            } catch (org.openqa.selenium.NoSuchElementException | InvalidSelectorException e4) {
+            } catch (NoSuchElementException | InvalidSelectorException ignored) {
                 // Continuar a siguiente estrategia
             }
         }
@@ -205,7 +251,7 @@ public class WebHelper {
             try {
                 attemptedStrategies.add("cssSelector");
                 return driver.findElement(By.cssSelector(locator));
-            } catch (org.openqa.selenium.NoSuchElementException | InvalidSelectorException e5) {
+            } catch (NoSuchElementException | InvalidSelectorException ignored) {
                 // Continuar a siguiente estrategia
             }
         }
@@ -215,7 +261,7 @@ public class WebHelper {
             try {
                 attemptedStrategies.add("xpath");
                 return driver.findElement(By.xpath(locator));
-            } catch (org.openqa.selenium.NoSuchElementException | InvalidSelectorException e6) {
+            } catch (NoSuchElementException | InvalidSelectorException ignored) {
                 // Todas las estrategias fallaron
             }
         }
@@ -224,7 +270,7 @@ public class WebHelper {
         TestLogger.logDebug("WEB_HELPER",
             "No se pudo localizar el elemento con ninguna estrategia (" +
             String.join(", ", attemptedStrategies) + "): " + locator, null);
-        throw new org.openqa.selenium.NoSuchElementException(
+        throw new NoSuchElementException(
             "No se pudo localizar el elemento con ninguna estrategia: " + locator);
     }
 
@@ -358,11 +404,11 @@ public class WebHelper {
     private static class FieldType {
         private final boolean special;
 
-        public FieldType(boolean special) {
+        FieldType(boolean special) {
             this.special = special;
         }
 
-        public boolean isSpecial() {
+        boolean isSpecial() {
             return special;
         }
     }
@@ -614,14 +660,15 @@ public class WebHelper {
      */
     private WebElement getElementQuietly(String locator) {
         WebDriver driver = resolveDriver();
-        int maxRetries = 2; // Menos reintentos para verificación rápida
+        final int maxRetries = 2; // Menos reintentos para verificación rápida
+        final long quietRetryMs = 200;
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 return findElementWithStrategy(driver, locator);
-            } catch (org.openqa.selenium.NoSuchElementException | StaleElementReferenceException e) {
+            } catch (NoSuchElementException | StaleElementReferenceException e) {
                 if (attempt < maxRetries) {
-                    WaitUtils.waitMillisecondsQuiet(200);
+                    WaitUtils.waitMillisecondsQuiet(quietRetryMs);
                 }
                 // No loguear nada - es una verificación silenciosa
             }
@@ -731,7 +778,7 @@ public class WebHelper {
      * @return true si el elemento es visible, false si timeout
      */
     public boolean waitForVisibleElement(String locator) {
-        int timeout = Integer.parseInt(getConfigProperty("explicit.wait", "15"));
+        int timeout = Integer.parseInt(getConfigProperty("explicit.wait", String.valueOf(DEFAULT_WAIT_SECONDS)));
         return waitForVisibleElement(locator, timeout);
     }
 
@@ -853,7 +900,7 @@ public class WebHelper {
 
     public void waitFromElementNoVisible(String locator) {
         WebDriver driver = resolveDriver();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(EXTENDED_WAIT_SECONDS));
         wait.until(ExpectedConditions.invisibilityOf(getElement(locator)));
     }
 
@@ -900,9 +947,10 @@ public class WebHelper {
                 if (Boolean.TRUE.equals(angularDefined)) {
                     try {
                         js.executeScript(
-                            "return angular.element(document).injector().get('$http').pendingRequests.length === 0"
+                            "return angular.element(document).injector()"
+                            + ".get('$http').pendingRequests.length === 0"
                         );
-                    } catch (Exception e) {
+                    } catch (Exception ignored) {
                         // Si falla, asumir que no hay requests pendientes
                     }
                 }
@@ -910,7 +958,7 @@ public class WebHelper {
             });
 
             // 4. Pequeña pausa adicional para estabilización
-            WaitUtils.waitMilliseconds(300);
+            WaitUtils.waitMilliseconds(PAGE_STABILIZE_MS);
 
             // Página cargada - no log en éxito (reduce ruido)
 
@@ -922,7 +970,7 @@ public class WebHelper {
 
     public void waitCheckBox(String locator) {
         WebDriver driver = resolveDriver();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(ENABLE_WAIT_SECONDS));
         wait.until(ExpectedConditions.elementToBeSelected(getElement(locator)));
     }
 
@@ -938,7 +986,7 @@ public class WebHelper {
         WaitUtils.waitForPageReady();
 
         // Dar tiempo adicional para animaciones/transiciones sin generar warning
-        WaitUtils.waitMillisecondsQuiet(1000);
+        WaitUtils.waitMillisecondsQuiet(SHORT_RETRY_MS);
     }
 
     /**
@@ -959,9 +1007,9 @@ public class WebHelper {
      */
     @SuppressWarnings("unused") // Método público disponible para uso externo
     public boolean waitForCondition(String conditionDescription, int timeoutSeconds,
-                                   java.util.function.Supplier<Boolean> condition) {
+                                    Supplier<Boolean> condition) {
         long startTime = System.currentTimeMillis();
-        long endTime = startTime + (timeoutSeconds * 1000L);
+        long endTime = startTime + (timeoutSeconds * MILLIS_PER_SECOND);
         int attempt = 0;
 
         // No log en inicio - reduce ruido
@@ -978,7 +1026,10 @@ public class WebHelper {
             }
 
             // Polling inteligente: aumentar intervalo gradualmente
-            int pollingInterval = Math.min(500 + (attempt * 100), 2000);
+            final int basePollingMs = 500;
+            final int pollingIncrement = 100;
+            final int maxPollingMs = 2000;
+            int pollingInterval = Math.min(basePollingMs + (attempt * pollingIncrement), maxPollingMs);
             WaitUtils.waitMilliseconds(pollingInterval);
         }
 
@@ -1129,7 +1180,7 @@ public class WebHelper {
 
         WebElement element = (WebElement) js.executeScript(script, shadowHost1, shadowHost2, elemento);
         if (element == null) {
-            throw new org.openqa.selenium.NoSuchElementException(
+            throw new NoSuchElementException(
                 "Elemento no encontrado en shadow DOM anidado: " + elemento);
         }
         element.click();
@@ -1142,7 +1193,7 @@ public class WebHelper {
         String script = "return document.querySelector(arguments[0]).shadowRoot.querySelector(arguments[1]);";
         WebElement element = (WebElement) js.executeScript(script, shadowHost, elemento);
         if (element == null) {
-            throw new org.openqa.selenium.NoSuchElementException(
+            throw new NoSuchElementException(
                 "Elemento no encontrado en shadow DOM: " + elemento);
         }
         element.click();
@@ -1189,7 +1240,8 @@ public class WebHelper {
         WebDriver driver = resolveDriver();
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        String script = "return document.querySelector(arguments[0]).shadowRoot.querySelector(arguments[1]).textContent;";
+        String script = "return document.querySelector(arguments[0])"
+            + ".shadowRoot.querySelector(arguments[1]).textContent;";
         String actualText = (String) js.executeScript(script, host, elemento);
 
         if (actualText == null || !actualText.trim().equals(expectedText)) {
@@ -1312,11 +1364,8 @@ public class WebHelper {
         int currentHeight = element.getSize().getHeight();
         Actions actions = new Actions(driver);
         // Mover al borde inferior-derecho y arrastrar hasta el nuevo tamaño
-        actions.moveToElement(element, currentWidth / 2, currentHeight / 2)
-               .clickAndHold()
-               .moveByOffset(width - currentWidth, height - currentHeight)
-               .release()
-               .perform();
+        actions.moveToElement(element, currentWidth / 2, currentHeight / 2).clickAndHold().
+               moveByOffset(width - currentWidth, height - currentHeight).release().perform();
         TestLogger.logInfo("WEB_HELPER",
             String.format("Elemento redimensionado a %dx%d: '%s'", width, height, locator), null);
     }
@@ -1407,15 +1456,15 @@ public class WebHelper {
      * @return Valor de la variable o cadena vacía si no existe
      */
     public String getTextVariableTemp(String variableName) {
-        return ExecutionContext.current()
-                .flatMap(ctx -> {
+        return ExecutionContext.current().flatMap(ctx -> {
                     // Buscar primero con prefijo "web."
                     var v = ctx.variables().get("web." + variableName, Object.class);
-                    if (v.isPresent()) return v.map(Object::toString);
+                    if (v.isPresent()) {
+                        return v.map(Object::toString);
+                    }
                     // Fallback: sin prefijo
                     return ctx.variables().get(variableName, Object.class).map(Object::toString);
-                })
-                .orElse("");
+                }).orElse("");
     }
 
     /**
@@ -1441,8 +1490,8 @@ public class WebHelper {
 
         String result = text;
         // Patrón para encontrar {variableName}
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{([^}]+)}");
-        java.util.regex.Matcher matcher = pattern.matcher(text);
+        Pattern pattern = Pattern.compile("\\{([^}]+)}");
+        Matcher matcher = pattern.matcher(text);
 
         while (matcher.find()) {
             String variableName = matcher.group(1);
@@ -1499,9 +1548,8 @@ public class WebHelper {
             StringBuilder content = new StringBuilder();
 
             // Obtener todas las variables del VariableStore del ExecutionContext activo
-            Map<String, Object> allVars = ExecutionContext.current()
-                    .map(ctx -> ctx.variables().getAll())
-                    .orElse(java.util.Collections.emptyMap());
+            Map<String, Object> allVars = ExecutionContext.current().map(ctx -> ctx.variables().getAll()).
+                    orElse(Collections.emptyMap());
 
             Map<String, Object> webVars = filterByPrefix(allVars, "web.");
             Map<String, Object> apiVars = filterByPrefix(allVars, "api.");
@@ -1549,7 +1597,7 @@ public class WebHelper {
 
     /** Filtra variables del VariableStore por prefijo, retornando el mapa sin el prefijo en las claves. */
     private Map<String, Object> filterByPrefix(Map<String, Object> vars, String prefix) {
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         vars.forEach((k, v) -> {
             if (k.startsWith(prefix)) {
                 result.put(k.substring(prefix.length()), v);
@@ -1559,8 +1607,10 @@ public class WebHelper {
     }
 
     public String generateRutUy() {
+        final int rutMin = 10000000;
+        final int rutRange = 90000000;
         Random random = new Random();
-        int rut = 10000000 + random.nextInt(90000000);
+        int rut = rutMin + random.nextInt(rutRange);
         return String.valueOf(rut);
     }
 
@@ -1639,9 +1689,7 @@ public class WebHelper {
     public void validateFieldAcceptsOnlyNumbers(String locator) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe contener solo números", locator)
-            .matches("^[0-9]+$");
+        Assertions.assertThat(value).as("El campo '%s' debe contener solo números", locator).matches("^[0-9]+$");
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Campo validado: solo números - " + locator, null);
@@ -1653,9 +1701,8 @@ public class WebHelper {
     public void validateFieldAcceptsOnlyLetters(String locator) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe contener solo letras", locator)
-            .matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$");
+        Assertions.assertThat(value).as("El campo '%s' debe contener solo letras", locator).
+            matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$");
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Campo validado: solo letras - " + locator, null);
@@ -1668,9 +1715,8 @@ public class WebHelper {
         String value = getElementValue(getElement(locator));
 
         if (!value.isEmpty()) {
-            Assertions.assertThat(value)
-                .as("El campo '%s' no debe contener números ni caracteres especiales", locator)
-                .matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$");
+            Assertions.assertThat(value).as("El campo '%s' no debe contener números ni caracteres especiales", locator).
+                matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$");
         }
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
@@ -1683,9 +1729,8 @@ public class WebHelper {
     public void validateEmailFormat(String locator) {
         String value = getElementValue(getElement(locator)).trim();
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe tener formato de email válido", locator)
-            .matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+        Assertions.assertThat(value).as("El campo '%s' debe tener formato de email válido", locator).
+            matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Email validado: " + value.replaceAll("(.{3}).*(@.*)", "$1***$2"), null);
@@ -1701,9 +1746,8 @@ public class WebHelper {
         int remainingDigits = totalDigits - prefix.replaceAll("[^0-9]", "").length();
         String regex = String.format("^%s[0-9]{%d}$", prefix.replace("+", "\\+"), remainingDigits);
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe tener formato: %s + %d dígitos", locator, prefix, remainingDigits)
-            .matches(regex);
+        Assertions.assertThat(value).
+            as("El campo '%s' debe tener formato: %s + %d dígitos", locator, prefix, remainingDigits).matches(regex);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Teléfono validado: " + value, null);
@@ -1715,9 +1759,7 @@ public class WebHelper {
     public void validateFieldNoSpaces(String locator) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' no debe contener espacios", locator)
-            .doesNotContain(" ");
+        Assertions.assertThat(value).as("El campo '%s' no debe contener espacios", locator).doesNotContain(" ");
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Campo validado: sin espacios - " + locator, null);
@@ -1730,9 +1772,8 @@ public class WebHelper {
         String value = getElementValue(getElement(locator));
 
         if (value.matches(".*\\d.*")) {
-            Assertions.assertThat(value)
-                .as("El campo '%s' debe tener separadores de miles", locator)
-                .matches(".*\\d{1,3}(\\.\\d{3})*.*");
+            Assertions.assertThat(value).as("El campo '%s' debe tener separadores de miles", locator).
+                matches(".*\\d{1,3}(\\.\\d{3})*.*");
         }
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
@@ -1746,9 +1787,8 @@ public class WebHelper {
     public void validateFieldMatchesPattern(String locator, String regexPattern) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe cumplir el patrón: %s", locator, regexPattern)
-            .matches(regexPattern);
+        Assertions.assertThat(value).as("El campo '%s' debe cumplir el patrón: %s", locator, regexPattern).
+            matches(regexPattern);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Patrón validado: " + locator, null);
@@ -1771,9 +1811,8 @@ public class WebHelper {
         if (!value.isEmpty()) {
             int actualValue = Integer.parseInt(value);
 
-            Assertions.assertThat(actualValue)
-                .as("El campo '%s' debe tener valor >= %d", locator, minValue)
-                .isGreaterThanOrEqualTo(minValue);
+            Assertions.assertThat(actualValue).as("El campo '%s' debe tener valor >= %d", locator, minValue).
+                isGreaterThanOrEqualTo(minValue);
 
             TestLogger.logInfo("WEB_HELPER_VALIDATION",
                 String.format("✅ Valor mínimo validado: %d >= %d", actualValue, minValue), null);
@@ -1789,9 +1828,8 @@ public class WebHelper {
         if (!value.isEmpty()) {
             int actualValue = Integer.parseInt(value);
 
-            Assertions.assertThat(actualValue)
-                .as("El campo '%s' debe tener valor <= %d", locator, maxValue)
-                .isLessThanOrEqualTo(maxValue);
+            Assertions.assertThat(actualValue).as("El campo '%s' debe tener valor <= %d", locator, maxValue).
+                isLessThanOrEqualTo(maxValue);
 
             TestLogger.logInfo("WEB_HELPER_VALIDATION",
                 String.format("✅ Valor máximo validado: %d <= %d", actualValue, maxValue), null);
@@ -1806,9 +1844,8 @@ public class WebHelper {
         boolean isReadonly = element.getDomAttribute("readonly") != null;
         boolean isDisabled = element.getDomAttribute("disabled") != null;
 
-        Assertions.assertThat(isReadonly || isDisabled)
-            .as("El campo '%s' debe estar en modo solo lectura", locator)
-            .isTrue();
+        Assertions.assertThat(isReadonly || isDisabled).as("El campo '%s' debe estar en modo solo lectura", locator).
+            isTrue();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Campo readonly validado: " + locator, null);
@@ -1827,15 +1864,12 @@ public class WebHelper {
         String tagName = element.getTagName().toLowerCase();
 
         if ("select".equals(tagName)) {
-            org.openqa.selenium.support.ui.Select select = new org.openqa.selenium.support.ui.Select(element);
+            Select select = new Select(element);
             List<String> expected = List.of(expectedOptions.split(","));
-            List<String> actual = select.getOptions().stream()
-                .map(WebElement::getText)
-                .toList();
+            List<String> actual = select.getOptions().stream().map(WebElement::getText).toList();
 
-            Assertions.assertThat(actual)
-                .as("Opciones del dropdown '%s' no coinciden", locator)
-                .containsExactlyInAnyOrderElementsOf(expected);
+            Assertions.assertThat(actual).as("Opciones del dropdown '%s' no coinciden", locator).
+                containsExactlyInAnyOrderElementsOf(expected);
         }
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
@@ -1847,12 +1881,11 @@ public class WebHelper {
      */
     public void validateDropdownOptionCount(String locator, int expectedCount) {
         WebElement element = getElement(locator);
-        org.openqa.selenium.support.ui.Select select = new org.openqa.selenium.support.ui.Select(element);
+        Select select = new Select(element);
         int actualCount = select.getOptions().size();
 
-        Assertions.assertThat(actualCount)
-            .as("El campo '%s' debe tener %d opciones", locator, expectedCount)
-            .isEqualTo(expectedCount);
+        Assertions.assertThat(actualCount).as("El campo '%s' debe tener %d opciones", locator, expectedCount).
+            isEqualTo(expectedCount);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             String.format("✅ Cantidad de opciones validada: %d - %s", actualCount, locator), null);
@@ -1868,9 +1901,7 @@ public class WebHelper {
 
         boolean isSingleSelection = "select".equals(tagName) || "radio".equals(type);
 
-        Assertions.assertThat(isSingleSelection)
-            .as("El campo '%s' debe permitir selección única", locator)
-            .isTrue();
+        Assertions.assertThat(isSingleSelection).as("El campo '%s' debe permitir selección única", locator).isTrue();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Selección única validada: " + locator, null);
@@ -1886,7 +1917,7 @@ public class WebHelper {
      * <ul>
      *   <li><b>Botón nativo</b> {@code <button>} / {@code <input type="button">}:
      *       se evalúa mediante {@code element.isEnabled()} y el atributo HTML {@code disabled}.</li>
-     *   <li><b>Botón custom</b> {@code <div role="button">} / {@code <span role="button">}:
+     *   <li><b>Botón custom</b> {@code div[role=button]} / {@code span[role=button]}:
      *       {@code isEnabled()} siempre retorna {@code true} en Selenium para elementos no-form,
      *       por lo que se evalúa la clase CSS — si la clase contiene "disabled" el botón
      *       está deshabilitado.</li>
@@ -1913,10 +1944,8 @@ public class WebHelper {
             isDisabled = cssClass != null && cssClass.toLowerCase().contains("disabled");
         }
 
-        Assertions.assertThat(isDisabled)
-            .as("El botón '%s' (tag: <%s>) debe estar habilitado pero está deshabilitado. "
-                + "Clase CSS: '%s'", locator, tagName, element.getDomAttribute("class"))
-            .isFalse();
+        Assertions.assertThat(isDisabled).as("El botón '%s' (tag: <%s>) debe estar habilitado pero está deshabilitado. "
+                + "Clase CSS: '%s'", locator, tagName, element.getDomAttribute("class")).isFalse();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "Botón habilitado validado: " + locator, null);
@@ -1947,10 +1976,8 @@ public class WebHelper {
             isDisabled = cssClass != null && cssClass.toLowerCase().contains("disabled");
         }
 
-        Assertions.assertThat(isDisabled)
-            .as("El botón '%s' (tag: <%s>) debe estar deshabilitado pero está habilitado. "
-                + "Clase CSS: '%s'", locator, tagName, element.getDomAttribute("class"))
-            .isTrue();
+        Assertions.assertThat(isDisabled).as("El botón '%s' (tag: <%s>) debe estar deshabilitado pero está habilitado. "
+                + "Clase CSS: '%s'", locator, tagName, element.getDomAttribute("class")).isTrue();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "Botón deshabilitado validado: " + locator, null);
@@ -1963,9 +1990,8 @@ public class WebHelper {
         WebElement element = getElement(locator);
         String currentText = element.getText();
 
-        Assertions.assertThat(currentText)
-            .as("El botón '%s' debe mostrar: '%s'", locator, finalText)
-            .contains(finalText);
+        Assertions.assertThat(currentText).as("El botón '%s' debe mostrar: '%s'", locator, finalText).
+            contains(finalText);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             String.format("✅ Cambio de texto validado: '%s' -> '%s'", initialText, finalText), null);
@@ -1981,9 +2007,8 @@ public class WebHelper {
     public void validateMinLength(String locator, int minLength) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe tener mínimo %d caracteres", locator, minLength)
-            .hasSizeGreaterThanOrEqualTo(minLength);
+        Assertions.assertThat(value).as("El campo '%s' debe tener mínimo %d caracteres", locator, minLength).
+            hasSizeGreaterThanOrEqualTo(minLength);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             String.format("✅ Longitud mínima validada: %d caracteres - %s", value.length(), locator), null);
@@ -1995,9 +2020,8 @@ public class WebHelper {
     public void validateMaxLength(String locator, int maxLength) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe tener máximo %d caracteres", locator, maxLength)
-            .hasSizeLessThanOrEqualTo(maxLength);
+        Assertions.assertThat(value).as("El campo '%s' debe tener máximo %d caracteres", locator, maxLength).
+            hasSizeLessThanOrEqualTo(maxLength);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             String.format("✅ Longitud máxima validada: %d caracteres - %s", value.length(), locator), null);
@@ -2009,9 +2033,8 @@ public class WebHelper {
     public void validateExactLength(String locator, int expectedLength) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe tener exactamente %d caracteres", locator, expectedLength)
-            .hasSize(expectedLength);
+        Assertions.assertThat(value).as("El campo '%s' debe tener exactamente %d caracteres", locator, expectedLength).
+            hasSize(expectedLength);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             String.format("✅ Longitud exacta validada: %d caracteres - %s", expectedLength, locator), null);
@@ -2028,9 +2051,9 @@ public class WebHelper {
         WebElement element = getElement(locator);
         String actualPlaceholder = element.getDomAttribute("placeholder");
 
-        Assertions.assertThat(actualPlaceholder)
-            .as("El placeholder del campo '%s' debe ser '%s'", locator, expectedPlaceholder)
-            .isEqualTo(expectedPlaceholder);
+        Assertions.assertThat(actualPlaceholder).
+            as("El placeholder del campo '%s' debe ser '%s'", locator, expectedPlaceholder).
+            isEqualTo(expectedPlaceholder);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Placeholder validado: " + actualPlaceholder + " - " + locator, null);
@@ -2043,9 +2066,8 @@ public class WebHelper {
         WebElement element = getElement(locator);
         String actualTooltip = element.getDomAttribute("title");
 
-        Assertions.assertThat(actualTooltip)
-            .as("El tooltip del campo '%s' debe ser '%s'", locator, expectedTooltip)
-            .isEqualTo(expectedTooltip);
+        Assertions.assertThat(actualTooltip).as("El tooltip del campo '%s' debe ser '%s'", locator, expectedTooltip).
+            isEqualTo(expectedTooltip);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Tooltip validado: " + actualTooltip + " - " + locator, null);
@@ -2059,11 +2081,9 @@ public class WebHelper {
      * Valida que un mensaje específico esté visible en la página.
      */
     public void validateMessageIsVisible(String locator) {
-        boolean isVisible = waitForVisibleElement(locator, 5);
+        boolean isVisible = waitForVisibleElement(locator);
 
-        Assertions.assertThat(isVisible)
-            .as("El mensaje '%s' debe estar visible", locator)
-            .isTrue();
+        Assertions.assertThat(isVisible).as("El mensaje '%s' debe estar visible", locator).isTrue();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Mensaje visible: " + locator, null);
@@ -2075,9 +2095,7 @@ public class WebHelper {
     public void validateMessageIsNotVisible(String locator) {
         boolean isPresent = isPresent(locator);
 
-        Assertions.assertThat(isPresent)
-            .as("El mensaje '%s' NO debe estar visible", locator)
-            .isFalse();
+        Assertions.assertThat(isPresent).as("El mensaje '%s' NO debe estar visible", locator).isFalse();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Mensaje NO visible: " + locator, null);
@@ -2105,9 +2123,8 @@ public class WebHelper {
         String normalizedExpected = expectedText == null ? null
             : expectedText.replaceAll("\\r\\n|\\r|\\n", " ").replaceAll(" {2,}", " ").trim();
 
-        Assertions.assertThat(actualText)
-            .as("El mensaje '%s' debe contener '%s'", locator, normalizedExpected)
-            .contains(normalizedExpected);
+        Assertions.assertThat(actualText).as("El mensaje '%s' debe contener '%s'", locator, normalizedExpected).
+            contains(normalizedExpected);
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Mensaje contiene texto esperado: " + locator, null);
@@ -2121,11 +2138,9 @@ public class WebHelper {
      * Valida que un elemento esté visible.
      */
     public void validateElementIsVisible(String locator) {
-        boolean isVisible = waitForVisibleElement(locator, 10);
+        boolean isVisible = waitForVisibleElement(locator, ENABLE_WAIT_SECONDS);
 
-        Assertions.assertThat(isVisible)
-            .as("El elemento '%s' debe estar visible", locator)
-            .isTrue();
+        Assertions.assertThat(isVisible).as("El elemento '%s' debe estar visible", locator).isTrue();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Elemento visible: " + locator, null);
@@ -2137,9 +2152,7 @@ public class WebHelper {
     public void validateElementIsNotVisible(String locator) {
         boolean isPresent = isPresent(locator);
 
-        Assertions.assertThat(isPresent)
-            .as("El elemento '%s' NO debe estar visible", locator)
-            .isFalse();
+        Assertions.assertThat(isPresent).as("El elemento '%s' NO debe estar visible", locator).isFalse();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Elemento NO visible: " + locator, null);
@@ -2151,9 +2164,7 @@ public class WebHelper {
     public void validateFieldNotEmpty(String locator) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' no debe estar vacío", locator)
-            .isNotEmpty();
+        Assertions.assertThat(value).as("El campo '%s' no debe estar vacío", locator).isNotEmpty();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Campo no vacío validado: " + locator, null);
@@ -2165,9 +2176,7 @@ public class WebHelper {
     public void validateFieldIsEmpty(String locator) {
         String value = getElementValue(getElement(locator));
 
-        Assertions.assertThat(value)
-            .as("El campo '%s' debe estar vacío", locator)
-            .isEmpty();
+        Assertions.assertThat(value).as("El campo '%s' debe estar vacío", locator).isEmpty();
 
         TestLogger.logInfo("WEB_HELPER_VALIDATION",
             "✅ Campo vacío validado: " + locator, null);
@@ -2182,9 +2191,9 @@ public class WebHelper {
      * Encapsula la lógica completa del step común de ingreso de texto.
      */
     public void setTextWithWait(String texto, String locator) {
-        if (!waitForElementEnabled(locator, 10)) {
+        if (!waitForElementEnabled(locator, ENABLE_WAIT_SECONDS)) {
             TestLogger.logDebug("WEB_HELPER",
-                "Elemento tardó más de 10s en habilitarse, continuando: " + locator, null);
+                "Elemento tardó más de " + ENABLE_WAIT_SECONDS + "s en habilitarse, continuando: " + locator, null);
         }
 
         String resolvedTexto = resolveVariables(texto);
@@ -2198,9 +2207,8 @@ public class WebHelper {
     public void waitAndValidateEnabled(String locator, int timeoutSeconds) {
         boolean enabled = waitForElementEnabled(locator, timeoutSeconds);
 
-        Assertions.assertThat(enabled)
-            .as("Se esperó %d segundos y el elemento no se habilitó: %s", timeoutSeconds, locator)
-            .isTrue();
+        Assertions.assertThat(enabled).
+            as("Se esperó %d segundos y el elemento no se habilitó: %s", timeoutSeconds, locator).isTrue();
 
         TestLogger.logInfo("WEB_HELPER",
             String.format("✅ Elemento habilitado después de esperar: %s", locator), null);
@@ -2303,9 +2311,7 @@ public class WebHelper {
     public void uploadFile(String filePath, String locator) {
         WebElement element = getElement(locator);
         File file = new File(filePath);
-        Assertions.assertThat(file.exists())
-            .as("El archivo '%s' debe existir", filePath)
-            .isTrue();
+        Assertions.assertThat(file.exists()).as("El archivo '%s' debe existir", filePath).isTrue();
         element.sendKeys(file.getAbsolutePath());
         TestLogger.logInfo("WEB_HELPER", "Archivo subido en '" + locator + "': " + filePath, null);
     }
@@ -2342,9 +2348,8 @@ public class WebHelper {
     public void validateAttributeValue(String locator, String attribute, String expectedValue) {
         WebElement element = getElement(locator);
         String actual = element.getDomAttribute(attribute);
-        Assertions.assertThat(actual)
-            .as("Atributo '%s' del elemento '%s'", attribute, locator)
-            .isEqualTo(resolveVariables(expectedValue));
+        Assertions.assertThat(actual).as("Atributo '%s' del elemento '%s'", attribute, locator).
+            isEqualTo(resolveVariables(expectedValue));
         TestLogger.logInfo("WEB_HELPER",
             "Atributo '" + attribute + "' validado en '" + locator + "': " + actual, null);
     }
@@ -2355,9 +2360,8 @@ public class WebHelper {
     public void validateHasCssClass(String locator, String cssClass) {
         WebElement element = getElement(locator);
         String classes = element.getDomAttribute("class");
-        Assertions.assertThat(classes)
-            .as("El elemento '%s' debería tener la clase CSS '%s'", locator, cssClass)
-            .contains(cssClass);
+        Assertions.assertThat(classes).as("El elemento '%s' debería tener la clase CSS '%s'", locator, cssClass).
+            contains(cssClass);
         TestLogger.logInfo("WEB_HELPER", "Clase CSS '" + cssClass + "' presente en: " + locator, null);
     }
 
@@ -2366,10 +2370,8 @@ public class WebHelper {
      */
     public void validateCheckboxSelected(String locator, boolean expectedSelected) {
         WebElement element = getElement(locator);
-        Assertions.assertThat(element.isSelected())
-            .as("El checkbox '%s' debería estar %s",
-                locator, expectedSelected ? "seleccionado" : "no seleccionado")
-            .isEqualTo(expectedSelected);
+        Assertions.assertThat(element.isSelected()).as("El checkbox '%s' debería estar %s",
+                locator, expectedSelected ? "seleccionado" : "no seleccionado").isEqualTo(expectedSelected);
         TestLogger.logInfo("WEB_HELPER",
             "Checkbox '" + locator + "' " + (expectedSelected ? "seleccionado" : "no seleccionado") + " (OK)", null);
     }
@@ -2384,13 +2386,26 @@ public class WebHelper {
     }
 
     private Keys mapKeyName(String keyName) {
-        return switch (keyName.toUpperCase().trim()) {
-            case "ENTER", "RETURN" -> Keys.ENTER;
-            case "TAB" -> Keys.TAB;
-            case "ESCAPE", "ESC" -> Keys.ESCAPE;
-            case "BACKSPACE", "BACK_SPACE" -> Keys.BACK_SPACE;
-            case "DELETE", "DEL" -> Keys.DELETE;
-            case "SPACE" -> Keys.SPACE;
+        String normalized = keyName.toUpperCase().trim();
+        Keys arrowKey = mapArrowOrPageKey(normalized);
+        if (arrowKey != null) {
+            return arrowKey;
+        }
+        Keys functionKey = mapFunctionKey(normalized);
+        if (functionKey != null) {
+            return functionKey;
+        }
+        return mapEditingKey(normalized, keyName);
+    }
+
+    /**
+     * Maps arrow and page navigation key names to Selenium {@link Keys}.
+     *
+     * @param normalized uppercased, trimmed key name
+     * @return the matching {@link Keys} constant, or {@code null} if not an arrow/page key
+     */
+    private Keys mapArrowOrPageKey(String normalized) {
+        return switch (normalized) {
             case "ARROW_UP", "UP" -> Keys.ARROW_UP;
             case "ARROW_DOWN", "DOWN" -> Keys.ARROW_DOWN;
             case "ARROW_LEFT", "LEFT" -> Keys.ARROW_LEFT;
@@ -2399,11 +2414,45 @@ public class WebHelper {
             case "END" -> Keys.END;
             case "PAGE_UP" -> Keys.PAGE_UP;
             case "PAGE_DOWN" -> Keys.PAGE_DOWN;
+            default -> null;
+        };
+    }
+
+    /**
+     * Maps function key names (F1, F5, F12) to Selenium {@link Keys}.
+     *
+     * @param normalized uppercased, trimmed key name
+     * @return the matching {@link Keys} constant, or {@code null} if not a function key
+     */
+    private Keys mapFunctionKey(String normalized) {
+        return switch (normalized) {
             case "F1" -> Keys.F1;
             case "F5" -> Keys.F5;
             case "F12" -> Keys.F12;
+            default -> null;
+        };
+    }
+
+    /**
+     * Maps editing and control key names to Selenium {@link Keys}.
+     *
+     * @param normalized uppercased, trimmed key name
+     * @param original   original (un-normalized) key name used in the error message
+     * @return the matching {@link Keys} constant
+     * @throws IllegalArgumentException if the key name is not supported
+     */
+    private Keys mapEditingKey(String normalized, String original) {
+        return switch (normalized) {
+            case "ENTER", "RETURN" -> Keys.ENTER;
+            case "TAB" -> Keys.TAB;
+            case "ESCAPE", "ESC" -> Keys.ESCAPE;
+            case "BACKSPACE", "BACK_SPACE" -> Keys.BACK_SPACE;
+            case "DELETE", "DEL" -> Keys.DELETE;
+            case "SPACE" -> Keys.SPACE;
             default -> throw new IllegalArgumentException(
-                "Tecla no soportada: " + keyName + ". Usar: ENTER, TAB, ESCAPE, BACKSPACE, DELETE, SPACE, ARROW_UP/DOWN/LEFT/RIGHT, HOME, END, etc.");
+                "Tecla no soportada: " + original
+                + ". Usar: ENTER, TAB, ESCAPE, BACKSPACE, DELETE, SPACE,"
+                + " ARROW_UP/DOWN/LEFT/RIGHT, HOME, END, etc.");
         };
     }
 }

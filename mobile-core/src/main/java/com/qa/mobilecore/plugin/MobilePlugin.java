@@ -6,7 +6,16 @@ import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.ServiceRegistry;
 import com.qa.common.runtime.StepComponent;
-import com.qa.mobilecore.components.*;
+import com.qa.mobilecore.components.AppManagementComponent;
+import com.qa.mobilecore.components.AppStateValidationComponent;
+import com.qa.mobilecore.components.ContextSwitchComponent;
+import com.qa.mobilecore.components.DeviceConfigComponent;
+import com.qa.mobilecore.components.DevicePermissionComponent;
+import com.qa.mobilecore.components.GestureComponent;
+import com.qa.mobilecore.components.MobileElementValidationComponent;
+import com.qa.mobilecore.components.NativeElementComponent;
+import com.qa.mobilecore.components.NotificationComponent;
+import com.qa.mobilecore.components.SensorComponent;
 import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.driver.MobileDriverFactory;
 import com.qa.mobilecore.driver.MobileDriverManager;
@@ -58,7 +67,8 @@ import java.util.Set;
  */
 public class MobilePlugin implements CorePlugin {
 
-    private static final Logger log = LoggerFactory.getLogger(MobilePlugin.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MobilePlugin.class);
+    private static final int PLUGIN_ORDER = 150;
 
     @Override
     public String getName() { return "mobile"; }
@@ -69,7 +79,7 @@ public class MobilePlugin implements CorePlugin {
     }
 
     @Override
-    public int getOrder() { return 150; }
+    public int getOrder() { return PLUGIN_ORDER; }
 
     /**
      * Registra {@link MobileDriverFactory} y {@link MobileHelper} en el ServiceRegistry.
@@ -80,19 +90,18 @@ public class MobilePlugin implements CorePlugin {
      */
     @Override
     public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
-        log.debug("[MobilePlugin] Registrando servicios Mobile...");
+        LOG.debug("[MobilePlugin] Registrando servicios Mobile...");
 
         // 1. Factory de drivers: gestiona el ciclo de vida del AppiumDriver por escenario
         registry.registerLazy(MobileDriverFactory.class, MobileDriverFactory::new);
 
         // 2. Helper: fachada de Appium, inyectada con la factory ya registrada
         registry.registerLazy(MobileHelper.class, () -> {
-            MobileDriverFactory factory = registry.get(MobileDriverFactory.class)
-                    .orElseGet(MobileDriverFactory::new);
+            MobileDriverFactory factory = registry.get(MobileDriverFactory.class).orElseGet(MobileDriverFactory::new);
             return new MobileHelper(factory);
         });
 
-        log.info("[MobilePlugin] Servicios registrados: MobileDriverFactory (lazy) + MobileHelper (lazy)");
+        LOG.info("[MobilePlugin] Servicios registrados: MobileDriverFactory (lazy) + MobileHelper (lazy)");
     }
 
     /**
@@ -101,10 +110,9 @@ public class MobilePlugin implements CorePlugin {
      */
     @Override
     public void onScenarioStart(ExecutionContext context) {
-        log.debug("[MobilePlugin] onScenarioStart");
+        LOG.debug("[MobilePlugin] onScenarioStart");
 
-        boolean autoScan = ConfigManager.getInstance()
-            .getBoolean(MobileConfigKeys.DISCOVERY_AUTO_SCAN, true);
+        boolean autoScan = ConfigManager.getInstance().getBoolean(MobileConfigKeys.DISCOVERY_AUTO_SCAN, true);
 
         DevicePool pool = DevicePool.getInstance();
         if (!pool.hasDevices()) {
@@ -127,28 +135,24 @@ public class MobilePlugin implements CorePlugin {
      */
     @Override
     public void onScenarioEnd(ExecutionContext context) {
-        log.debug("[MobilePlugin] onScenarioEnd — cerrando sesion Appium");
+        LOG.debug("[MobilePlugin] onScenarioEnd — cerrando sesion Appium");
 
         // Cierre autoritativo del driver vía MobileDriverFactory
-        context.registry()
-               .get(MobileDriverFactory.class)
-               .ifPresent(factory -> {
-                   log.debug("[MobilePlugin] Invocando MobileDriverFactory.quitIfCreated()");
+        context.registry().get(MobileDriverFactory.class).ifPresent(factory -> {
+                   LOG.debug("[MobilePlugin] Invocando MobileDriverFactory.quitIfCreated()");
                    factory.quitIfCreated();
                });
 
         // Liberación del dispositivo del pool + safety-net ThreadLocal
-        context.registry()
-               .get(MobileHelper.class)
-               .ifPresent(helper -> {
-                   log.debug("[MobilePlugin] Invocando MobileHelper.quitSession()");
+        context.registry().get(MobileHelper.class).ifPresent(helper -> {
+                   LOG.debug("[MobilePlugin] Invocando MobileHelper.quitSession()");
                    helper.quitSession();
                });
 
         // Safety-net final: limpiar ThreadLocal aunque el helper no estuviera registrado
         MobileDriverManager.quitDriverSafely();
 
-        log.debug("[MobilePlugin] onScenarioEnd — completado");
+        LOG.debug("[MobilePlugin] onScenarioEnd — completado");
     }
 
     /**

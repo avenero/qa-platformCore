@@ -57,8 +57,8 @@ public class VariableSteps {
 
     @Then("muestro el valor de la variable {string}")
     public void muestroVariable(String variable) {
-        String val = ExecutionContext.requireCurrent().variables()
-                .get(variable, Object.class).map(Object::toString).orElse(null);
+        String val = ExecutionContext.requireCurrent().variables().
+                get(variable, Object.class).map(Object::toString).orElse(null);
         TestLogger.logInfo("VAR_STEPS", "Variable '" + variable + "' = " + val, null);
     }
 }

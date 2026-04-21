@@ -2,7 +2,9 @@ package com.qa.common.utils;
 
 import com.qa.common.logging.TestLogger;
 
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -27,6 +29,24 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class DataGenerator {
 
+    /** Upper bound for Chilean RUT number generation (exclusive). */
+    private static final int RUT_UPPER_BOUND = 20_000_000;
+
+    /** Lower offset added to the random RUT number. */
+    private static final int RUT_LOWER_OFFSET = 5_000_000;
+
+    /** Length of randomly generated email usernames and secure strings. */
+    private static final int RANDOM_STRING_LENGTH = 8;
+
+    /** Maximum valid age for birth-date generation. */
+    private static final int MAX_VALID_AGE = 150;
+
+    /** RUT check-digit multiplier boundary that triggers a reset to 2. */
+    private static final int RUT_MULTIPLIER_MAX = 7;
+
+    /** Modulus used in RUT check-digit calculation. */
+    private static final int RUT_CHECK_MODULUS = 11;
+
     private DataGenerator() {
         throw new UnsupportedOperationException("DataGenerator es una clase de utilidad");
     }
@@ -41,7 +61,7 @@ public final class DataGenerator {
      * @return RUT chileno válido con dígito verificador correcto
      */
     public static String generateRandomRut() {
-        int number = SecurityUtilities.getSecureRandomInstance().nextInt(20_000_000) + 5_000_000;
+        int number = SecurityUtilities.getSecureRandomInstance().nextInt(RUT_UPPER_BOUND) + RUT_LOWER_OFFSET;
         int dv = calculateRutCheckDigit(number);
         String dvStr = (dv == 10) ? "K" : String.valueOf(dv);
         return formatRut(number + "-" + dvStr);
@@ -58,7 +78,7 @@ public final class DataGenerator {
     public static String generateRandomEmail() {
         // RFC 2606: dominios reservados para testing — NUNCA usar dominios reales de clientes
         String[] domains = {"example.com", "test.com", "testmail.org", "qa-test.net"};
-        String username = SecurityUtilities.generateRandomString(8, true, true, false).toLowerCase();
+        String username = SecurityUtilities.generateRandomString(RANDOM_STRING_LENGTH, true, true, false).toLowerCase();
         String domain = domains[SecurityUtilities.getSecureRandomInstance().nextInt(domains.length)];
         return username + "@" + domain;
     }
@@ -70,7 +90,7 @@ public final class DataGenerator {
      */
     public static String generateRandomPhone() {
         StringBuilder phone = new StringBuilder("+569");
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < RANDOM_STRING_LENGTH; i++) {
             phone.append(SecurityUtilities.getSecureRandomInstance().nextInt(10));
         }
         return phone.toString();
@@ -85,7 +105,8 @@ public final class DataGenerator {
         String[] firstNames = {"Juan", "María", "Pedro", "Ana", "Carlos", "Sofía", "Diego", "Valentina"};
         String[] lastNames  = {"González", "Rodríguez", "Pérez", "López", "Martínez", "García", "Hernández", "Muñoz"};
         int size = SecurityUtilities.getSecureRandomInstance().nextInt(firstNames.length);
-        return firstNames[size] + " " + lastNames[SecurityUtilities.getSecureRandomInstance().nextInt(lastNames.length)];
+        int lastSize = SecurityUtilities.getSecureRandomInstance().nextInt(lastNames.length);
+        return firstNames[size] + " " + lastNames[lastSize];
     }
 
     // =========================================================================
@@ -142,7 +163,9 @@ public final class DataGenerator {
      * @throws IllegalArgumentException si min &gt; max
      */
     public static int generateNumberInRange(int min, int max) {
-        if (min > max) throw new IllegalArgumentException("min no puede ser mayor que max");
+        if (min > max) {
+            throw new IllegalArgumentException("min no puede ser mayor que max");
+        }
         return ThreadLocalRandom.current().nextInt(min, max + 1);
     }
 
@@ -164,7 +187,9 @@ public final class DataGenerator {
      * @return monto aleatorio redondeado a los decimales especificados
      */
     public static double generateRandomAmount(double min, double max, int decimals) {
-        if (min > max) throw new IllegalArgumentException("min no puede ser mayor que max");
+        if (min > max) {
+            throw new IllegalArgumentException("min no puede ser mayor que max");
+        }
         double amount = min + (max - min) * ThreadLocalRandom.current().nextDouble();
         double multiplier = Math.pow(10, decimals);
         return Math.round(amount * multiplier) / multiplier;
@@ -195,7 +220,9 @@ public final class DataGenerator {
         String lorem = "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor "
                      + "incididunt ut labore et dolore magna aliqua ";
         StringBuilder sb = new StringBuilder();
-        while (sb.length() < length) sb.append(lorem);
+        while (sb.length() < length) {
+            sb.append(lorem);
+        }
         return sb.substring(0, length);
     }
 
@@ -234,7 +261,9 @@ public final class DataGenerator {
      * @return fecha actual formateada
      */
     public static String getCurrentTimestamp(String format) {
-        if (format == null || format.trim().isEmpty()) return getCurrentTimestamp();
+        if (format == null || format.trim().isEmpty()) {
+            return getCurrentTimestamp();
+        }
         try {
             return LocalDateTime.now().format(DateTimeFormatter.ofPattern(format));
         } catch (Exception e) {
@@ -291,7 +320,9 @@ public final class DataGenerator {
      * @return nueva fecha
      */
     public static LocalDate addDaysToDate(LocalDate date, int days) {
-        if (date == null) throw new IllegalArgumentException("date no puede ser null");
+        if (date == null) {
+            throw new IllegalArgumentException("date no puede ser null");
+        }
         return date.plusDays(days);
     }
 
@@ -303,7 +334,9 @@ public final class DataGenerator {
      * @return nueva fecha
      */
     public static LocalDate addMonthsToDate(LocalDate date, int months) {
-        if (date == null) throw new IllegalArgumentException("date no puede ser null");
+        if (date == null) {
+            throw new IllegalArgumentException("date no puede ser null");
+        }
         return date.plusMonths(months);
     }
 
@@ -315,7 +348,9 @@ public final class DataGenerator {
      * @return nueva fecha
      */
     public static LocalDate addYearsToDate(LocalDate date, int years) {
-        if (date == null) throw new IllegalArgumentException("date no puede ser null");
+        if (date == null) {
+            throw new IllegalArgumentException("date no puede ser null");
+        }
         return date.plusYears(years);
     }
 
@@ -327,7 +362,9 @@ public final class DataGenerator {
      * @return número de días (puede ser negativo)
      */
     public static long getDaysBetween(LocalDate date1, LocalDate date2) {
-        if (date1 == null || date2 == null) throw new IllegalArgumentException("Las fechas no pueden ser null");
+        if (date1 == null || date2 == null) {
+            throw new IllegalArgumentException("Las fechas no pueden ser null");
+        }
         return ChronoUnit.DAYS.between(date1, date2);
     }
 
@@ -339,7 +376,9 @@ public final class DataGenerator {
      * @return número de meses (puede ser negativo)
      */
     public static long getMonthsBetween(LocalDate date1, LocalDate date2) {
-        if (date1 == null || date2 == null) throw new IllegalArgumentException("Las fechas no pueden ser null");
+        if (date1 == null || date2 == null) {
+            throw new IllegalArgumentException("Las fechas no pueden ser null");
+        }
         return ChronoUnit.MONTHS.between(date1, date2);
     }
 
@@ -350,7 +389,9 @@ public final class DataGenerator {
      * @return fecha de nacimiento
      */
     public static LocalDate generateBirthDateForAge(int age) {
-        if (age < 0 || age > 150) throw new IllegalArgumentException("Edad debe estar entre 0 y 150");
+        if (age < 0 || age > MAX_VALID_AGE) {
+            throw new IllegalArgumentException("Edad debe estar entre 0 y " + MAX_VALID_AGE);
+        }
         return LocalDate.now().minusYears(age);
     }
 
@@ -362,8 +403,9 @@ public final class DataGenerator {
      * @return fecha de nacimiento aleatoria en el rango
      */
     public static LocalDate generateBirthDateForAgeRange(int minAge, int maxAge) {
-        if (minAge < 0 || maxAge < minAge || maxAge > 150) {
-            throw new IllegalArgumentException("Rango inválido: minAge >= 0, maxAge >= minAge, maxAge <= 150");
+        if (minAge < 0 || maxAge < minAge || maxAge > MAX_VALID_AGE) {
+            throw new IllegalArgumentException(
+                "Rango inválido: minAge >= 0, maxAge >= minAge, maxAge <= " + MAX_VALID_AGE);
         }
         return generateBirthDateForAge(generateRandomNumber(minAge, maxAge));
     }
@@ -375,7 +417,9 @@ public final class DataGenerator {
      * @return fecha aleatoria en el rango
      */
     public static LocalDate generateDateInLastDays(int days) {
-        if (days < 0) throw new IllegalArgumentException("days debe ser positivo");
+        if (days < 0) {
+            throw new IllegalArgumentException("days debe ser positivo");
+        }
         return LocalDate.now().minusDays(generateRandomNumber(0, days));
     }
 
@@ -386,7 +430,9 @@ public final class DataGenerator {
      * @return fecha aleatoria en el rango
      */
     public static LocalDate generateDateInNextDays(int days) {
-        if (days < 0) throw new IllegalArgumentException("days debe ser positivo");
+        if (days < 0) {
+            throw new IllegalArgumentException("days debe ser positivo");
+        }
         return LocalDate.now().plusDays(generateRandomNumber(0, days));
     }
 
@@ -418,14 +464,15 @@ public final class DataGenerator {
      * Calcula el dígito verificador de un RUT chileno.
      */
     private static int calculateRutCheckDigit(int rut) {
-        int sum = 0, multiplier = 2;
+        int sum = 0;
+        int multiplier = 2;
         while (rut > 0) {
             sum += (rut % 10) * multiplier;
             rut /= 10;
-            multiplier = (multiplier == 7) ? 2 : multiplier + 1;
+            multiplier = (multiplier == RUT_MULTIPLIER_MAX) ? 2 : multiplier + 1;
         }
-        int remainder = sum % 11;
-        return (remainder == 0) ? 0 : (remainder == 1) ? 10 : 11 - remainder;
+        int remainder = sum % RUT_CHECK_MODULUS;
+        return (remainder == 0) ? 0 : (remainder == 1) ? 10 : RUT_CHECK_MODULUS - remainder;
     }
 
     /**

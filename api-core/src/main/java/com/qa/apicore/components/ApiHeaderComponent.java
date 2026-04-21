@@ -15,14 +15,41 @@ import java.util.Map;
  */
 @StepId("api.headers")
 public class ApiHeaderComponent implements StepComponent {
-    @Override public String getName()                  { return "Headers"; }
-    @Override public String getDisplayName()           { return "Headers"; }
-    @Override public String getDescription()           { return "Gestion de cabeceras HTTP de la peticion"; }
-    @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
-    @Override public String getCategory()              { return "Configuracion de Peticion"; }
-    @Override public String getIcon()                  { return "view_list"; }
-    @Override public int getDisplayOrder()             { return 30; }
-    @Override public Class<?> getStepDefinitionClass() { return HeaderSteps.class; }
+
+    /** Display order for this component in the UI step palette. */
+    private static final int DISPLAY_ORDER = 30;
+    @Override
+    public String getName() {
+        return "Headers";
+    }
+    @Override
+    public String getDisplayName() {
+        return "Headers";
+    }
+    @Override
+    public String getDescription() {
+        return "Gestion de cabeceras HTTP de la peticion";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.GIVEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Configuracion de Peticion";
+    }
+    @Override
+    public String getIcon() {
+        return "view_list";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return HeaderSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

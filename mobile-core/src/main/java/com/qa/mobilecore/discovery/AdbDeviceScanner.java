@@ -120,36 +120,43 @@ public class AdbDeviceScanner {
 
         // Formato: "<serial>\t<state>\t[propiedades...]"
         String[] parts = line.split("\\s+");
-        if (parts.length < 2) return null;
+        if (parts.length < 2) {
+            return null;
+        }
 
         String serial = parts[0];
         String state  = parts[1];
 
         // Solo procesar dispositivos activos
-        if (!"device".equals(state)) return null;
+        if (!"device".equals(state)) {
+            return null;
+        }
 
         boolean isEmulator = serial.startsWith("emulator-");
         DeviceType type = isEmulator ? DeviceType.ANDROID_EMULATOR : DeviceType.ANDROID_PHYSICAL;
 
-        if (isEmulator && !includeVirtual)  return null;
-        if (!isEmulator && !includePhysical) return null;
+        if (isEmulator && !includeVirtual) {
+            return null;
+        }
+        if (!isEmulator && !includePhysical) {
+            return null;
+        }
 
         // Extraer modelo si está disponible en las propiedades extendidas
         String model = extractProperty(line, "model");
         String deviceId = isEmulator ? serial : "android-" + serial.replaceAll("[^a-zA-Z0-9]", "-");
 
-        return DeviceDescriptor.builder(deviceId, type)
-            .udid(serial)
-            .deviceName(model != null ? model : serial)
-            .platformName("Android")
-            .build();
+        return DeviceDescriptor.builder(deviceId, type).udid(serial).deviceName(model != null ? model : serial).
+            platformName("Android").build();
     }
 
     private String extractProperty(String line, String key) {
         // Busca "key:value" en la línea (formato de 'adb devices -l')
         String prefix = key + ":";
         int idx = line.indexOf(prefix);
-        if (idx < 0) return null;
+        if (idx < 0) {
+            return null;
+        }
         int start = idx + prefix.length();
         int end = line.indexOf(' ', start);
         return end < 0 ? line.substring(start) : line.substring(start, end);

@@ -95,7 +95,7 @@ import java.util.Properties;
  */
 public final class ConfigurationUtilities {
 
-    private static final TestLogger.LoggerWrapper log = TestLogger.getLogger(ConfigurationUtilities.class);
+    private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(ConfigurationUtilities.class);
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
@@ -123,8 +123,9 @@ public final class ConfigurationUtilities {
                 throw new RuntimeException("Archivo YAML no encontrado: " + fileName);
             }
 
-            Map<String, Object> result = YAML_MAPPER.readValue(inputStream, new TypeReference<Map<String, Object>>() {});
-            log.debug("Archivo YAML leído exitosamente: {} ({} claves)", fileName, result.size());
+            Map<String, Object> result = YAML_MAPPER.readValue(
+                inputStream, new TypeReference<Map<String, Object>>() { });
+            LOG.debug("Archivo YAML leído exitosamente: {} ({} claves)", fileName, result.size());
             return result;
 
         } catch (IOException e) {
@@ -147,8 +148,9 @@ public final class ConfigurationUtilities {
                 throw new RuntimeException("Archivo JSON no encontrado: " + fileName);
             }
 
-            Map<String, Object> result = JSON_MAPPER.readValue(inputStream, new TypeReference<Map<String, Object>>() {});
-            log.debug("Archivo JSON leído exitosamente: {} ({} claves)", fileName, result.size());
+            Map<String, Object> result = JSON_MAPPER.readValue(
+                inputStream, new TypeReference<Map<String, Object>>() { });
+            LOG.debug("Archivo JSON leído exitosamente: {} ({} claves)", fileName, result.size());
             return result;
 
         } catch (IOException e) {
@@ -173,7 +175,7 @@ public final class ConfigurationUtilities {
 
             Properties properties = new Properties();
             properties.load(inputStream);
-            log.debug("Archivo Properties leído exitosamente: {} ({} propiedades)", fileName, properties.size());
+            LOG.debug("Archivo Properties leído exitosamente: {} ({} propiedades)", fileName, properties.size());
             return properties;
 
         } catch (IOException e) {
@@ -198,8 +200,9 @@ public final class ConfigurationUtilities {
         }
 
         try {
-            Map<String, Object> result = YAML_MAPPER.readValue(yamlContent, new TypeReference<Map<String, Object>>() {});
-            log.debug("Contenido YAML parseado exitosamente ({} claves)", result.size());
+            Map<String, Object> result = YAML_MAPPER.readValue(
+                yamlContent, new TypeReference<Map<String, Object>>() { });
+            LOG.debug("Contenido YAML parseado exitosamente ({} claves)", result.size());
             return result;
         } catch (IOException e) {
             throw new RuntimeException("Error parseando contenido YAML: " + e.getMessage(), e);
@@ -219,8 +222,9 @@ public final class ConfigurationUtilities {
         }
 
         try {
-            Map<String, Object> result = JSON_MAPPER.readValue(jsonContent, new TypeReference<Map<String, Object>>() {});
-            log.debug("Contenido JSON parseado exitosamente ({} claves)", result.size());
+            Map<String, Object> result = JSON_MAPPER.readValue(
+                jsonContent, new TypeReference<Map<String, Object>>() { });
+            LOG.debug("Contenido JSON parseado exitosamente ({} claves)", result.size());
             return result;
         } catch (IOException e) {
             throw new RuntimeException("Error parseando contenido JSON: " + e.getMessage(), e);
@@ -294,14 +298,14 @@ public final class ConfigurationUtilities {
         // 1. Classpath: /config/ directory
         InputStream stream = ConfigurationUtilities.class.getResourceAsStream("/config/" + fileName);
         if (stream != null) {
-            log.debug("Archivo encontrado en classpath /config/: {}", fileName);
+            LOG.debug("Archivo encontrado en classpath /config/: {}", fileName);
             return stream;
         }
 
         // 2. Classpath: root
         stream = ConfigurationUtilities.class.getResourceAsStream("/" + fileName);
         if (stream != null) {
-            log.debug("Archivo encontrado en classpath root: {}", fileName);
+            LOG.debug("Archivo encontrado en classpath root: {}", fileName);
             return stream;
         }
 
@@ -309,25 +313,25 @@ public final class ConfigurationUtilities {
         try {
             Path currentDir = Paths.get(System.getProperty("user.dir"), fileName);
             if (Files.exists(currentDir)) {
-                log.debug("Archivo encontrado en directorio actual: {}", fileName);
+                LOG.debug("Archivo encontrado en directorio actual: {}", fileName);
                 return Files.newInputStream(currentDir);
             }
         } catch (IOException e) {
-            log.debug("No se pudo leer desde directorio actual: {} - {}", fileName, e.getMessage());
+            LOG.debug("No se pudo leer desde directorio actual: {} - {}", fileName, e.getMessage());
         }
 
         // 4. Sistema: directorio config/
         try {
             Path configDir = Paths.get(System.getProperty("user.dir"), "config", fileName);
             if (Files.exists(configDir)) {
-                log.debug("Archivo encontrado en directorio config/: {}", fileName);
+                LOG.debug("Archivo encontrado en directorio config/: {}", fileName);
                 return Files.newInputStream(configDir);
             }
         } catch (IOException e) {
-            log.debug("No se pudo leer desde directorio config/: {} - {}", fileName, e.getMessage());
+            LOG.debug("No se pudo leer desde directorio config/: {} - {}", fileName, e.getMessage());
         }
 
-        log.warn("Archivo de configuración no encontrado en ninguna ubicación: {}", fileName);
+        LOG.warn("Archivo de configuración no encontrado en ninguna ubicación: {}", fileName);
         return null;
     }
 

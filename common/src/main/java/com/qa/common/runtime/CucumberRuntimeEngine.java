@@ -38,7 +38,7 @@ import java.util.stream.StreamSupport;
  */
 public class CucumberRuntimeEngine {
 
-    private static final Logger log = LoggerFactory.getLogger(CucumberRuntimeEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CucumberRuntimeEngine.class);
 
     private final LifecycleManager lifecycleManager;
     private final StepDiscoveryService discoveryService;
@@ -52,7 +52,7 @@ public class CucumberRuntimeEngine {
     public CucumberRuntimeEngine(LifecycleManager lifecycleManager, StepDiscoveryService discoveryService) {
         this.lifecycleManager = Objects.requireNonNull(lifecycleManager, "lifecycleManager no puede ser null");
         this.discoveryService = Objects.requireNonNull(discoveryService, "discoveryService no puede ser null");
-        log.info("CucumberRuntimeEngine inicializado con {} plugins y {} componentes",
+        LOG.info("CucumberRuntimeEngine inicializado con {} plugins y {} componentes",
                 discoveryService.getPlugins().size(), discoveryService.totalComponents());
     }
 
@@ -65,12 +65,10 @@ public class CucumberRuntimeEngine {
      * @return instancia lista para ejecutar
      */
     public static CucumberRuntimeEngine withServiceLoader() {
-        List<CorePlugin> plugins = StreamSupport
-                .stream(ServiceLoader.load(CorePlugin.class).spliterator(), false)
-                .sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder()))
-                .collect(Collectors.toList());
-        log.info("Plugins descubiertos via SPI: {}", plugins.size());
-        plugins.forEach(p -> log.info("  Plugin cargado: {} (order={})", p.getName(), p.getOrder()));
+        List<CorePlugin> plugins = StreamSupport.stream(ServiceLoader.load(CorePlugin.class).spliterator(), false).
+                sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder())).collect(Collectors.toList());
+        LOG.info("Plugins descubiertos via SPI: {}", plugins.size());
+        plugins.forEach(p -> LOG.info("  Plugin cargado: {} (order={})", p.getName(), p.getOrder()));
 
         LifecycleManager lifecycleManager = new DefaultLifecycleManager(plugins);
         StepDiscoveryService discoveryService = new StepDiscoveryService(plugins);
@@ -120,7 +118,7 @@ public class CucumberRuntimeEngine {
         Objects.requireNonNull(request, "request no puede ser null");
         Objects.requireNonNull(additionalListeners, "additionalListeners no puede ser null");
 
-        log.info("Iniciando ejecucion BDD: features={}, glue={}, tags='{}', extraListeners={}",
+        LOG.info("Iniciando ejecucion BDD: features={}, glue={}, tags='{}', extraListeners={}",
                 request.getFeaturePaths().size(),
                 request.isGlueAutoResolved() ? "auto(SPI)" : request.getGluePaths().size(),
                 request.getConfig().getTags(),
@@ -131,28 +129,24 @@ public class CucumberRuntimeEngine {
 
         try {
             byte exitStatus = runCucumber(request, context, collector, additionalListeners);
-            log.info("Cucumber Runtime finalizado con exit status: {}", exitStatus);
+            LOG.info("Cucumber Runtime finalizado con exit status: {}", exitStatus);
 
             ExecutionResult result = collector.buildResult();
 
             // Si Cucumber reporto fallo pero el collector no registra escenarios,
             // es un error de configuracion (glue no encontrado, feature path invalido, etc.)
             if (exitStatus != 0 && result.isSuccess() && result.getTotalScenarios() == 0) {
-                result = new ExecutionResult.Builder()
-                        .status(ExecutionResult.Status.ERROR)
-                        .errors(List.of("Cucumber exit status != 0 sin escenarios ejecutados. " +
-                                "Verificar featurePaths y gluePaths. Exit code: " + exitStatus))
-                        .build();
+                result = new ExecutionResult.Builder().status(ExecutionResult.Status.ERROR).
+                        errors(List.of("Cucumber exit status != 0 sin escenarios ejecutados. " +
+                                "Verificar featurePaths y gluePaths. Exit code: " + exitStatus)).build();
             }
 
             return result;
 
         } catch (Exception e) {
-            log.error("Error fatal durante ejecucion BDD: {}", e.getMessage(), e);
-            return new ExecutionResult.Builder()
-                    .status(ExecutionResult.Status.ERROR)
-                    .errors(List.of("Error fatal: " + e.getMessage()))
-                    .build();
+            LOG.error("Error fatal durante ejecucion BDD: {}", e.getMessage(), e);
+            return new ExecutionResult.Builder().status(ExecutionResult.Status.ERROR).
+                    errors(List.of("Error fatal: " + e.getMessage())).build();
         } finally {
             lifecycleManager.shutdown(context);
         }
@@ -185,7 +179,7 @@ public class CucumberRuntimeEngine {
                                List<ConcurrentEventListener> additionalListeners) {
         try {
             List<String> args = buildCucumberArgs(request);
-            log.debug("Cucumber args: {}", args);
+            LOG.debug("Cucumber args: {}", args);
 
             CommandlineOptionsParser parser = new CommandlineOptionsParser(new ByteArrayOutputStream());
             RuntimeOptionsBuilder optionsBuilder = parser.parse(args.toArray(new String[0]));
@@ -202,17 +196,15 @@ public class CucumberRuntimeEngine {
                     additionalListeners.stream().map(Plugin.class::cast)
             ).toArray(Plugin[]::new);
 
-            io.cucumber.core.runtime.Runtime runtime = io.cucumber.core.runtime.Runtime.builder()
-                    .withRuntimeOptions(runtimeOptions)
-                    .withAdditionalPlugins(allPlugins)
-                    .withClassLoader(() -> Thread.currentThread().getContextClassLoader())
-                    .build();
+            io.cucumber.core.runtime.Runtime runtime = io.cucumber.core.runtime.Runtime.builder().
+                    withRuntimeOptions(runtimeOptions).withAdditionalPlugins(allPlugins).
+                    withClassLoader(() -> Thread.currentThread().getContextClassLoader()).build();
 
             runtime.run();
             return runtime.exitStatus();
 
         } catch (Exception e) {
-            log.error("Error en Cucumber Runtime: {}", e.getMessage(), e);
+            LOG.error("Error en Cucumber Runtime: {}", e.getMessage(), e);
             throw new RuntimeException("Error en Cucumber Runtime: " + e.getMessage(), e);
         }
     }
@@ -276,17 +268,17 @@ public class CucumberRuntimeEngine {
      */
     List<String> resolveGluePaths(ExecutionRequest request) {
         if (!request.isGlueAutoResolved()) {
-            log.debug("[SPI] Usando glue paths explícitos del request ({}): {}",
+            LOG.debug("[SPI] Usando glue paths explícitos del request ({}): {}",
                     request.getGluePaths().size(), request.getGluePaths());
             return request.getGluePaths();
         }
 
         List<String> derived = discoveryService.resolveGluePaths();
-        log.info("[SPI] Glue paths auto-derivados de {} plugins: {}",
+        LOG.info("[SPI] Glue paths auto-derivados de {} plugins: {}",
                 discoveryService.getPlugins().size(), derived);
 
         if (derived.isEmpty()) {
-            log.warn("[SPI] Ningún glue path derivado de los plugins. "
+            LOG.warn("[SPI] Ningún glue path derivado de los plugins. "
                     + "Verificar que los plugins tengan componentes con getStepDefinitionClass() no nulo.");
         }
         return derived;

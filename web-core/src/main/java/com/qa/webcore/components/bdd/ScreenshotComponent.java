@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.screenshot")
 public class ScreenshotComponent implements StepComponent {
-    @Override public String getName()                  { return "Capturas de Pantalla"; }
-    @Override public String getDisplayName()           { return "Capturas de Pantalla"; }
-    @Override public String getDescription()           { return "Capturar evidencia y adjuntar al reporte"; }
-    @Override public BddPhase getPhase()               { return BddPhase.THEN; }
-    @Override public String getCategory()              { return "Validacion Web"; }
-    @Override public String getIcon()                  { return "photo_camera"; }
-    @Override public int getDisplayOrder()             { return 150; }
-    @Override public Class<?> getStepDefinitionClass() { return ScreenshotSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 150;
+
+    @Override
+    public String getName() {
+        return "Capturas de Pantalla";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Capturas de Pantalla";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Capturar evidencia y adjuntar al reporte";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.THEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Validacion Web";
+    }
+
+    @Override
+    public String getIcon() {
+        return "photo_camera";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return ScreenshotSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

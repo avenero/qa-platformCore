@@ -15,13 +15,16 @@ import java.util.Map;
  */
 @StepId("mobile.permissions")
 public class DevicePermissionComponent implements StepComponent {
+
+    private static final int DISPLAY_ORDER = 60;
+
     @Override public String getName()                  { return "Permisos del Dispositivo"; }
     @Override public String getDisplayName()           { return "Permisos del Dispositivo"; }
     @Override public String getDescription()           { return "Conceder o denegar permisos del sistema operativo"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
     @Override public String getCategory()              { return "Configuracion Mobile"; }
     @Override public String getIcon()                  { return "security"; }
-    @Override public int getDisplayOrder()             { return 60; }
+    @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return DevicePermissionSteps.class; }
 
     @Override

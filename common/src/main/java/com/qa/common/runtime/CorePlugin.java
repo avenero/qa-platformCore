@@ -132,13 +132,8 @@ public interface CorePlugin {
      * @since 2.2.0
      */
     default List<String> getGluePackages() {
-        return getComponents().stream()
-                .map(StepComponent::getStepDefinitionClass)
-                .filter(Objects::nonNull)
-                .map(Class::getPackageName)
-                .distinct()
-                .sorted()
-                .collect(Collectors.toUnmodifiableList());
+        return getComponents().stream().map(StepComponent::getStepDefinitionClass).filter(Objects::nonNull).
+                map(Class::getPackageName).distinct().sorted().collect(Collectors.toUnmodifiableList());
     }
 
     /**

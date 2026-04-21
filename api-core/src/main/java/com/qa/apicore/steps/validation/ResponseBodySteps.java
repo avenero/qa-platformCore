@@ -44,8 +44,11 @@ public class ResponseBodySteps {
 
     @Then("el resultado almaceno el valor de {string}")
     public void elResultadoAlmacenoElValorDe(String jsonPath) {
-        try { apiHelper().extractAndStoreJsonValueSimple(jsonPath); }
-        catch (FrameworkBusinessException e) { throw new RuntimeException(e.getMessage(), e); }
+        try {
+            apiHelper().extractAndStoreJsonValueSimple(jsonPath);
+        } catch (FrameworkBusinessException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
     @Then("el resultado almaceno el valor que está dentro de la estructura {string} en {string}")
@@ -55,8 +58,8 @@ public class ResponseBodySteps {
 
     @Then("valido que la respuesta NO contenga el texto {string}")
     public void validoNoContengaTexto(String text) {
-        Assertions.assertThat(apiHelper().getLastResponse().getBody())
-            .as("La respuesta NO deberia contener: " + text).doesNotContain(text);
+        Assertions.assertThat(apiHelper().getLastResponse().getBody()).
+            as("La respuesta NO deberia contener: " + text).doesNotContain(text);
     }
 
     @Then("valido que el campo {string} tenga el valor {string}")
@@ -129,9 +132,8 @@ public class ResponseBodySteps {
     @Then("valido que el response body sea exactamente")
     public void validoResponseBodyExacto(String expectedBody) {
         String actual = apiHelper().getLastResponse().getBody();
-        Assertions.assertThat(actual)
-            .as("El response body debería ser exactamente el esperado")
-            .isEqualTo(expectedBody.trim());
+        Assertions.assertThat(actual).as("El response body debería ser exactamente el esperado").
+            isEqualTo(expectedBody.trim());
     }
 
     /**

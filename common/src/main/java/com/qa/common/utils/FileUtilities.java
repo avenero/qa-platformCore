@@ -49,7 +49,9 @@ public final class FileUtilities {
      * @throws IllegalArgumentException si {@code filepath} es null
      */
     public static String readStringFromFile(String filepath) throws IOException {
-        if (filepath == null) throw new IllegalArgumentException("filepath no puede ser null");
+        if (filepath == null) {
+            throw new IllegalArgumentException("filepath no puede ser null");
+        }
         String content = Files.readString(Path.of(filepath));
         TestLogger.logDebug("FILE_UTILITIES",
             "Archivo leído: " + filepath + " (" + content.length() + " chars)", null);
@@ -81,7 +83,9 @@ public final class FileUtilities {
      * @return {@code true} si el archivo existe y tiene más de 0 bytes
      */
     public static boolean fileExistsAndNotEmpty(String filepath) {
-        if (filepath == null) return false;
+        if (filepath == null) {
+            return false;
+        }
         try {
             Path path = Path.of(filepath);
             return Files.exists(path) && Files.size(path) > 0;
@@ -97,7 +101,9 @@ public final class FileUtilities {
      * @return {@code true} si el archivo fue eliminado
      */
     public static boolean deleteIfExists(String filepath) {
-        if (filepath == null) return false;
+        if (filepath == null) {
+            return false;
+        }
         try {
             return Files.deleteIfExists(Path.of(filepath));
         } catch (IOException e) {

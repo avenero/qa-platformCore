@@ -14,15 +14,19 @@ package com.qa.mobilecore.driver;
 public class MobileDriverInitializationException extends RuntimeException {
 
     /**
-     * @param message descripción del fallo (plataforma, udid, URL de Appium, causa raíz)
+     * Creates a new exception with the given message.
+     *
+     * @param message descripcion del fallo (plataforma, udid, URL de Appium, causa raiz).
      */
     public MobileDriverInitializationException(String message) {
         super(message);
     }
 
     /**
-     * @param message descripción del fallo
-     * @param cause   excepción original de Appium / WebDriver
+     * Creates a new exception with the given message and cause.
+     *
+     * @param message descripcion del fallo.
+     * @param cause   excepcion original de Appium / WebDriver.
      */
     public MobileDriverInitializationException(String message, Throwable cause) {
         super(message, cause);

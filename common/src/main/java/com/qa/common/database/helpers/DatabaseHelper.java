@@ -3,7 +3,10 @@ package com.qa.common.database.helpers;
 import com.qa.common.database.interfaces.DatabaseConnector;
 import com.qa.common.logging.TestLogger;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,6 +21,9 @@ import java.util.Map;
  * @since 2026-02-20
  */
 public class DatabaseHelper {
+
+    /** Número de claves de metadatos en el mapa de resultados (_rowCount y _hasResults). */
+    private static final int METADATA_KEY_COUNT = 2;
 
     /**
      * Ejecuta una consulta SQL y retorna los resultados.
@@ -207,7 +213,7 @@ public class DatabaseHelper {
         }
 
         // Fallback: verificar si hay más keys que los metadatos
-        return queryResult.size() > 2; // Más que _rowCount y _hasResults
+        return queryResult.size() > METADATA_KEY_COUNT; // Más que _rowCount y _hasResults
     }
 
     /**

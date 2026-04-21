@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.select")
 public class SelectComponent implements StepComponent {
-    @Override public String getName()                  { return "Select y Dropdowns"; }
-    @Override public String getDisplayName()           { return "Select y Dropdowns"; }
-    @Override public String getDescription()           { return "Seleccion de opciones en elementos select y radio"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Interaccion"; }
-    @Override public String getIcon()                  { return "arrow_drop_down"; }
-    @Override public int getDisplayOrder()             { return 80; }
-    @Override public Class<?> getStepDefinitionClass() { return SelectSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 80;
+
+    @Override
+    public String getName() {
+        return "Select y Dropdowns";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Select y Dropdowns";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Seleccion de opciones en elementos select y radio";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Interaccion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "arrow_drop_down";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return SelectSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

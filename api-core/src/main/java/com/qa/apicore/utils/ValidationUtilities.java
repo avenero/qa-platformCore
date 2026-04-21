@@ -84,7 +84,7 @@ import java.util.stream.Collectors;
  */
 public class ValidationUtilities {
 
-  private static final TestLogger.LoggerWrapper log =
+  private static final TestLogger.LoggerWrapper LOG =
       TestLogger.getLogger(ValidationUtilities.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -140,7 +140,7 @@ public class ValidationUtilities {
           String.format("Expected %d but was %d", expectedStatus, actualStatus));
     }
 
-    log.debug("Status code validado correctamente: {}", expectedStatus);
+    LOG.debug("Status code validado correctamente: {}", expectedStatus);
   }
 
   /**
@@ -165,7 +165,7 @@ public class ValidationUtilities {
               minStatus, maxStatus, actualStatus));
     }
 
-    log.debug("Status code en rango validado: {} ({}-{})", actualStatus, minStatus, maxStatus);
+    LOG.debug("Status code en rango validado: {} ({}-{})", actualStatus, minStatus, maxStatus);
   }
 
   // =================================================================================
@@ -194,7 +194,7 @@ public class ValidationUtilities {
               headerName, headers != null ? headers.keySet() : "none"));
     }
 
-    log.debug("Header existe: {}", headerName);
+    LOG.debug("Header existe: {}", headerName);
   }
 
   /**
@@ -218,7 +218,7 @@ public class ValidationUtilities {
               "Header '%s' expected '%s' but was '%s'", headerName, expectedValue, actualValue));
     }
 
-    log.debug("Header valor validado: {} = {}", headerName, expectedValue);
+    LOG.debug("Header valor validado: {} = {}", headerName, expectedValue);
   }
 
   /**
@@ -243,7 +243,7 @@ public class ValidationUtilities {
               headerName, expectedSubstring, actualValue));
     }
 
-    log.debug(
+    LOG.debug(
         "Header contiene substring validado: {} contiene '{}'", headerName, expectedSubstring);
   }
 
@@ -317,9 +317,7 @@ public class ValidationUtilities {
 
       if (!errors.isEmpty()) {
         String errorMessages =
-            errors.stream()
-                .map(ValidationMessage::getMessage)
-                .collect(Collectors.joining("\n  - "));
+            errors.stream().map(ValidationMessage::getMessage).collect(Collectors.joining("\n  - "));
 
         throw new FrameworkBusinessException(
             "validateJsonSchema",
@@ -328,7 +326,7 @@ public class ValidationUtilities {
                 errors.size(), errorMessages));
       }
 
-      log.info("✅ JSON Schema validado exitosamente");
+      LOG.info("✅ JSON Schema validado exitosamente");
 
     } catch (IOException e) {
       throw new FrameworkBusinessException(
@@ -371,9 +369,7 @@ public class ValidationUtilities {
 
       if (!errors.isEmpty()) {
         String errorMessages =
-            errors.stream()
-                .map(ValidationMessage::getMessage)
-                .collect(Collectors.joining("\n  - "));
+            errors.stream().map(ValidationMessage::getMessage).collect(Collectors.joining("\n  - "));
 
         throw new FrameworkBusinessException(
             "validateJsonSchema",
@@ -382,7 +378,7 @@ public class ValidationUtilities {
                 errors.size(), errorMessages));
       }
 
-      log.info("✅ JSON Schema validado exitosamente");
+      LOG.info("✅ JSON Schema validado exitosamente");
 
     } catch (IOException e) {
       throw new FrameworkBusinessException(
@@ -409,7 +405,7 @@ public class ValidationUtilities {
 
     // Si empieza con { o [, es un JSON inline
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-      log.debug("📄 Usando esquema JSON inline");
+      LOG.debug("📄 Usando esquema JSON inline");
       return trimmed;
     }
 
@@ -425,7 +421,7 @@ public class ValidationUtilities {
               trimmed));
     }
 
-    log.debug("📁 Leyendo esquema desde archivo: {}", schemaPath.toAbsolutePath());
+    LOG.debug("📁 Leyendo esquema desde archivo: {}", schemaPath.toAbsolutePath());
     return Files.readString(schemaPath);
   }
 
@@ -478,7 +474,7 @@ public class ValidationUtilities {
         return tempFile;
       }
     } catch (IOException e) {
-      log.debug("No se pudo leer recurso desde classpath: {}", filename);
+      LOG.debug("No se pudo leer recurso desde classpath: {}", filename);
     }
 
     return null;
@@ -511,7 +507,7 @@ public class ValidationUtilities {
                 "JSON path '%s' expected '%s' but was '%s'", jsonPath, expectedValue, actualValue));
       }
 
-      log.debug("JSON path validado: {} = {}", jsonPath, expectedValue);
+      LOG.debug("JSON path validado: {} = {}", jsonPath, expectedValue);
 
     } catch (Exception e) {
       throw new FrameworkBusinessException(
@@ -540,7 +536,7 @@ public class ValidationUtilities {
           String.format("JSON path '%s' does not exist in response", jsonPath));
     }
 
-    log.debug("JSON path existe: {}", jsonPath);
+    LOG.debug("JSON path existe: {}", jsonPath);
   }
 
   /**
@@ -573,7 +569,7 @@ public class ValidationUtilities {
                 jsonPath, expectedType, actualType));
       }
 
-      log.debug("JSON type validado: {} es {}", jsonPath, expectedType);
+      LOG.debug("JSON type validado: {} es {}", jsonPath, expectedType);
 
     } catch (Exception e) {
       throw new FrameworkBusinessException(
@@ -616,7 +612,7 @@ public class ValidationUtilities {
             String.format("JSON path '%s' array size expected %d but was %d",
                 jsonPath, expectedSize, actualSize));
       }
-      log.debug("JSON array size validado: {} tiene {} elementos", jsonPath, expectedSize);
+      LOG.debug("JSON array size validado: {} tiene {} elementos", jsonPath, expectedSize);
     } catch (FrameworkBusinessException e) {
       throw e;
     } catch (Exception e) {
@@ -657,7 +653,7 @@ public class ValidationUtilities {
             "validateJsonArrayNotEmpty",
             String.format("JSON path '%s' array está vacío, se esperaba al menos 1 elemento", jsonPath));
       }
-      log.debug("JSON array NOT empty validado: {} tiene {} elementos", jsonPath, ((List<?>) value).size());
+      LOG.debug("JSON array NOT empty validado: {} tiene {} elementos", jsonPath, ((List<?>) value).size());
     } catch (FrameworkBusinessException e) {
       throw e;
     } catch (Exception e) {
@@ -693,7 +689,7 @@ public class ValidationUtilities {
             "validateJsonPathIsUUID",
             String.format("JSON path '%s' value '%s' no es un UUID válido", jsonPath, valueStr));
       }
-      log.debug("JSON path UUID validado: {} = {}", jsonPath, valueStr);
+      LOG.debug("JSON path UUID validado: {} = {}", jsonPath, valueStr);
     } catch (FrameworkBusinessException e) {
       throw e;
     } catch (Exception e) {
@@ -730,7 +726,7 @@ public class ValidationUtilities {
             "validateJsonFieldGreaterThan",
             String.format("JSON path '%s' value %s no es mayor que %s", jsonPath, actual, threshold));
       }
-      log.debug("JSON field > validado: {} ({}) > {}", jsonPath, actual, threshold);
+      LOG.debug("JSON field > validado: {} ({}) > {}", jsonPath, actual, threshold);
     } catch (FrameworkBusinessException e) {
       throw e;
     } catch (NumberFormatException e) {
@@ -771,7 +767,7 @@ public class ValidationUtilities {
             "validateJsonFieldLessThan",
             String.format("JSON path '%s' value %s no es menor que %s", jsonPath, actual, threshold));
       }
-      log.debug("JSON field < validado: {} ({}) < {}", jsonPath, actual, threshold);
+      LOG.debug("JSON field < validado: {} ({}) < {}", jsonPath, actual, threshold);
     } catch (FrameworkBusinessException e) {
       throw e;
     } catch (NumberFormatException e) {
@@ -813,7 +809,7 @@ public class ValidationUtilities {
             String.format("JSON path '%s' value '%s' does not match pattern '%s'",
                 jsonPath, valueStr, regex));
       }
-      log.debug("JSON path pattern validado: {} cumple '{}'", jsonPath, regex);
+      LOG.debug("JSON path pattern validado: {} cumple '{}'", jsonPath, regex);
     } catch (FrameworkBusinessException e) {
       throw e;
     } catch (Exception e) {
@@ -846,7 +842,7 @@ public class ValidationUtilities {
           String.format("Value '%s' does not match pattern '%s'", value, pattern.pattern()));
     }
 
-    log.debug("Patrón validado: {} coincide con {}", value, pattern.pattern());
+    LOG.debug("Patrón validado: {} coincide con {}", value, pattern.pattern());
   }
 
   /**
@@ -938,7 +934,7 @@ public class ValidationUtilities {
           "validateRange", String.format("Value %s is not within range [%s, %s]", value, min, max));
     }
 
-    log.debug("Rango validado: {} está en [{}, {}]", value, min, max);
+    LOG.debug("Rango validado: {} está en [{}, {}]", value, min, max);
   }
 
   /**
@@ -953,7 +949,7 @@ public class ValidationUtilities {
           "validatePositive", String.format("Value %s is not positive", value));
     }
 
-    log.debug("Número positivo validado: {}", value);
+    LOG.debug("Número positivo validado: {}", value);
   }
 
   // =================================================================================
@@ -962,21 +958,35 @@ public class ValidationUtilities {
 
   /** Determina el tipo de un valor JSON. */
   private static String getJsonValueType(Object value) {
-    if (value instanceof String) return "string";
+    if (value instanceof String) {
+      return "string";
+    }
     if (value instanceof Integer
         || value instanceof Long
         || value instanceof Double
-        || value instanceof Float) return "integer";
-    if (value instanceof Boolean) return "boolean";
-    if (value instanceof List) return "array";
-    if (value instanceof Map) return "object";
+        || value instanceof Float) {
+      return "integer";
+    }
+    if (value instanceof Boolean) {
+      return "boolean";
+    }
+    if (value instanceof List) {
+      return "array";
+    }
+    if (value instanceof Map) {
+      return "object";
+    }
     return "unknown";
   }
 
   /** Trunca contenido para mensajes de error. */
   private static String truncateContent(String content, int maxLength) {
-    if (content == null) return "null";
-    if (content.length() <= maxLength) return content;
+    if (content == null) {
+      return "null";
+    }
+    if (content.length() <= maxLength) {
+      return content;
+    }
     return content.substring(0, maxLength) + "...";
   }
 

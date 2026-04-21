@@ -14,7 +14,7 @@ import io.cucumber.java.en.When;
  * Fase BDD: WHEN / THEN.
  *
  * <p>Todos los steps canónicos llevan {@link StepDef} con ID explícito para garantizar
- * estabilidad frente a refactorizaciones. El formato es {@code web.input.<sub-id>}.
+ * estabilidad frente a refactorizaciones. El formato es {@code web.input.SUB_ID}.
  *
  * @author Abel Venero
  * @since 2.0.0
@@ -58,8 +58,8 @@ public class InputSteps {
              displayName = "Ingresar nombre aleatorio en elemento")
     @When("Ingreso nombre aleatorio en el elemento {string}")
     public void nombreAleatorio(String locator) {
-        String ts = java.time.LocalDateTime.now()
-            .format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
+        String ts = java.time.LocalDateTime.now().
+            format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
         ingresoElTextoEnElElemento(ts, locator);
     }
 

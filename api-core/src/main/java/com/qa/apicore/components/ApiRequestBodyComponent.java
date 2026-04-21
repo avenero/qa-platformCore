@@ -29,14 +29,27 @@ import java.util.Map;
 @Deprecated(since = "2.1.0", forRemoval = false)
 @StepId(value = "api.body", deprecated = true, replacedBy = "api.request.body")
 public class ApiRequestBodyComponent implements StepComponent {
-    @Override public String getName()                  { return "Request Body"; }
-    @Override public String getDisplayName()           { return "Request Body"; }
-    @Override public String getDescription()           { return "Cuerpo de la peticion: JSON, XML, form-data, template"; }
-    @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
-    @Override public String getCategory()              { return "Configuracion de Peticion"; }
-    @Override public String getIcon()                  { return "description"; }
-    @Override public int getDisplayOrder()             { return 60; }
-    @Override public Class<?> getStepDefinitionClass() { return RequestBodySteps.class; }
+
+    /** Display order for this component in the UI step palette. */
+    private static final int DISPLAY_ORDER = 60;
+    @Override
+    public String getName() { return "Request Body"; }
+    @Override
+    public String getDisplayName() { return "Request Body"; }
+    @Override
+    public String getDescription() {
+        return "Cuerpo de la peticion: JSON, XML, form-data, template";
+    }
+    @Override
+    public BddPhase getPhase() { return BddPhase.GIVEN; }
+    @Override
+    public String getCategory() { return "Configuracion de Peticion"; }
+    @Override
+    public String getIcon() { return "description"; }
+    @Override
+    public int getDisplayOrder() { return DISPLAY_ORDER; }
+    @Override
+    public Class<?> getStepDefinitionClass() { return RequestBodySteps.class; }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

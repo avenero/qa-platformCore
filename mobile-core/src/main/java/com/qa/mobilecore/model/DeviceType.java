@@ -30,22 +30,38 @@ public enum DeviceType {
      */
     REMOTE_GRID;
 
-    /** @return true si la plataforma es Android (emulador o físico). */
+    /**
+     * Indicates whether the platform is Android.
+     *
+     * @return true si la plataforma es Android (emulador o fisico).
+     */
     public boolean isAndroid() {
         return this == ANDROID_EMULATOR || this == ANDROID_PHYSICAL;
     }
 
-    /** @return true si la plataforma es iOS (simulador o físico). */
+    /**
+     * Indicates whether the platform is iOS.
+     *
+     * @return true si la plataforma es iOS (simulador o fisico).
+     */
     public boolean isIOS() {
         return this == IOS_SIMULATOR || this == IOS_PHYSICAL;
     }
 
-    /** @return true si se ejecuta en un emulador/simulador (no hardware real). */
+    /**
+     * Indicates whether the device is a virtual device (emulator or simulator).
+     *
+     * @return true si se ejecuta en un emulador/simulador (no hardware real).
+     */
     public boolean isVirtual() {
         return this == ANDROID_EMULATOR || this == IOS_SIMULATOR;
     }
 
-    /** @return true si se ejecuta en hardware físico. */
+    /**
+     * Indicates whether the device is physical hardware.
+     *
+     * @return true si se ejecuta en hardware fisico.
+     */
     public boolean isPhysical() {
         return this == ANDROID_PHYSICAL || this == IOS_PHYSICAL;
     }

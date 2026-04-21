@@ -56,10 +56,18 @@ public final class DeviceDescriptor {
     public String getUdid()            { return udid; }
     public String getAppiumServerUrl() { return appiumServerUrl; }
 
-    /** @return true si el dispositivo es Android (emulador o físico). */
+    /**
+     * Indicates whether the device is Android (emulator or physical).
+     *
+     * @return true si el dispositivo es Android (emulador o fisico).
+     */
     public boolean isAndroid() { return type.isAndroid(); }
 
-    /** @return true si el dispositivo es iOS (simulador o físico). */
+    /**
+     * Indicates whether the device is iOS (simulator or physical).
+     *
+     * @return true si el dispositivo es iOS (simulador o fisico).
+     */
     public boolean isIOS() { return type.isIOS(); }
 
     @Override
@@ -75,6 +83,12 @@ public final class DeviceDescriptor {
         return new Builder(id, type);
     }
 
+    /**
+     * Builder for {@link DeviceDescriptor}.
+     *
+     * @author CuAleon Test Engineering
+     * @since 1.0
+     */
     public static final class Builder {
 
         private final String id;

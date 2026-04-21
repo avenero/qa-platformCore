@@ -4,12 +4,13 @@ import com.qa.common.reporting.core.model.TestExecutionResult;
 
 /**
  * Interfaz para adaptadores de diferentes formatos de resultados.
- * Permite agregar soporte para nuevos frameworks sin modificar el core.
+ *
+ * <p>Permite agregar soporte para nuevos frameworks sin modificar el core.
  */
 public interface ResultAdapter {
 
     /**
-     * Convierte resultados en formato específico al modelo estándar
+     * Convierte resultados en formato específico al modelo estándar.
      *
      * @param rawResults resultados en formato nativo (JSON, XML, etc.)
      * @return resultados en modelo estándar para enviar a Jira
@@ -17,7 +18,7 @@ public interface ResultAdapter {
     TestExecutionResult convert(String rawResults);
 
     /**
-     * Indica si este adaptador puede manejar el formato dado
+     * Indica si este adaptador puede manejar el formato dado.
      *
      * @param rawResults resultados a evaluar
      * @return true si puede procesar este formato
@@ -25,7 +26,9 @@ public interface ResultAdapter {
     boolean canHandle(String rawResults);
 
     /**
-     * Nombre del adaptador para logging
+     * Nombre del adaptador para logging.
+     *
+     * @return nombre del adaptador
      */
     String getName();
 }

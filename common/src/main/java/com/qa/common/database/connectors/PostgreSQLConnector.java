@@ -18,6 +18,9 @@ public class PostgreSQLConnector extends BaseConnector {
 
     private static final String DRIVER_CLASS = "org.postgresql.Driver";
 
+    /**
+     * Constructor que lee la configuración desde las System Properties {@code postgresql.db.*}.
+     */
     public PostgreSQLConnector() {
         this(
             System.getProperty("postgresql.db.url"),
@@ -26,6 +29,13 @@ public class PostgreSQLConnector extends BaseConnector {
         );
     }
 
+    /**
+     * Constructor con parámetros explícitos de conexión.
+     *
+     * @param jdbcUrl  URL JDBC de PostgreSQL (ej: {@code jdbc:postgresql://host:port/db})
+     * @param username usuario de la base de datos
+     * @param password contraseña de la base de datos
+     */
     public PostgreSQLConnector(String jdbcUrl, String username, String password) {
         super(jdbcUrl, username, password, DRIVER_CLASS, "POSTGRESQL");
     }

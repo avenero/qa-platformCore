@@ -48,12 +48,12 @@ import java.util.stream.StreamSupport;
  *
  *   // Nivel step individual
  *   Optional&lt;StepDefinitionInfo&gt; sdi = discovery.resolveStepDef("api.authentication.bearer.rut");
- *   sdi.ifPresent(s -> log.info("Patrón: {}", s.cucumberPattern()));
+ *   sdi.ifPresent(s -> LOG.info("Patrón: {}", s.cucumberPattern()));
  * </pre>
  *
  * <h2>Validación de IDs</h2>
  * <p>Al inicializarse, el servicio valida que no existan IDs duplicados entre todos los
- * componentes. Si los hay, emite una advertencia en el log (no falla la aplicación, para no
+ * componentes. Si los hay, emite una advertencia en el LOG (no falla la aplicación, para no
  * romper entornos con plugins de terceros). Puede forzarse la verificación programática con
  * {@link #validateIds()}.
  *
@@ -67,7 +67,7 @@ import java.util.stream.StreamSupport;
  */
 public final class StepDiscoveryService {
 
-    private static final Logger log = LoggerFactory.getLogger(StepDiscoveryService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StepDiscoveryService.class);
 
     private final List<CorePlugin> plugins;
 
@@ -81,7 +81,7 @@ public final class StepDiscoveryService {
     public StepDiscoveryService(List<CorePlugin> plugins) {
         Objects.requireNonNull(plugins, "plugins no puede ser null");
         this.plugins = List.copyOf(plugins);
-        log.debug("StepDiscoveryService inicializado con {} plugins", this.plugins.size());
+        LOG.debug("StepDiscoveryService inicializado con {} plugins", this.plugins.size());
         validateIds();
     }
 
@@ -90,12 +90,10 @@ public final class StepDiscoveryService {
      * @return nueva instancia con plugins descubiertos
      */
     public static StepDiscoveryService withServiceLoader() {
-        List<CorePlugin> discovered = StreamSupport
-                .stream(ServiceLoader.load(CorePlugin.class).spliterator(), false)
-                .sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder()))
-                .collect(Collectors.toList());
-        log.info("Plugins descubiertos via SPI: {}", discovered.size());
-        discovered.forEach(p -> log.info("  Plugin: {} (order={})", p.getName(), p.getOrder()));
+        List<CorePlugin> discovered = StreamSupport.stream(ServiceLoader.load(CorePlugin.class).spliterator(), false).
+                sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder())).collect(Collectors.toList());
+        LOG.info("Plugins descubiertos via SPI: {}", discovered.size());
+        discovered.forEach(p -> LOG.info("  Plugin: {} (order={})", p.getName(), p.getOrder()));
         return new StepDiscoveryService(discovered);
     }
 
@@ -105,10 +103,9 @@ public final class StepDiscoveryService {
      * @return lista de {@link ComponentInfo} con metadata de plugin + componente
      */
     public List<ComponentInfo> discoverAll() {
-        return plugins.stream()
-                .flatMap(plugin -> plugin.getComponents().stream()
-                        .map(component -> new ComponentInfo(plugin.getName(), component)))
-                .collect(Collectors.toUnmodifiableList());
+        return plugins.stream().flatMap(plugin -> plugin.getComponents().stream().
+                        map(component -> new ComponentInfo(plugin.getName(), component))).
+                collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -119,9 +116,8 @@ public final class StepDiscoveryService {
      */
     public List<ComponentInfo> discoverByPhase(BddPhase phase) {
         Objects.requireNonNull(phase, "phase no puede ser null");
-        return discoverAll().stream()
-                .filter(info -> info.component().getPhase() == phase)
-                .collect(Collectors.toUnmodifiableList());
+        return discoverAll().stream().filter(info -> info.component().getPhase() == phase).
+                collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -132,11 +128,8 @@ public final class StepDiscoveryService {
      */
     public List<ComponentInfo> discoverByPlugin(String pluginName) {
         Objects.requireNonNull(pluginName, "pluginName no puede ser null");
-        return plugins.stream()
-                .filter(p -> p.getName().equals(pluginName))
-                .flatMap(p -> p.getComponents().stream()
-                        .map(c -> new ComponentInfo(p.getName(), c)))
-                .collect(Collectors.toUnmodifiableList());
+        return plugins.stream().filter(p -> p.getName().equals(pluginName)).flatMap(p -> p.getComponents().stream().
+                        map(c -> new ComponentInfo(p.getName(), c))).collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -156,11 +149,12 @@ public final class StepDiscoveryService {
      * <pre>
      *   discovery.resolveStep("api.authentication")
      *       .map(ComponentInfo::component)
-     *       .ifPresent(c -> log.info("Encontrado: {}", c.getDisplayName()));
+     *       .ifPresent(c -> LOG.info("Encontrado: {}", c.getDisplayName()));
      * </pre>
      *
      * <p>Si el {@code stepId} corresponde a un componente marcado como
-     * {@link com.qa.common.runtime.annotation.StepId#deprecated() deprecated}, se emite una advertencia en el log indicando
+     * {@link com.qa.common.runtime.annotation.StepId#deprecated() deprecated},
+     * se emite una advertencia en el LOG indicando
      * el ID de reemplazo (si está declarado).
      *
      * @param stepId identificador estable del componente (ej: {@code "api.authentication"})
@@ -168,9 +162,8 @@ public final class StepDiscoveryService {
      */
     public Optional<ComponentInfo> resolveStep(String stepId) {
         Objects.requireNonNull(stepId, "stepId no puede ser null");
-        Optional<ComponentInfo> found = discoverAll().stream()
-                .filter(info -> stepId.equals(info.component().getId()))
-                .findFirst();
+        Optional<ComponentInfo> found = discoverAll().stream().filter(info -> stepId.equals(info.component().getId())).
+                findFirst();
 
         found.ifPresent(info -> {
             StepComponent c = info.component();
@@ -178,13 +171,13 @@ public final class StepDiscoveryService {
                 String replacement = c.getReplacementStepId() != null
                         ? "'" + c.getReplacementStepId() + "'"
                         : "(sin reemplazo declarado)";
-                log.warn("StepId '{}' está marcado como DEPRECATED. Reemplazo: {}. "
+                LOG.warn("StepId '{}' está marcado como DEPRECATED. Reemplazo: {}. "
                         + "Actualiza los escenarios que usen este ID.", stepId, replacement);
             }
         });
 
         if (found.isEmpty()) {
-            log.debug("resolveStep('{}') → no encontrado en {} plugins", stepId, plugins.size());
+            LOG.debug("resolveStep('{}') → no encontrado en {} plugins", stepId, plugins.size());
         }
 
         return found;
@@ -196,8 +189,7 @@ public final class StepDiscoveryService {
      * @return mapa: fase BDD → lista de componentes
      */
     public Map<BddPhase, List<ComponentInfo>> groupByPhase() {
-        return discoverAll().stream()
-                .collect(Collectors.groupingBy(
+        return discoverAll().stream().collect(Collectors.groupingBy(
                         info -> info.component().getPhase(),
                         Collectors.toUnmodifiableList()
                 ));
@@ -209,8 +201,7 @@ public final class StepDiscoveryService {
      * @return mapa: nombre plugin → lista de componentes
      */
     public Map<String, List<ComponentInfo>> groupByPlugin() {
-        return discoverAll().stream()
-                .collect(Collectors.groupingBy(
+        return discoverAll().stream().collect(Collectors.groupingBy(
                         ComponentInfo::pluginName,
                         Collectors.toUnmodifiableList()
                 ));
@@ -221,9 +212,7 @@ public final class StepDiscoveryService {
      * @return lista de nombres ordenados por prioridad
      */
     public List<String> getPluginNames() {
-        return plugins.stream()
-                .map(CorePlugin::getName)
-                .collect(Collectors.toUnmodifiableList());
+        return plugins.stream().map(CorePlugin::getName).collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -231,9 +220,7 @@ public final class StepDiscoveryService {
      * @return total de componentes
      */
     public int totalComponents() {
-        return plugins.stream()
-                .mapToInt(p -> p.getComponents().size())
-                .sum();
+        return plugins.stream().mapToInt(p -> p.getComponents().size()).sum();
     }
 
     /**
@@ -251,8 +238,7 @@ public final class StepDiscoveryService {
      * @return lista inmutable de StepInfo; uno por componente registrado
      */
     public List<StepInfo> discoverAllAsStepInfo() {
-        return discoverAll().stream()
-                .map(info -> {
+        return discoverAll().stream().map(info -> {
                     StepComponent c = info.component();
                     return new StepInfo(
                             c.getId(),
@@ -270,8 +256,7 @@ public final class StepDiscoveryService {
                             c.isDeprecated(),
                             c.getReplacementStepId()
                     );
-                })
-                .collect(Collectors.toUnmodifiableList());
+                }).collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -279,7 +264,7 @@ public final class StepDiscoveryService {
      *
      * <p>Un ID duplicado es un error de configuración: el Backend no podría resolver
      * unívocamente un componente por {@code stepId}. Si se detectan duplicados, se emite
-     * una advertencia en el log con los IDs afectados. No lanza excepción para no romper
+     * una advertencia en el LOG con los IDs afectados. No lanza excepción para no romper
      * entornos con plugins de terceros.
      *
      * <p>Este método se llama automáticamente en el constructor. También puede invocarse
@@ -288,21 +273,18 @@ public final class StepDiscoveryService {
      * @return conjunto de IDs duplicados; vacío si todo es correcto
      */
     public Set<String> validateIds() {
-        List<String> allIds = discoverAll().stream()
-                .map(info -> info.component().getId())
-                .collect(Collectors.toList());
+        List<String> allIds = discoverAll().stream().map(info -> info.component().getId()).collect(Collectors.toList());
 
-        Set<String> duplicates = allIds.stream()
-                .filter(id -> allIds.stream().filter(id::equals).count() > 1)
-                .collect(Collectors.toSet());
+        Set<String> duplicates = allIds.stream().filter(id -> allIds.stream().filter(id::equals).count() > 1).
+                collect(Collectors.toSet());
 
         if (!duplicates.isEmpty()) {
-            log.warn("⚠️  StepDiscoveryService detectó IDs de step DUPLICADOS: {}. "
+            LOG.warn("⚠️  StepDiscoveryService detectó IDs de step DUPLICADOS: {}. "
                     + "Esto impedirá la resolución unívoca por stepId desde el Backend. "
                     + "Revisá los componentes afectados y asigná IDs únicos con @StepId.",
                     duplicates);
         } else {
-            log.debug("Validación de IDs OK: {} componentes con IDs únicos", allIds.size());
+            LOG.debug("Validación de IDs OK: {} componentes con IDs únicos", allIds.size());
         }
 
         return duplicates;
@@ -335,12 +317,9 @@ public final class StepDiscoveryService {
      * @since 2.2.0
      */
     public List<String> resolveGluePaths() {
-        List<String> paths = plugins.stream()
-                .flatMap(p -> p.getGluePackages().stream())
-                .distinct()
-                .sorted()
-                .collect(Collectors.toUnmodifiableList());
-        log.debug("resolveGluePaths(): {} paquetes de {} plugins", paths.size(), plugins.size());
+        List<String> paths = plugins.stream().flatMap(p -> p.getGluePackages().stream()).distinct().sorted().
+                collect(Collectors.toUnmodifiableList());
+        LOG.debug("resolveGluePaths(): {} paquetes de {} plugins", paths.size(), plugins.size());
         return paths;
     }
 
@@ -380,7 +359,7 @@ public final class StepDiscoveryService {
      *
      * <p>Si el {@code stepDefId} pertenece a un step marcado como
      * {@link com.qa.common.runtime.annotation.StepDef#deprecated() deprecated},
-     * se emite una advertencia en el log indicando el ID de reemplazo si está declarado.
+     * se emite una advertencia en el LOG indicando el ID de reemplazo si está declarado.
      *
      * @param stepDefId ID estable del step individual (ej: {@code "api.authentication.bearer.rut"})
      * @return {@link Optional} con el primer {@link StepDefinitionInfo} que coincida,
@@ -389,22 +368,21 @@ public final class StepDiscoveryService {
      */
     public Optional<StepDefinitionInfo> resolveStepDef(String stepDefId) {
         Objects.requireNonNull(stepDefId, "stepDefId no puede ser null");
-        Optional<StepDefinitionInfo> found = discoverAllStepDefs().stream()
-                .filter(sdi -> stepDefId.equals(sdi.stepDefId()))
-                .findFirst();
+        Optional<StepDefinitionInfo> found = discoverAllStepDefs().stream().
+                filter(sdi -> stepDefId.equals(sdi.stepDefId())).findFirst();
 
         found.ifPresent(sdi -> {
             if (sdi.deprecated()) {
                 String replacement = sdi.hasReplacement()
                         ? "'" + sdi.replacementStepDefId() + "'"
                         : "(sin reemplazo declarado)";
-                log.warn("StepDefId '{}' está marcado como DEPRECATED. Reemplazo: {}. "
+                LOG.warn("StepDefId '{}' está marcado como DEPRECATED. Reemplazo: {}. "
                         + "Actualiza los escenarios que usen este ID.", stepDefId, replacement);
             }
         });
 
         if (found.isEmpty()) {
-            log.debug("resolveStepDef('{}') → no encontrado en {} plugins", stepDefId, plugins.size());
+            LOG.debug("resolveStepDef('{}') → no encontrado en {} plugins", stepDefId, plugins.size());
         }
         return found;
     }
@@ -422,9 +400,8 @@ public final class StepDiscoveryService {
      */
     public List<StepDefinitionInfo> discoverStepDefsByComponent(String componentId) {
         Objects.requireNonNull(componentId, "componentId no puede ser null");
-        return discoverAllStepDefs().stream()
-                .filter(sdi -> componentId.equals(sdi.componentId()))
-                .collect(Collectors.toUnmodifiableList());
+        return discoverAllStepDefs().stream().filter(sdi -> componentId.equals(sdi.componentId())).
+                collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -493,13 +470,13 @@ public final class StepDiscoveryService {
      * <pre>
      *   discovery.findById("api.authentication.bearer.identifier")
      *       .ifPresent(sdi -> {
-     *           log.info("Patrón: {}", sdi.cucumberPattern());
+     *           LOG.info("Patrón: {}", sdi.cucumberPattern());
      *           sdi.paramSchemas().forEach(p ->
-     *               log.info("  {} : {}", p.name(), p.type()));
+     *               LOG.info("  {} : {}", p.name(), p.type()));
      *       });
      * </pre>
      *
-     * <p>Si el step está deprecado, se emite una advertencia en el log con el ID de reemplazo.
+     * <p>Si el step está deprecado, se emite una advertencia en el LOG con el ID de reemplazo.
      *
      * <p>Equivalente funcional a {@link #resolveStepDef(String)}.
      *

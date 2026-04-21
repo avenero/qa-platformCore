@@ -19,19 +19,20 @@ import io.cucumber.java.en.When;
  * Fase BDD: WHEN.
  *
  * <p>Todos los steps canónicos llevan {@link StepDef} con ID explícito para garantizar
- * estabilidad frente a refactorizaciones. El formato es {@code api.execution.<sub-id>}.
+ * estabilidad frente a refactorizaciones. El formato es {@code api.execution.{sub-id}}.
  *
  * @author Abel Venero
  * @since 2.0.0
  */
 public class HttpExecutionSteps {
 
-    // ─── Obtención de servicios desde el ServiceRegistry ───────────────────────
+    /** Milliseconds per second, used for converting timeout seconds to milliseconds. */
+    private static final int MILLIS_PER_SECOND = 1000;
+
+    // ─── Obtención de servicios desde el ServiceRegistry ───────────
 
     private HttpClient getHttpClient() {
-        return ExecutionContext.current()
-                .map(ctx -> ctx.service(HttpClient.class))
-                .orElseGet(BaseHttpClient::new);
+        return ExecutionContext.current().map(ctx -> ctx.service(HttpClient.class)).orElseGet(BaseHttpClient::new);
     }
 
     private ApiHelper getApiHelper() {
@@ -116,7 +117,7 @@ public class HttpExecutionSteps {
              displayName = "Ejecutar petición con timeout")
     @When("ejecuto la petición y espero {int} segundos máximo")
     public void ejecutoConTimeout(int timeoutSeconds) throws FrameworkTechnicalException {
-        getHttpClient().setTimeout(timeoutSeconds * 1000);
+        getHttpClient().setTimeout(timeoutSeconds * MILLIS_PER_SECOND);
         ejecutarPeticionHttp("GET", true);
     }
 
@@ -136,11 +137,14 @@ public class HttpExecutionSteps {
      */
     @StepDef(value = "api.execution.poll-status",
              displayName = "Reintentar hasta código de estado esperado")
+    //CHECKSTYLE:OFF: LineLength — Cucumber step pattern cannot be split
     @When("reintento {string} al endpoint {string} hasta que el código sea {int} con máximo {int} intentos cada {int} segundos")
+    //CHECKSTYLE:ON: LineLength
     public void reintentoHastaQueCodigoSea(String method, String endpointKey,
                                            int expectedCode, int maxAttempts, int waitSeconds)
             throws FrameworkTechnicalException {
-        getApiHelper().pollUntilStatusCode(method, endpointKey, expectedCode, maxAttempts, waitSeconds);
+        getApiHelper().pollUntilStatusCode(
+                method, endpointKey, expectedCode, maxAttempts, waitSeconds);
     }
 
     /**
@@ -155,7 +159,9 @@ public class HttpExecutionSteps {
      */
     @StepDef(value = "api.execution.poll-field",
              displayName = "Reintentar hasta que campo JSON tenga valor esperado")
+    //CHECKSTYLE:OFF: LineLength — Cucumber step pattern cannot be split
     @When("reintento {string} al endpoint {string} hasta que el campo {string} sea {string} con máximo {int} intentos cada {int} segundos")
+    //CHECKSTYLE:ON: LineLength
     public void reintentoHastaQueCampoSea(String method, String endpointKey,
                                           String jsonPath, String expectedValue,
                                           int maxAttempts, int waitSeconds)
@@ -197,11 +203,21 @@ public class HttpExecutionSteps {
         try {
             HttpClient httpClient = getHttpClient();
             switch (method.toUpperCase()) {
-                case "GET":    httpClient.get(""); break;
-                case "POST":   httpClient.post(""); break;
-                case "PUT":    httpClient.put(""); break;
-                case "DELETE": httpClient.delete(""); break;
-                case "PATCH":  httpClient.patch(""); break;
+                case "GET":
+                    httpClient.get("");
+                    break;
+                case "POST":
+                    httpClient.post("");
+                    break;
+                case "PUT":
+                    httpClient.put("");
+                    break;
+                case "DELETE":
+                    httpClient.delete("");
+                    break;
+                case "PATCH":
+                    httpClient.patch("");
+                    break;
                 default:
                     throw new FrameworkTechnicalException("ejecutarPeticionHttp",
                         "Metodo HTTP no soportado: " + method);

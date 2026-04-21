@@ -57,7 +57,7 @@ import com.qa.common.logging.TestLogger;
  */
 public final class HttpClientFactory {
 
-  private static final TestLogger.LoggerWrapper log = TestLogger.getLogger(HttpClientFactory.class);
+  private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(HttpClientFactory.class);
 
   // Constructor privado para factory
   private HttpClientFactory() {
@@ -71,7 +71,7 @@ public final class HttpClientFactory {
    * @return nueva instancia de HttpClient
    */
   public static HttpClient getInstance() {
-    log.debug("Creando nueva instancia de BaseHttpClient");
+    LOG.debug("Creando nueva instancia de BaseHttpClient");
     return new BaseHttpClient();
   }
 
@@ -87,27 +87,27 @@ public final class HttpClientFactory {
    */
   public static HttpClient getInstance(String frameworkType) {
     if (frameworkType == null || frameworkType.trim().isEmpty()) {
-      log.warn("Framework type es null o vacío, usando implementación base");
+      LOG.warn("Framework type es null o vacío, usando implementación base");
       return getInstance();
     }
 
     String normalizedType = frameworkType.toLowerCase().trim();
-    log.debug("Creando HttpClient para framework: {}", normalizedType);
+    LOG.debug("Creando HttpClient para framework: {}", normalizedType);
 
     // Por ahora retornamos la implementación base para todos los tipos
     // Los frameworks específicos pueden extender esto creando sus propias implementaciones
     switch (normalizedType) {
       case "api":
-        log.debug("Retornando BaseHttpClient para framework API");
+        LOG.debug("Retornando BaseHttpClient para framework API");
         return getInstance();
       case "web":
-        log.debug("Retornando BaseHttpClient para framework Web");
+        LOG.debug("Retornando BaseHttpClient para framework Web");
         return getInstance();
       case "mobile":
-        log.debug("Retornando BaseHttpClient para framework Mobile");
+        LOG.debug("Retornando BaseHttpClient para framework Mobile");
         return getInstance();
       default:
-        log.debug("Framework type '{}' no reconocido, usando implementación base", frameworkType);
+        LOG.debug("Framework type '{}' no reconocido, usando implementación base", frameworkType);
         return getInstance();
     }
   }
@@ -128,7 +128,7 @@ public final class HttpClientFactory {
     HttpClient client = getInstance();
     client.setHost(host.trim());
 
-    log.debug("HttpClient creado y configurado con host: {}", host);
+    LOG.debug("HttpClient creado y configurado con host: {}", host);
     return client;
   }
 
@@ -142,7 +142,7 @@ public final class HttpClientFactory {
     HttpClient client = getInstance();
     client.configureForJson();
 
-    log.debug("HttpClient creado y configurado para JSON");
+    LOG.debug("HttpClient creado y configurado para JSON");
     return client;
   }
 
@@ -163,7 +163,7 @@ public final class HttpClientFactory {
     client.setHost(host.trim());
     client.configureForJson();
 
-    log.debug("HttpClient creado y configurado para JSON con host: {}", host);
+    LOG.debug("HttpClient creado y configurado para JSON con host: {}", host);
     return client;
   }
 

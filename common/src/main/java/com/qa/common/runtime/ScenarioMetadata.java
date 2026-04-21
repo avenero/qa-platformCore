@@ -119,7 +119,9 @@ public record ScenarioMetadata(
      * @return {@code true} si al menos uno de los tags está presente
      */
     public boolean hasAnyTag(Collection<String> candidateTags) {
-        if (candidateTags == null || candidateTags.isEmpty()) return false;
+        if (candidateTags == null || candidateTags.isEmpty()) {
+            return false;
+        }
         return candidateTags.stream().anyMatch(tags::contains);
     }
 

@@ -11,22 +11,35 @@ import io.cucumber.java.en.When;
 /**
  * Steps de espera explicita e implicita.
  * Migrado de WebSteps.java.
+ *
  * @author Abel Venero
  * @since 2.0.0
  */
 public class WaitSteps {
+
+    /** Timeout largo para espera de visibilidad y habilitacion de elemento. */
+    private static final int WAIT_STEPS_TIMEOUT = 60;
+
+    /** Timeout para carga de pagina en steps de espera. */
+    private static final int PAGE_LOAD_TIMEOUT = 90;
+
+    /** Timeout para esperar visibilidad de texto en la pagina. */
+    private static final int TEXT_VISIBLE_TIMEOUT = 15;
+
+    /** Multiplicador de milisegundos por segundo. */
+    private static final long MILLIS_PER_SECOND = 1000L;
 
     private final WebHelper helper = new WebHelper();
     private Scenario scenario;
 
     @When("espero hasta que elemento {string} este visible")
     public void esperarHastaQueElementoEsteVisible(String locator) {
-        helper.waitForVisibleElement(locator, 60);
+        helper.waitForVisibleElement(locator, WAIT_STEPS_TIMEOUT);
     }
 
     @When("espero hasta que elemento {string} este habilitado")
     public void esperarHastaQueElementoEsteHabilitado(String locator) {
-        helper.waitAndValidateEnabled(locator, 60);
+        helper.waitAndValidateEnabled(locator, WAIT_STEPS_TIMEOUT);
     }
 
     @When("espero hasta que elemento {string} no este visible")
@@ -37,7 +50,7 @@ public class WaitSteps {
 
     @When("espero {string} segundos")
     public void esperarUnTiempo(String segundos) {
-        WaitUtils.waitMilliseconds(Integer.parseInt(segundos) * 1000L);
+        WaitUtils.waitMilliseconds(Integer.parseInt(segundos) * MILLIS_PER_SECOND);
         helper.captureScreen(scenario);
         TestLogger.logWarning("WAIT_STEPS", "Wait fijo: " + segundos + "s", null);
     }
@@ -45,7 +58,7 @@ public class WaitSteps {
     @When("espero hasta que la seccion termine de cargar")
     public void esperoHastaQueLaSeccionTermineDeCargar() {
         helper.captureScreen(scenario);
-        helper.waitForPageLoad(90);
+        helper.waitForPageLoad(PAGE_LOAD_TIMEOUT);
     }
 
     @StepDef(value = "web.wait.legacy-esperar-home",
@@ -74,7 +87,7 @@ public class WaitSteps {
      */
     @When("espero hasta que el texto {string} sea visible en la página")
     public void esperarHastaQueElTextoSeaVisible(String text) {
-        helper.waitForTextVisible(text, 15);
+        helper.waitForTextVisible(text, TEXT_VISIBLE_TIMEOUT);
     }
 
     /**
@@ -82,7 +95,7 @@ public class WaitSteps {
      */
     @When("espero {int} segundos")
     public void esperarSegundosInt(int segundos) {
-        WaitUtils.waitMilliseconds(segundos * 1000L);
+        WaitUtils.waitMilliseconds(segundos * MILLIS_PER_SECOND);
         TestLogger.logWarning("WAIT_STEPS", "Wait fijo: " + segundos + "s", null);
     }
 }

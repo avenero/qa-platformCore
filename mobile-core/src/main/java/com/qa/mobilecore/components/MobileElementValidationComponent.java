@@ -15,13 +15,16 @@ import java.util.Map;
  */
 @StepId("mobile.validation")
 public class MobileElementValidationComponent implements StepComponent {
+
+    private static final int DISPLAY_ORDER = 90;
+
     @Override public String getName()                  { return "Validacion de Elementos Mobile"; }
     @Override public String getDisplayName()           { return "Validacion de Elementos Mobile"; }
     @Override public String getDescription()           { return "Visibilidad, texto y estado de elementos nativos"; }
     @Override public BddPhase getPhase()               { return BddPhase.THEN; }
     @Override public String getCategory()              { return "Validacion Mobile"; }
     @Override public String getIcon()                  { return "check_circle"; }
-    @Override public int getDisplayOrder()             { return 90; }
+    @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return MobileElementValidationSteps.class; }
 
     @Override

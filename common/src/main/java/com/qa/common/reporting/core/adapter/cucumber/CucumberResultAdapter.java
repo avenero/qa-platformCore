@@ -1,17 +1,22 @@
 package com.qa.common.reporting.core.adapter.cucumber;
 
+import com.qa.common.logging.TestLogger;
 import com.qa.common.reporting.core.adapter.ResultAdapter;
-import com.qa.common.reporting.core.model.*;
+import com.qa.common.reporting.core.model.Attachment;
+import com.qa.common.reporting.core.model.ScenarioResult;
+import com.qa.common.reporting.core.model.StepResult;
+import com.qa.common.reporting.core.model.TestExecutionResult;
+import com.qa.common.reporting.core.model.TestStatus;
 import com.qa.common.reporting.core.util.EvidenceCollector;
 import com.qa.common.reporting.core.util.TagExtractor;
-import com.qa.common.logging.TestLogger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.time.LocalDateTime;
 import java.time.Duration;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Adaptador para resultados de Cucumber en formato JSON estándar.
@@ -23,14 +28,24 @@ import java.util.*;
  */
 public class CucumberResultAdapter implements ResultAdapter {
 
+    /** Maximum characters for a business-facing error message (Jira limit). */
+    private static final int MAX_BUSINESS_ERROR_LENGTH = 300;
 
     private final ObjectMapper objectMapper;
     private final boolean collectEvidences;
 
+    /**
+     * Constructor por defecto con recolección de evidencias habilitada.
+     */
     public CucumberResultAdapter() {
         this(true); // Por defecto, recolectar evidencias
     }
 
+    /**
+     * Constructor con control explícito de recolección de evidencias.
+     *
+     * @param collectEvidences {@code true} para recolectar evidencias del filesystem
+     */
     public CucumberResultAdapter(boolean collectEvidences) {
         this.objectMapper = new ObjectMapper();
         this.collectEvidences = collectEvidences;
@@ -59,7 +74,8 @@ public class CucumberResultAdapter implements ResultAdapter {
 
             result.setScenarios(scenarios);
 
-            TestLogger.logInfo("CUCUMBER_ADAPTER", "✅ Procesados " + scenarios.size() + " scenarios de Cucumber", null);
+            TestLogger.logInfo("CUCUMBER_ADAPTER",
+                "✅ Procesados " + scenarios.size() + " scenarios de Cucumber", null);
             return result;
 
         } catch (Exception e) {
@@ -104,7 +120,8 @@ public class CucumberResultAdapter implements ResultAdapter {
         // Extraer test key de tags
         String testKey = extractTestKey(elementNode);
         if (testKey == null) {
-            TestLogger.logInfo("CUCUMBER_ADAPTER", "⏭️ Scenario '" + scenario.getScenarioName() + "' sin test key válido, omitiendo", null);
+            TestLogger.logInfo("CUCUMBER_ADAPTER",
+                "⏭️ Scenario '" + scenario.getScenarioName() + "' sin test key válido, omitiendo", null);
             return null;
         }
         scenario.setTestKey(testKey);
@@ -131,7 +148,8 @@ public class CucumberResultAdapter implements ResultAdapter {
             collectScenarioEvidences(scenario, featureName);
         }
 
-        TestLogger.logInfo("CUCUMBER_ADAPTER", "✅ Procesado scenario: " + testKey + " -> " + scenario.getStatus(), null);
+        TestLogger.logInfo("CUCUMBER_ADAPTER",
+            "✅ Procesado scenario: " + testKey + " -> " + scenario.getStatus(), null);
         return scenario;
     }
 
@@ -159,7 +177,8 @@ public class CucumberResultAdapter implements ResultAdapter {
                     scenario.addScreenshot(screenshot);
                 }
                 TestLogger.logInfo("CUCUMBER_ADAPTER",
-                    String.format("📸 %d screenshots del filesystem adjuntados a: %s", screenshots.size(), scenario.getTestKey()),
+                    String.format("📸 %d screenshots del filesystem adjuntados a: %s",
+                        screenshots.size(), scenario.getTestKey()),
                     null);
             }
 
@@ -201,9 +220,15 @@ public class CucumberResultAdapter implements ResultAdapter {
 
         for (String tag : tags) {
             String tagLower = tag.toLowerCase();
-            if (tagLower.contains("web")) return "WEB";
-            if (tagLower.contains("api")) return "API";
-            if (tagLower.contains("mobile")) return "MOBILE";
+            if (tagLower.contains("web")) {
+                return "WEB";
+            }
+            if (tagLower.contains("api")) {
+                return "API";
+            }
+            if (tagLower.contains("mobile")) {
+                return "MOBILE";
+            }
         }
 
         return "COMMON";
@@ -361,40 +386,9 @@ public class CucumberResultAdapter implements ResultAdapter {
     private void extractEmbeddings(JsonNode elementNode, ScenarioResult scenario) {
         // Buscar embeddings en "after" hooks (donde se capturan los screenshots)
         JsonNode afterNode = elementNode.path("after");
-
         if (afterNode.isArray()) {
             for (JsonNode hookNode : afterNode) {
-                JsonNode embeddingsNode = hookNode.path("embeddings");
-
-                if (embeddingsNode.isArray()) {
-                    for (JsonNode embeddingNode : embeddingsNode) {
-                        String mimeType = embeddingNode.path("mime_type").asText();
-                        String data = embeddingNode.path("data").asText();
-                        String name = embeddingNode.path("name").asText("screenshot");
-
-                        // Solo procesar imágenes
-                        if (mimeType != null && mimeType.startsWith("image/") && data != null && !data.isEmpty()) {
-                            try {
-                                // Decodificar base64 a byte[]
-                                byte[] imageBytes = java.util.Base64.getDecoder().decode(data);
-
-                                Attachment attachment = new Attachment();
-                                attachment.setName(name);
-                                attachment.setMimeType(mimeType);
-                                attachment.setType(Attachment.AttachmentType.SCREENSHOT);
-                                attachment.setContent(imageBytes);  // byte[] decodificado
-
-                                scenario.addScreenshot(attachment);
-
-                                TestLogger.logDebug("CUCUMBER_ADAPTER",
-                                    "📸 Screenshot extraído: " + name + " (" + imageBytes.length + " bytes)", null);
-                            } catch (IllegalArgumentException e) {
-                                TestLogger.logWarning("CUCUMBER_ADAPTER",
-                                    "⚠️ Error decodificando screenshot base64: " + name, null);
-                            }
-                        }
-                    }
-                }
+                extractEmbeddingsFromNode(hookNode.path("embeddings"), scenario, false);
             }
         }
 
@@ -402,37 +396,67 @@ public class CucumberResultAdapter implements ResultAdapter {
         JsonNode stepsNode = elementNode.path("steps");
         if (stepsNode.isArray()) {
             for (JsonNode stepNode : stepsNode) {
-                JsonNode embeddingsNode = stepNode.path("embeddings");
-
-                if (embeddingsNode.isArray()) {
-                    for (JsonNode embeddingNode : embeddingsNode) {
-                        String mimeType = embeddingNode.path("mime_type").asText();
-                        String data = embeddingNode.path("data").asText();
-                        String name = embeddingNode.path("name").asText("screenshot");
-
-                        if (mimeType != null && mimeType.startsWith("image/") && data != null && !data.isEmpty()) {
-                            try {
-                                // Decodificar base64 a byte[]
-                                byte[] imageBytes = java.util.Base64.getDecoder().decode(data);
-
-                                Attachment attachment = new Attachment();
-                                attachment.setName(name);
-                                attachment.setMimeType(mimeType);
-                                attachment.setType(Attachment.AttachmentType.SCREENSHOT);
-                                attachment.setContent(imageBytes);
-
-                                scenario.addScreenshot(attachment);
-
-                                TestLogger.logDebug("CUCUMBER_ADAPTER",
-                                    "📸 Screenshot extraído del step: " + name + " (" + imageBytes.length + " bytes)", null);
-                            } catch (IllegalArgumentException e) {
-                                TestLogger.logWarning("CUCUMBER_ADAPTER",
-                                    "⚠️ Error decodificando screenshot base64 del step: " + name, null);
-                            }
-                        }
-                    }
-                }
+                extractEmbeddingsFromNode(stepNode.path("embeddings"), scenario, true);
             }
+        }
+    }
+
+    /**
+     * Extrae embeddings de imagen de un nodo JSON y los agrega al scenario.
+     *
+     * @param embeddingsNode nodo JSON que contiene la lista de embeddings
+     * @param scenario       scenario al que se agregan los screenshots
+     * @param fromStep       {@code true} si los embeddings provienen de un step individual
+     */
+    private void extractEmbeddingsFromNode(JsonNode embeddingsNode,
+                                           ScenarioResult scenario,
+                                           boolean fromStep) {
+        if (!embeddingsNode.isArray()) {
+            return;
+        }
+        for (JsonNode embeddingNode : embeddingsNode) {
+            String mimeType = embeddingNode.path("mime_type").asText();
+            String data = embeddingNode.path("data").asText();
+            String name = embeddingNode.path("name").asText("screenshot");
+
+            if (mimeType != null && mimeType.startsWith("image/") && data != null && !data.isEmpty()) {
+                decodeAndAddScreenshot(scenario, mimeType, data, name, fromStep);
+            }
+        }
+    }
+
+    /**
+     * Decodifica un embedding base64 y lo agrega como screenshot al scenario.
+     *
+     * @param scenario  scenario destino
+     * @param mimeType  tipo MIME de la imagen
+     * @param data      datos en base64
+     * @param name      nombre del attachment
+     * @param fromStep  {@code true} si el screenshot proviene de un step
+     */
+    private void decodeAndAddScreenshot(ScenarioResult scenario,
+                                        String mimeType,
+                                        String data,
+                                        String name,
+                                        boolean fromStep) {
+        try {
+            byte[] imageBytes = java.util.Base64.getDecoder().decode(data);
+
+            Attachment attachment = new Attachment();
+            attachment.setName(name);
+            attachment.setMimeType(mimeType);
+            attachment.setType(Attachment.AttachmentType.SCREENSHOT);
+            attachment.setContent(imageBytes);
+
+            scenario.addScreenshot(attachment);
+
+            String source = fromStep ? "del step: " : ": ";
+            TestLogger.logDebug("CUCUMBER_ADAPTER",
+                "📸 Screenshot extraído" + source + name + " (" + imageBytes.length + " bytes)", null);
+        } catch (IllegalArgumentException e) {
+            String source = fromStep ? " base64 del step: " : " base64: ";
+            TestLogger.logWarning("CUCUMBER_ADAPTER",
+                "⚠️ Error decodificando screenshot" + source + name, null);
         }
     }
 
@@ -446,7 +470,8 @@ public class CucumberResultAdapter implements ResultAdapter {
      * - Response JSON completo (todo después de "Response:")
      *
      * Ejemplos:
-     * Input:  "FrameworkBusinessException: validoQueElCodigo: Error validando código: Expected 201 but was 200. Response: {...} at ApiSteps.java:123"
+     * Input:  "FrameworkBusinessException: validoQueElCodigo: Error validando código:
+     *          Expected 201 but was 200. Response: {...} at ApiSteps.java:123"
      * Output: "Error validando código: Expected 201 but was 200"
      *
      * @param technicalError mensaje de error completo de Cucumber
@@ -499,8 +524,8 @@ public class CucumberResultAdapter implements ResultAdapter {
             return truncateMessage(technicalError, 200);
         }
 
-        // 9. Truncar a 300 caracteres para Jira (límite razonable)
-        return truncateMessage(clean, 300);
+        // 9. Truncar para Jira (límite razonable)
+        return truncateMessage(clean, MAX_BUSINESS_ERROR_LENGTH);
     }
 
     private void calculateTiming(JsonNode elementNode, ScenarioResult scenario) {

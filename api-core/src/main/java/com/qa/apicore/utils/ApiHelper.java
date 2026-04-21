@@ -30,6 +30,12 @@ import java.util.Map;
  */
 public class ApiHelper {
 
+    /** Max characters to display for field values in log messages. */
+    private static final int LOG_VALUE_MAX_LENGTH = 50;
+
+    /** Milliseconds per second, used for converting seconds to milliseconds in polling waits. */
+    private static final long MILLIS_PER_SECOND = 1000L;
+
     private final HttpClient httpClient;
 
     /**
@@ -50,26 +56,6 @@ public class ApiHelper {
     }
 
     /**
-     * Método de fábrica para obtener la instancia registrada en el {@link ExecutionContext} activo,
-     * o crear una nueva si no hay contexto activo (backward compatibility).
-     *
-     * <p>Comportamiento por modo de ejecución:
-     * <ul>
-     *   <li><b>Engine mode</b>: {@link com.qa.apicore.plugin.ApiPlugin} ya registró {@code ApiHelper}
-     *       en el {@link com.qa.common.runtime.ServiceRegistry} → se reutiliza la instancia.</li>
-     *   <li><b>Standalone mode</b> (JUnit directo, sin Engine): el contexto existe pero el registry
-     *       está vacío → se crea y auto-registra una instancia para que todos los steps del
-     *       mismo escenario compartan el mismo {@link HttpClient}.</li>
-     *   <li><b>Sin contexto</b>: retorna una nueva instancia aislada (backward compatibility).</li>
-     * </ul>
-     *
-     * <p>Los steps deben preferir este método sobre {@code new ApiHelper()} para
-     * compartir el mismo {@link HttpClient} dentro del escenario.</p>
-     *
-     * @return ApiHelper del contexto activo o una nueva instancia aislada
-     * @since 2.0.0
-     */
-    /**
      * Método de fábrica para obtener la instancia registrada en el {@link ExecutionContext} activo.
      *
      * <p>Comportamiento por modo de ejecución:
@@ -89,14 +75,11 @@ public class ApiHelper {
      * @since 2.0.0
      */
     public static ApiHelper forCurrentContext() {
-        return ExecutionContext.current()
-                .map(ctx -> ctx.registry().get(ApiHelper.class)
-                        .orElseGet(() -> {
+        return ExecutionContext.current().map(ctx -> ctx.registry().get(ApiHelper.class).orElseGet(() -> {
                             // Fallback de seguridad: si el hook no corrió aún, bootstrapeamos
                             // aquí y registramos AMBOS servicios para que los steps posteriores
                             // (HeaderSteps, HttpExecutionSteps, etc.) encuentren el mismo HttpClient.
-                            HttpClient httpClient = ctx.registry().get(HttpClient.class)
-                                    .orElseGet(() -> {
+                            HttpClient httpClient = ctx.registry().get(HttpClient.class).orElseGet(() -> {
                                         HttpClient newClient = new BaseHttpClient();
                                         ctx.registry().registerInstance(HttpClient.class, newClient);
                                         return newClient;
@@ -106,8 +89,7 @@ public class ApiHelper {
                             TestLogger.logDebug("API_HELPER",
                                 "HttpClient + ApiHelper auto-registrados (fallback standalone)", null);
                             return helper;
-                        }))
-                .orElseGet(ApiHelper::new);
+                        })).orElseGet(ApiHelper::new);
     }
 
     // =========================================================================
@@ -123,9 +105,7 @@ public class ApiHelper {
      * @return texto con variables resueltas
      */
     private String resolve(String text) {
-        return ExecutionContext.current()
-                .map(ctx -> ctx.variables().resolve(text))
-                .orElse(text);
+        return ExecutionContext.current().map(ctx -> ctx.variables().resolve(text)).orElse(text);
     }
 
     // =========================================================================
@@ -136,9 +116,7 @@ public class ApiHelper {
      * Obtiene un objeto del {@link com.qa.common.runtime.VariableStore} del contexto activo.
      */
     private Object getContextVariable(String key) {
-        return ExecutionContext.current()
-                .flatMap(ctx -> ctx.variables().get(key, Object.class))
-                .orElse(null);
+        return ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).orElse(null);
     }
 
     /**
@@ -147,8 +125,11 @@ public class ApiHelper {
      */
     private void setContextVariable(String key, Object value) {
         ExecutionContext.current().ifPresent(ctx -> {
-            if (value == null) ctx.variables().remove(key);
-            else ctx.variables().set(key, value);
+            if (value == null) {
+                ctx.variables().remove(key);
+            } else {
+                ctx.variables().set(key, value);
+            }
         });
     }
 
@@ -156,7 +137,9 @@ public class ApiHelper {
      * Almacena un string en el {@link com.qa.common.runtime.VariableStore} del contexto activo.
      */
     private void setContextString(String key, Object value) {
-        if (value == null) return;
+        if (value == null) {
+            return;
+        }
         ExecutionContext.current().ifPresent(ctx -> ctx.variables().set(key, value.toString()));
     }
 
@@ -175,10 +158,8 @@ public class ApiHelper {
         try {
             // Preferir ExecutionContext.config() — es por ejecución e inmutable (safe en paralelo)
             // Fallback a ConfigManager para compatibilidad con ejecución sin Engine
-            String endpointValue = ExecutionContext.current()
-                    .flatMap(ctx -> ctx.config().getProperty(propertyKey))
-                    .filter(v -> !v.trim().isEmpty())
-                    .orElseGet(() -> ConfigManager.getInstance().get(propertyKey));
+            String endpointValue = ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(propertyKey)).
+                    filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(propertyKey));
 
             if (endpointValue == null || endpointValue.trim().isEmpty()) {
                 throw new RuntimeException(String.format(
@@ -366,15 +347,11 @@ public class ApiHelper {
         try {
             // Preferir ExecutionContext.config() — es por ejecución e inmutable (safe en paralelo)
             // Fallback a ConfigManager para compatibilidad con ejecución sin Engine
-            String baseUrl = ExecutionContext.current()
-                    .flatMap(ctx -> ctx.config().getProperty(baseUrlKey))
-                    .filter(v -> !v.trim().isEmpty())
-                    .orElseGet(() -> ConfigManager.getInstance().get(baseUrlKey));
+            String baseUrl = ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(baseUrlKey)).
+                    filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(baseUrlKey));
 
-            String endpointPath = ExecutionContext.current()
-                    .flatMap(ctx -> ctx.config().getProperty(pathKey))
-                    .filter(v -> !v.trim().isEmpty())
-                    .orElseGet(() -> ConfigManager.getInstance().get(pathKey));
+            String endpointPath = ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(pathKey)).
+                    filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(pathKey));
 
             if (baseUrl == null || baseUrl.trim().isEmpty()) {
                 throw new RuntimeException(
@@ -416,8 +393,8 @@ public class ApiHelper {
             String processedUsername = resolve(username);
             String processedPassword = resolve(password);
 
-            String credentials = Base64.getEncoder()
-                .encodeToString((processedUsername + ":" + processedPassword).getBytes());
+            String credentials = Base64.getEncoder().
+                encodeToString((processedUsername + ":" + processedPassword).getBytes());
 
             httpClient.addHeader("Authorization", "Basic " + credentials);
 
@@ -1007,8 +984,8 @@ public class ApiHelper {
             TestLogger.logInfo("API_HELPER_SERIALIZATION",
                 String.format("✅ Campo extraído: campo='%s', valor=%s, guardado como='api.%s'",
                     fieldName,
-                    fieldValue.toString().length() > 50
-                        ? fieldValue.toString().substring(0, 50) + "..."
+                    fieldValue.toString().length() > LOG_VALUE_MAX_LENGTH
+                        ? fieldValue.toString().substring(0, LOG_VALUE_MAX_LENGTH) + "..."
                         : fieldValue.toString(),
                     variableName), null);
 
@@ -1277,7 +1254,7 @@ public class ApiHelper {
                     response != null ? response.getStatusCode() : -1,
                     expectedCode, waitSeconds), null);
             if (attempt < maxAttempts) {
-                try { Thread.sleep(waitSeconds * 1000L); }
+                try { Thread.sleep(waitSeconds * MILLIS_PER_SECOND); }
                 catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             }
         }
@@ -1310,8 +1287,7 @@ public class ApiHelper {
             try {
                 HttpResponse response = httpClient.getLastResponse();
                 if (response != null && response.getBody() != null) {
-                    Object actual = com.qa.common.utils.JsonUtilities
-                            .getJsonParameter(response.getBody(), jsonPath);
+                    Object actual = com.qa.common.utils.JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
                     if (actual != null && processedExpected.equals(actual.toString())) {
                         TestLogger.logInfo("API_HELPER_POLL",
                             String.format("✅ Polling exitoso en intento %d/%d — '%s' = '%s'",
@@ -1328,7 +1304,7 @@ public class ApiHelper {
                         attempt, maxAttempts, jsonPath, e.getMessage()), null);
             }
             if (attempt < maxAttempts) {
-                try { Thread.sleep(waitSeconds * 1000L); }
+                try { Thread.sleep(waitSeconds * MILLIS_PER_SECOND); }
                 catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             }
         }

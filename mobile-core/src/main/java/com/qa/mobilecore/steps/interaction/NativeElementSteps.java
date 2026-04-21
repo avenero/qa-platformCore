@@ -20,6 +20,8 @@ import org.assertj.core.api.Assertions;
  */
 public class NativeElementSteps {
 
+    private static final long MILLIS_PER_SECOND = 1000L;
+
     // =========================================================================
     // Escritura e interacción (WHEN)
     // =========================================================================
@@ -96,9 +98,7 @@ public class NativeElementSteps {
     public void verificoElementoNativoVisible(String locator) {
         String resolved = ctx().variables().resolve(locator);
         boolean visible = mobile().isVisible(resolved);
-        Assertions.assertThat(visible)
-            .as("El elemento '%s' deberia ser visible", resolved)
-            .isTrue();
+        Assertions.assertThat(visible).as("El elemento '%s' deberia ser visible", resolved).isTrue();
         TestLogger.logInfo("NATIVE_EL", "Elemento visible: " + resolved, null);
     }
 
@@ -111,27 +111,24 @@ public class NativeElementSteps {
     public void elementoNoDebeSerVisible(String locator) {
         String resolved = ctx().variables().resolve(locator);
         boolean visible = mobile().isVisible(resolved);
-        Assertions.assertThat(visible)
-            .as("El elemento '%s' NO deberia ser visible", resolved)
-            .isFalse();
+        Assertions.assertThat(visible).as("El elemento '%s' NO deberia ser visible", resolved).isFalse();
         TestLogger.logInfo("NATIVE_EL", "Elemento no visible (OK): " + resolved, null);
     }
 
     @Then("el elemento {string} debe estar habilitado")
     public void elementoDebeEstarHabilitado(String locator) {
         String resolved = ctx().variables().resolve(locator);
-        Assertions.assertThat(mobile().isEnabled(resolved))
-            .as("El elemento '%s' deberia estar habilitado", resolved)
-            .isTrue();
+        Assertions.assertThat(mobile().isEnabled(resolved)).as("El elemento '%s' deberia estar habilitado", resolved).
+            isTrue();
         TestLogger.logInfo("NATIVE_EL", "Elemento habilitado (OK): " + resolved, null);
     }
 
     @Then("el elemento {string} debe estar deshabilitado")
     public void elementoDebeEstarDeshabilitado(String locator) {
         String resolved = ctx().variables().resolve(locator);
-        Assertions.assertThat(mobile().isEnabled(resolved))
-            .as("El elemento '%s' deberia estar deshabilitado", resolved)
-            .isFalse();
+        Assertions.assertThat(mobile().isEnabled(resolved)).
+            as("El elemento '%s' deberia estar deshabilitado", resolved).
+            isFalse();
         TestLogger.logInfo("NATIVE_EL", "Elemento deshabilitado (OK): " + resolved, null);
     }
 
@@ -140,9 +137,7 @@ public class NativeElementSteps {
         String resolvedLocator = ctx().variables().resolve(locator);
         String resolvedExpected = ctx().variables().resolve(expectedText);
         String actual = mobile().getText(resolvedLocator);
-        Assertions.assertThat(actual)
-            .as("Texto del elemento '%s'", resolvedLocator)
-            .isEqualTo(resolvedExpected);
+        Assertions.assertThat(actual).as("Texto del elemento '%s'", resolvedLocator).isEqualTo(resolvedExpected);
         TestLogger.logInfo("NATIVE_EL",
             "Texto validado en '" + resolvedLocator + "': " + actual, null);
     }
@@ -152,9 +147,9 @@ public class NativeElementSteps {
         String resolvedLocator = ctx().variables().resolve(locator);
         String resolvedPart    = ctx().variables().resolve(partialText);
         String actual = mobile().getText(resolvedLocator);
-        Assertions.assertThat(actual)
-            .as("Texto del elemento '%s' deberia contener '%s'", resolvedLocator, resolvedPart)
-            .contains(resolvedPart);
+        Assertions.assertThat(actual).
+            as("Texto del elemento '%s' deberia contener '%s'", resolvedLocator, resolvedPart).
+            contains(resolvedPart);
         TestLogger.logInfo("NATIVE_EL",
             "Texto contiene (OK) en '" + resolvedLocator + "': " + resolvedPart, null);
     }
@@ -165,9 +160,8 @@ public class NativeElementSteps {
         String resolvedLocator  = ctx().variables().resolve(locator);
         String resolvedExpected = ctx().variables().resolve(expectedValue);
         String actual = mobile().getAttribute(resolvedLocator, resolvedAttr);
-        Assertions.assertThat(actual)
-            .as("Atributo '%s' del elemento '%s'", resolvedAttr, resolvedLocator)
-            .isEqualTo(resolvedExpected);
+        Assertions.assertThat(actual).as("Atributo '%s' del elemento '%s'", resolvedAttr, resolvedLocator).
+            isEqualTo(resolvedExpected);
         TestLogger.logInfo("NATIVE_EL",
             "Atributo '" + resolvedAttr + "' validado: " + actual, null);
     }
@@ -206,7 +200,7 @@ public class NativeElementSteps {
     @When("espero {int} segundos")
     public void esperarSegundos(int seconds) {
         try {
-            Thread.sleep(seconds * 1000L);
+            Thread.sleep(seconds * MILLIS_PER_SECOND);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

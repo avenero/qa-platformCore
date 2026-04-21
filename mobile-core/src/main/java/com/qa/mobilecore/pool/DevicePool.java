@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class DevicePool {
 
     private static final DevicePool INSTANCE = new DevicePool();
+    private static final int DEFAULT_APPIUM_BASE_PORT = 4723;
 
     /** deviceId → estado actual del dispositivo */
     private final ConcurrentHashMap<String, AtomicReference<DeviceStatus>> statusMap =
@@ -89,7 +90,7 @@ public class DevicePool {
         }
 
         ConfigManager config = ConfigManager.getInstance();
-        int basePort = config.getInt(MobileConfigKeys.APPIUM_BASE_PORT, 4723);
+        int basePort = config.getInt(MobileConfigKeys.APPIUM_BASE_PORT, DEFAULT_APPIUM_BASE_PORT);
 
         if (autoScan) {
             DeviceDiscoveryService scanner = new DeviceDiscoveryService();
@@ -145,7 +146,9 @@ public class DevicePool {
      * @param deviceId ID lógico del dispositivo a liberar
      */
     public void release(String deviceId) {
-        if (deviceId == null) return;
+        if (deviceId == null) {
+            return;
+        }
         AtomicReference<DeviceStatus> ref = statusMap.get(deviceId);
         if (ref != null) {
             ref.set(DeviceStatus.AVAILABLE);
@@ -252,13 +255,9 @@ public class DevicePool {
      * Reconstruye un DeviceDescriptor con la URL Appium del puerto asignado.
      */
     private DeviceDescriptor rebuildWithUrl(DeviceDescriptor original, String appiumUrl) {
-        return DeviceDescriptor.builder(original.getId(), original.getType())
-            .platformName(original.getPlatformName())
-            .platformVersion(original.getPlatformVersion())
-            .deviceName(original.getDeviceName())
-            .udid(original.getUdid())
-            .appiumServerUrl(appiumUrl)
-            .build();
+        return DeviceDescriptor.builder(original.getId(), original.getType()).platformName(original.getPlatformName()).
+            platformVersion(original.getPlatformVersion()).deviceName(original.getDeviceName()).
+            udid(original.getUdid()).appiumServerUrl(appiumUrl).build();
     }
 
     /**
@@ -278,12 +277,8 @@ public class DevicePool {
                 ? DeviceType.IOS_SIMULATOR : DeviceType.ANDROID_EMULATOR;
         }
 
-        return DeviceDescriptor.builder(deviceId, type)
-            .platformName(platform)
-            .platformVersion(version)
-            .deviceName(name)
-            .udid(udid)
-            .appiumServerUrl(appiumUrl)
-            .build();
+        return DeviceDescriptor.builder(deviceId, type).
+            platformName(platform).platformVersion(version).deviceName(name).
+            udid(udid).appiumServerUrl(appiumUrl).build();
     }
 }

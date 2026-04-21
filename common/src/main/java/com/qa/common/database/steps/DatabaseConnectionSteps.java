@@ -181,8 +181,8 @@ public class DatabaseConnectionSteps {
 
     @When("ejecuto la consulta {string} con parametros {string}")
     public void ejecutarConsultaConParametros(String query, String parameters) throws FrameworkBusinessException {
-        DatabaseConnector connector = ExecutionContext.requireCurrent().variables()
-                .require("currentDbConnector", DatabaseConnector.class);
+        DatabaseConnector connector = ExecutionContext.requireCurrent().variables().
+                require("currentDbConnector", DatabaseConnector.class);
         Map<String, Object> result = DatabaseHelper.executeQuery(connector, query, parameters);
 
         ExecutionContext.requireCurrent().variables().set("queryResult", result);
@@ -236,8 +236,8 @@ public class DatabaseConnectionSteps {
      */
     @When("ejecuto la sentencia {string} con parametros {string}")
     public void ejecutarSentenciaConParametros(String sql, String parameters) throws FrameworkBusinessException {
-        DatabaseConnector connector = ExecutionContext.requireCurrent().variables()
-                .require("currentDbConnector", DatabaseConnector.class);
+        DatabaseConnector connector = ExecutionContext.requireCurrent().variables().
+                require("currentDbConnector", DatabaseConnector.class);
         int rowsAffected = DatabaseHelper.executeStatement(connector, sql, parameters);
         ExecutionContext.requireCurrent().variables().set("rowsAffected", rowsAffected);
     }
@@ -254,7 +254,8 @@ public class DatabaseConnectionSteps {
      *
      * <p><b>Ejemplos:</b></p>
      * <pre>
-     * When ejecuto la consulta "SELECT user_id, email, balance FROM accounts WHERE account_id = ?" con parametros "ACC-001"
+     * When ejecuto la consulta
+     *      "SELECT user_id, email, balance FROM accounts WHERE account_id = ?" con parametros "ACC-001"
      * Then obtengo el valor de la columna "balance"  y lo almaceno en "saldoCuenta"
      * And  obtengo el valor de la columna "user_id"  y lo almaceno en "usuarioId"
      * And  obtengo el valor de la columna "email"    y lo almaceno en "emailUsuario"
@@ -270,8 +271,8 @@ public class DatabaseConnectionSteps {
     @Then("obtengo el valor de la columna {string} y lo almaceno en {string}")
     public void obtenerValorColumna(String columnName, String variableName) throws FrameworkBusinessException {
         @SuppressWarnings("unchecked")
-        Map<String, Object> queryResult = ExecutionContext.requireCurrent().variables()
-                .require("queryResult", Map.class);
+        Map<String, Object> queryResult = ExecutionContext.requireCurrent().variables().
+                require("queryResult", Map.class);
         Object value = DatabaseHelper.getColumnValue(queryResult, columnName);
         if (value != null) {
             ExecutionContext.requireCurrent().variables().set(variableName, value);
@@ -300,8 +301,8 @@ public class DatabaseConnectionSteps {
     @Then("valido que la consulta retorne resultados")
     public void validarQueRetorneResultados() throws FrameworkBusinessException {
         @SuppressWarnings("unchecked")
-        Map<String, Object> queryResult = ExecutionContext.requireCurrent().variables()
-                .require("queryResult", Map.class);
+        Map<String, Object> queryResult = ExecutionContext.requireCurrent().variables().
+                require("queryResult", Map.class);
         DatabaseHelper.validateHasResults(queryResult);
     }
 
@@ -318,7 +319,8 @@ public class DatabaseConnectionSteps {
      * Then valido que la consulta no retorne resultados
      *
      * # Verificar ausencia de registros con cierta condición
-     * When ejecuto la consulta "SELECT * FROM tokens WHERE status = 'ACTIVE' AND user_id = ?" con parametros "{{userId}}"
+     * When ejecuto la consulta
+     *      "SELECT * FROM tokens WHERE status = 'ACTIVE' AND user_id = ?" con parametros "{{userId}}"
      * Then valido que la consulta no retorne resultados
      * </pre>
      *
@@ -327,8 +329,8 @@ public class DatabaseConnectionSteps {
     @Then("valido que la consulta no retorne resultados")
     public void validarQueNoRetorneResultados() throws FrameworkBusinessException {
         @SuppressWarnings("unchecked")
-        Map<String, Object> queryResult = ExecutionContext.requireCurrent().variables()
-                .require("queryResult", Map.class);
+        Map<String, Object> queryResult = ExecutionContext.requireCurrent().variables().
+                require("queryResult", Map.class);
         DatabaseHelper.validateNoResults(queryResult);
     }
 
@@ -356,8 +358,8 @@ public class DatabaseConnectionSteps {
     @Then("valido que la columna {string} tenga el valor {string}")
     public void validarValorColumna(String columnName, String expectedValue) throws FrameworkBusinessException {
         @SuppressWarnings("unchecked")
-        Map<String, Object> queryResult = ExecutionContext.requireCurrent().variables()
-                .require("queryResult", Map.class);
+        Map<String, Object> queryResult = ExecutionContext.requireCurrent().variables().
+                require("queryResult", Map.class);
         DatabaseHelper.validateColumnValue(queryResult, columnName, expectedValue);
     }
 

@@ -15,13 +15,16 @@ import java.util.Map;
  */
 @StepId("mobile.gesture")
 public class GestureComponent implements StepComponent {
+
+    private static final int DISPLAY_ORDER = 30;
+
     @Override public String getName()                  { return "Gestos"; }
     @Override public String getDisplayName()           { return "Gestos"; }
     @Override public String getDescription()           { return "Tap, long press, swipe, pinch, zoom"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
     @Override public String getCategory()              { return "Interaccion Mobile"; }
     @Override public String getIcon()                  { return "gesture"; }
-    @Override public int getDisplayOrder()             { return 30; }
+    @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return GestureSteps.class; }
 
     @Override

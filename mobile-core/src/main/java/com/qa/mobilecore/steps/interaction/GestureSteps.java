@@ -16,6 +16,8 @@ import io.cucumber.java.en.When;
  */
 public class GestureSteps {
 
+    private static final long MILLIS_PER_SECOND = 1000L;
+
     // =========================================================================
     // Tap
     // =========================================================================
@@ -41,7 +43,7 @@ public class GestureSteps {
     @When("mantengo presionado el elemento {string} por {int} segundos")
     public void mantengoPresionadoPorSegundos(String locator, int seconds) {
         String resolved = ctx().variables().resolve(locator);
-        mobile().longPress(resolved, seconds * 1000L);
+        mobile().longPress(resolved, seconds * MILLIS_PER_SECOND);
         TestLogger.logInfo("GESTURE", "Long press " + seconds + "s en: " + resolved, null);
     }
 
@@ -90,7 +92,9 @@ public class GestureSteps {
         String resolved = ctx().variables().resolve(locator);
         // Scroll genérico hacia arriba hasta encontrar el elemento
         for (int i = 0; i < 5; i++) {
-            if (mobile().elementExists(resolved)) break;
+            if (mobile().elementExists(resolved)) {
+                break;
+            }
             mobile().swipe("arriba");
         }
         TestLogger.logInfo("GESTURE", "Scroll hasta elemento: " + resolved, null);

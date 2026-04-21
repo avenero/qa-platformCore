@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.input")
 public class InputComponent implements StepComponent {
-    @Override public String getName()                  { return "Entrada de Texto"; }
-    @Override public String getDisplayName()           { return "Entrada de Texto"; }
-    @Override public String getDescription()           { return "Escribir texto, limpiar campos, teclado"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Interaccion"; }
-    @Override public String getIcon()                  { return "keyboard"; }
-    @Override public int getDisplayOrder()             { return 70; }
-    @Override public Class<?> getStepDefinitionClass() { return InputSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 70;
+
+    @Override
+    public String getName() {
+        return "Entrada de Texto";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Entrada de Texto";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Escribir texto, limpiar campos, teclado";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Interaccion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "keyboard";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return InputSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

@@ -44,7 +44,10 @@ import java.util.Set;
  */
 public class ApiPlugin implements CorePlugin {
 
-    private static final Logger log = LoggerFactory.getLogger(ApiPlugin.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ApiPlugin.class);
+
+    /** Orden de registro del plugin API dentro del sistema de plugins. */
+    private static final int PLUGIN_ORDER = 50;
 
     @Override
     public String getName() {
@@ -58,12 +61,12 @@ public class ApiPlugin implements CorePlugin {
 
     @Override
     public int getOrder() {
-        return 50;
+        return PLUGIN_ORDER;
     }
 
     @Override
     public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
-        log.debug("[ApiPlugin] Registrando servicios HTTP...");
+        LOG.debug("[ApiPlugin] Registrando servicios HTTP...");
 
         // HttpClient — inicialización lazy para no crear el cliente si el escenario no lo usa
         registry.registerLazy(HttpClient.class, BaseHttpClient::new);
@@ -80,21 +83,19 @@ public class ApiPlugin implements CorePlugin {
             return new ApiHelper(httpClient);
         });
 
-        log.info("[ApiPlugin] Servicios registrados: HttpClient, AuthenticationService, ApiHelper");
+        LOG.info("[ApiPlugin] Servicios registrados: HttpClient, AuthenticationService, ApiHelper");
     }
 
     @Override
     public void onScenarioStart(ExecutionContext context) {
-        log.debug("[ApiPlugin] onScenarioStart — reiniciando estado HTTP para escenario");
-        context.registry().get(HttpClient.class)
-                .ifPresent(HttpClient::clearRequestData);
+        LOG.debug("[ApiPlugin] onScenarioStart — reiniciando estado HTTP para escenario");
+        context.registry().get(HttpClient.class).ifPresent(HttpClient::clearRequestData);
     }
 
     @Override
     public void onScenarioEnd(ExecutionContext context) {
-        log.debug("[ApiPlugin] onScenarioEnd — limpiando cliente HTTP");
-        context.registry().get(HttpClient.class)
-                .ifPresent(HttpClient::reset);
+        LOG.debug("[ApiPlugin] onScenarioEnd — limpiando cliente HTTP");
+        context.registry().get(HttpClient.class).ifPresent(HttpClient::reset);
     }
 
     /**
@@ -117,7 +118,9 @@ public class ApiPlugin implements CorePlugin {
                 new ApiHeaderComponent(),
                 new ApiCookieComponent(),
                 new ApiParameterComponent(),
-                new ApiRequestBodyComponent(), // @deprecated — reemplazar por "api.request.body" en v2.2.0 (TODO: remover en v2.3.0)
+                // TODO: remover ApiRequestBodyComponent en v2.3.0
+                // @deprecated — reemplazar por "api.request.body" en v2.2.0
+                new ApiRequestBodyComponent(),
                 // WHEN — Ejecución
                 new ApiExecutionComponent(),
                 // THEN — Validación

@@ -43,7 +43,8 @@ public class DatabaseConfig {
      * @param driverClassName Nombre de la clase del driver JDBC
      * @return DataSource configurado con HikariCP
      */
-    public static DataSource createHikariDataSource(String jdbcUrl, String user, String password, String driverClassName) {
+    public static DataSource createHikariDataSource(
+            String jdbcUrl, String user, String password, String driverClassName) {
         return createHikariDataSource(jdbcUrl, user, password, driverClassName,
                                      DEFAULT_MAX_POOL_SIZE, DEFAULT_MIN_IDLE);
     }

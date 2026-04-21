@@ -15,13 +15,16 @@ import java.util.Map;
  */
 @StepId("mobile.app.management")
 public class AppManagementComponent implements StepComponent {
+
+    private static final int DISPLAY_ORDER = 20;
+
     @Override public String getName()                  { return "Gestion de App"; }
     @Override public String getDisplayName()           { return "Gestion de App"; }
     @Override public String getDescription()           { return "Instalar, lanzar y cerrar la aplicacion movil"; }
     @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
     @Override public String getCategory()              { return "Configuracion Mobile"; }
     @Override public String getIcon()                  { return "apps"; }
-    @Override public int getDisplayOrder()             { return 20; }
+    @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return AppManagementSteps.class; }
 
     @Override

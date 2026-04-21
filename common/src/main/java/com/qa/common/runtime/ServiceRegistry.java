@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class ServiceRegistry {
 
-    private static final Logger log = LoggerFactory.getLogger(ServiceRegistry.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ServiceRegistry.class);
 
     private final ConcurrentHashMap<Class<?>, Supplier<?>> factories = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Class<?>, Object> instances = new ConcurrentHashMap<>();
@@ -39,7 +39,7 @@ public final class ServiceRegistry {
         Objects.requireNonNull(type, "type no puede ser null");
         Objects.requireNonNull(factory, "factory no puede ser null");
         factories.put(type, factory);
-        log.debug("Servicio registrado (lazy): {}", type.getSimpleName());
+        LOG.debug("Servicio registrado (lazy): {}", type.getSimpleName());
     }
 
     /**
@@ -54,7 +54,7 @@ public final class ServiceRegistry {
         Objects.requireNonNull(type, "type no puede ser null");
         Objects.requireNonNull(instance, "instance no puede ser null");
         instances.put(type, instance);
-        log.debug("Servicio registrado (instancia): {}", type.getSimpleName());
+        LOG.debug("Servicio registrado (instancia): {}", type.getSimpleName());
     }
 
     /**
@@ -80,7 +80,7 @@ public final class ServiceRegistry {
         if (factory != null) {
             // computeIfAbsent es thread-safe
             Object created = instances.computeIfAbsent(type, k -> {
-                log.debug("Inicializando servicio lazy: {}", type.getSimpleName());
+                LOG.debug("Inicializando servicio lazy: {}", type.getSimpleName());
                 return factory.get();
             });
             return Optional.of(type.cast(created));
@@ -117,9 +117,7 @@ public final class ServiceRegistry {
      */
     public int size() {
         // Contar factories que no tienen instancia aun + instancias
-        long factoryOnly = factories.keySet().stream()
-                .filter(k -> !instances.containsKey(k))
-                .count();
+        long factoryOnly = factories.keySet().stream().filter(k -> !instances.containsKey(k)).count();
         return (int) factoryOnly + instances.size();
     }
 
@@ -136,13 +134,13 @@ public final class ServiceRegistry {
                 try {
                     ac.close();
                 } catch (Exception e) {
-                    log.warn("Error al cerrar servicio {}: {}", instance.getClass().getSimpleName(), e.getMessage());
+                    LOG.warn("Error al cerrar servicio {}: {}", instance.getClass().getSimpleName(), e.getMessage());
                 }
             }
         });
         instances.clear();
         factories.clear();
-        log.debug("ServiceRegistry destruido (recursos liberados)");
+        LOG.debug("ServiceRegistry destruido (recursos liberados)");
     }
 
     /**
@@ -152,7 +150,7 @@ public final class ServiceRegistry {
     public void clear() {
         factories.clear();
         instances.clear();
-        log.debug("ServiceRegistry limpiado (sin cerrar recursos)");
+        LOG.debug("ServiceRegistry limpiado (sin cerrar recursos)");
     }
 
     @Override

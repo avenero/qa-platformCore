@@ -6,7 +6,8 @@ import com.qa.common.reporting.core.config.ReportingConfig;
 import com.qa.common.reporting.extent.generator.ReportingManager;
 import com.qa.common.reporting.manager.pipeline.PipelineResult;
 import io.cucumber.plugin.EventListener;
-import io.cucumber.plugin.event.*;
+import io.cucumber.plugin.event.EventPublisher;
+import io.cucumber.plugin.event.TestRunFinished;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,6 +52,12 @@ public class CucumberReportingPlugin implements EventListener {
     /** Reintentos máximos esperando a que el archivo JSON esté disponible. */
     private static final int MAX_IO_WAIT_ATTEMPTS = 10;
 
+    /** Milisegundos base por intento de backoff progresivo. */
+    private static final long BACKOFF_BASE_MS = 100L;
+
+    /** Number of separator characters for log section headers. */
+    private static final int LOG_SEPARATOR_LENGTH = 60;
+
     @Override
     public void setEventPublisher(EventPublisher publisher) {
         publisher.registerHandlerFor(TestRunFinished.class, this::handleTestRunFinished);
@@ -62,7 +69,9 @@ public class CucumberReportingPlugin implements EventListener {
      * @param event evento de finalización de Cucumber
      */
     private void handleTestRunFinished(TestRunFinished event) {
-        TestLogger.logInfo("REPORTING", "═".repeat(60) + " GENERANDO REPORTES POST-EJECUCIÓN " + "═".repeat(60), null);
+        TestLogger.logInfo("REPORTING",
+            "═".repeat(LOG_SEPARATOR_LENGTH) + " GENERANDO REPORTES POST-EJECUCIÓN "
+                + "═".repeat(LOG_SEPARATOR_LENGTH), null);
 
         try {
             ReportingConfig config = ReportingConfig.fromConfigManager();
@@ -130,8 +139,10 @@ public class CucumberReportingPlugin implements EventListener {
                 if (Files.exists(path) && Files.size(path) > 2) {
                     return true;
                 }
-            } catch (Exception ignored) { }
-            long waitMs = 100L * attempt; // backoff: 100, 200, 300, ... 1000ms
+            } catch (Exception ignored) {
+                // archivo aún no disponible o no accesible
+            }
+            long waitMs = BACKOFF_BASE_MS * attempt; // backoff: 100, 200, 300, ... 1000ms
             TestLogger.logDebug("REPORTING",
                     String.format("Esperando archivo (intento %d/%d, %dms)...", attempt, MAX_IO_WAIT_ATTEMPTS, waitMs),
                     null);

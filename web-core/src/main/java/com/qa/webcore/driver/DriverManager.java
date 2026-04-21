@@ -4,22 +4,25 @@ import com.qa.common.logging.TestLogger;
 import org.openqa.selenium.WebDriver;
 
 /**
- * Gestor singleton de WebDriver usando ThreadLocal para soporte de ejecución paralela.
+ * Gestor singleton de WebDriver usando ThreadLocal para soporte de ejecucion paralela.
  *
- * <p>Proporciona una instancia única de WebDriver por thread, permitiendo ejecuciones
+ * <p>Proporciona una instancia unica de WebDriver por thread, permitiendo ejecuciones
  * paralelas de tests sin conflictos entre threads.</p>
+ *
+ * @author CuAleon Test Engineering
+ * @since 1.0
  */
 public class DriverManager {
 
     /**
      * ThreadLocal para almacenar instancia de WebDriver por thread.
-     * Permite ejecución paralela de tests sin conflictos.
+     * Permite ejecucion paralela de tests sin conflictos.
      */
-    private static final ThreadLocal<WebDriver> driver = new ThreadLocal<>();
+    private static final ThreadLocal<WebDriver> DRIVER_HOLDER = new ThreadLocal<>();
 
     /**
-     * Constructor privado para prevenir instanciación.
-     * Esta clase solo tiene métodos estáticos.
+     * Constructor privado para prevenir instanciacion.
+     * Esta clase solo tiene metodos estaticos.
      */
     private DriverManager() {
         // Utility class - no instantiation
@@ -27,7 +30,7 @@ public class DriverManager {
 
     /**
      * Establece el WebDriver para el thread actual.
-     * Mantener este método para compatibilidad con código existente.
+     * Mantener este metodo para compatibilidad con codigo existente.
      *
      * @param webDriver Instancia de WebDriver a establecer
      * @throws IllegalArgumentException si webDriver es null
@@ -37,10 +40,11 @@ public class DriverManager {
     }
 
     /**
-     * Establece el WebDriver para el thread actual con opción para evitar reemplazo accidental.
+     * Establece el WebDriver para el thread actual con opcion para evitar reemplazo accidental.
      *
      * @param webDriver Instancia de WebDriver a establecer
-     * @param replace Si true, reemplaza el driver existente. Si false y ya existe, lanza IllegalStateException.
+     * @param replace Si true, reemplaza el driver existente. Si false y ya existe, lanza
+     *                IllegalStateException.
      */
     public static void setDriver(WebDriver webDriver, boolean replace) {
         if (webDriver == null) {
@@ -49,14 +53,14 @@ public class DriverManager {
             throw new IllegalArgumentException("WebDriver no puede ser null");
         }
 
-        WebDriver current = driver.get();
+        WebDriver current = DRIVER_HOLDER.get();
         if (current != null && !replace) {
             String error = "WebDriver ya inicializado para thread: " + Thread.currentThread().getName();
             TestLogger.logError("DRIVER_MANAGER", error, null);
             throw new IllegalStateException(error);
         }
 
-        driver.set(webDriver);
+        DRIVER_HOLDER.set(webDriver);
         TestLogger.logInfo("DRIVER_MANAGER",
             "WebDriver establecido para thread: " + Thread.currentThread().getName(), null);
     }
@@ -68,12 +72,12 @@ public class DriverManager {
      * @throws IllegalStateException si no se ha inicializado el driver
      */
     public static WebDriver getDriver() {
-        WebDriver currentDriver = driver.get();
+        WebDriver currentDriver = DRIVER_HOLDER.get();
 
         if (currentDriver == null) {
-            String errorMsg = "WebDriver no inicializado para thread: " +
-                Thread.currentThread().getName() +
-                ". Llama a DriverManager.setDriver() primero.";
+            String errorMsg = "WebDriver no inicializado para thread: "
+                + Thread.currentThread().getName()
+                + ". Llama a DriverManager.setDriver() primero.";
             TestLogger.logError("DRIVER_MANAGER", errorMsg, null);
             throw new IllegalStateException(errorMsg);
         }
@@ -82,53 +86,53 @@ public class DriverManager {
     }
 
     /**
-     * Obtiene el WebDriver del thread actual o null si no está inicializado.
+     * Obtiene el WebDriver del thread actual o null si no esta inicializado.
      *
      * @return WebDriver o null
      */
     public static WebDriver getDriverOrNull() {
-        return driver.get();
+        return DRIVER_HOLDER.get();
     }
 
     /**
      * Cierra y limpia el WebDriver del thread actual.
      *
      * <p>Ejecuta driver.quit() para cerrar todas las ventanas y finalizar
-     * la sesión del navegador, luego limpia la referencia del ThreadLocal.</p>
+     * la sesion del navegador, luego limpia la referencia del ThreadLocal.</p>
      */
     public static void quitDriver() {
-        WebDriver currentDriver = driver.get();
+        WebDriver currentDriver = DRIVER_HOLDER.get();
 
         if (currentDriver != null) {
             try {
                 currentDriver.quit();
                 TestLogger.logInfo("DRIVER_MANAGER",
-                    "WebDriver cerrado exitosamente para thread: " +
-                    Thread.currentThread().getName(), null);
+                    "WebDriver cerrado exitosamente para thread: "
+                    + Thread.currentThread().getName(), null);
             } catch (Exception e) {
                 TestLogger.logError("DRIVER_MANAGER",
                     "Error al cerrar WebDriver: " + e.getMessage(), null);
             } finally {
-                driver.remove(); // Limpiar ThreadLocal
+                DRIVER_HOLDER.remove(); // Limpiar ThreadLocal
             }
         } else {
             TestLogger.logWarning("DRIVER_MANAGER",
-                "Intento de cerrar WebDriver que no está inicializado", null);
+                "Intento de cerrar WebDriver que no esta inicializado", null);
         }
     }
 
     /**
-     * Verifica si el driver está inicializado para el thread actual.
+     * Verifica si el driver esta inicializado para el thread actual.
      *
-     * @return true si el driver está inicializado, false en caso contrario
+     * @return true si el driver esta inicializado, false en caso contrario
      */
     public static boolean isDriverInitialized() {
-        return driver.get() != null;
+        return DRIVER_HOLDER.get() != null;
     }
 
     /**
      * Cierra el driver actual sin lanzar excepciones.
-     * Útil para hooks de limpieza en Cucumber.
+     * Util para hooks de limpieza en Cucumber.
      */
     public static void quitDriverSafely() {
         try {

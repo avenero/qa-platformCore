@@ -44,6 +44,10 @@ public final class ExecutionEvent {
 
     /**
      * Crea un evento sin datos adicionales.
+     *
+     * @param type tipo de evento
+     * @param name nombre descriptivo del evento
+     * @return nuevo evento inmutable
      */
     public static ExecutionEvent of(Type type, String name) {
         return new ExecutionEvent(type, name, Map.of());
@@ -51,16 +55,36 @@ public final class ExecutionEvent {
 
     /**
      * Crea un evento con datos adicionales.
+     *
+     * @param type tipo de evento
+     * @param name nombre descriptivo del evento
+     * @param data mapa de datos asociados al evento, no null
+     * @return nuevo evento inmutable
      */
     public static ExecutionEvent of(Type type, String name, Map<String, Object> data) {
         Objects.requireNonNull(data, "data no puede ser null");
         return new ExecutionEvent(type, name, data);
     }
 
-    public Type getType() { return type; }
-    public String getName() { return name; }
-    public Instant getTimestamp() { return timestamp; }
-    public Map<String, Object> getData() { return data; }
+    /** @return tipo de evento */
+    public Type getType() {
+        return type;
+    }
+
+    /** @return nombre descriptivo del evento */
+    public String getName() {
+        return name;
+    }
+
+    /** @return instante en que fue creado el evento */
+    public Instant getTimestamp() {
+        return timestamp;
+    }
+
+    /** @return mapa inmutable de datos asociados al evento */
+    public Map<String, Object> getData() {
+        return data;
+    }
 
     /**
      * Obtiene un dato con casting seguro.

@@ -38,7 +38,9 @@ import java.util.regex.Pattern;
  */
 public class DataUtilities {
 
-    private DataUtilities() { /* utility class */ }
+    private DataUtilities() {
+        // utility class — no instances
+    }
 
     // =========================================================================
     // VARIABLE STORE — storeValue / getValue / clearVariables
@@ -54,14 +56,17 @@ public class DataUtilities {
      * @param value valor; {@code null} elimina la variable
      */
     public static void storeValue(String key, Object value) {
-        if (key == null) return;
-        boolean stored = ExecutionContext.current()
-            .map(ctx -> {
-                if (value != null) ctx.variables().set(key, value);
-                else ctx.variables().remove(key);
+        if (key == null) {
+            return;
+        }
+        boolean stored = ExecutionContext.current().map(ctx -> {
+                if (value != null) {
+                    ctx.variables().set(key, value);
+                } else {
+                    ctx.variables().remove(key);
+                }
                 return true;
-            })
-            .orElse(false);
+            }).orElse(false);
         if (!stored) {
             TestLogger.logWarning("DATA_UTILITIES",
                 "storeValue('" + key + "') ignorado: no hay ExecutionContext activo", null);
@@ -79,11 +84,11 @@ public class DataUtilities {
      * @return valor como String, o {@code null} si no existe o no hay contexto
      */
     public static String getValue(String key) {
-        if (key == null) return null;
-        return ExecutionContext.current()
-            .flatMap(ctx -> ctx.variables().get(key, Object.class))
-            .map(Object::toString)
-            .orElse(null);
+        if (key == null) {
+            return null;
+        }
+        return ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).map(Object::toString).
+            orElse(null);
     }
 
     /**
@@ -113,13 +118,14 @@ public class DataUtilities {
             TestLogger.logWarning("DATA_UTILITIES", "Key nula o vacía al guardar objeto - ignorado", null);
             return;
         }
-        boolean stored = ExecutionContext.current()
-            .map(ctx -> {
-                if (object != null) ctx.variables().set(key, object);
-                else ctx.variables().remove(key);
+        boolean stored = ExecutionContext.current().map(ctx -> {
+                if (object != null) {
+                    ctx.variables().set(key, object);
+                } else {
+                    ctx.variables().remove(key);
+                }
                 return true;
-            })
-            .orElse(false);
+            }).orElse(false);
         if (!stored) {
             TestLogger.logWarning("DATA_UTILITIES",
                 "storeObject('" + key + "') ignorado: no hay ExecutionContext activo", null);
@@ -143,12 +149,16 @@ public class DataUtilities {
      */
     @SuppressWarnings("unchecked")
     public static <T> T getObject(String key, Class<T> clazz) {
-        if (key == null || clazz == null) return null;
-        Object obj = ExecutionContext.current()
-            .flatMap(ctx -> ctx.variables().get(key, Object.class))
-            .orElse(null);
-        if (obj == null) return null;
-        if (clazz.isInstance(obj)) return (T) obj;
+        if (key == null || clazz == null) {
+            return null;
+        }
+        Object obj = ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).orElse(null);
+        if (obj == null) {
+            return null;
+        }
+        if (clazz.isInstance(obj)) {
+            return (T) obj;
+        }
         try {
             return JsonUtilities.getObjectMapper().convertValue(obj, clazz);
         } catch (Exception e) {
@@ -166,10 +176,10 @@ public class DataUtilities {
      * @return objeto almacenado, o {@code null} si no existe
      */
     public static Object getObject(String key) {
-        if (key == null) return null;
-        return ExecutionContext.current()
-            .flatMap(ctx -> ctx.variables().get(key, Object.class))
-            .orElse(null);
+        if (key == null) {
+            return null;
+        }
+        return ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).orElse(null);
     }
 
     /**
@@ -179,10 +189,10 @@ public class DataUtilities {
      * @return {@code true} si existe
      */
     public static boolean hasObject(String key) {
-        if (key == null) return false;
-        return ExecutionContext.current()
-            .flatMap(ctx -> ctx.variables().get(key, Object.class))
-            .isPresent();
+        if (key == null) {
+            return false;
+        }
+        return ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).isPresent();
     }
 
     /**
@@ -235,7 +245,9 @@ public class DataUtilities {
      * @return texto con los placeholders resueltos (conserva los no encontrados)
      */
     public static String replaceVariables(String text) {
-        if (text == null || text.trim().isEmpty()) return text;
+        if (text == null || text.trim().isEmpty()) {
+            return text;
+        }
         String result = text;
 
         // --- Formato {{var}} → solo ExecutionContext ---
@@ -243,10 +255,8 @@ public class DataUtilities {
         Matcher m1 = curly.matcher(result);
         while (m1.find()) {
             String name = m1.group(1);
-            String repl = ExecutionContext.current()
-                .flatMap(ctx -> ctx.variables().get(name, Object.class))
-                .map(Object::toString)
-                .orElse(null);
+            String repl = ExecutionContext.current().flatMap(ctx -> ctx.variables().get(name, Object.class)).
+                map(Object::toString).orElse(null);
             if (repl == null) {
                 TestLogger.logWarning("DATA_UTILITIES",
                     "Variable {{" + name + "}} no encontrada - conservando placeholder", null);
@@ -260,12 +270,14 @@ public class DataUtilities {
         Matcher m2 = dollar.matcher(result);
         while (m2.find()) {
             String name = m2.group(1);
-            String repl = ExecutionContext.current()
-                .flatMap(ctx -> ctx.variables().get(name, Object.class))
-                .map(Object::toString)
-                .orElse(null);
-            if (repl == null) repl = System.getProperty(name);
-            if (repl == null) repl = System.getenv(name);
+            String repl = ExecutionContext.current().flatMap(ctx -> ctx.variables().get(name, Object.class)).
+                map(Object::toString).orElse(null);
+            if (repl == null) {
+                repl = System.getProperty(name);
+            }
+            if (repl == null) {
+                repl = System.getenv(name);
+            }
             if (repl == null) {
                 TestLogger.logWarning("DATA_UTILITIES",
                     "Variable ${" + name + "} no encontrada - conservando placeholder", null);
@@ -291,8 +303,9 @@ public class DataUtilities {
      * @param value valor a almacenar
      */
     public static void saveToContext(String layer, String key, Object value) {
-        if (key == null || key.trim().isEmpty())
+        if (key == null || key.trim().isEmpty()) {
             throw new IllegalArgumentException("La clave no puede ser null o vacía");
+        }
         String fullKey = (layer != null && !layer.trim().isEmpty()) ? layer + "." + key : key;
         ExecutionContext.current().ifPresent(ctx -> ctx.variables().set(fullKey, value));
         TestLogger.logDebug("DATA_UTILITIES",
@@ -304,37 +317,90 @@ public class DataUtilities {
     // DELEGACIONES → JsonUtilities  (backward compatibility)
     // =========================================================================
 
-    /** @see JsonUtilities#deserializeJson(String, Class) */
+    /**
+     * Deserializa un JSON a un objeto tipado.
+     *
+     * @param <T>   tipo del objeto resultado
+     * @param json  cadena JSON a deserializar
+     * @param clazz clase de destino
+     * @return objeto del tipo indicado
+     * @throws FrameworkBusinessException si el JSON es inválido
+     * @see JsonUtilities#deserializeJson(String, Class)
+     */
     public static <T> T deserializeJson(String json, Class<T> clazz) throws FrameworkBusinessException {
         return JsonUtilities.deserializeJson(json, clazz);
     }
 
-    /** @see JsonUtilities#getJsonParameter(String, String) */
+    /**
+     * Obtiene un parámetro del JSON usando JSONPath.
+     *
+     * @param jsonBody  cuerpo JSON como String
+     * @param fieldPath ruta al campo (JSONPath o notación de punto)
+     * @return valor del campo encontrado
+     * @throws FrameworkBusinessException si el JSON es inválido
+     * @see JsonUtilities#getJsonParameter(String, String)
+     */
     public static Object getJsonParameter(String jsonBody, String fieldPath) throws FrameworkBusinessException {
         return JsonUtilities.getJsonParameter(jsonBody, fieldPath);
     }
 
-    /** @see JsonUtilities#getJsonParameter(String, String) */
+    /**
+     * Obtiene un parámetro del JSON usando JSONPath (alias de getJsonParameter).
+     *
+     * @param jsonBody  cuerpo JSON como String
+     * @param fieldPath ruta al campo (JSONPath o notación de punto)
+     * @return valor del campo encontrado
+     * @throws FrameworkBusinessException si el JSON es inválido
+     * @see JsonUtilities#getJsonParameter(String, String)
+     */
     public static Object getJsonParameters(String jsonBody, String fieldPath) throws FrameworkBusinessException {
         return JsonUtilities.getJsonParameter(jsonBody, fieldPath);
     }
 
-    /** @see JsonUtilities#hasJsonField(String, String) */
+    /**
+     * Verifica si un campo existe en el JSON dado.
+     *
+     * @param jsonBody  cuerpo JSON como String
+     * @param fieldPath ruta al campo a verificar
+     * @return {@code true} si el campo existe
+     * @see JsonUtilities#hasJsonField(String, String)
+     */
     public static boolean hasJsonField(String jsonBody, String fieldPath) {
         return JsonUtilities.hasJsonField(jsonBody, fieldPath);
     }
 
-    /** @see JsonUtilities#findValue(Object, String) */
+    /**
+     * Busca un valor en un objeto o mapa por clave recursivamente.
+     *
+     * @param response  objeto o mapa donde buscar
+     * @param targetKey clave a buscar
+     * @return valor encontrado o {@code null}
+     * @see JsonUtilities#findValue(Object, String)
+     */
     public static Object findValue(Object response, String targetKey) {
         return JsonUtilities.findValue(response, targetKey);
     }
 
-    /** @see JsonUtilities#getToken(String, String) */
+    /**
+     * Extrae un token de un JSON de respuesta.
+     *
+     * @param jsonResponse respuesta JSON como String
+     * @param tokenField   nombre del campo que contiene el token
+     * @return valor del token encontrado
+     * @throws FrameworkBusinessException si el JSON es inválido o el campo no existe
+     * @see JsonUtilities#getToken(String, String)
+     */
     public static String getToken(String jsonResponse, String tokenField) throws FrameworkBusinessException {
         return JsonUtilities.getToken(jsonResponse, tokenField);
     }
 
-    /** @see JsonUtilities#jsonToMap(String) */
+    /**
+     * Convierte un JSON a un mapa de clave-valor.
+     *
+     * @param json cadena JSON a convertir
+     * @return mapa con los campos del JSON
+     * @see JsonUtilities#jsonToMap(String)
+     */
     public static Map<String, Object> jsonToMap(String json) {
         return JsonUtilities.jsonToMap(json);
     }
@@ -343,32 +409,70 @@ public class DataUtilities {
     // DELEGACIONES → TextUtilities  (backward compatibility)
     // =========================================================================
 
-    /** @see TextUtilities#capitalize(String) */
+    /**
+     * Capitaliza la primera letra de un String.
+     *
+     * @param str String a capitalizar
+     * @return String con la primera letra en mayúscula
+     * @see TextUtilities#capitalize(String)
+     */
     public static String capitalize(String str) {
         return TextUtilities.capitalize(str);
     }
 
-    /** @see TextUtilities#isValidString(String) */
+    /**
+     * Verifica si un String es válido (no nulo y no vacío).
+     *
+     * @param str String a verificar
+     * @return {@code true} si es no nulo y no está en blanco
+     * @see TextUtilities#isValidString(String)
+     */
     public static boolean isValidString(String str) {
         return TextUtilities.isValidString(str);
     }
 
-    /** @see TextUtilities#sanitizeValue(String, String) */
+    /**
+     * Sanitiza un valor usando la clave como contexto para detectar datos sensibles.
+     *
+     * @param key   clave/nombre del campo
+     * @param value valor a sanitizar
+     * @return valor sanitizado o {@code "***HIDDEN***"} si es sensible
+     * @see TextUtilities#sanitizeValue(String, String)
+     */
     public static String sanitizeValue(String key, String value) {
         return TextUtilities.sanitizeValue(key, value);
     }
 
-    /** @see TextUtilities#sanitizeBody(String) */
+    /**
+     * Sanitiza el body de una petición/respuesta HTTP para logs.
+     *
+     * @param body body a sanitizar
+     * @return body con campos sensibles enmascarados
+     * @see TextUtilities#sanitizeBody(String)
+     */
     public static String sanitizeBody(String body) {
         return TextUtilities.sanitizeBody(body);
     }
 
-    /** @see TextUtilities#truncateContent(String, int) */
+    /**
+     * Trunca contenido largo para incluirlo en logs o mensajes.
+     *
+     * @param content   contenido a truncar
+     * @param maxLength longitud máxima permitida
+     * @return contenido truncado con {@code "... [TRUNCATED]"} si aplica
+     * @see TextUtilities#truncateContent(String, int)
+     */
     public static String truncateContent(String content, int maxLength) {
         return TextUtilities.truncateContent(content, maxLength);
     }
 
-    /** @see TextUtilities#sanitizeForLog(String) */
+    /**
+     * Sanitiza claves sensibles dentro de un JSON/texto para logs.
+     *
+     * @param data texto o JSON a sanitizar
+     * @return texto con valores sensibles reemplazados
+     * @see TextUtilities#sanitizeForLog(String)
+     */
     public static String sanitizeForLog(String data) {
         return TextUtilities.sanitizeForLog(data);
     }

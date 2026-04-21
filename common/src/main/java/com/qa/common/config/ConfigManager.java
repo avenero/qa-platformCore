@@ -71,7 +71,7 @@ import java.util.regex.Pattern;
  */
 public class ConfigManager {
 
-    private static final TestLogger.LoggerWrapper log = TestLogger.getLogger(ConfigManager.class);
+    private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(ConfigManager.class);
     private static final Pattern ENV_VAR_PATTERN = Pattern.compile("\\$\\{([^}]+)}");
 
     private static ConfigManager instance;
@@ -84,7 +84,7 @@ public class ConfigManager {
     private ConfigManager() {
         this.environment = resolveEnvironment();
         this.loadedProperties = loadConfigurationProperties();
-        log.info("✅ ConfigManager inicializado - Ambiente: {}", environment);
+        LOG.info("✅ ConfigManager inicializado - Ambiente: {}", environment);
     }
 
     /**
@@ -173,7 +173,7 @@ public class ConfigManager {
             try {
                 return Integer.parseInt(value.trim());
             } catch (NumberFormatException e) {
-                log.warn("⚠️ No se pudo parsear '{}' como int, usando default: {}", value, defaultValue);
+                LOG.warn("⚠️ No se pudo parsear '{}' como int, usando default: {}", value, defaultValue);
             }
         }
         return defaultValue;
@@ -226,14 +226,14 @@ public class ConfigManager {
         // 0. ExecutionContext activo (mayor prioridad cuando hay ejecución BDD en curso)
         Optional<String> executionValue = resolveFromExecutionContext(key);
         if (executionValue.isPresent()) {
-            log.debug("✓ [{}] Usando ExecutionContext config: {}", key, executionValue.get());
+            LOG.debug("✓ [{}] Usando ExecutionContext config: {}", key, executionValue.get());
             return executionValue.get();
         }
 
         // 1. System Property (-Dkey=value) - PRIORIDAD MÁXIMA GLOBAL
         String sysProp = System.getProperty(key);
         if (sysProp != null && !sysProp.isEmpty()) {
-            log.debug("✓ [{}] Usando System Property: {}", key, sysProp);
+            LOG.debug("✓ [{}] Usando System Property: {}", key, sysProp);
             return sysProp;
         }
 
@@ -241,19 +241,19 @@ public class ConfigManager {
         String envKey = key.toUpperCase().replace('.', '_');
         String envVar = System.getenv(envKey);
         if (envVar != null && !envVar.isEmpty()) {
-            log.debug("✓ [{}] Usando variable de entorno {}: {}", key, envKey, envVar);
+            LOG.debug("✓ [{}] Usando variable de entorno {}: {}", key, envKey, envVar);
             return envVar;
         }
 
         // 3. Archivo de configuración (via get() que también resuelve ${VAR})
         String configValue = get(key);
         if (configValue != null && !configValue.isEmpty()) {
-            log.debug("✓ [{}] Usando config file: {}", key, configValue);
+            LOG.debug("✓ [{}] Usando config file: {}", key, configValue);
             return configValue;
         }
 
         // 4. Valor por defecto
-        log.debug("✓ [{}] Usando default: {}", key, defaultValue);
+        LOG.debug("✓ [{}] Usando default: {}", key, defaultValue);
         return defaultValue;
     }
 
@@ -270,7 +270,7 @@ public class ConfigManager {
             try {
                 return Long.parseLong(value.trim());
             } catch (NumberFormatException e) {
-                log.warn("⚠️ No se pudo parsear '{}' como long, usando default: {}", value, defaultValue);
+                LOG.warn("⚠️ No se pudo parsear '{}' como long, usando default: {}", value, defaultValue);
             }
         }
         return defaultValue;
@@ -303,7 +303,7 @@ public class ConfigManager {
      */
     public synchronized void reload() {
         this.loadedProperties = loadConfigurationProperties();
-        log.info("🔄 Configuración recargada para ambiente: {}", environment);
+        LOG.info("🔄 Configuración recargada para ambiente: {}", environment);
     }
 
     // =========================================================================
@@ -328,11 +328,10 @@ public class ConfigManager {
      */
     private Optional<String> resolveFromExecutionContext(String key) {
         try {
-            return ExecutionContext.current()
-                    .flatMap(ctx -> ctx.config().getProperty(key));
+            return ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(key));
         } catch (Exception e) {
             // Defensivo: jamás romper la cadena de resolución por un error en ExecutionContext
-            log.debug("No se pudo acceder a ExecutionContext para clave '{}': {}", key, e.getMessage());
+            LOG.debug("No se pudo acceder a ExecutionContext para clave '{}': {}", key, e.getMessage());
             return Optional.empty();
         }
     }
@@ -370,28 +369,28 @@ public class ConfigManager {
         String envConfigFile = "config-" + environment + ".properties";
         Properties props = tryLoadProperties(envConfigFile);
         if (props != null) {
-            log.info("✅ Configuración cargada: {}", envConfigFile);
+            LOG.info("✅ Configuración cargada: {}", envConfigFile);
             return props;
         }
 
         // 2. Intentar config-app.properties (nombre estándar recomendado)
         props = tryLoadProperties("config-app.properties");
         if (props != null) {
-            log.info("✅ Configuración cargada: config-app.properties");
+            LOG.info("✅ Configuración cargada: config-app.properties");
             return props;
         }
 
         // 3. Intentar config.properties (fallback)
         props = tryLoadProperties("config.properties");
         if (props != null) {
-            log.info("✅ Configuración cargada: config.properties");
+            LOG.info("✅ Configuración cargada: config.properties");
             return props;
         }
 
         // 4. No se encontró archivo de configuración
-        log.warn("⚠️ No se encontró archivo de configuración, usando solo System Properties y ENV");
-        log.warn("📝 Solución: Crea 'config-app.properties' en src/test/resources/ del módulo");
-        log.warn("   Ejemplo: cp config-app.properties.template config-app.properties");
+        LOG.warn("⚠️ No se encontró archivo de configuración, usando solo System Properties y ENV");
+        LOG.warn("📝 Solución: Crea 'config-app.properties' en src/test/resources/ del módulo");
+        LOG.warn("   Ejemplo: cp config-app.properties.template config-app.properties");
 
         return new Properties();
     }
@@ -406,7 +405,7 @@ public class ConfigManager {
         try {
             return ConfigurationUtilities.readPropertiesFile(fileName);
         } catch (Exception e) {
-            log.debug("No se encontró: {} ({})", fileName, e.getMessage());
+            LOG.debug("No se encontró: {} ({})", fileName, e.getMessage());
             return null;
         }
     }
@@ -460,7 +459,7 @@ public class ConfigManager {
 
             // Si no se encuentra, dejar sin resolver y avisar
             if (varValue == null) {
-                log.debug("Variable de entorno '{}' no encontrada (puede ser opcional)", varName);
+                LOG.debug("Variable de entorno '{}' no encontrada (puede ser opcional)", varName);
                 varValue = matcher.group(0); // Dejar ${VAR} sin cambios
             }
 

@@ -18,6 +18,9 @@ public class SQLServerConnector extends BaseConnector {
 
     private static final String DRIVER_CLASS = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 
+    /**
+     * Constructor que lee la configuración desde las System Properties {@code sqlserver.db.*}.
+     */
     public SQLServerConnector() {
         this(
             System.getProperty("sqlserver.db.url"),
@@ -26,6 +29,14 @@ public class SQLServerConnector extends BaseConnector {
         );
     }
 
+    /**
+     * Constructor con parámetros explícitos de conexión.
+     *
+     * @param jdbcUrl  URL JDBC de SQL Server
+     *                 (ej: {@code jdbc:sqlserver://host:port;databaseName=db})
+     * @param username usuario de la base de datos
+     * @param password contraseña de la base de datos
+     */
     public SQLServerConnector(String jdbcUrl, String username, String password) {
         super(jdbcUrl, username, password, DRIVER_CLASS, "SQLSERVER");
     }

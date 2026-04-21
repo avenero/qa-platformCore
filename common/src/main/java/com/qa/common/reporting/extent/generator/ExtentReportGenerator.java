@@ -7,7 +7,12 @@ import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import com.aventstack.extentreports.reporter.configuration.Theme;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.reporting.core.config.ExtentConfig;
-import com.qa.common.reporting.core.model.*;
+import com.qa.common.reporting.core.model.Attachment;
+import com.qa.common.reporting.core.model.EnvironmentInfo;
+import com.qa.common.reporting.core.model.ScenarioResult;
+import com.qa.common.reporting.core.model.StepResult;
+import com.qa.common.reporting.core.model.TestExecutionResult;
+import com.qa.common.reporting.core.model.TestStatus;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +33,11 @@ public class ExtentReportGenerator {
     private final ExtentConfig config;
     private ExtentReports extent;
 
+    /**
+     * Crea un generador con la configuración dada.
+     *
+     * @param config configuración del reporte Extent, no null
+     */
     public ExtentReportGenerator(ExtentConfig config) {
         this.config = config;
     }
@@ -144,124 +154,143 @@ public class ExtentReportGenerator {
      * Procesa un scenario y lo agrega al reporte.
      */
     private void processScenario(ScenarioResult scenario) {
-        // Crear test
         ExtentTest test = extent.createTest(scenario.getScenarioName());
+        assignCategoriesAndTags(test, scenario);
 
-        // Agregar test key como categoría (sin duplicar con tags)
-        String testKey = scenario.getTestKey();
-        if (testKey != null) {
-            test.assignCategory(testKey);
-        }
+        test.info("<span style='font-size: 14px;'><b>📁 Feature File:</b> "
+            + scenario.getFeatureFile() + "</span>");
 
-        // Agregar tags (filtrando duplicados del testKey)
-        if (scenario.getTags() != null) {
-            scenario.getTags().forEach(tag -> {
-                // Evitar duplicar el testKey que ya se agregó arriba
-                // Filtrar: @QAAUY-761 si testKey es QAAUY-761
-                if (testKey != null && (tag.equals(testKey) || tag.equals("@" + testKey))) {
-                    return; // Skip duplicado
-                }
-                test.assignCategory(tag);
-            });
-        }
+        addStepsToTest(test, scenario);
+        addDurationAndLogs(test, scenario);
+        addScreenshotsToTest(test, scenario);
+        addFailureDetailsToTest(test, scenario);
 
-        // Agregar info básica
-        test.info("<span style='font-size: 14px;'><b>📁 Feature File:</b> " + scenario.getFeatureFile() + "</span>");
-
-        // ✨ MEJORADO: Mostrar cada step como una fila independiente con su status
-        if (scenario.getSteps() != null && !scenario.getSteps().isEmpty()) {
-            // Agregar header de steps con tipografía mejorada
-            test.info(String.format(
-                "<span style='font-size: 14px;'><b>📋 Steps Executed:</b> %d total " +
-                "<span style='color: #4CAF50;'>(Passed: %d)</span> " +
-                "<span style='color: #f44336;'>(Failed: %d)</span> " +
-                "<span style='color: #ff9800;'>(Skipped: %d)</span></span>",
-                scenario.getTotalSteps(),
-                scenario.getPassedSteps(),
-                scenario.getFailedSteps(),
-                scenario.getSkippedSteps()));
-
-            // Agregar cada step como una fila independiente
-            for (StepResult step : scenario.getSteps()) {
-                // Mejorar tipografía y contraste para tema DARK
-                // PASS: Sin emoji (el badge verde "Pass" es suficiente)
-                // FAIL/SKIP: Con emoji para mayor visibilidad
-                String emoji = step.getStatus() == TestStatus.PASS ? "" : step.getStatusEmoji() + " ";
-
-                String stepText = String.format(
-                    "<span style='font-size: 14px;'>%s<span style='font-weight: 500;'>%s</span> " +
-                    "<span style='color: #aaa; font-size: 13px;'>(%s)</span></span>",
-                    emoji,
-                    escapeHtml(step.getFullStepText()),
-                    step.getFormattedDuration()
-                );
-
-                // Usar el status correspondiente para cada step
-                switch (step.getStatus()) {
-                    case PASS -> test.pass(stepText);
-                    case FAIL -> test.fail(stepText);
-                    case SKIP -> test.skip(stepText);
-                    default -> test.info(stepText);
-                }
-            }
-        } else {
-            // Fallback si no hay steps detallados
-            test.info(String.format("<span style='font-size: 14px;'>Total Steps: %d (Passed: %d, Failed: %d, Skipped: %d)</span>",
-                scenario.getTotalSteps(),
-                scenario.getPassedSteps(),
-                scenario.getFailedSteps(),
-                scenario.getSkippedSteps()));
-        }
-
-        // Agregar duración total
-        if (scenario.getDurationMs() > 0) {
-            test.info("<span style='font-size: 14px;'><b>⏱️ Duration:</b> " + scenario.getDurationMs() + " ms</span>");
-        }
-
-        // Agregar logs
-        if (scenario.getLogs() != null) {
-            scenario.getLogs().forEach(log -> test.info(log));
-        }
-
-        // Agregar screenshots
-        if (config.isIncludeScreenshots() && scenario.getScreenshots() != null) {
-            for (Attachment screenshot : scenario.getScreenshots()) {
-                addScreenshot(test, screenshot);
-            }
-        }
-
-        // Agregar error si falló
-        if (scenario.getStatus() == TestStatus.FAIL) {
-            // Usar businessMessage (amigable) si existe, sino errorMessage (técnico)
-            String displayError = scenario.getBusinessMessage() != null && !scenario.getBusinessMessage().isEmpty()
-                    ? scenario.getBusinessMessage()
-                    : (scenario.getErrorMessage() != null ? scenario.getErrorMessage() : "Test failed");
-
-            test.fail("<span style='font-size: 14px;'><b>Error:</b> " + escapeHtml(displayError) + "</span>");
-
-            // Si hay businessMessage, agregar detalles técnicos colapsados
-            if (scenario.getBusinessMessage() != null && scenario.getErrorMessage() != null) {
-                test.fail("<details style='font-size: 13px; margin-top: 8px;'>" +
-                        "<summary style='cursor: pointer; color: #aaa;'><i>Ver detalles técnicos</i></summary>" +
-                        "<pre style='background: #1e1e1e; padding: 12px; border-radius: 4px; color: #d4d4d4; font-size: 12px; overflow-x: auto;'>" +
-                        escapeHtml(scenario.getErrorMessage()) + "</pre></details>");
-            }
-
-            // Agregar stack trace si existe
-            if (scenario.getStackTrace() != null) {
-                test.fail("<details style='font-size: 13px; margin-top: 8px;'>" +
-                        "<summary style='cursor: pointer; color: #aaa;'><i>Stack Trace</i></summary>" +
-                        "<pre style='background: #1e1e1e; padding: 12px; border-radius: 4px; color: #d4d4d4; font-size: 12px; overflow-x: auto;'>" +
-                        escapeHtml(scenario.getStackTrace()) + "</pre></details>");
-            }
-        }
-
-        // Status final
         Status status = mapStatus(scenario.getStatus());
         test.log(status, "Test " + status.toString().toLowerCase());
 
         TestLogger.logDebug("EXTENT_GENERATOR",
             String.format("Scenario procesado: %s - %s", scenario.getTestKey(), status), null);
+    }
+
+    /**
+     * Asigna la test key y los tags como categorías al test, evitando duplicados.
+     */
+    private void assignCategoriesAndTags(ExtentTest test, ScenarioResult scenario) {
+        String testKey = scenario.getTestKey();
+        if (testKey != null) {
+            test.assignCategory(testKey);
+        }
+        if (scenario.getTags() != null) {
+            scenario.getTags().forEach(tag -> {
+                if (testKey != null && (tag.equals(testKey) || tag.equals("@" + testKey))) {
+                    return;
+                }
+                test.assignCategory(tag);
+            });
+        }
+    }
+
+    /**
+     * Agrega los steps detallados al test, o un resumen si no hay steps disponibles.
+     */
+    private void addStepsToTest(ExtentTest test, ScenarioResult scenario) {
+        if (scenario.getSteps() != null && !scenario.getSteps().isEmpty()) {
+            test.info(String.format(
+                "<span style='font-size: 14px;'><b>📋 Steps Executed:</b> %d total "
+                + "<span style='color: #4CAF50;'>(Passed: %d)</span> "
+                + "<span style='color: #f44336;'>(Failed: %d)</span> "
+                + "<span style='color: #ff9800;'>(Skipped: %d)</span></span>",
+                scenario.getTotalSteps(), scenario.getPassedSteps(),
+                scenario.getFailedSteps(), scenario.getSkippedSteps()));
+
+            for (StepResult step : scenario.getSteps()) {
+                logStepResult(test, step);
+            }
+        } else {
+            test.info(String.format(
+                "<span style='font-size: 14px;'>Total Steps: %d "
+                + "(Passed: %d, Failed: %d, Skipped: %d)</span>",
+                scenario.getTotalSteps(), scenario.getPassedSteps(),
+                scenario.getFailedSteps(), scenario.getSkippedSteps()));
+        }
+    }
+
+    /**
+     * Registra un step individual en el test con el status correspondiente.
+     */
+    private void logStepResult(ExtentTest test, StepResult step) {
+        String emoji = step.getStatus() == TestStatus.PASS ? "" : step.getStatusEmoji() + " ";
+        String stepText = String.format(
+            "<span style='font-size: 14px;'>%s<span style='font-weight: 500;'>%s</span> "
+            + "<span style='color: #aaa; font-size: 13px;'>(%s)</span></span>",
+            emoji,
+            escapeHtml(step.getFullStepText()),
+            step.getFormattedDuration());
+
+        switch (step.getStatus()) {
+            case PASS -> test.pass(stepText);
+            case FAIL -> test.fail(stepText);
+            case SKIP -> test.skip(stepText);
+            default -> test.info(stepText);
+        }
+    }
+
+    /**
+     * Agrega la duración total y los logs de ejecución al test.
+     */
+    private void addDurationAndLogs(ExtentTest test, ScenarioResult scenario) {
+        if (scenario.getDurationMs() > 0) {
+            test.info("<span style='font-size: 14px;'><b>⏱️ Duration:</b> "
+                + scenario.getDurationMs() + " ms</span>");
+        }
+        if (scenario.getLogs() != null) {
+            scenario.getLogs().forEach(log -> test.info(log));
+        }
+    }
+
+    /**
+     * Agrega los screenshots al test si la configuración lo permite.
+     */
+    private void addScreenshotsToTest(ExtentTest test, ScenarioResult scenario) {
+        if (config.isIncludeScreenshots() && scenario.getScreenshots() != null) {
+            for (Attachment screenshot : scenario.getScreenshots()) {
+                addScreenshot(test, screenshot);
+            }
+        }
+    }
+
+    /**
+     * Agrega los detalles de error al test cuando el scenario falló.
+     */
+    private void addFailureDetailsToTest(ExtentTest test, ScenarioResult scenario) {
+        if (scenario.getStatus() != TestStatus.FAIL) {
+            return;
+        }
+        String displayError = scenario.getBusinessMessage() != null
+                && !scenario.getBusinessMessage().isEmpty()
+                ? scenario.getBusinessMessage()
+                : (scenario.getErrorMessage() != null ? scenario.getErrorMessage() : "Test failed");
+
+        test.fail("<span style='font-size: 14px;'><b>Error:</b> "
+            + escapeHtml(displayError) + "</span>");
+
+        if (scenario.getBusinessMessage() != null && scenario.getErrorMessage() != null) {
+            test.fail("<details style='font-size: 13px; margin-top: 8px;'>"
+                    + "<summary style='cursor: pointer; color: #aaa;'>"
+                    + "<i>Ver detalles técnicos</i></summary>"
+                    + "<pre style='background: #1e1e1e; padding: 12px; border-radius: 4px;"
+                    + " color: #d4d4d4; font-size: 12px; overflow-x: auto;'>"
+                    + escapeHtml(scenario.getErrorMessage()) + "</pre></details>");
+        }
+
+        if (scenario.getStackTrace() != null) {
+            test.fail("<details style='font-size: 13px; margin-top: 8px;'>"
+                    + "<summary style='cursor: pointer; color: #aaa;'>"
+                    + "<i>Stack Trace</i></summary>"
+                    + "<pre style='background: #1e1e1e; padding: 12px; border-radius: 4px;"
+                    + " color: #d4d4d4; font-size: 12px; overflow-x: auto;'>"
+                    + escapeHtml(scenario.getStackTrace()) + "</pre></details>");
+        }
     }
 
     /**
@@ -298,10 +327,12 @@ public class ExtentReportGenerator {
             String collapsibleScreenshot =
                 "<details style='margin-top: 8px;'>" +
                 "<summary style='cursor: pointer; font-size: 14px;'>" +
-                "<b>📸 " + escapeHtml(screenshotName) + "</b> <i style='color: #aaa; font-size: 12px;'>(click para expandir)</i>" +
+                "<b>📸 " + escapeHtml(screenshotName) + "</b>"
+                + " <i style='color: #aaa; font-size: 12px;'>(click para expandir)</i>" +
                 "</summary>" +
                 "<div style='margin-top: 8px;'>" +
-                "<img src='" + screenshotHtml + "' style='max-width: 100%; border: 1px solid #444; border-radius: 4px;'/>" +
+                "<img src='" + screenshotHtml + "'"
+                + " style='max-width: 100%; border: 1px solid #444; border-radius: 4px;'/>" +
                 "</div>" +
                 "</details>";
 
@@ -343,11 +374,8 @@ public class ExtentReportGenerator {
         if (text == null) {
             return "";
         }
-        return text.replace("&", "&amp;")
-                   .replace("<", "&lt;")
-                   .replace(">", "&gt;")
-                   .replace("\"", "&quot;")
-                   .replace("'", "&#39;");
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").
+                   replace("'", "&#39;");
     }
 }
 

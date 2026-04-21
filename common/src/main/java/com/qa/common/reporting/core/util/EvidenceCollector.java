@@ -27,6 +27,12 @@ import java.util.List;
  */
 public class EvidenceCollector {
 
+    /** Tamaño máximo de archivo (5 MB) para embeber contenido en los reportes. */
+    private static final long MAX_EMBED_SIZE_BYTES = 5L * 1024 * 1024;
+
+    /** Milisegundos en un día — usado para calcular la fecha de corte de limpieza. */
+    private static final long MS_PER_DAY = 24L * 60 * 60 * 1000;
+
     private EvidenceCollector() {
         // Utility class
     }
@@ -59,8 +65,8 @@ public class EvidenceCollector {
         attachment.setSizeBytes(file.length());
         attachment.setMimeType(type.getDefaultMimeType());
 
-        // Cargar contenido si es pequeño (< 5MB para embeber en reportes)
-        if (file.length() < 5 * 1024 * 1024) {
+        // Cargar contenido si es pequeño (< MAX_EMBED_SIZE_BYTES para embeber en reportes)
+        if (file.length() < MAX_EMBED_SIZE_BYTES) {
             try {
                 byte[] content = Files.readAllBytes(file.toPath());
                 attachment.setContent(content);
@@ -236,9 +242,7 @@ public class EvidenceCollector {
         if (input == null) {
             return "unknown";
         }
-        return input.replaceAll("[^a-zA-Z0-9-_]", "_")
-                    .replaceAll("_{2,}", "_")
-                    .toLowerCase();
+        return input.replaceAll("[^a-zA-Z0-9-_]", "_").replaceAll("_{2,}", "_").toLowerCase();
     }
 
     /**
@@ -253,19 +257,16 @@ public class EvidenceCollector {
             return;
         }
 
-        long cutoffTime = System.currentTimeMillis() - (daysToKeep * 24L * 60 * 60 * 1000);
+        long cutoffTime = System.currentTimeMillis() - (daysToKeep * MS_PER_DAY);
 
         try {
-            Files.walk(evidenceBase)
-                .filter(Files::isRegularFile)
-                .filter(path -> {
+            Files.walk(evidenceBase).filter(Files::isRegularFile).filter(path -> {
                     try {
                         return Files.getLastModifiedTime(path).toMillis() < cutoffTime;
                     } catch (IOException e) {
                         return false;
                     }
-                })
-                .forEach(path -> {
+                }).forEach(path -> {
                     try {
                         Files.delete(path);
                         TestLogger.logDebug("EVIDENCE_COLLECTOR",

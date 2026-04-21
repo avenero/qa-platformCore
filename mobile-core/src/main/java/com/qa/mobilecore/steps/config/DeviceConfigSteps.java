@@ -3,6 +3,7 @@ package com.qa.mobilecore.steps.config;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.annotation.StepDef;
+import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.helper.MobileHelper;
 import io.cucumber.java.en.Given;
 
@@ -20,7 +21,7 @@ import java.util.Map;
  * que use mobile-core.
  *
  * <p>Todos los steps canónicos llevan {@link StepDef} con ID explícito. El formato es
- * {@code mobile.device.config.<sub-id>}.
+ * {@code mobile.device.config.{sub-id}}.
  *
  * @author Abel Venero
  * @since 2.0.0
@@ -173,8 +174,7 @@ public class DeviceConfigSteps {
     @Given("configuro UDID {string}")
     public void configuroUdid(String udid) {
         String resolved = ctx().variables().resolve(udid);
-        com.qa.common.config.ConfigManager.getInstance();
-        System.setProperty(com.qa.mobilecore.config.MobileConfigKeys.UDID, resolved);
+        System.setProperty(MobileConfigKeys.UDID, resolved);
         TestLogger.logInfo("DEVICE_CFG", "UDID: " + resolved, null);
     }
 

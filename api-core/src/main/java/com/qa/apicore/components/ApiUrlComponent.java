@@ -15,14 +15,38 @@ import java.util.Map;
  */
 @StepId("api.url")
 public class ApiUrlComponent implements StepComponent {
-    @Override public String getName()                  { return "URL / Ambiente"; }
-    @Override public String getDisplayName()           { return "URL / Ambiente"; }
-    @Override public String getDescription()           { return "Configuracion de base URL, ambiente y protocolo"; }
-    @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
-    @Override public String getCategory()              { return "Configuracion de Peticion"; }
-    @Override public String getIcon()                  { return "link"; }
-    @Override public int getDisplayOrder()             { return 10; }
-    @Override public Class<?> getStepDefinitionClass() { return UrlConfigSteps.class; }
+    @Override
+    public String getName() {
+        return "URL / Ambiente";
+    }
+    @Override
+    public String getDisplayName() {
+        return "URL / Ambiente";
+    }
+    @Override
+    public String getDescription() {
+        return "Configuracion de base URL, ambiente y protocolo";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.GIVEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Configuracion de Peticion";
+    }
+    @Override
+    public String getIcon() {
+        return "link";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return 10;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return UrlConfigSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

@@ -21,6 +21,15 @@ package com.qa.common.reporting.core.model;
  */
 public class StepResult {
 
+    /** Milisegundos en un segundo — umbral para mostrar duración en segundos. */
+    private static final long MS_PER_SECOND = 1_000L;
+
+    /** Milisegundos en un minuto — umbral para mostrar duración en minutos. */
+    private static final long MS_PER_MINUTE = 60_000L;
+
+    /** Nanosegundos en un milisegundo — factor de conversión para durationNanos. */
+    private static final long NS_PER_MS = 1_000_000L;
+
     // Identificación del step
     private String keyword;           // Given, When, Then, And, But
     private String name;              // Texto completo del step
@@ -70,13 +79,13 @@ public class StepResult {
      * Ejemplos: "150ms", "1.5s", "2m 30s"
      */
     public String getFormattedDuration() {
-        if (durationMs < 1000) {
+        if (durationMs < MS_PER_SECOND) {
             return durationMs + "ms";
-        } else if (durationMs < 60000) {
-            return String.format("%.2fs", durationMs / 1000.0);
+        } else if (durationMs < MS_PER_MINUTE) {
+            return String.format("%.2fs", durationMs / (double) MS_PER_SECOND);
         } else {
-            long minutes = durationMs / 60000;
-            long seconds = (durationMs % 60000) / 1000;
+            long minutes = durationMs / MS_PER_MINUTE;
+            long seconds = (durationMs % MS_PER_MINUTE) / MS_PER_SECOND;
             return String.format("%dm %ds", minutes, seconds);
         }
     }
@@ -169,7 +178,7 @@ public class StepResult {
     public void setDurationNanos(long durationNanos) {
         this.durationNanos = durationNanos;
         // Calcular millisegundos automáticamente
-        this.durationMs = durationNanos / 1_000_000;
+        this.durationMs = durationNanos / NS_PER_MS;
     }
 
     public String getErrorMessage() {

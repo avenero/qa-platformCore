@@ -79,25 +79,33 @@ public final class ExecutionRequest {
     /**
      * @return rutas de features, nunca null
      */
-    public List<String> getFeaturePaths() { return featurePaths; }
+    public List<String> getFeaturePaths() {
+        return featurePaths;
+    }
 
     /**
      * @return paquetes de glue explícitos; puede ser vacío si se usó el factory sin gluePaths
      *         (en ese caso el engine los deriva automáticamente de los plugins SPI)
      */
-    public List<String> getGluePaths() { return gluePaths; }
+    public List<String> getGluePaths() {
+        return gluePaths;
+    }
 
     /**
      * @return configuración de la ejecución, nunca null
      */
-    public ExecutionConfig getConfig() { return config; }
+    public ExecutionConfig getConfig() {
+        return config;
+    }
 
     /**
      * @return {@code true} si el caller no proporcionó gluePaths explícitos;
      *         el engine los derivará de los plugins SPI
      * @since 2.2.0
      */
-    public boolean isGlueAutoResolved() { return gluePaths.isEmpty(); }
+    public boolean isGlueAutoResolved() {
+        return gluePaths.isEmpty();
+    }
 
     @Override
     public String toString() {

@@ -59,6 +59,8 @@ import java.time.Duration;
  */
 public class MobileDriverFactory {
 
+    private static final int DEFAULT_STARTUP_TIMEOUT_SEC = 30;
+
     private final ConfigManager config;
 
     /** Driver activo para este escenario. volatile para visibilidad inmediata entre hilos. */
@@ -107,7 +109,8 @@ public class MobileDriverFactory {
         DriverConfig driverConfig = buildDriverConfigFromConfig();
 
         boolean autoStart      = config.getBoolean(MobileConfigKeys.APPIUM_AUTO_START, false);
-        int     startupTimeout = config.getInt(MobileConfigKeys.APPIUM_STARTUP_TIMEOUT_SEC, 30);
+        int     startupTimeout = config.getInt(
+            MobileConfigKeys.APPIUM_STARTUP_TIMEOUT_SEC, DEFAULT_STARTUP_TIMEOUT_SEC);
         AppiumServerManager.ensureRunning(device.getAppiumServerUrl(), autoStart, startupTimeout);
 
         TestLogger.logInfo("MOBILE_FACTORY",
@@ -248,24 +251,18 @@ public class MobileDriverFactory {
                 : DeviceType.ANDROID_EMULATOR;
         }
 
-        return DeviceDescriptor.builder(id, type)
-                .platformName(platform)
-                .platformVersion(version)
-                .deviceName(name)
-                .udid(udid.isBlank() ? null : udid)
-                .appiumServerUrl(url)
-                .build();
+        return DeviceDescriptor.builder(id, type).platformName(platform).platformVersion(version).deviceName(name).
+                udid(udid.isBlank() ? null : udid).appiumServerUrl(url).build();
     }
 
     private DriverConfig buildDriverConfigFromConfig() {
-        return new DriverConfig()
-                .withAppPath(config.get(MobileConfigKeys.APP_PATH, ""))
-                .withAppPackage(config.get(MobileConfigKeys.APP_PACKAGE, ""))
-                .withAppActivity(config.get(MobileConfigKeys.APP_ACTIVITY, ""))
-                .withBundleId(config.get(MobileConfigKeys.BUNDLE_ID, ""))
-                .withAutoLaunch(config.getBoolean(MobileConfigKeys.APP_AUTO_LAUNCH, true))
-                .withNoReset(config.getBoolean(MobileConfigKeys.APP_NO_RESET, false))
-                .withImplicitWait(config.getInt(MobileConfigKeys.IMPLICIT_WAIT_SEC, 10));
+        return new DriverConfig().withAppPath(config.get(MobileConfigKeys.APP_PATH, "")).
+                withAppPackage(config.get(MobileConfigKeys.APP_PACKAGE, "")).
+                withAppActivity(config.get(MobileConfigKeys.APP_ACTIVITY, "")).
+                withBundleId(config.get(MobileConfigKeys.BUNDLE_ID, "")).
+                withAutoLaunch(config.getBoolean(MobileConfigKeys.APP_AUTO_LAUNCH, true)).
+                withNoReset(config.getBoolean(MobileConfigKeys.APP_NO_RESET, false)).
+                withImplicitWait(config.getInt(MobileConfigKeys.IMPLICIT_WAIT_SEC, 10));
     }
 
     // =========================================================================
@@ -339,9 +336,8 @@ public class MobileDriverFactory {
     private static AndroidDriver createAndroidDriver(
             DeviceDescriptor device, DriverConfig cfg, URL serverUrl) {
 
-        UiAutomator2Options options = new UiAutomator2Options()
-            .setPlatformName("Android")
-            .setAutomationName("UiAutomator2");
+        UiAutomator2Options options = new UiAutomator2Options().setPlatformName("Android").
+            setAutomationName("UiAutomator2");
 
         if (device.getDeviceName() != null && !device.getDeviceName().isBlank()) {
             options.setDeviceName(device.getDeviceName());
@@ -376,9 +372,7 @@ public class MobileDriverFactory {
     private static IOSDriver createIOSDriver(
             DeviceDescriptor device, DriverConfig cfg, URL serverUrl) {
 
-        XCUITestOptions options = new XCUITestOptions()
-            .setPlatformName("iOS")
-            .setAutomationName("XCUITest");
+        XCUITestOptions options = new XCUITestOptions().setPlatformName("iOS").setAutomationName("XCUITest");
 
         if (device.getDeviceName() != null && !device.getDeviceName().isBlank()) {
             options.setDeviceName(device.getDeviceName());
@@ -410,8 +404,7 @@ public class MobileDriverFactory {
 
     private static void configureDriver(AppiumDriver driver, DriverConfig cfg) {
         try {
-            driver.manage().timeouts()
-                .implicitlyWait(Duration.ofSeconds(cfg.getImplicitWaitSec()));
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(cfg.getImplicitWaitSec()));
             TestLogger.logInfo("MOBILE_FACTORY",
                 "Driver configurado (implicit wait: " + cfg.getImplicitWaitSec() + "s)", null);
         } catch (Exception e) {

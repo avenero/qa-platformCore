@@ -15,14 +15,41 @@ import java.util.Map;
  */
 @StepId("api.parameters")
 public class ApiParameterComponent implements StepComponent {
-    @Override public String getName()                  { return "Query Parameters"; }
-    @Override public String getDisplayName()           { return "Query Parameters"; }
-    @Override public String getDescription()           { return "Parametros de URL y path de la peticion"; }
-    @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
-    @Override public String getCategory()              { return "Configuracion de Peticion"; }
-    @Override public String getIcon()                  { return "search"; }
-    @Override public int getDisplayOrder()             { return 50; }
-    @Override public Class<?> getStepDefinitionClass() { return ParameterSteps.class; }
+
+    /** Display order for this component in the UI step palette. */
+    private static final int DISPLAY_ORDER = 50;
+    @Override
+    public String getName() {
+        return "Query Parameters";
+    }
+    @Override
+    public String getDisplayName() {
+        return "Query Parameters";
+    }
+    @Override
+    public String getDescription() {
+        return "Parametros de URL y path de la peticion";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.GIVEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Configuracion de Peticion";
+    }
+    @Override
+    public String getIcon() {
+        return "search";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return ParameterSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

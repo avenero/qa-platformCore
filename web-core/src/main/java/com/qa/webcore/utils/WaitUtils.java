@@ -3,6 +3,8 @@ package com.qa.webcore.utils;
 import com.qa.common.logging.TestLogger;
 import com.qa.webcore.driver.DriverManager;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Point;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -30,6 +32,12 @@ public class WaitUtils {
 
     private static final int DEFAULT_TIMEOUT_SECONDS = 15;
     private static final int DEFAULT_POLLING_MILLIS = 500;
+
+    /** Pausa de estabilizacion de posicion de elemento (en milisegundos). */
+    private static final long POSITION_STABLE_MS = 150;
+
+    /** Pausa adicional tras detectar elemento en movimiento (en milisegundos). */
+    private static final long ANIMATION_SETTLE_MS = 300;
 
     /**
      * Constructor privado para prevenir instanciación.
@@ -238,10 +246,7 @@ public class WaitUtils {
      */
     @SuppressWarnings("unused") // Método público disponible para uso externo
     public static void setImplicitWait(int seconds) {
-        DriverManager.getDriver()
-            .manage()
-            .timeouts()
-            .implicitlyWait(Duration.ofSeconds(seconds));
+        DriverManager.getDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(seconds));
         TestLogger.logInfo("WAIT_UTILS",
             "⚠️ Implicit wait configurado: " + seconds + "s", null);
     }
@@ -252,10 +257,7 @@ public class WaitUtils {
      * @param seconds Segundos de timeout para carga de página
      */
     public static void setPageLoadTimeout(int seconds) {
-        DriverManager.getDriver()
-            .manage()
-            .timeouts()
-            .pageLoadTimeout(Duration.ofSeconds(seconds));
+        DriverManager.getDriver().manage().timeouts().pageLoadTimeout(Duration.ofSeconds(seconds));
         TestLogger.logInfo("WAIT_UTILS",
             "Page load timeout configurado: " + seconds + "s", null);
     }
@@ -323,7 +325,7 @@ public class WaitUtils {
             if (!isElementPositionStable(element)) {
                 TestLogger.logDebug("WAIT_UTILS",
                     "Elemento en movimiento, esperando estabilización adicional", null);
-                waitMillisecondsQuiet(300); // Espera sin log de warning
+                waitMillisecondsQuiet(ANIMATION_SETTLE_MS); // Espera sin log de warning
             }
 
             // Elemento estable - no log en caso exitoso (reduce ruido)
@@ -345,9 +347,9 @@ public class WaitUtils {
      */
     private static boolean isElementPositionStable(WebElement element) {
         try {
-            org.openqa.selenium.Point location1 = element.getLocation();
-            waitMillisecondsQuiet(150);
-            org.openqa.selenium.Point location2 = element.getLocation();
+            Point location1 = element.getLocation();
+            waitMillisecondsQuiet(POSITION_STABLE_MS);
+            Point location2 = element.getLocation();
 
             return location1.equals(location2);
 
@@ -424,8 +426,8 @@ public class WaitUtils {
 
             return wait.until(driver -> {
                 try {
-                    org.openqa.selenium.JavascriptExecutor js =
-                        (org.openqa.selenium.JavascriptExecutor) driver;
+                    JavascriptExecutor js =
+                        (JavascriptExecutor) driver;
                     String readyState = (String) js.executeScript("return document.readyState");
                     return "complete".equals(readyState);
                 } catch (Exception e) {
@@ -462,8 +464,8 @@ public class WaitUtils {
 
             return wait.until(driver -> {
                 try {
-                    org.openqa.selenium.JavascriptExecutor js =
-                        (org.openqa.selenium.JavascriptExecutor) driver;
+                    JavascriptExecutor js =
+                        (JavascriptExecutor) driver;
                     Object result = js.executeScript(
                         "return typeof jQuery !== 'undefined' ? jQuery.active === 0 : true"
                     );

@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.navigation")
 public class NavigationComponent implements StepComponent {
-    @Override public String getName()                  { return "Navegacion"; }
-    @Override public String getDisplayName()           { return "Navegacion"; }
-    @Override public String getDescription()           { return "Navegar a URL, historial, refresh, flujos complejos"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Navegacion"; }
-    @Override public String getIcon()                  { return "navigation"; }
-    @Override public int getDisplayOrder()             { return 30; }
-    @Override public Class<?> getStepDefinitionClass() { return NavigationSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 30;
+
+    @Override
+    public String getName() {
+        return "Navegacion";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Navegacion";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Navegar a URL, historial, refresh, flujos complejos";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Navegacion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "navigation";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return NavigationSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

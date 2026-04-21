@@ -159,6 +159,7 @@ public record StepDefinitionInfo(
      *             para no romper tests y código cliente existente.
      */
     @Deprecated(since = "2.3.0", forRemoval = false)
+    //CHECKSTYLE:OFF: ParameterNumber
     public StepDefinitionInfo(
             String stepDefId,
             String cucumberPattern,
@@ -173,6 +174,7 @@ public record StepDefinitionInfo(
              displayName, deprecated, replacementStepDefId,
              Map.of(), Map.of());
     }
+    //CHECKSTYLE:ON: ParameterNumber
 
     // =========================================================================
     // Derived — ParamSchema (vista semántica de parámetros)
@@ -198,9 +200,7 @@ public record StepDefinitionInfo(
      * @since 2.3.0
      */
     public List<ParamSchema> paramSchemas() {
-        return params.stream()
-                .map(ParamSchema::fromParamInfo)
-                .collect(Collectors.toUnmodifiableList());
+        return params.stream().map(ParamSchema::fromParamInfo).collect(Collectors.toUnmodifiableList());
     }
 
     // =========================================================================

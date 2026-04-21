@@ -15,13 +15,16 @@ import java.util.Map;
  */
 @StepId("mobile.context")
 public class ContextSwitchComponent implements StepComponent {
+
+    private static final int DISPLAY_ORDER = 50;
+
     @Override public String getName()                  { return "Cambio de Contexto"; }
     @Override public String getDisplayName()           { return "Cambio de Contexto"; }
     @Override public String getDescription()           { return "Cambiar entre contexto nativo y WebView"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
     @Override public String getCategory()              { return "Interaccion Mobile"; }
     @Override public String getIcon()                  { return "swap_horiz"; }
-    @Override public int getDisplayOrder()             { return 50; }
+    @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return ContextSwitchSteps.class; }
 
     @Override

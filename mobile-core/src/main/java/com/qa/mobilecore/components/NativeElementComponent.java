@@ -15,13 +15,16 @@ import java.util.Map;
  */
 @StepId("mobile.element")
 public class NativeElementComponent implements StepComponent {
+
+    private static final int DISPLAY_ORDER = 40;
+
     @Override public String getName()                  { return "Elementos Nativos"; }
     @Override public String getDisplayName()           { return "Elementos Nativos"; }
     @Override public String getDescription()           { return "Interaccion con elementos de la UI nativa"; }
     @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
     @Override public String getCategory()              { return "Interaccion Mobile"; }
     @Override public String getIcon()                  { return "widgets"; }
-    @Override public int getDisplayOrder()             { return 40; }
+    @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return NativeElementSteps.class; }
 
     @Override

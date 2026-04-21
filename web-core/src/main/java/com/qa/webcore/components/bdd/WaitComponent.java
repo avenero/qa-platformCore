@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.wait")
 public class WaitComponent implements StepComponent {
-    @Override public String getName()                  { return "Esperas"; }
-    @Override public String getDisplayName()           { return "Esperas"; }
-    @Override public String getDescription()           { return "Esperas explicitas sobre elementos y condiciones"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Esperas"; }
-    @Override public String getIcon()                  { return "hourglass_empty"; }
-    @Override public int getDisplayOrder()             { return 110; }
-    @Override public Class<?> getStepDefinitionClass() { return WaitSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 110;
+
+    @Override
+    public String getName() {
+        return "Esperas";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Esperas";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Esperas explicitas sobre elementos y condiciones";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Esperas";
+    }
+
+    @Override
+    public String getIcon() {
+        return "hourglass_empty";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return WaitSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

@@ -33,7 +33,11 @@ public class ReportingConfig {
         this.enabled = true;
     }
 
-    /** Carga configuración desde ConfigManager (config-*.properties) */
+    /**
+     * Carga configuración desde ConfigManager (config-*.properties).
+     *
+     * @return configuración cargada con valores de config-*.properties o defaults
+     */
     public static ReportingConfig fromConfigManager() {
         ConfigManager configManager = ConfigManager.getInstance();
         ReportingConfig config = new ReportingConfig();
@@ -55,9 +59,12 @@ public class ReportingConfig {
         }
         config.getExtent().setReportTitle(reportTitle);
         config.getExtent().setTheme(configManager.get("extent.theme", "STANDARD"));
-        config.getExtent().setIncludeScreenshots(Boolean.parseBoolean(configManager.get("extent.includeScreenshots", "true")));
-        config.getExtent().setIncludeSystemInfo(Boolean.parseBoolean(configManager.get("extent.includeSystemInfo", "true")));
-        config.getExtent().setIncludeTimeline(Boolean.parseBoolean(configManager.get("extent.includeTimeline", "true")));
+        config.getExtent().setIncludeScreenshots(
+            Boolean.parseBoolean(configManager.get("extent.includeScreenshots", "true")));
+        config.getExtent().setIncludeSystemInfo(
+            Boolean.parseBoolean(configManager.get("extent.includeSystemInfo", "true")));
+        config.getExtent().setIncludeTimeline(
+            Boolean.parseBoolean(configManager.get("extent.includeTimeline", "true")));
 
         loadExtentSystemInfo(configManager, config.getExtent());
 
@@ -66,7 +73,12 @@ public class ReportingConfig {
         return config;
     }
 
-    /** Carga configuración desde Properties */
+    /**
+     * Carga configuración desde un objeto {@link Properties}.
+     *
+     * @param props propiedades de configuración
+     * @return configuración cargada
+     */
     public static ReportingConfig fromProperties(Properties props) {
         ReportingConfig config = new ReportingConfig();
         config.setEnabled(Boolean.parseBoolean(props.getProperty("reporting.enabled", "true")));
@@ -100,21 +112,48 @@ public class ReportingConfig {
     }
 
     private static String capitalizeWords(String input) {
-        if (input == null || input.isEmpty()) return input;
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
         String[] words = input.split(" ");
         StringBuilder result = new StringBuilder();
         for (String word : words) {
-            if (!word.isEmpty()) result.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1)).append(" ");
+            if (!word.isEmpty()) {
+                result.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1)).append(" ");
+            }
         }
         return result.toString().trim();
     }
 
-    public boolean isEnabled() { return enabled; }
-    public void setEnabled(boolean enabled) { this.enabled = enabled; }
-    public String getEnvironment() { return environment; }
-    public void setEnvironment(String environment) { this.environment = environment; }
-    public ExtentConfig getExtent() { return extent; }
-    public void setExtent(ExtentConfig extent) { this.extent = extent; }
+    /** @return {@code true} si el reporting está habilitado */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    /** @param enabled {@code true} para habilitar el reporting */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /** @return entorno de ejecución (ej: "QA", "local") */
+    public String getEnvironment() {
+        return environment;
+    }
+
+    /** @param environment entorno de ejecución */
+    public void setEnvironment(String environment) {
+        this.environment = environment;
+    }
+
+    /** @return configuración de Extent Reports */
+    public ExtentConfig getExtent() {
+        return extent;
+    }
+
+    /** @param extent configuración de Extent Reports */
+    public void setExtent(ExtentConfig extent) {
+        this.extent = extent;
+    }
 
     @Override
     public String toString() {

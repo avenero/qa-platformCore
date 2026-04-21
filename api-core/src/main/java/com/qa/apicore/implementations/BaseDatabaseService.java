@@ -2,8 +2,17 @@ package com.qa.apicore.implementations;
 
 import com.qa.apicore.interfaces.DatabaseService;
 import com.qa.common.logging.TestLogger;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import javax.sql.DataSource;
 
 /**
@@ -51,7 +60,7 @@ import javax.sql.DataSource;
  */
 public class BaseDatabaseService implements DatabaseService {
 
-  private static final TestLogger.LoggerWrapper log =
+  private static final TestLogger.LoggerWrapper LOG =
       TestLogger.getLogger(BaseDatabaseService.class);
 
   // =================================================================================
@@ -82,9 +91,9 @@ public class BaseDatabaseService implements DatabaseService {
     try {
       // Crear DataSource usando configuración automática
       this.dataSource = createDataSourceForType(this.databaseType);
-      log.debug("BaseDatabaseService inicializado para tipo: {}", this.databaseType);
+      LOG.debug("BaseDatabaseService inicializado para tipo: {}", this.databaseType);
     } catch (Exception e) {
-      log.error(
+      LOG.error(
           "Error inicializando BaseDatabaseService para tipo: {} - {}",
           this.databaseType,
           e.getMessage());
@@ -111,11 +120,11 @@ public class BaseDatabaseService implements DatabaseService {
       // Crear DataSource con configuración personalizada
       this.dataSource =
           BaseDatabaseConfiguration.createDataSource(this.databaseType, jdbcUrl, user, password);
-      log.debug(
+      LOG.debug(
           "BaseDatabaseService inicializado con configuración personalizada para tipo: {}",
           this.databaseType);
     } catch (Exception e) {
-      log.error("Error inicializando BaseDatabaseService personalizado: {}", e.getMessage());
+      LOG.error("Error inicializando BaseDatabaseService personalizado: {}", e.getMessage());
       throw e;
     }
   }
@@ -164,7 +173,7 @@ public class BaseDatabaseService implements DatabaseService {
     try (Connection conn = dataSource.getConnection();
         PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-      log.info("Ejecutando consulta para Map en {}: {}", databaseType, sanitizeSql(sql));
+      LOG.info("Ejecutando consulta para Map en {}: {}", databaseType, sanitizeSql(sql));
 
       // Establecer parámetros
       setParameters(stmt, parameters);
@@ -172,14 +181,14 @@ public class BaseDatabaseService implements DatabaseService {
       try (ResultSet rs = stmt.executeQuery()) {
         if (rs.next()) {
           Map<String, Object> result = extractRowAsMap(rs);
-          log.debug("Consulta para Map completada: {} columnas", result.size());
+          LOG.debug("Consulta para Map completada: {} columnas", result.size());
           return result;
         }
         return new HashMap<>();
       }
 
     } catch (SQLException e) {
-      log.error("Error ejecutando consulta para Map: {} - {}", sanitizeSql(sql), e.getMessage());
+      LOG.error("Error ejecutando consulta para Map: {} - {}", sanitizeSql(sql), e.getMessage());
       throw new RuntimeException(
           "Error ejecutando consulta en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -197,7 +206,7 @@ public class BaseDatabaseService implements DatabaseService {
     try (Connection conn = dataSource.getConnection();
         PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-      log.info("Ejecutando consulta para List en {}: {}", databaseType, sanitizeSql(sql));
+      LOG.info("Ejecutando consulta para List en {}: {}", databaseType, sanitizeSql(sql));
 
       setParameters(stmt, parameters);
 
@@ -206,12 +215,12 @@ public class BaseDatabaseService implements DatabaseService {
         while (rs.next()) {
           results.add(extractRowAsMap(rs));
         }
-        log.debug("Consulta para List completada: {} filas", results.size());
+        LOG.debug("Consulta para List completada: {} filas", results.size());
         return results;
       }
 
     } catch (SQLException e) {
-      log.error("Error ejecutando consulta para List: {} - {}", sanitizeSql(sql), e.getMessage());
+      LOG.error("Error ejecutando consulta para List: {} - {}", sanitizeSql(sql), e.getMessage());
       throw new RuntimeException(
           "Error ejecutando consulta en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -263,16 +272,16 @@ public class BaseDatabaseService implements DatabaseService {
     try (Connection conn = dataSource.getConnection();
         PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-      log.info("Ejecutando update en {}: {}", databaseType, sanitizeSql(sql));
+      LOG.info("Ejecutando update en {}: {}", databaseType, sanitizeSql(sql));
 
       setParameters(stmt, parameters);
       int rowsAffected = stmt.executeUpdate();
 
-      log.debug("Update completado: {} filas afectadas", rowsAffected);
+      LOG.debug("Update completado: {} filas afectadas", rowsAffected);
       return rowsAffected;
 
     } catch (SQLException e) {
-      log.error("Error ejecutando update: {} - {}", sanitizeSql(sql), e.getMessage());
+      LOG.error("Error ejecutando update: {} - {}", sanitizeSql(sql), e.getMessage());
       throw new RuntimeException(
           "Error ejecutando update en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -285,7 +294,7 @@ public class BaseDatabaseService implements DatabaseService {
     }
 
     try (Connection conn = dataSource.getConnection()) {
-      log.info("Ejecutando batch de {} statements en {}", sqlStatements.size(), databaseType);
+      LOG.info("Ejecutando batch de {} statements en {}", sqlStatements.size(), databaseType);
 
       conn.setAutoCommit(false);
 
@@ -298,7 +307,7 @@ public class BaseDatabaseService implements DatabaseService {
         int[] results = stmt.executeBatch();
         conn.commit();
 
-        log.debug("Batch completado exitosamente: {} statements ejecutados", results.length);
+        LOG.debug("Batch completado exitosamente: {} statements ejecutados", results.length);
         return results;
 
       } catch (SQLException e) {
@@ -309,7 +318,7 @@ public class BaseDatabaseService implements DatabaseService {
       }
 
     } catch (SQLException e) {
-      log.error("Error ejecutando batch: {}", e.getMessage());
+      LOG.error("Error ejecutando batch: {}", e.getMessage());
       throw new RuntimeException(
           "Error ejecutando batch en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -324,7 +333,7 @@ public class BaseDatabaseService implements DatabaseService {
     validateSql(sql);
 
     try (Connection conn = dataSource.getConnection()) {
-      log.info(
+      LOG.info(
           "Ejecutando batch parametrizado de {} statements en {}: {}",
           parametersList.size(),
           databaseType,
@@ -341,7 +350,7 @@ public class BaseDatabaseService implements DatabaseService {
         int[] results = stmt.executeBatch();
         conn.commit();
 
-        log.debug(
+        LOG.debug(
             "Batch parametrizado completado exitosamente: {} statements ejecutados",
             results.length);
         return results;
@@ -354,7 +363,7 @@ public class BaseDatabaseService implements DatabaseService {
       }
 
     } catch (SQLException e) {
-      log.error("Error ejecutando batch parametrizado: {} - {}", sanitizeSql(sql), e.getMessage());
+      LOG.error("Error ejecutando batch parametrizado: {} - {}", sanitizeSql(sql), e.getMessage());
       throw new RuntimeException(
           "Error ejecutando batch parametrizado en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -368,10 +377,10 @@ public class BaseDatabaseService implements DatabaseService {
   public boolean testConnection() {
     try (Connection conn = dataSource.getConnection()) {
       boolean isValid = conn.isValid(5); // 5 segundos timeout
-      log.debug("Test de conexión para {}: {}", databaseType, isValid ? "EXITOSO" : "FALLIDO");
+      LOG.debug("Test de conexión para {}: {}", databaseType, isValid ? "EXITOSO" : "FALLIDO");
       return isValid;
     } catch (Exception e) {
-      log.warn("Test de conexión fallido para {}: {}", databaseType, e.getMessage());
+      LOG.warn("Test de conexión fallido para {}: {}", databaseType, e.getMessage());
       return false;
     }
   }
@@ -390,12 +399,12 @@ public class BaseDatabaseService implements DatabaseService {
       info.put("userName", metaData.getUserName());
       info.put("configuredType", databaseType);
 
-      log.debug(
+      LOG.debug(
           "Información de BD obtenida para {}: {}", databaseType, info.get("databaseProductName"));
       return info;
 
     } catch (SQLException e) {
-      log.error("Error obteniendo información de BD: {}", e.getMessage());
+      LOG.error("Error obteniendo información de BD: {}", e.getMessage());
       throw new RuntimeException("Error obteniendo información de BD: " + e.getMessage(), e);
     }
   }
@@ -411,16 +420,16 @@ public class BaseDatabaseService implements DatabaseService {
       case "sqlserver":
       case "sql-server":
       case "mssql":
-        sql =
-            "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME";
+        sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES"
+            + " WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME";
         break;
       default:
-        sql =
-            "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME";
+        sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES"
+            + " WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME";
     }
 
     List<Map<String, Object>> tables = queryForList(sql);
-    log.debug("Obtenidas {} tablas para {}", tables.size(), databaseType);
+    LOG.debug("Obtenidas {} tablas para {}", tables.size(), databaseType);
     return tables;
   }
 
@@ -434,22 +443,22 @@ public class BaseDatabaseService implements DatabaseService {
     String sql;
     switch (databaseType.toLowerCase()) {
       case "oracle":
-        sql =
-            "SELECT column_name, data_type, data_length, nullable FROM user_tab_columns WHERE table_name = UPPER(?) ORDER BY column_id";
+        sql = "SELECT column_name, data_type, data_length, nullable"
+            + " FROM user_tab_columns WHERE table_name = UPPER(?) ORDER BY column_id";
         break;
       case "sqlserver":
       case "sql-server":
       case "mssql":
-        sql =
-            "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? ORDER BY ORDINAL_POSITION";
+        sql = "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE"
+            + " FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? ORDER BY ORDINAL_POSITION";
         break;
       default:
-        sql =
-            "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? ORDER BY ORDINAL_POSITION";
+        sql = "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE"
+            + " FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? ORDER BY ORDINAL_POSITION";
     }
 
     List<Map<String, Object>> columns = queryForList(sql, tableName);
-    log.debug("Obtenidas {} columnas para tabla {} en {}", columns.size(), tableName, databaseType);
+    LOG.debug("Obtenidas {} columnas para tabla {} en {}", columns.size(), tableName, databaseType);
     return columns;
   }
 
@@ -468,7 +477,7 @@ public class BaseDatabaseService implements DatabaseService {
       throw new IllegalArgumentException("Connection timeout no puede ser negativo");
     }
     this.connectionTimeout = timeoutMs;
-    log.debug("Connection timeout configurado: {} ms", timeoutMs);
+    LOG.debug("Connection timeout configurado: {} ms", timeoutMs);
   }
 
   @Override
@@ -491,10 +500,10 @@ public class BaseDatabaseService implements DatabaseService {
     try {
       if (dataSource instanceof AutoCloseable) {
         ((AutoCloseable) dataSource).close();
-        log.debug("DataSource cerrado para tipo: {}", databaseType);
+        LOG.debug("DataSource cerrado para tipo: {}", databaseType);
       }
     } catch (Exception e) {
-      log.warn("Error cerrando DataSource: {}", e.getMessage());
+      LOG.warn("Error cerrando DataSource: {}", e.getMessage());
     }
   }
 
@@ -511,7 +520,7 @@ public class BaseDatabaseService implements DatabaseService {
   @Override
   public void reset() {
     // Reset statistics and state - no persistent state to reset
-    log.debug("DatabaseService reset para tipo: {}", databaseType);
+    LOG.debug("DatabaseService reset para tipo: {}", databaseType);
   }
 
   @Override
@@ -536,7 +545,7 @@ public class BaseDatabaseService implements DatabaseService {
       String url = metaData.getURL();
       return sanitizeUrl(url);
     } catch (Exception e) {
-      log.error("Error obteniendo JDBC URL: {}", e.getMessage());
+      LOG.error("Error obteniendo JDBC URL: {}", e.getMessage());
       return "jdbc:unknown";
     }
   }
@@ -564,7 +573,9 @@ public class BaseDatabaseService implements DatabaseService {
 
   /** Sanitiza SQL para logging (oculta datos sensibles). */
   private String sanitizeSql(String sql) {
-    if (sql == null) return "null";
+    if (sql == null) {
+      return "null";
+    }
     if (sql.length() > 200) {
       return sql.substring(0, 200) + "...";
     }
@@ -573,7 +584,9 @@ public class BaseDatabaseService implements DatabaseService {
 
   /** Sanitiza URL JDBC eliminando credenciales. */
   private String sanitizeUrl(String url) {
-    if (url == null) return "jdbc:unknown";
+    if (url == null) {
+      return "jdbc:unknown";
+    }
     // Remover credenciales de la URL si las hubiera
     return url.replaceAll("([?&])(user|password)=[^&]*", "$1$2=***");
   }
@@ -617,7 +630,7 @@ public class BaseDatabaseService implements DatabaseService {
     try {
       return Long.parseLong(value.toString());
     } catch (NumberFormatException e) {
-      log.warn("No se pudo convertir valor a Long: {} - retornando 0", value);
+      LOG.warn("No se pudo convertir valor a Long: {} - retornando 0", value);
       return 0L;
     }
   }

@@ -29,6 +29,9 @@ public final class TextUtilities {
     /** Longitud máxima para valores en logs – previene logs gigantes. */
     private static final int MAX_LOG_VALUE_LENGTH = 200;
 
+    /** Truncation length used for debug comparison log output. */
+    private static final int COMPARE_LOG_TRUNCATE_LENGTH = 50;
+
     /** Palabras clave que identifican datos sensibles (GDPR/PCI-DSS). */
     private static final Set<String> SENSITIVE_KEYS = Set.of(
         "password", "token", "secret", "apikey", "api_key", "authorization",
@@ -55,10 +58,14 @@ public final class TextUtilities {
      * @return valor sanitizado seguro para logs
      */
     public static String sanitizeForLogging(String key, Object value) {
-        if (value == null) return "null";
+        if (value == null) {
+            return "null";
+        }
         String lowerKey = key != null ? key.toLowerCase() : "";
         for (String sensitiveKey : SENSITIVE_KEYS) {
-            if (lowerKey.contains(sensitiveKey)) return "***HIDDEN***";
+            if (lowerKey.contains(sensitiveKey)) {
+                return "***HIDDEN***";
+            }
         }
         String valueStr = value.toString();
         return valueStr.length() > MAX_LOG_VALUE_LENGTH
@@ -75,7 +82,9 @@ public final class TextUtilities {
      * @return texto con valores sensibles reemplazados por {@code "***HIDDEN***"}
      */
     public static String sanitizeForLog(String data) {
-        if (data == null) return null;
+        if (data == null) {
+            return null;
+        }
         return data.replaceAll(
             "(password|token|secret|key)\"\\s*:\\s*\"[^\"]*\"",
             "$1\":\"***HIDDEN***\""
@@ -90,8 +99,12 @@ public final class TextUtilities {
      * @return valor sanitizado o {@code "***HIDDEN***"} si la clave es sensible
      */
     public static String sanitizeValue(String key, String value) {
-        if (value == null) return null;
-        if (key == null) return value;
+        if (value == null) {
+            return null;
+        }
+        if (key == null) {
+            return value;
+        }
         String lowerKey = key.toLowerCase();
         if (lowerKey.contains("password") || lowerKey.contains("token") ||
             lowerKey.contains("secret") || lowerKey.contains("key") ||
@@ -123,8 +136,12 @@ public final class TextUtilities {
      * @return contenido truncado con {@code "... [TRUNCATED]"} al final si aplica
      */
     public static String truncateContent(String content, int maxLength) {
-        if (content == null) return null;
-        if (content.length() <= maxLength) return content;
+        if (content == null) {
+            return null;
+        }
+        if (content.length() <= maxLength) {
+            return content;
+        }
         return content.substring(0, maxLength) + "... [TRUNCATED]";
     }
 
@@ -152,7 +169,9 @@ public final class TextUtilities {
      * @return String con primera letra en mayúscula
      */
     public static String capitalize(String str) {
-        if (str == null || str.isEmpty()) return str;
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 
@@ -175,12 +194,11 @@ public final class TextUtilities {
      * @return texto normalizado, o string vacío si el input es null
      */
     public static String normalizeText(String text) {
-        if (text == null) return "";
-        String normalized = text
-            .replace("&nbsp;", " ").replace("&amp;", "&")
-            .replace("&lt;", "<").replace("&gt;", ">")
-            .replace("&quot;", "\"")
-            .replace("\t", " ").replace("\n", " ").replace("\r", " ");
+        if (text == null) {
+            return "";
+        }
+        String normalized = text.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").
+            replace("&quot;", "\"").replace("\t", " ").replace("\n", " ").replace("\r", " ");
         return normalized.replaceAll("\\s+", " ").trim();
     }
 
@@ -197,14 +215,19 @@ public final class TextUtilities {
      * @return {@code true} si los textos coinciden tras normalización
      */
     public static boolean compareTextFlexible(String text1, String text2, boolean ignoreCase) {
-        if (text1 == null && text2 == null) return true;
-        if (text1 == null || text2 == null) return false;
+        if (text1 == null && text2 == null) {
+            return true;
+        }
+        if (text1 == null || text2 == null) {
+            return false;
+        }
         String n1 = ignoreCase ? normalizeText(text1).toLowerCase() : normalizeText(text1);
         String n2 = ignoreCase ? normalizeText(text2).toLowerCase() : normalizeText(text2);
         boolean match = n1.equals(n2);
         TestLogger.logDebug("TEXT_UTILITIES",
             String.format("compareText: '%s' vs '%s' = %s (ignoreCase: %s)",
-                truncateContent(n1, 50), truncateContent(n2, 50), match, ignoreCase), null);
+                truncateContent(n1, COMPARE_LOG_TRUNCATE_LENGTH),
+                truncateContent(n2, COMPARE_LOG_TRUNCATE_LENGTH), match, ignoreCase), null);
         return match;
     }
 
@@ -238,7 +261,9 @@ public final class TextUtilities {
      * @return {@code true} si {@code text} contiene {@code substring}
      */
     public static boolean containsText(String text, String substring) {
-        if (text == null || substring == null) return false;
+        if (text == null || substring == null) {
+            return false;
+        }
         return normalizeText(text).toLowerCase().contains(normalizeText(substring).toLowerCase());
     }
 
@@ -258,7 +283,9 @@ public final class TextUtilities {
      * @return string con solo números y punto decimal, o {@code null}
      */
     public static String extractNumber(String text) {
-        if (text == null || text.trim().isEmpty()) return null;
+        if (text == null || text.trim().isEmpty()) {
+            return null;
+        }
         String numbers = text.replaceAll("[^0-9.,]", "");
         if (numbers.contains(",") && !numbers.contains(".")) {
             numbers = numbers.replace(",", ".");
@@ -276,7 +303,9 @@ public final class TextUtilities {
      */
     public static Double extractNumberAsDouble(String text) {
         String numberStr = extractNumber(text);
-        if (numberStr == null) return null;
+        if (numberStr == null) {
+            return null;
+        }
         try {
             return Double.parseDouble(numberStr);
         } catch (NumberFormatException e) {
@@ -328,18 +357,29 @@ public final class TextUtilities {
      * @return {@code true} si los valores son equivalentes según el modo
      */
     public static boolean compareValues(Object value1, Object value2, ComparisonMode mode) {
-        if (value1 == null && value2 == null) return true;
-        if (value1 == null || value2 == null) return false;
+        if (value1 == null && value2 == null) {
+            return true;
+        }
+        if (value1 == null || value2 == null) {
+            return false;
+        }
         String s1 = String.valueOf(value1);
         String s2 = String.valueOf(value2);
         switch (mode) {
-            case EXACT:                 return s1.equals(s2);
-            case IGNORE_CASE:           return s1.equalsIgnoreCase(s2);
-            case TRIM:                  return s1.trim().equals(s2.trim());
-            case TRIM_AND_NORMALIZE:    return normalizeText(s1).equals(normalizeText(s2));
-            case IGNORE_CASE_AND_TRIM:  return s1.trim().equalsIgnoreCase(s2.trim());
-            case CONTAINS:              return s1.contains(s2) || s2.contains(s1);
-            default:                    return s1.equals(s2);
+            case EXACT:
+                return s1.equals(s2);
+            case IGNORE_CASE:
+                return s1.equalsIgnoreCase(s2);
+            case TRIM:
+                return s1.trim().equals(s2.trim());
+            case TRIM_AND_NORMALIZE:
+                return normalizeText(s1).equals(normalizeText(s2));
+            case IGNORE_CASE_AND_TRIM:
+                return s1.trim().equalsIgnoreCase(s2.trim());
+            case CONTAINS:
+                return s1.contains(s2) || s2.contains(s1);
+            default:
+                return s1.equals(s2);
         }
     }
 
@@ -370,12 +410,12 @@ public final class TextUtilities {
      * @throws IllegalStateException si alguna variable no existe en el contexto
      */
     public static boolean compareApiWithContext(String apiKey, String expectedKey, ComparisonMode mode) {
-        Object apiValue = ExecutionContext.current()
-            .flatMap(ctx -> ctx.variables().get(apiKey, Object.class))
-            .orElseThrow(() -> new IllegalStateException("Variable API no encontrada: '" + apiKey + "'"));
-        Object expectedValue = ExecutionContext.current()
-            .flatMap(ctx -> ctx.variables().get(expectedKey, Object.class))
-            .orElseThrow(() -> new IllegalStateException("Variable esperada no encontrada: '" + expectedKey + "'"));
+        Object apiValue = ExecutionContext.current().
+            flatMap(ctx -> ctx.variables().get(apiKey, Object.class)).
+            orElseThrow(() -> new IllegalStateException("Variable API no encontrada: '" + apiKey + "'"));
+        Object expectedValue = ExecutionContext.current().
+            flatMap(ctx -> ctx.variables().get(expectedKey, Object.class)).
+            orElseThrow(() -> new IllegalStateException("Variable esperada no encontrada: '" + expectedKey + "'"));
         boolean result = compareValues(apiValue, expectedValue, mode);
         TestLogger.logDebug("TEXT_UTILITIES",
             String.format("compareApiWithContext: [%s]=%s vs [%s]=%s → %s",
@@ -394,10 +434,10 @@ public final class TextUtilities {
      */
     public static void assertApiWithContext(String apiKey, String expectedKey, ComparisonMode mode) {
         if (!compareApiWithContext(apiKey, expectedKey, mode)) {
-            Object apiValue = ExecutionContext.current()
-                .flatMap(ctx -> ctx.variables().get(apiKey, Object.class)).orElse("N/A");
-            Object expectedValue = ExecutionContext.current()
-                .flatMap(ctx -> ctx.variables().get(expectedKey, Object.class)).orElse("N/A");
+            Object apiValue = ExecutionContext.current().
+                flatMap(ctx -> ctx.variables().get(apiKey, Object.class)).orElse("N/A");
+            Object expectedValue = ExecutionContext.current().
+                flatMap(ctx -> ctx.variables().get(expectedKey, Object.class)).orElse("N/A");
             throw new AssertionError(String.format(
                 "Valores no coinciden — '%s' = '%s' vs '%s' = '%s' (modo: %s)",
                 apiKey, sanitizeForLogging(apiKey, apiValue),

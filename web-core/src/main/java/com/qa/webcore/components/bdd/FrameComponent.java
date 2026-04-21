@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.frame")
 public class FrameComponent implements StepComponent {
-    @Override public String getName()                  { return "Frames e iFrames"; }
-    @Override public String getDisplayName()           { return "Frames e iFrames"; }
-    @Override public String getDescription()           { return "Cambio de contexto a frames e iFrames"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Navegacion"; }
-    @Override public String getIcon()                  { return "layers"; }
-    @Override public int getDisplayOrder()             { return 40; }
-    @Override public Class<?> getStepDefinitionClass() { return FrameSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 40;
+
+    @Override
+    public String getName() {
+        return "Frames e iFrames";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Frames e iFrames";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Cambio de contexto a frames e iFrames";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Navegacion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "layers";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return FrameSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

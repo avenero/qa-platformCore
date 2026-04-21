@@ -34,11 +34,13 @@ import io.cucumber.java.Scenario;
  */
 public class MobileHooksSteps {
 
-    @Before(value = "@mobile or @ios or @android or @appium", order = 150)
+    private static final int HOOK_ORDER = 150;
+
+    @Before(value = "@mobile or @ios or @android or @appium", order = HOOK_ORDER)
     public void beforeScenario(Scenario scenario) {
-        String moduleName = ExecutionContext.current()
-                .map(ctx -> ctx.config().getProperty("framework.module.name", "MOBILE"))
-                .orElseGet(() -> ConfigManager.getInstance().get("framework.module.name", "MOBILE"));
+        String moduleName = ExecutionContext.current().
+                map(ctx -> ctx.config().getProperty("framework.module.name", "MOBILE")).
+                orElseGet(() -> ConfigManager.getInstance().get("framework.module.name", "MOBILE"));
 
         TestLogger.setFramework(moduleName);
         TestLogger.logInfo("MOBILE_HOOKS",
@@ -57,7 +59,7 @@ public class MobileHooksSteps {
      * Este hook solo cierra el driver como safety-net para escenarios ejecutados
      * sin el engine (ejecución directa con Cucumber runner standalone).
      */
-    @After(value = "@mobile or @ios or @android or @appium", order = 150)
+    @After(value = "@mobile or @ios or @android or @appium", order = HOOK_ORDER)
     public void afterScenario(Scenario scenario) {
         TestLogger.logInfo("MOBILE_HOOKS",
             "Finalizando escenario mobile: " + scenario.getName()

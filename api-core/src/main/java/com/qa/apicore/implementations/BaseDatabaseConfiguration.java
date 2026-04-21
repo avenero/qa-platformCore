@@ -59,7 +59,7 @@ import javax.sql.DataSource;
  */
 public class BaseDatabaseConfiguration {
 
-  private static final TestLogger.LoggerWrapper log =
+  private static final TestLogger.LoggerWrapper LOG =
       TestLogger.getLogger(BaseDatabaseConfiguration.class);
 
   // =================================================================================
@@ -71,6 +71,8 @@ public class BaseDatabaseConfiguration {
   private static final long DEFAULT_CONNECTION_TIMEOUT = 30000; // 30 segundos
   private static final long DEFAULT_IDLE_TIMEOUT = 600000; // 10 minutos
   private static final long DEFAULT_MAX_LIFETIME = 1800000; // 30 minutos
+  /** HikariCP leak detection threshold in milliseconds (60 seconds). */
+  private static final long DEFAULT_LEAK_DETECTION_THRESHOLD = 60000;
 
   // =================================================================================
   // CONFIGURACIONES DESDE MÚLTIPLES FUENTES (MIGRADAS DE DbConnectionConfig)
@@ -144,7 +146,7 @@ public class BaseDatabaseConfiguration {
       int maxPoolSize,
       int minIdle) {
     String dbType = extractDatabaseType(driverClassName);
-    log.info("Configurando DataSource {} [MaxPool:{}, MinIdle:{}]", dbType, maxPoolSize, minIdle);
+    LOG.info("Configurando DataSource {} [MaxPool:{}, MinIdle:{}]", dbType, maxPoolSize, minIdle);
 
     HikariConfig config = new HikariConfig();
 
@@ -162,14 +164,14 @@ public class BaseDatabaseConfiguration {
     config.setMaxLifetime(DEFAULT_MAX_LIFETIME);
 
     // Configuraciones adicionales de rendimiento
-    config.setLeakDetectionThreshold(60000);
+    config.setLeakDetectionThreshold(DEFAULT_LEAK_DETECTION_THRESHOLD);
     config.setPoolName("QA-" + dbType + "-Pool");
 
     // Validación de conexiones
     config.setConnectionTestQuery(getTestQuery(dbType));
 
     HikariDataSource dataSource = new HikariDataSource(config);
-    log.info("DataSource {} configurado exitosamente", dbType);
+    LOG.info("DataSource {} configurado exitosamente", dbType);
     return dataSource;
   }
 
@@ -223,7 +225,7 @@ public class BaseDatabaseConfiguration {
     try {
       return Integer.parseInt(value);
     } catch (NumberFormatException e) {
-      log.warn("Invalid pool size: {}, using default: {}", value, DEFAULT_MAX_POOL_SIZE);
+      LOG.warn("Invalid pool size: {}, using default: {}", value, DEFAULT_MAX_POOL_SIZE);
       return DEFAULT_MAX_POOL_SIZE;
     }
   }
@@ -234,7 +236,7 @@ public class BaseDatabaseConfiguration {
     try {
       return Integer.parseInt(value);
     } catch (NumberFormatException e) {
-      log.warn("Invalid min idle: {}, using default: {}", value, DEFAULT_MIN_IDLE);
+      LOG.warn("Invalid min idle: {}, using default: {}", value, DEFAULT_MIN_IDLE);
       return DEFAULT_MIN_IDLE;
     }
   }
@@ -251,12 +253,12 @@ public class BaseDatabaseConfiguration {
         BaseDatabaseConfiguration.class.getClassLoader().getResourceAsStream(CONFIG_FILE)) {
       if (input != null) {
         properties.load(input);
-        log.info("Configuración cargada desde archivo: {}", CONFIG_FILE);
+        LOG.info("Configuración cargada desde archivo: {}", CONFIG_FILE);
       } else {
-        log.info("Archivo {} no encontrado, usando variables de entorno y defaults", CONFIG_FILE);
+        LOG.info("Archivo {} no encontrado, usando variables de entorno y defaults", CONFIG_FILE);
       }
     } catch (IOException e) {
-      log.error("Error cargando configuración: {} - {}", CONFIG_FILE, e.getMessage());
+      LOG.error("Error cargando configuración: {} - {}", CONFIG_FILE, e.getMessage());
     }
   }
 

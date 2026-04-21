@@ -20,6 +20,11 @@ jobs:
       contents: read
       packages: read
 
+    # En master (push directo o PR hacia master) se activa modo estricto:
+    # Checkstyle y SpotBugs rompen el build si encuentran violaciones.
+    env:
+      STRICT_FLAG: ${{ (github.ref == 'refs/heads/master' || github.base_ref == 'master') && '-Pstrict' || '' }}
+
     steps:
 
       # ── Checkout completo ────────────────────────────────────────────────────
@@ -58,12 +63,14 @@ jobs:
           CI: true
 
       # ── Checkstyle (estilo de código / code smells) ────────────────────────────
+      # develop: --continue + ignoreFailures=true → reporta sin bloquear
+      # master:  --continue + ignoreFailures=false (-Pstrict) → falla si hay violaciones
       - name: Run Checkstyle static analysis
-        run: ./gradlew checkstyleMain --continue --no-daemon
+        run: ./gradlew checkstyleMain --continue --no-daemon ${{ env.STRICT_FLAG }}
 
       # ── SpotBugs (detección de bugs / vulnerabilidades) ───────────────────────
       - name: Run SpotBugs analysis
-        run: ./gradlew spotbugsMain --continue --no-daemon
+        run: ./gradlew spotbugsMain --continue --no-daemon ${{ env.STRICT_FLAG }}
 
       # ── Artefactos: Resultados de Tests ──────────────────────────────────────
       - name: Upload test results

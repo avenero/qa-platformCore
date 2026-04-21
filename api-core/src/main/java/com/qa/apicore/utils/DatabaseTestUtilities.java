@@ -26,8 +26,10 @@ import java.util.Map;
  *
  * <pre>
  * // API existente se mantiene igual
- * Map&lt;String, Object&gt; user = DatabaseTestUtilities.executeQueryForMap("oracle", "SELECT * FROM users WHERE id = 1");
- * List&lt;Map&lt;String, Object&gt;&gt; users = DatabaseTestUtilities.executeQueryForList("sqlserver", "SELECT * FROM users");
+ * Map&lt;String, Object&gt; user = DatabaseTestUtilities.executeQueryForMap(
+ *     "oracle", "SELECT * FROM users WHERE id = 1");
+ * List&lt;Map&lt;String, Object&gt;&gt; users = DatabaseTestUtilities.executeQueryForList(
+ *     "sqlserver", "SELECT * FROM users");
  * Long count = DatabaseTestUtilities.executeQueryForCount("oracle", "SELECT COUNT(*) FROM users");
  *
  * // Nuevas funcionalidades disponibles
@@ -46,8 +48,11 @@ import java.util.Map;
  */
 public class DatabaseTestUtilities {
 
-  private static final TestLogger.LoggerWrapper log =
+  private static final TestLogger.LoggerWrapper LOG =
       TestLogger.getLogger(DatabaseTestUtilities.class);
+
+  /** Maximum number of characters from a SQL string to include in sanitized log output. */
+  private static final int SQL_LOG_MAX_LENGTH = 150;
 
   private DatabaseTestUtilities() {
     // Utility class
@@ -66,7 +71,7 @@ public class DatabaseTestUtilities {
    * @return Map con el resultado o empty map si no hay resultados
    */
   public static Map<String, Object> executeQueryForMap(String dbType, String sql) {
-    log.info(
+    LOG.info(
         "DatabaseTestUtils - Ejecutando consulta para Map en {}: {}", dbType, sanitizeSql(sql));
 
     try {
@@ -74,11 +79,11 @@ public class DatabaseTestUtilities {
       Map<String, Object> result = dbService.queryForMap(sql);
       dbService.cleanup();
 
-      log.debug("Consulta para Map completada: {} columnas", result.size());
+      LOG.debug("Consulta para Map completada: {} columnas", result.size());
       return result;
 
     } catch (Exception e) {
-      log.error("Error en executeQueryForMap: {}", e.getMessage());
+      LOG.error("Error en executeQueryForMap: {}", e.getMessage());
       throw e;
     }
   }
@@ -92,7 +97,7 @@ public class DatabaseTestUtilities {
    * @return List de Maps con los resultados, lista vacía si no hay resultados
    */
   public static List<Map<String, Object>> executeQueryForList(String dbType, String sql) {
-    log.info(
+    LOG.info(
         "DatabaseTestUtils - Ejecutando consulta para List en {}: {}", dbType, sanitizeSql(sql));
 
     try {
@@ -100,11 +105,11 @@ public class DatabaseTestUtilities {
       List<Map<String, Object>> result = dbService.queryForList(sql);
       dbService.cleanup();
 
-      log.debug("Consulta para List completada: {} filas", result.size());
+      LOG.debug("Consulta para List completada: {} filas", result.size());
       return result;
 
     } catch (Exception e) {
-      log.error("Error en executeQueryForList: {}", e.getMessage());
+      LOG.error("Error en executeQueryForList: {}", e.getMessage());
       throw e;
     }
   }
@@ -117,7 +122,7 @@ public class DatabaseTestUtilities {
    * @return número de registros como Long
    */
   public static Long executeQueryForCount(String dbType, String sql) {
-    log.info(
+    LOG.info(
         "DatabaseTestUtils - Ejecutando consulta de conteo en {}: {}", dbType, sanitizeSql(sql));
 
     try {
@@ -125,11 +130,11 @@ public class DatabaseTestUtilities {
       Long result = dbService.queryForCount(sql);
       dbService.cleanup();
 
-      log.debug("Consulta de conteo completada: {} registros", result);
+      LOG.debug("Consulta de conteo completada: {} registros", result);
       return result;
 
     } catch (Exception e) {
-      log.error("Error en executeQueryForCount: {}", e.getMessage());
+      LOG.error("Error en executeQueryForCount: {}", e.getMessage());
       throw e;
     }
   }
@@ -142,18 +147,18 @@ public class DatabaseTestUtilities {
    * @return número de filas afectadas
    */
   public static int executeUpdate(String dbType, String sql) {
-    log.info("DatabaseTestUtils - Ejecutando update en {}: {}", dbType, sanitizeSql(sql));
+    LOG.info("DatabaseTestUtils - Ejecutando update en {}: {}", dbType, sanitizeSql(sql));
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
       int result = dbService.executeUpdate(sql);
       dbService.cleanup();
 
-      log.debug("Update completado: {} filas afectadas", result);
+      LOG.debug("Update completado: {} filas afectadas", result);
       return result;
 
     } catch (Exception e) {
-      log.error("Error en executeUpdate: {}", e.getMessage());
+      LOG.error("Error en executeUpdate: {}", e.getMessage());
       throw e;
     }
   }
@@ -169,18 +174,18 @@ public class DatabaseTestUtilities {
    * @return true si la conexión es exitosa
    */
   public static boolean testConnection(String dbType) {
-    log.info("DatabaseTestUtils - Probando conexión para {}", dbType);
+    LOG.info("DatabaseTestUtils - Probando conexión para {}", dbType);
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
       boolean result = dbService.testConnection();
       dbService.cleanup();
 
-      log.debug("Test de conexión para {}: {}", dbType, result ? "EXITOSO" : "FALLIDO");
+      LOG.debug("Test de conexión para {}: {}", dbType, result ? "EXITOSO" : "FALLIDO");
       return result;
 
     } catch (Exception e) {
-      log.warn("Error en test de conexión para {}: {}", dbType, e.getMessage());
+      LOG.warn("Error en test de conexión para {}: {}", dbType, e.getMessage());
       return false;
     }
   }
@@ -192,18 +197,18 @@ public class DatabaseTestUtilities {
    * @return Map con información de la BD
    */
   public static Map<String, Object> getDatabaseInfo(String dbType) {
-    log.info("DatabaseTestUtils - Obteniendo información de {}", dbType);
+    LOG.info("DatabaseTestUtils - Obteniendo información de {}", dbType);
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
       Map<String, Object> result = dbService.getDatabaseInfo();
       dbService.cleanup();
 
-      log.debug("Información obtenida para {}: {}", dbType, result.get("databaseProductName"));
+      LOG.debug("Información obtenida para {}: {}", dbType, result.get("databaseProductName"));
       return result;
 
     } catch (Exception e) {
-      log.error("Error obteniendo información de {}: {}", dbType, e.getMessage());
+      LOG.error("Error obteniendo información de {}: {}", dbType, e.getMessage());
       throw e;
     }
   }
@@ -215,18 +220,18 @@ public class DatabaseTestUtilities {
    * @return List de Maps con información de las tablas
    */
   public static List<Map<String, Object>> getAllTables(String dbType) {
-    log.info("DatabaseTestUtils - Obteniendo tablas de {}", dbType);
+    LOG.info("DatabaseTestUtils - Obteniendo tablas de {}", dbType);
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
       List<Map<String, Object>> result = dbService.getAllTables();
       dbService.cleanup();
 
-      log.debug("Obtenidas {} tablas de {}", result.size(), dbType);
+      LOG.debug("Obtenidas {} tablas de {}", result.size(), dbType);
       return result;
 
     } catch (Exception e) {
-      log.error("Error obteniendo tablas de {}: {}", dbType, e.getMessage());
+      LOG.error("Error obteniendo tablas de {}: {}", dbType, e.getMessage());
       throw e;
     }
   }
@@ -239,18 +244,18 @@ public class DatabaseTestUtilities {
    * @return List de Maps con información de las columnas
    */
   public static List<Map<String, Object>> getTableColumns(String dbType, String tableName) {
-    log.info("DatabaseTestUtils - Obteniendo columnas de tabla {} en {}", tableName, dbType);
+    LOG.info("DatabaseTestUtils - Obteniendo columnas de tabla {} en {}", tableName, dbType);
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
       List<Map<String, Object>> result = dbService.getTableColumns(tableName);
       dbService.cleanup();
 
-      log.debug("Obtenidas {} columnas de tabla {} en {}", result.size(), tableName, dbType);
+      LOG.debug("Obtenidas {} columnas de tabla {} en {}", result.size(), tableName, dbType);
       return result;
 
     } catch (Exception e) {
-      log.error(
+      LOG.error(
           "Error obteniendo columnas de tabla {} en {}: {}", tableName, dbType, e.getMessage());
       throw e;
     }
@@ -270,7 +275,7 @@ public class DatabaseTestUtilities {
    */
   public static Map<String, Object> executeQueryForMap(
       String dbType, String sql, Object... parameters) {
-    log.info(
+    LOG.info(
         "DatabaseTestUtils - Ejecutando consulta parametrizada para Map en {}: {}",
         dbType,
         sanitizeSql(sql));
@@ -280,11 +285,11 @@ public class DatabaseTestUtilities {
       Map<String, Object> result = dbService.queryForMap(sql, parameters);
       dbService.cleanup();
 
-      log.debug("Consulta parametrizada para Map completada: {} columnas", result.size());
+      LOG.debug("Consulta parametrizada para Map completada: {} columnas", result.size());
       return result;
 
     } catch (Exception e) {
-      log.error("Error en executeQueryForMap parametrizada: {}", e.getMessage());
+      LOG.error("Error en executeQueryForMap parametrizada: {}", e.getMessage());
       throw e;
     }
   }
@@ -298,7 +303,7 @@ public class DatabaseTestUtilities {
    * @return número de filas afectadas
    */
   public static int executeUpdate(String dbType, String sql, Object... parameters) {
-    log.info(
+    LOG.info(
         "DatabaseTestUtils - Ejecutando update parametrizado en {}: {}", dbType, sanitizeSql(sql));
 
     try {
@@ -306,11 +311,11 @@ public class DatabaseTestUtilities {
       int result = dbService.executeUpdate(sql, parameters);
       dbService.cleanup();
 
-      log.debug("Update parametrizado completado: {} filas afectadas", result);
+      LOG.debug("Update parametrizado completado: {} filas afectadas", result);
       return result;
 
     } catch (Exception e) {
-      log.error("Error en executeUpdate parametrizado: {}", e.getMessage());
+      LOG.error("Error en executeUpdate parametrizado: {}", e.getMessage());
       throw e;
     }
   }
@@ -329,9 +334,11 @@ public class DatabaseTestUtilities {
 
   /** Sanitiza SQL para logging (oculta datos sensibles). */
   private static String sanitizeSql(String sql) {
-    if (sql == null) return "null";
-    if (sql.length() > 150) {
-      return sql.substring(0, 150) + "...";
+    if (sql == null) {
+      return "null";
+    }
+    if (sql.length() > SQL_LOG_MAX_LENGTH) {
+      return sql.substring(0, SQL_LOG_MAX_LENGTH) + "...";
     }
     return sql;
   }

@@ -35,7 +35,7 @@ public class EnvironmentInfo {
     }
 
     /**
-     * Auto-detecta información del sistema
+     * Auto-detecta información del sistema operativo y JVM.
      */
     private void autoDetectSystemInfo() {
         this.os = System.getProperty("os.name");
@@ -44,7 +44,10 @@ public class EnvironmentInfo {
     }
 
     /**
-     * Agrega información custom
+     * Agrega información personalizada al mapa de propiedades custom.
+     *
+     * @param key   clave de la propiedad
+     * @param value valor de la propiedad
      */
     public void addCustomInfo(String key, String value) {
         this.customInfo.put(key, value);

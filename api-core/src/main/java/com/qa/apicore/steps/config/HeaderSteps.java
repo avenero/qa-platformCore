@@ -23,9 +23,8 @@ public class HeaderSteps {
     // ─── Obtención de la sub-interface más estrecha desde el ServiceRegistry ───
 
     private HttpRequestBuilder getHttpRequestBuilder() {
-        return ExecutionContext.current()
-                .map(ctx -> (HttpRequestBuilder) ctx.service(HttpClient.class))
-                .orElseGet(BaseHttpClient::new);
+        return ExecutionContext.current().map(ctx -> (HttpRequestBuilder) ctx.service(HttpClient.class)).
+                orElseGet(BaseHttpClient::new);
     }
 
     @Given("agrego el header {string} con valor {string}")

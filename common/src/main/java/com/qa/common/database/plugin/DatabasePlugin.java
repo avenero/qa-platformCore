@@ -32,7 +32,7 @@ import java.util.Set;
  */
 public class DatabasePlugin implements CorePlugin {
 
-    private static final Logger log = LoggerFactory.getLogger(DatabasePlugin.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DatabasePlugin.class);
 
     @Override
     public String getName() {
@@ -51,19 +51,20 @@ public class DatabasePlugin implements CorePlugin {
 
     @Override
     public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
-        log.debug("[DatabasePlugin] Registrando DatabaseHelper...");
+        LOG.debug("[DatabasePlugin] Registrando DatabaseHelper...");
         registry.registerLazy(DatabaseHelper.class, DatabaseHelper::new);
-        log.info("[DatabasePlugin] Servicio registrado: DatabaseHelper");
+        LOG.info("[DatabasePlugin] Servicio registrado: DatabaseHelper");
     }
 
     @Override
     public void onScenarioStart(ExecutionContext context) {
-        log.debug("[DatabasePlugin] onScenarioStart — DatabaseHelper disponible bajo demanda");
+        LOG.debug("[DatabasePlugin] onScenarioStart — DatabaseHelper disponible bajo demanda");
     }
 
     @Override
     public void onScenarioEnd(ExecutionContext context) {
-        log.debug("[DatabasePlugin] onScenarioEnd — sin limpieza activa (las conexiones se cierran en los hooks del step)");
+        LOG.debug("[DatabasePlugin] onScenarioEnd — sin limpieza activa"
+            + " (las conexiones se cierran en los hooks del step)");
     }
 
     /**

@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.validation.element")
 public class ElementValidationComponent implements StepComponent {
-    @Override public String getName()                  { return "Validacion de Elementos"; }
-    @Override public String getDisplayName()           { return "Validacion de Elementos"; }
-    @Override public String getDescription()           { return "Visibilidad, texto, atributos y estado de elementos"; }
-    @Override public BddPhase getPhase()               { return BddPhase.THEN; }
-    @Override public String getCategory()              { return "Validacion Web"; }
-    @Override public String getIcon()                  { return "check_box"; }
-    @Override public int getDisplayOrder()             { return 120; }
-    @Override public Class<?> getStepDefinitionClass() { return ElementValidationSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 120;
+
+    @Override
+    public String getName() {
+        return "Validacion de Elementos";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Validacion de Elementos";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Visibilidad, texto, atributos y estado de elementos";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.THEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Validacion Web";
+    }
+
+    @Override
+    public String getIcon() {
+        return "check_box";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return ElementValidationSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

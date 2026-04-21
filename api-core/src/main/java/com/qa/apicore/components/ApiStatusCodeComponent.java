@@ -15,14 +15,41 @@ import java.util.Map;
  */
 @StepId("api.status")
 public class ApiStatusCodeComponent implements StepComponent {
-    @Override public String getName()                  { return "Status Code"; }
-    @Override public String getDisplayName()           { return "Status Code"; }
-    @Override public String getDescription()           { return "Validacion del codigo de estado HTTP"; }
-    @Override public BddPhase getPhase()               { return BddPhase.THEN; }
-    @Override public String getCategory()              { return "Validacion de Respuesta"; }
-    @Override public String getIcon()                  { return "check_circle"; }
-    @Override public int getDisplayOrder()             { return 80; }
-    @Override public Class<?> getStepDefinitionClass() { return StatusCodeSteps.class; }
+
+    /** Display order for this component in the UI step palette. */
+    private static final int DISPLAY_ORDER = 80;
+    @Override
+    public String getName() {
+        return "Status Code";
+    }
+    @Override
+    public String getDisplayName() {
+        return "Status Code";
+    }
+    @Override
+    public String getDescription() {
+        return "Validacion del codigo de estado HTTP";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.THEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Validacion de Respuesta";
+    }
+    @Override
+    public String getIcon() {
+        return "check_circle";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return StatusCodeSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

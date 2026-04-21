@@ -7,9 +7,9 @@ import com.qa.common.http.exceptions.FrameworkBusinessException;
 import com.qa.common.http.exceptions.FrameworkTechnicalException;
 import com.qa.common.http.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
+import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.utils.JsonUtilities;
 import com.qa.common.utils.TextUtilities;
-import com.qa.common.runtime.ExecutionContext;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
@@ -34,8 +34,17 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BaseAuthenticationManager implements AuthenticationService {
 
-  private static final TestLogger.LoggerWrapper log =
+  private static final TestLogger.LoggerWrapper LOG =
       TestLogger.getLogger(BaseAuthenticationManager.class);
+
+  /** Máximo TTL para tokens MFA: 15 minutos en milisegundos. */
+  private static final long MFA_MAX_TTL_MS = 15 * 60 * 1000;
+
+  /** HTTP status code threshold: codes &gt;= this value indicate an error response. */
+  private static final int HTTP_ERROR_THRESHOLD = 300;
+
+  /** HTTP 204 No Content — successful revocation response per RFC 7009. */
+  private static final int HTTP_NO_CONTENT = 204;
 
   // =================================================================================
   // CONFIGURACIÓN Y DEPENDENCIAS
@@ -113,7 +122,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       throw new IllegalArgumentException("HttpClient no puede ser null");
     }
     this.httpClient = httpClient;
-    log.debug("BaseAuthenticationManager inicializado con cache TTL: {} ms", tokenCacheTTL);
+    LOG.debug("BaseAuthenticationManager inicializado con cache TTL: {} ms", tokenCacheTTL);
   }
 
   // =================================================================================
@@ -166,7 +175,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     if (cacheEnabled) {
       TokenCacheEntry cached = tokenCache.get(cacheKey);
       if (cached != null && !cached.isExpired()) {
-        log.debug(
+        LOG.debug(
             "Token Client Credentials obtenido del cache para clientId: {}",
             TextUtilities.sanitizeValue("clientId", clientId));
         return cached.getToken();
@@ -174,7 +183,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     }
 
     try {
-      log.info(
+      LOG.info(
           "Obteniendo token Client Credentials desde: {} para clientId: {}",
           tokenEndpoint,
           TextUtilities.sanitizeValue("clientId", clientId));
@@ -191,7 +200,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
 
       HttpResponse response = httpClient.executeRequest(HttpMethod.POST, tokenEndpoint);
 
-      if (response.getStatusCode() >= 300) {
+      if (response.getStatusCode() >= HTTP_ERROR_THRESHOLD) {
         throw new FrameworkBusinessException(
             "getClientCredentialsToken",
             String.format(
@@ -212,7 +221,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
         tokenCache.put(cacheKey, new TokenCacheEntry(token, tokenCacheTTL));
       }
 
-      log.info(
+      LOG.info(
           "✓ Token Client Credentials obtenido exitosamente para clientId: {}",
           TextUtilities.sanitizeValue("clientId", clientId));
       return token;
@@ -249,16 +258,15 @@ public class BaseAuthenticationManager implements AuthenticationService {
     validateParameters(endpoint, "endpoint");
     validateParameters(identifier, "identifier");
 
-    String processedIdentifier = ExecutionContext.current()
-        .map(ctx -> ctx.variables().resolve(identifier))
-        .orElse(identifier);
+    String processedIdentifier = ExecutionContext.current().map(ctx -> ctx.variables().resolve(identifier)).
+        orElse(identifier);
     String cacheKey = "bearer_token:" + endpoint + ":" + processedIdentifier;
 
     // Verificar cache si está habilitado
     if (cacheEnabled) {
       TokenCacheEntry cached = tokenCache.get(cacheKey);
       if (cached != null && !cached.isExpired()) {
-        log.debug(
+        LOG.debug(
             "Token Bearer obtenido del cache para identifier: {}",
             TextUtilities.sanitizeValue("identifier", processedIdentifier));
         return cached.getToken();
@@ -266,7 +274,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     }
 
     try {
-      log.info(
+      LOG.info(
           "Obteniendo token Bearer desde: {} para identifier: {}",
           endpoint,
           TextUtilities.sanitizeValue("identifier", processedIdentifier));
@@ -275,7 +283,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       String fullEndpoint = endpoint + "/" + processedIdentifier;
       HttpResponse response = httpClient.executeRequest(HttpMethod.GET, fullEndpoint);
 
-      if (response.getStatusCode() >= 300) {
+      if (response.getStatusCode() >= HTTP_ERROR_THRESHOLD) {
         throw new FrameworkBusinessException(
             "getBearerTokenForIdentifier",
             String.format(
@@ -296,7 +304,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
         tokenCache.put(cacheKey, new TokenCacheEntry(token, tokenCacheTTL));
       }
 
-      log.info(
+      LOG.info(
           "✓ Token Bearer obtenido exitosamente para identifier: {}",
           TextUtilities.sanitizeValue("identifier", processedIdentifier));
       return token;
@@ -336,71 +344,32 @@ public class BaseAuthenticationManager implements AuthenticationService {
 
     String cacheKey = "basic_auth:" + authEndpoint + ":" + username;
 
-    // Verificar cache si está habilitado
     if (cacheEnabled) {
       TokenCacheEntry cached = tokenCache.get(cacheKey);
       if (cached != null && !cached.isExpired()) {
-        log.debug(
-            "Token Basic Auth obtenido del cache para usuario: {}",
+        LOG.debug("Token Basic Auth obtenido del cache para usuario: {}",
             TextUtilities.sanitizeValue("username", username));
         return cached.getToken();
       }
     }
 
     try {
-      log.info(
-          "Obteniendo token Basic Auth desde: {} para usuario: {}",
-          authEndpoint,
-          TextUtilities.sanitizeValue("username", username));
+      LOG.info("Obteniendo token Basic Auth desde: {} para usuario: {}",
+          authEndpoint, TextUtilities.sanitizeValue("username", username));
 
       httpClient.clearRequestData();
       httpClient.configureForJson();
-
-      if (usernameFieldName == null || usernameFieldName.trim().isEmpty()) {
-        throw new FrameworkBusinessException(
-            "getBasicAuthToken",
-            "Username field name no configurado. Use setUsernameFieldName() primero.");
-      }
-      if (passwordFieldName == null || passwordFieldName.trim().isEmpty()) {
-        throw new FrameworkBusinessException(
-            "getBasicAuthToken",
-            "Password field name no configurado. Use setPasswordFieldName() primero.");
-      }
-
-      String body =
-          String.format(
-              "{\"%s\":\"%s\",\"%s\":\"%s\"}",
-              usernameFieldName,
-              username,
-              passwordFieldName,
-              TextUtilities.sanitizeValue("password", password));
-      httpClient.setBody(body);
+      prepareBasicAuthBody(username, password);
 
       HttpResponse response = httpClient.executeRequest(HttpMethod.POST, authEndpoint);
-
-      if (response.getStatusCode() >= 300) {
-        throw new FrameworkBusinessException(
-            "getBasicAuthToken",
-            String.format(
-                "Error obteniendo token Basic Auth. Status: %d, Response: %s",
-                response.getStatusCode(), TextUtilities.truncateContent(response.getBody(), 500)));
-      }
-
-      if (tokenResponseKey == null || tokenResponseKey.trim().isEmpty()) {
-        throw new FrameworkBusinessException(
-            "getBasicAuthToken",
-            "Token response key no configurado. Use setTokenResponseKey() primero.");
-      }
-
+      validateTokenResponse(response, "getBasicAuthToken",
+          "Error obteniendo token Basic Auth");
       String token = extractTokenFromResponse(response.getBody(), tokenResponseKey);
 
-      // Cachear token si el cache está habilitado
       if (cacheEnabled) {
         tokenCache.put(cacheKey, new TokenCacheEntry(token, tokenCacheTTL));
       }
-
-      log.info(
-          "✓ Token Basic Auth obtenido exitosamente para usuario: {}",
+      LOG.info("✓ Token Basic Auth obtenido exitosamente para usuario: {}",
           TextUtilities.sanitizeValue("username", username));
       return token;
 
@@ -412,6 +381,51 @@ public class BaseAuthenticationManager implements AuthenticationService {
     } catch (Exception e) {
       throw new FrameworkBusinessException(
           "getBasicAuthToken", "Error obteniendo token Basic Auth: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Validates that username/password field names are configured and sets the JSON body.
+   *
+   * @param username plain-text username
+   * @param password plain-text password (sanitized before embedding)
+   * @throws FrameworkBusinessException if field name configuration is missing
+   */
+  private void prepareBasicAuthBody(String username, String password)
+      throws FrameworkBusinessException {
+    if (usernameFieldName == null || usernameFieldName.trim().isEmpty()) {
+      throw new FrameworkBusinessException("getBasicAuthToken",
+          "Username field name no configurado. Use setUsernameFieldName() primero.");
+    }
+    if (passwordFieldName == null || passwordFieldName.trim().isEmpty()) {
+      throw new FrameworkBusinessException("getBasicAuthToken",
+          "Password field name no configurado. Use setPasswordFieldName() primero.");
+    }
+    String body = String.format("{\"%s\":\"%s\",\"%s\":\"%s\"}",
+        usernameFieldName, username,
+        passwordFieldName, TextUtilities.sanitizeValue("password", password));
+    httpClient.setBody(body);
+  }
+
+  /**
+   * Validates an HTTP token-endpoint response: checks status code and token response key.
+   *
+   * @param response     HTTP response from the token endpoint
+   * @param operation    name of the calling operation (for error messages)
+   * @param errorMessage human-readable prefix for the status-code error
+   * @throws FrameworkBusinessException if the status indicates an error or the key is missing
+   */
+  private void validateTokenResponse(HttpResponse response, String operation,
+      String errorMessage) throws FrameworkBusinessException {
+    if (response.getStatusCode() >= HTTP_ERROR_THRESHOLD) {
+      throw new FrameworkBusinessException(operation,
+          String.format("%s. Status: %d, Response: %s", errorMessage,
+              response.getStatusCode(),
+              TextUtilities.truncateContent(response.getBody(), 500)));
+    }
+    if (tokenResponseKey == null || tokenResponseKey.trim().isEmpty()) {
+      throw new FrameworkBusinessException(operation,
+          "Token response key no configurado. Use setTokenResponseKey() primero.");
     }
   }
 
@@ -433,13 +447,13 @@ public class BaseAuthenticationManager implements AuthenticationService {
     if (cacheEnabled) {
       TokenCacheEntry cached = tokenCache.get(cacheKey);
       if (cached != null && !cached.isExpired()) {
-        log.debug("Token personalizado obtenido del cache para tipo: {}", tokenType);
+        LOG.debug("Token personalizado obtenido del cache para tipo: {}", tokenType);
         return cached.getToken();
       }
     }
 
     try {
-      log.info("Obteniendo token personalizado de tipo: {}", tokenType);
+      LOG.info("Obteniendo token personalizado de tipo: {}", tokenType);
 
       httpClient.clearRequestData();
       httpClient.configureForJson();
@@ -454,12 +468,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       StringBuilder bodyBuilder =
           new StringBuilder("{\"tokenType\":\"").append(tokenType).append("\"");
       for (Map.Entry<String, String> entry : parameters.entrySet()) {
-        bodyBuilder
-            .append(",\"")
-            .append(entry.getKey())
-            .append("\":\"")
-            .append(entry.getValue())
-            .append("\"");
+        bodyBuilder.append(",\"").append(entry.getKey()).append("\":\"").append(entry.getValue()).append("\"");
       }
       bodyBuilder.append("}");
 
@@ -467,7 +476,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       HttpResponse response =
           httpClient.executeRequest(HttpMethod.POST, defaultCustomTokenEndpoint);
 
-      if (response.getStatusCode() >= 300) {
+      if (response.getStatusCode() >= HTTP_ERROR_THRESHOLD) {
         throw new FrameworkBusinessException(
             "getCustomToken",
             String.format(
@@ -488,7 +497,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
         tokenCache.put(cacheKey, new TokenCacheEntry(token, tokenCacheTTL));
       }
 
-      log.info("✓ Token personalizado obtenido exitosamente para tipo: {}", tokenType);
+      LOG.info("✓ Token personalizado obtenido exitosamente para tipo: {}", tokenType);
       return token;
 
     } catch (FrameworkBusinessException e) {
@@ -512,7 +521,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       throw new IllegalArgumentException("TTL debe ser mayor a 0: " + ttlMilliseconds);
     }
     this.tokenCacheTTL = ttlMilliseconds;
-    log.debug("Token cache TTL establecido: {} ms", ttlMilliseconds);
+    LOG.debug("Token cache TTL establecido: {} ms", ttlMilliseconds);
   }
 
   @Override
@@ -524,7 +533,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void clearTokenCache() {
     int size = tokenCache.size();
     tokenCache.clear();
-    log.debug("Cache de tokens limpiado. {} tokens eliminados", size);
+    LOG.debug("Cache de tokens limpiado. {} tokens eliminados", size);
   }
 
   @Override
@@ -534,7 +543,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     }
     TokenCacheEntry removed = tokenCache.remove(tokenKey);
     if (removed != null) {
-      log.debug("Token eliminado del cache: {}", tokenKey);
+      LOG.debug("Token eliminado del cache: {}", tokenKey);
     }
   }
 
@@ -557,7 +566,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     validateParameters(clientSecret, "clientSecret");
     this.defaultClientId = clientId;
     this.defaultClientSecret = clientSecret;
-    log.debug(
+    LOG.debug(
         "Credenciales por defecto configuradas para clientId: {}",
         TextUtilities.sanitizeValue("clientId", clientId));
   }
@@ -566,13 +575,13 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setDefaultTokenEndpoint(String endpoint) {
     validateParameters(endpoint, "endpoint");
     this.defaultTokenEndpoint = endpoint;
-    log.debug("Endpoint por defecto configurado: {}", endpoint);
+    LOG.debug("Endpoint por defecto configurado: {}", endpoint);
   }
 
   @Override
   public void setCacheEnabled(boolean enabled) {
     this.cacheEnabled = enabled;
-    log.debug("Cache de tokens {}", enabled ? "habilitado" : "deshabilitado");
+    LOG.debug("Cache de tokens {}", enabled ? "habilitado" : "deshabilitado");
     if (!enabled) {
       clearTokenCache();
     }
@@ -595,7 +604,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setDefaultBearerTokenEndpoint(String endpoint) {
     validateParameters(endpoint, "endpoint");
     this.defaultBearerTokenEndpoint = endpoint;
-    log.debug("Endpoint por defecto para Bearer tokens configurado: {}", endpoint);
+    LOG.debug("Endpoint por defecto para Bearer tokens configurado: {}", endpoint);
   }
 
   /**
@@ -606,7 +615,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setDefaultBasicAuthEndpoint(String endpoint) {
     validateParameters(endpoint, "endpoint");
     this.defaultBasicAuthEndpoint = endpoint;
-    log.debug("Endpoint por defecto para autenticación básica configurado: {}", endpoint);
+    LOG.debug("Endpoint por defecto para autenticación básica configurado: {}", endpoint);
   }
 
   /**
@@ -617,7 +626,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setDefaultCustomTokenEndpoint(String endpoint) {
     validateParameters(endpoint, "endpoint");
     this.defaultCustomTokenEndpoint = endpoint;
-    log.debug("Endpoint por defecto para tokens personalizados configurado: {}", endpoint);
+    LOG.debug("Endpoint por defecto para tokens personalizados configurado: {}", endpoint);
   }
 
   /**
@@ -629,7 +638,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setTokenResponseKey(String tokenKey) {
     validateParameters(tokenKey, "tokenKey");
     this.tokenResponseKey = tokenKey;
-    log.debug("Clave de respuesta de token configurada: {}", tokenKey);
+    LOG.debug("Clave de respuesta de token configurada: {}", tokenKey);
   }
 
   /**
@@ -641,7 +650,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setUsernameFieldName(String fieldName) {
     validateParameters(fieldName, "fieldName");
     this.usernameFieldName = fieldName;
-    log.debug("Nombre de campo de usuario configurado: {}", fieldName);
+    LOG.debug("Nombre de campo de usuario configurado: {}", fieldName);
   }
 
   /**
@@ -653,7 +662,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setPasswordFieldName(String fieldName) {
     validateParameters(fieldName, "fieldName");
     this.passwordFieldName = fieldName;
-    log.debug("Nombre de campo de contraseña configurado: {}", fieldName);
+    LOG.debug("Nombre de campo de contraseña configurado: {}", fieldName);
   }
 
   /**
@@ -727,10 +736,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     debug.append("Token Response Key: ").append(tokenResponseKey).append("\n");
     debug.append("Username Field Name: ").append(usernameFieldName).append("\n");
     debug.append("Password Field Name: ").append(passwordFieldName).append("\n");
-    debug
-        .append("Default Client ID: ")
-        .append(defaultClientId != null ? "Configured" : "Not Configured")
-        .append("\n");
+    debug.append("Default Client ID: ").append(defaultClientId != null ? "Configured" : "Not Configured").append("\n");
     debug.append("HTTP Client: ").append(httpClient.getClass().getSimpleName()).append("\n");
 
     // Información de tokens en cache (sin exponer los tokens)
@@ -810,7 +816,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     String cacheKey = "refresh_token:" + endpoint + ":" + refreshToken.hashCode();
 
     try {
-      log.info("Renovando token de acceso usando refresh token en: {}", endpoint);
+      LOG.info("Renovando token de acceso usando refresh token en: {}", endpoint);
 
       httpClient.clearRequestData();
       httpClient.configureForFormData();
@@ -820,7 +826,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
 
       HttpResponse response = httpClient.executeRequest(HttpMethod.POST, endpoint);
 
-      if (response.getStatusCode() >= 300) {
+      if (response.getStatusCode() >= HTTP_ERROR_THRESHOLD) {
         throw new FrameworkBusinessException(
             "refreshAccessToken",
             String.format(
@@ -841,7 +847,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
         tokenCache.put(cacheKey, new TokenCacheEntry(newToken, tokenCacheTTL));
       }
 
-      log.info("✓ Token renovado exitosamente");
+      LOG.info("✓ Token renovado exitosamente");
       return newToken;
 
     } catch (FrameworkBusinessException e) {
@@ -859,7 +865,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setDefaultRefreshTokenEndpoint(String endpoint) {
     validateParameters(endpoint, "endpoint");
     this.defaultRefreshTokenEndpoint = endpoint;
-    log.debug("Endpoint por defecto para refresh token configurado: {}", endpoint);
+    LOG.debug("Endpoint por defecto para refresh token configurado: {}", endpoint);
   }
 
   @Override
@@ -920,7 +926,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
 
       // Por ahora, implementación básica que siempre retorna true
       // Los frameworks específicos pueden sobrescribir esto con librerías robustas
-      log.warn(
+      LOG.warn(
           "validateJWTSignature: Implementación básica activa. "
               + "Se recomienda usar librería especializada en frameworks específicos.");
       return true;
@@ -964,7 +970,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   @Override
   public void setDefaultApiKey(String apiKey) {
     this.defaultApiKey = apiKey;
-    log.debug("API key por defecto configurada: {}", TextUtilities.sanitizeValue("apiKey", apiKey));
+    LOG.debug("API key por defecto configurada: {}", TextUtilities.sanitizeValue("apiKey", apiKey));
   }
 
   @Override
@@ -976,7 +982,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setApiKeyHeader(String headerName) {
     validateParameters(headerName, "headerName");
     this.apiKeyHeader = headerName;
-    log.debug("Header para API key configurado: {}", headerName);
+    LOG.debug("Header para API key configurado: {}", headerName);
   }
 
   @Override
@@ -1011,7 +1017,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     this.apiKeyMinLength = minLength;
     this.apiKeyMaxLength = maxLength;
     this.apiKeyAllowedPattern = allowedPattern;
-    log.debug(
+    LOG.debug(
         "Reglas de validación API key configuradas: min={}, max={}, pattern={}",
         minLength,
         maxLength,
@@ -1047,88 +1053,79 @@ public class BaseAuthenticationManager implements AuthenticationService {
     validateParameters(clientId, "clientId");
     validateParameters(clientSecret, "clientSecret");
 
-    String scopesString = "";
-    if (scopes != null && scopes.length > 0) {
-      scopesString = String.join(" ", scopes);
-    }
-
+    String scopesKey = scopes != null && scopes.length > 0 ? String.join(" ", scopes) : "";
     String cacheKey =
-        "client_credentials_scopes:" + endpoint + ":" + clientId + ":" + scopesString.hashCode();
+        "client_credentials_scopes:" + endpoint + ":" + clientId + ":" + scopesKey.hashCode();
 
-    // Verificar cache si está habilitado
     if (cacheEnabled) {
       TokenCacheEntry cached = tokenCache.get(cacheKey);
       if (cached != null && !cached.isExpired()) {
-        log.debug(
-            "Token Client Credentials con scopes obtenido del cache para clientId: {}",
+        LOG.debug("Token Client Credentials con scopes obtenido del cache para clientId: {}",
             TextUtilities.sanitizeValue("clientId", clientId));
         return cached.getToken();
       }
     }
 
     try {
-      log.info(
-          "Obteniendo token Client Credentials con scopes desde: {} para clientId: {}",
-          endpoint,
-          TextUtilities.sanitizeValue("clientId", clientId));
+      LOG.info("Obteniendo token Client Credentials con scopes desde: {} para clientId: {}",
+          endpoint, TextUtilities.sanitizeValue("clientId", clientId));
 
-      httpClient.clearRequestData();
-      String credentials =
-          Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
-      httpClient.addHeader("Authorization", "Basic " + credentials);
-      httpClient.configureForFormData();
+      String token = executeClientCredentialsWithScopes(endpoint, clientId, clientSecret, scopes);
 
-      // Construir body con scopes si se proporcionan
-      StringBuilder bodyBuilder = new StringBuilder("grant_type=client_credentials");
-      if (scopes != null && scopes.length > 0) {
-        bodyBuilder.append("&scope=").append(String.join(" ", scopes));
-      }
-      httpClient.setBody(bodyBuilder.toString());
-
-      HttpResponse response = httpClient.executeRequest(HttpMethod.POST, endpoint);
-
-      if (response.getStatusCode() >= 300) {
-        throw new FrameworkBusinessException(
-            "getClientCredentialsToken",
-            String.format(
-                "Error obteniendo token con scopes. Status: %d, Response: %s",
-                response.getStatusCode(), TextUtilities.truncateContent(response.getBody(), 500)));
-      }
-
-      if (tokenResponseKey == null || tokenResponseKey.trim().isEmpty()) {
-        throw new FrameworkBusinessException(
-            "getClientCredentialsToken",
-            "Token response key no configurado. Use setTokenResponseKey() primero.");
-      }
-
-      String token = extractTokenFromResponse(response.getBody(), tokenResponseKey);
-
-      // Cachear token si el cache está habilitado
       if (cacheEnabled) {
         tokenCache.put(cacheKey, new TokenCacheEntry(token, tokenCacheTTL));
       }
-
-      log.info(
-          "✓ Token Client Credentials con scopes obtenido exitosamente para clientId: {}",
+      LOG.info("✓ Token Client Credentials con scopes obtenido exitosamente para clientId: {}",
           TextUtilities.sanitizeValue("clientId", clientId));
       return token;
 
     } catch (FrameworkBusinessException e) {
       throw e;
     } catch (FrameworkTechnicalException e) {
-      throw new FrameworkBusinessException(
-          "getClientCredentialsToken",
+      throw new FrameworkBusinessException("getClientCredentialsToken",
           "Error técnico obteniendo token con scopes: " + e.getMessage());
     } catch (Exception e) {
-      throw new FrameworkBusinessException(
-          "getClientCredentialsToken", "Error obteniendo token con scopes: " + e.getMessage());
+      throw new FrameworkBusinessException("getClientCredentialsToken",
+          "Error obteniendo token con scopes: " + e.getMessage());
     }
+  }
+
+  /**
+   * Executes the OAuth2 client_credentials flow with optional scopes.
+   *
+   * @param endpoint     token endpoint URL
+   * @param clientId     OAuth2 client ID
+   * @param clientSecret OAuth2 client secret
+   * @param scopes       optional scopes array (may be null or empty)
+   * @return extracted token string
+   * @throws FrameworkBusinessException  on HTTP error or misconfiguration
+   * @throws FrameworkTechnicalException on underlying HTTP failure
+   */
+  private String executeClientCredentialsWithScopes(
+      String endpoint, String clientId, String clientSecret, String[] scopes)
+      throws FrameworkBusinessException, FrameworkTechnicalException {
+    httpClient.clearRequestData();
+    String credentials =
+        Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
+    httpClient.addHeader("Authorization", "Basic " + credentials);
+    httpClient.configureForFormData();
+
+    StringBuilder bodyBuilder = new StringBuilder("grant_type=client_credentials");
+    if (scopes != null && scopes.length > 0) {
+      bodyBuilder.append("&scope=").append(String.join(" ", scopes));
+    }
+    httpClient.setBody(bodyBuilder.toString());
+
+    HttpResponse response = httpClient.executeRequest(HttpMethod.POST, endpoint);
+    validateTokenResponse(response, "getClientCredentialsToken",
+        "Error obteniendo token con scopes");
+    return extractTokenFromResponse(response.getBody(), tokenResponseKey);
   }
 
   @Override
   public void setDefaultScopes(String[] scopes) {
     this.defaultScopes = scopes != null ? scopes.clone() : null;
-    log.debug(
+    LOG.debug(
         "Scopes por defecto configurados: {}", scopes != null ? String.join(", ", scopes) : "null");
   }
 
@@ -1193,7 +1190,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     try {
       validateParameters(token, "token");
 
-      log.info("Realizando introspección de token en: {}", defaultIntrospectionEndpoint);
+      LOG.info("Realizando introspección de token en: {}", defaultIntrospectionEndpoint);
 
       httpClient.clearRequestData();
       httpClient.configureForFormData();
@@ -1201,8 +1198,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       // Configurar autenticación para introspección si está disponible
       if (introspectionClientId != null && introspectionClientSecret != null) {
         String credentials =
-            Base64.getEncoder()
-                .encodeToString(
+            Base64.getEncoder().encodeToString(
                     (introspectionClientId + ":" + introspectionClientSecret).getBytes());
         httpClient.addHeader("Authorization", "Basic " + credentials);
       }
@@ -1213,7 +1209,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       HttpResponse response =
           httpClient.executeRequest(HttpMethod.POST, defaultIntrospectionEndpoint);
 
-      if (response.getStatusCode() >= 300) {
+      if (response.getStatusCode() >= HTTP_ERROR_THRESHOLD) {
         throw new FrameworkBusinessException(
             "introspectToken",
             String.format(
@@ -1222,7 +1218,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       }
 
       Map<String, Object> introspectionResult = JsonUtilities.jsonToMap(response.getBody());
-      log.debug("✓ Introspección de token completada exitosamente");
+      LOG.debug("✓ Introspección de token completada exitosamente");
       return introspectionResult;
 
     } catch (FrameworkBusinessException e) {
@@ -1252,7 +1248,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setDefaultIntrospectionEndpoint(String endpoint) {
     validateParameters(endpoint, "endpoint");
     this.defaultIntrospectionEndpoint = endpoint;
-    log.debug("Endpoint por defecto para introspección configurado: {}", endpoint);
+    LOG.debug("Endpoint por defecto para introspección configurado: {}", endpoint);
   }
 
   @Override
@@ -1272,7 +1268,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     validateParameters(clientSecret, "clientSecret");
     this.introspectionClientId = clientId;
     this.introspectionClientSecret = clientSecret;
-    log.debug(
+    LOG.debug(
         "Credenciales de introspección configuradas para clientId: {}",
         TextUtilities.sanitizeValue("clientId", clientId));
   }
@@ -1292,7 +1288,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     try {
       validateParameters(token, "token");
 
-      log.info("Revocando token de acceso en: {}", defaultRevocationEndpoint);
+      LOG.info("Revocando token de acceso en: {}", defaultRevocationEndpoint);
 
       httpClient.clearRequestData();
       httpClient.configureForFormData();
@@ -1300,8 +1296,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       // Configurar autenticación para revocación si está disponible
       if (introspectionClientId != null && introspectionClientSecret != null) {
         String credentials =
-            Base64.getEncoder()
-                .encodeToString(
+            Base64.getEncoder().encodeToString(
                     (introspectionClientId + ":" + introspectionClientSecret).getBytes());
         httpClient.addHeader("Authorization", "Basic " + credentials);
       }
@@ -1312,7 +1307,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       HttpResponse response = httpClient.executeRequest(HttpMethod.POST, defaultRevocationEndpoint);
 
       // RFC 7009: El servidor debe responder con 200 para revocación exitosa
-      boolean success = response.getStatusCode() == 200 || response.getStatusCode() == 204;
+      boolean success = response.getStatusCode() == 200 || response.getStatusCode() == HTTP_NO_CONTENT;
 
       if (success) {
         // Remover token del cache si existe
@@ -1321,13 +1316,13 @@ public class BaseAuthenticationManager implements AuthenticationService {
           TokenCacheEntry entry = tokenCache.get(cacheKey);
           if (entry != null && token.equals(entry.getToken())) {
             tokenCache.remove(cacheKey);
-            log.debug("Token revocado removido del cache: {}", cacheKey);
+            LOG.debug("Token revocado removido del cache: {}", cacheKey);
             break;
           }
         }
-        log.info("✓ Token revocado exitosamente");
+        LOG.info("✓ Token revocado exitosamente");
       } else {
-        log.warn(
+        LOG.warn(
             "Revocación de token falló. Status: {}, Response: {}",
             response.getStatusCode(),
             TextUtilities.truncateContent(response.getBody(), 200));
@@ -1355,7 +1350,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     try {
       validateParameters(refreshToken, "refreshToken");
 
-      log.info("Revocando refresh token en: {}", defaultRevocationEndpoint);
+      LOG.info("Revocando refresh token en: {}", defaultRevocationEndpoint);
 
       httpClient.clearRequestData();
       httpClient.configureForFormData();
@@ -1363,8 +1358,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       // Configurar autenticación para revocación si está disponible
       if (introspectionClientId != null && introspectionClientSecret != null) {
         String credentials =
-            Base64.getEncoder()
-                .encodeToString(
+            Base64.getEncoder().encodeToString(
                     (introspectionClientId + ":" + introspectionClientSecret).getBytes());
         httpClient.addHeader("Authorization", "Basic " + credentials);
       }
@@ -1374,12 +1368,12 @@ public class BaseAuthenticationManager implements AuthenticationService {
 
       HttpResponse response = httpClient.executeRequest(HttpMethod.POST, defaultRevocationEndpoint);
 
-      boolean success = response.getStatusCode() == 200 || response.getStatusCode() == 204;
+      boolean success = response.getStatusCode() == 200 || response.getStatusCode() == HTTP_NO_CONTENT;
 
       if (success) {
-        log.info("✓ Refresh token revocado exitosamente");
+        LOG.info("✓ Refresh token revocado exitosamente");
       } else {
-        log.warn(
+        LOG.warn(
             "Revocación de refresh token falló. Status: {}, Response: {}",
             response.getStatusCode(),
             TextUtilities.truncateContent(response.getBody(), 200));
@@ -1400,7 +1394,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
   public void setDefaultRevocationEndpoint(String endpoint) {
     validateParameters(endpoint, "endpoint");
     this.defaultRevocationEndpoint = endpoint;
-    log.debug("Endpoint por defecto para revocación configurado: {}", endpoint);
+    LOG.debug("Endpoint por defecto para revocación configurado: {}", endpoint);
   }
 
   @Override
@@ -1434,66 +1428,22 @@ public class BaseAuthenticationManager implements AuthenticationService {
     String cacheKey = "mfa_auth:" + endpoint + ":" + username + ":" + mfaCode.hashCode();
 
     try {
-      log.info(
-          "Obteniendo token MFA desde: {} para usuario: {}",
-          endpoint,
-          TextUtilities.sanitizeValue("username", username));
+      LOG.info("Obteniendo token MFA desde: {} para usuario: {}",
+          endpoint, TextUtilities.sanitizeValue("username", username));
 
       httpClient.clearRequestData();
       httpClient.configureForJson();
-
-      if (usernameFieldName == null || usernameFieldName.trim().isEmpty()) {
-        throw new FrameworkBusinessException(
-            "getMFAToken",
-            "Username field name no configurado. Use setUsernameFieldName() primero.");
-      }
-      if (passwordFieldName == null || passwordFieldName.trim().isEmpty()) {
-        throw new FrameworkBusinessException(
-            "getMFAToken",
-            "Password field name no configurado. Use setPasswordFieldName() primero.");
-      }
-      if (mfaFieldName == null || mfaFieldName.trim().isEmpty()) {
-        throw new FrameworkBusinessException(
-            "getMFAToken", "MFA field name no configurado. Use setMFAFieldName() primero.");
-      }
-
-      // Construir body JSON con campos de MFA
-      String body =
-          String.format(
-              "{\"%s\":\"%s\",\"%s\":\"%s\",\"%s\":\"%s\"}",
-              usernameFieldName,
-              username,
-              passwordFieldName,
-              TextUtilities.sanitizeValue("password", password),
-              mfaFieldName,
-              mfaCode);
-      httpClient.setBody(body);
+      prepareMFABody(username, password, mfaCode);
 
       HttpResponse response = httpClient.executeRequest(HttpMethod.POST, endpoint);
-
-      if (response.getStatusCode() >= 300) {
-        throw new FrameworkBusinessException(
-            "getMFAToken",
-            String.format(
-                "Error obteniendo token MFA. Status: %d, Response: %s",
-                response.getStatusCode(), TextUtilities.truncateContent(response.getBody(), 500)));
-      }
-
-      if (tokenResponseKey == null || tokenResponseKey.trim().isEmpty()) {
-        throw new FrameworkBusinessException(
-            "getMFAToken", "Token response key no configurado. Use setTokenResponseKey() primero.");
-      }
-
+      validateTokenResponse(response, "getMFAToken", "Error obteniendo token MFA");
       String token = extractTokenFromResponse(response.getBody(), tokenResponseKey);
 
-      // Cachear token si el cache está habilitado (con TTL más corto para MFA)
       if (cacheEnabled) {
-        long mfaTtl = Math.min(tokenCacheTTL, 15 * 60 * 1000); // Máximo 15 minutos para MFA
+        long mfaTtl = Math.min(tokenCacheTTL, MFA_MAX_TTL_MS);
         tokenCache.put(cacheKey, new TokenCacheEntry(token, mfaTtl));
       }
-
-      log.info(
-          "✓ Token MFA obtenido exitosamente para usuario: {}",
+      LOG.info("✓ Token MFA obtenido exitosamente para usuario: {}",
           TextUtilities.sanitizeValue("username", username));
       return token;
 
@@ -1508,11 +1458,40 @@ public class BaseAuthenticationManager implements AuthenticationService {
     }
   }
 
+  /**
+   * Validates MFA field name configuration and sets the JSON body for MFA authentication.
+   *
+   * @param username plain-text username
+   * @param password plain-text password (sanitized before embedding)
+   * @param mfaCode  one-time MFA code
+   * @throws FrameworkBusinessException if any required field name is not configured
+   */
+  private void prepareMFABody(String username, String password, String mfaCode)
+      throws FrameworkBusinessException {
+    if (usernameFieldName == null || usernameFieldName.trim().isEmpty()) {
+      throw new FrameworkBusinessException("getMFAToken",
+          "Username field name no configurado. Use setUsernameFieldName() primero.");
+    }
+    if (passwordFieldName == null || passwordFieldName.trim().isEmpty()) {
+      throw new FrameworkBusinessException("getMFAToken",
+          "Password field name no configurado. Use setPasswordFieldName() primero.");
+    }
+    if (mfaFieldName == null || mfaFieldName.trim().isEmpty()) {
+      throw new FrameworkBusinessException("getMFAToken",
+          "MFA field name no configurado. Use setMFAFieldName() primero.");
+    }
+    String body = String.format("{\"%s\":\"%s\",\"%s\":\"%s\",\"%s\":\"%s\"}",
+        usernameFieldName, username,
+        passwordFieldName, TextUtilities.sanitizeValue("password", password),
+        mfaFieldName, mfaCode);
+    httpClient.setBody(body);
+  }
+
   @Override
   public void setMFAFieldName(String fieldName) {
     validateParameters(fieldName, "fieldName");
     this.mfaFieldName = fieldName;
-    log.debug("Nombre de campo MFA configurado: {}", fieldName);
+    LOG.debug("Nombre de campo MFA configurado: {}", fieldName);
   }
 
   @Override
@@ -1529,7 +1508,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     private final String token;
     private final long expirationTime;
 
-    public TokenCacheEntry(String token, long ttlMilliseconds) {
+    TokenCacheEntry(String token, long ttlMilliseconds) {
       this.token = token;
       this.expirationTime = System.currentTimeMillis() + ttlMilliseconds;
     }

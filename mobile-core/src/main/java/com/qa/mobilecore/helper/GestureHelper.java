@@ -37,6 +37,15 @@ public final class GestureHelper {
     /** Duración por defecto para long press. */
     private static final Duration LONG_PRESS_DEFAULT = Duration.ofSeconds(2);
 
+    /** Duración para movimientos de multi-touch (pinch/zoom). */
+    private static final Duration MULTITOUCH_DURATION = Duration.ofMillis(400);
+
+    /** Factor del 25% del viewport (punto de inicio/fin para swipes). */
+    private static final double SWIPE_NEAR_FACTOR = 0.25;
+
+    /** Factor del 75% del viewport (punto de inicio/fin para swipes). */
+    private static final double SWIPE_FAR_FACTOR = 0.75;
+
     private GestureHelper() {}
 
     // =========================================================================
@@ -56,10 +65,10 @@ public final class GestureHelper {
      */
     public static void tapAt(AppiumDriver driver, int x, int y) {
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-        Sequence seq = new Sequence(finger, 0)
-            .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), x, y))
-            .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-            .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        Sequence seq = new Sequence(finger, 0).
+            addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), x, y)).
+            addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg())).
+            addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
         driver.perform(List.of(seq));
         TestLogger.logInfo("GESTURE", "Tap en (" + x + ", " + y + ")", null);
     }
@@ -70,12 +79,12 @@ public final class GestureHelper {
     public static void doubleTap(AppiumDriver driver, WebElement element) {
         Point center = getCenter(element);
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-        Sequence seq = new Sequence(finger, 0)
-            .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), center.x, center.y))
-            .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-            .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()))
-            .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-            .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        Sequence seq = new Sequence(finger, 0).
+            addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), center.x, center.y)).
+            addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg())).
+            addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg())).
+            addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg())).
+            addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
         driver.perform(List.of(seq));
         TestLogger.logInfo("GESTURE", "Doble tap en: " + element, null);
     }
@@ -90,11 +99,12 @@ public final class GestureHelper {
     public static void longPress(AppiumDriver driver, WebElement element, long durationMs) {
         Point center = getCenter(element);
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-        Sequence seq = new Sequence(finger, 0)
-            .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), center.x, center.y))
-            .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-            .addAction(finger.createPointerMove(Duration.ofMillis(durationMs), PointerInput.Origin.viewport(), center.x, center.y))
-            .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        Sequence seq = new Sequence(finger, 0).addAction(finger.createPointerMove(
+                Duration.ZERO, PointerInput.Origin.viewport(), center.x, center.y)).
+            addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg())).
+            addAction(finger.createPointerMove(
+                Duration.ofMillis(durationMs), PointerInput.Origin.viewport(), center.x, center.y)).
+            addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
         driver.perform(List.of(seq));
         TestLogger.logInfo("GESTURE", "Long press " + durationMs + "ms en: " + element, null);
     }
@@ -113,28 +123,39 @@ public final class GestureHelper {
         int width  = size.getWidth();
         int height = size.getHeight();
 
-        int startX, startY, endX, endY;
+        int startX;
+        int startY;
+        int endX;
+        int endY;
 
         switch (direction.toLowerCase().trim()) {
             case "arriba", "up" -> {
-                startX = width / 2;  startY = (int)(height * 0.75);
-                endX   = width / 2;  endY   = (int)(height * 0.25);
+                startX = width / 2;
+                startY = (int)(height * SWIPE_FAR_FACTOR);
+                endX = width / 2;
+                endY = (int)(height * SWIPE_NEAR_FACTOR);
             }
             case "abajo", "down" -> {
-                startX = width / 2;  startY = (int)(height * 0.25);
-                endX   = width / 2;  endY   = (int)(height * 0.75);
+                startX = width / 2;
+                startY = (int)(height * SWIPE_NEAR_FACTOR);
+                endX = width / 2;
+                endY = (int)(height * SWIPE_FAR_FACTOR);
             }
             case "izquierda", "left" -> {
-                startX = (int)(width * 0.75); startY = height / 2;
-                endX   = (int)(width * 0.25); endY   = height / 2;
+                startX = (int)(width * SWIPE_FAR_FACTOR);
+                startY = height / 2;
+                endX = (int)(width * SWIPE_NEAR_FACTOR);
+                endY = height / 2;
             }
             case "derecha", "right" -> {
-                startX = (int)(width * 0.25); startY = height / 2;
-                endX   = (int)(width * 0.75); endY   = height / 2;
+                startX = (int)(width * SWIPE_NEAR_FACTOR);
+                startY = height / 2;
+                endX = (int)(width * SWIPE_FAR_FACTOR);
+                endY = height / 2;
             }
             default -> throw new IllegalArgumentException(
-                "Dirección de swipe no reconocida: '" + direction + "'. " +
-                "Valores válidos: arriba, abajo, izquierda, derecha");
+                "Direccion de swipe no reconocida: '" + direction + "'. " +
+                "Valores validos: arriba, abajo, izquierda, derecha");
         }
 
         swipeFromTo(driver, startX, startY, endX, endY, SWIPE_DURATION);
@@ -173,7 +194,9 @@ public final class GestureHelper {
             } else {
                 // Fallback genérico: swipes repetidos hacia arriba
                 for (int i = 0; i < 5; i++) {
-                    if (ElementLocatorHelper.exists(driver, "text:" + text)) break;
+                    if (ElementLocatorHelper.exists(driver, "text:" + text)) {
+                        break;
+                    }
                     swipe(driver, "arriba");
                 }
             }
@@ -195,8 +218,8 @@ public final class GestureHelper {
         Point center = getCenter(element);
         int offset = 100;
         performMultiTouch(driver,
-            center.x - offset, center.y, center.x + offset, center.y,
-            center.x,          center.y, center.x,          center.y);
+            new TouchPath(center.x - offset, center.y, center.x, center.y),
+            new TouchPath(center.x + offset, center.y, center.x, center.y));
         TestLogger.logInfo("GESTURE", "Pinch sobre elemento", null);
     }
 
@@ -207,8 +230,8 @@ public final class GestureHelper {
         Point center = getCenter(element);
         int offset = 100;
         performMultiTouch(driver,
-            center.x, center.y, center.x,          center.y,
-            center.x - offset, center.y, center.x + offset, center.y);
+            new TouchPath(center.x, center.y, center.x - offset, center.y),
+            new TouchPath(center.x, center.y, center.x + offset, center.y));
         TestLogger.logInfo("GESTURE", "Zoom sobre elemento", null);
     }
 
@@ -219,38 +242,61 @@ public final class GestureHelper {
     private static void swipeFromTo(AppiumDriver driver,
             int startX, int startY, int endX, int endY, Duration duration) {
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-        Sequence seq = new Sequence(finger, 0)
-            .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), startX, startY))
-            .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-            .addAction(finger.createPointerMove(duration, PointerInput.Origin.viewport(), endX, endY))
-            .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        Sequence seq = new Sequence(finger, 0).addAction(finger.createPointerMove(
+                Duration.ZERO, PointerInput.Origin.viewport(), startX, startY)).
+            addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg())).
+            addAction(finger.createPointerMove(
+                duration, PointerInput.Origin.viewport(), endX, endY)).
+            addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
         driver.perform(List.of(seq));
     }
 
+    /**
+     * Encapsulates the start and end coordinates for a single touch finger path.
+     *
+     * @param startX start X coordinate in viewport pixels
+     * @param startY start Y coordinate in viewport pixels
+     * @param endX   end X coordinate in viewport pixels
+     * @param endY   end Y coordinate in viewport pixels
+     */
+    private record TouchPath(int startX, int startY, int endX, int endY) {}
+
+    /**
+     * Performs a two-finger multi-touch gesture (e.g. pinch or zoom).
+     *
+     * @param driver driver instance
+     * @param finger1 path for the first finger
+     * @param finger2 path for the second finger
+     */
     private static void performMultiTouch(AppiumDriver driver,
-            int f1StartX, int f1StartY, int f2StartX, int f2StartY,
-            int f1EndX,   int f1EndY,   int f2EndX,   int f2EndY) {
+            TouchPath finger1Path, TouchPath finger2Path) {
 
         PointerInput finger1 = new PointerInput(PointerInput.Kind.TOUCH, "finger1");
         PointerInput finger2 = new PointerInput(PointerInput.Kind.TOUCH, "finger2");
 
-        Sequence seq1 = new Sequence(finger1, 0)
-            .addAction(finger1.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), f1StartX, f1StartY))
-            .addAction(finger1.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-            .addAction(finger1.createPointerMove(Duration.ofMillis(400), PointerInput.Origin.viewport(), f1EndX, f1EndY))
-            .addAction(finger1.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        Sequence seq1 = new Sequence(finger1, 0).addAction(finger1.createPointerMove(
+                Duration.ZERO, PointerInput.Origin.viewport(),
+                finger1Path.startX(), finger1Path.startY())).
+            addAction(finger1.createPointerDown(PointerInput.MouseButton.LEFT.asArg())).
+            addAction(finger1.createPointerMove(
+                MULTITOUCH_DURATION, PointerInput.Origin.viewport(),
+                finger1Path.endX(), finger1Path.endY())).
+            addAction(finger1.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
 
-        Sequence seq2 = new Sequence(finger2, 0)
-            .addAction(finger2.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), f2StartX, f2StartY))
-            .addAction(finger2.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-            .addAction(finger2.createPointerMove(Duration.ofMillis(400), PointerInput.Origin.viewport(), f2EndX, f2EndY))
-            .addAction(finger2.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        Sequence seq2 = new Sequence(finger2, 0).addAction(finger2.createPointerMove(
+                Duration.ZERO, PointerInput.Origin.viewport(),
+                finger2Path.startX(), finger2Path.startY())).
+            addAction(finger2.createPointerDown(PointerInput.MouseButton.LEFT.asArg())).
+            addAction(finger2.createPointerMove(
+                MULTITOUCH_DURATION, PointerInput.Origin.viewport(),
+                finger2Path.endX(), finger2Path.endY())).
+            addAction(finger2.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
 
         driver.perform(Arrays.asList(seq1, seq2));
     }
 
     private static Point getCenter(WebElement element) {
-        Point loc  = element.getLocation();
+        Point loc = element.getLocation();
         Dimension sz = element.getSize();
         return new Point(loc.x + sz.width / 2, loc.y + sz.height / 2);
     }

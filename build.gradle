@@ -34,7 +34,9 @@ subprojects {
     checkstyle {
         toolVersion    = "10.21.0"
         configFile     = rootProject.file("config/checkstyle/checkstyle.xml")
-        ignoreFailures = true
+        // En modo 'strict' (publish o master CI) los errores rompen el build.
+        // En modo normal (develop) se reportan sin bloquear.
+        ignoreFailures = !project.hasProperty('strict')
         showViolations = false
     }
     // Solo analizar fuentes principales; los tests tienen reglas más relajadas
@@ -45,7 +47,7 @@ subprojects {
     // =========================================================================
     spotbugs {
         toolVersion    = "4.8.6"
-        ignoreFailures = true
+        ignoreFailures = !project.hasProperty('strict')
         effort         = com.github.spotbugs.snom.Effort.valueOf('DEFAULT')
         reportLevel    = com.github.spotbugs.snom.Confidence.valueOf('HIGH')
         excludeFilter  = rootProject.file("config/spotbugs/exclude.xml")

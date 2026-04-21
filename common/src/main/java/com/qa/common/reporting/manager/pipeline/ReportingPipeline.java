@@ -25,6 +25,12 @@ public class ReportingPipeline {
     private final List<ReportingStep> steps;
     private final ReportingConfig config;
 
+    /**
+     * Crea un pipeline con los steps y configuración especificados.
+     *
+     * @param steps  lista de steps a ejecutar en orden
+     * @param config configuración de reporting para la ejecución
+     */
     public ReportingPipeline(List<ReportingStep> steps, ReportingConfig config) {
         this.steps = steps;
         this.config = config;
@@ -123,21 +129,44 @@ public class ReportingPipeline {
         private final List<ReportingStep> steps = new ArrayList<>();
         private ReportingConfig config;
 
+        /**
+         * Establece la configuración de reporting.
+         *
+         * @param config configuración de reporting, no null
+         * @return este Builder para encadenamiento
+         */
         public Builder withConfig(ReportingConfig config) {
             this.config = config;
             return this;
         }
 
+        /**
+         * Agrega un step al pipeline.
+         *
+         * @param step step a agregar
+         * @return este Builder para encadenamiento
+         */
         public Builder addStep(ReportingStep step) {
             this.steps.add(step);
             return this;
         }
 
+        /**
+         * Agrega múltiples steps al pipeline.
+         *
+         * @param steps lista de steps a agregar
+         * @return este Builder para encadenamiento
+         */
         public Builder addSteps(List<ReportingStep> steps) {
             this.steps.addAll(steps);
             return this;
         }
 
+        /**
+         * Construye el {@link ReportingPipeline} con los steps y configuración.
+         *
+         * @return nueva instancia del pipeline
+         */
         public ReportingPipeline build() {
             if (config == null) {
                 throw new IllegalStateException("ReportingConfig es requerido");

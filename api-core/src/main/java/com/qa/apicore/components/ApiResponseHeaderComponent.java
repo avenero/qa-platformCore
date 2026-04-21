@@ -15,14 +15,38 @@ import java.util.Map;
  */
 @StepId("api.response.headers")
 public class ApiResponseHeaderComponent implements StepComponent {
-    @Override public String getName()                  { return "Response Headers"; }
-    @Override public String getDisplayName()           { return "Response Headers"; }
-    @Override public String getDescription()           { return "Validacion de cabeceras de respuesta"; }
-    @Override public BddPhase getPhase()               { return BddPhase.THEN; }
-    @Override public String getCategory()              { return "Validacion de Respuesta"; }
-    @Override public String getIcon()                  { return "receipt_long"; }
-    @Override public int getDisplayOrder()             { return 100; }
-    @Override public Class<?> getStepDefinitionClass() { return ResponseHeaderSteps.class; }
+    @Override
+    public String getName() {
+        return "Response Headers";
+    }
+    @Override
+    public String getDisplayName() {
+        return "Response Headers";
+    }
+    @Override
+    public String getDescription() {
+        return "Validacion de cabeceras de respuesta";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.THEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Validacion de Respuesta";
+    }
+    @Override
+    public String getIcon() {
+        return "receipt_long";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return 100;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return ResponseHeaderSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

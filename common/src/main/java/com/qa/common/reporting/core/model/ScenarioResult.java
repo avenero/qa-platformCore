@@ -1,7 +1,7 @@
 package com.qa.common.reporting.core.model;
 
-import java.time.LocalDateTime;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,28 +63,37 @@ public class ScenarioResult {
     }
 
     /**
-     * Agrega un step al scenario
+     * Agrega un step al scenario.
+     *
+     * @param step resultado del step a agregar
      */
     public void addStep(StepResult step) {
         this.steps.add(step);
     }
 
     /**
-     * Agrega un screenshot al scenario
+     * Agrega un screenshot al scenario.
+     *
+     * @param screenshot attachment de tipo screenshot a adjuntar
      */
     public void addScreenshot(Attachment screenshot) {
         this.screenshots.add(screenshot);
     }
 
     /**
-     * Agrega un log al scenario
+     * Agrega un log al scenario.
+     *
+     * @param log mensaje de log a agregar
      */
     public void addLog(String log) {
         this.logs.add(log);
     }
 
     /**
-     * Agrega metadata custom
+     * Agrega metadata personalizada al scenario.
+     *
+     * @param key   clave de la metadata
+     * @param value valor de la metadata
      */
     public void addMetadata(String key, Object value) {
         this.metadata.put(key, value);

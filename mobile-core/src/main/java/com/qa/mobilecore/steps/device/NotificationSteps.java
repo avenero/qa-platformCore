@@ -68,9 +68,7 @@ public class NotificationSteps {
     public void verificoNotificacion(String text) {
         String resolved = ctx().variables().resolve(text);
         boolean exists = mobile().elementExists("text:" + resolved);
-        Assertions.assertThat(exists)
-            .as("Deberia existir una notificacion con el texto: '%s'", resolved)
-            .isTrue();
+        Assertions.assertThat(exists).as("Deberia existir una notificacion con el texto: '%s'", resolved).isTrue();
         TestLogger.logInfo("NOTIFICATION", "Notificacion verificada: " + resolved, null);
     }
 
@@ -78,9 +76,7 @@ public class NotificationSteps {
     public void noDeberiaExistirNotificacion(String text) {
         String resolved = ctx().variables().resolve(text);
         boolean exists = mobile().elementExists("text:" + resolved);
-        Assertions.assertThat(exists)
-            .as("NO deberia existir una notificacion con el texto: '%s'", resolved)
-            .isFalse();
+        Assertions.assertThat(exists).as("NO deberia existir una notificacion con el texto: '%s'", resolved).isFalse();
         TestLogger.logInfo("NOTIFICATION", "Ausencia de notificacion verificada: " + resolved, null);
     }
 

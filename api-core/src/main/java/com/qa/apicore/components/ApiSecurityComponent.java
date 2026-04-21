@@ -15,14 +15,41 @@ import java.util.Map;
  */
 @StepId("api.security")
 public class ApiSecurityComponent implements StepComponent {
-    @Override public String getName()                  { return "Seguridad"; }
-    @Override public String getDisplayName()           { return "Seguridad"; }
-    @Override public String getDescription()           { return "Validacion de controles de seguridad HTTP"; }
-    @Override public BddPhase getPhase()               { return BddPhase.THEN; }
-    @Override public String getCategory()              { return "Validacion de Respuesta"; }
-    @Override public String getIcon()                  { return "security"; }
-    @Override public int getDisplayOrder()             { return 120; }
-    @Override public Class<?> getStepDefinitionClass() { return ResponseSecuritySteps.class; }
+
+    /** Display order for this component in the UI step palette. */
+    private static final int DISPLAY_ORDER = 120;
+    @Override
+    public String getName() {
+        return "Seguridad";
+    }
+    @Override
+    public String getDisplayName() {
+        return "Seguridad";
+    }
+    @Override
+    public String getDescription() {
+        return "Validacion de controles de seguridad HTTP";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.THEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Validacion de Respuesta";
+    }
+    @Override
+    public String getIcon() {
+        return "security";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return ResponseSecuritySteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

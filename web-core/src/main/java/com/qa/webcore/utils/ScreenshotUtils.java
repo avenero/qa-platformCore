@@ -130,9 +130,8 @@ public class ScreenshotUtils {
             WebDriver driver = DriverManager.getDriver();
 
             // AShot con estrategia de scroll para capturar página completa
-            Screenshot screenshot = new AShot()
-                .shootingStrategy(ShootingStrategies.viewportPasting(100))
-                .takeScreenshot(driver);
+            Screenshot screenshot = new AShot().shootingStrategy(ShootingStrategies.viewportPasting(100)).
+                takeScreenshot(driver);
 
             String filename = generateFilename(screenshotName + "_fullpage");
             Path directory = createScreenshotDirectory(DEFAULT_SCREENSHOTS_DIR);
@@ -163,8 +162,7 @@ public class ScreenshotUtils {
             WebDriver driver = DriverManager.getDriver();
 
             // AShot para capturar solo el elemento
-            Screenshot screenshot = new AShot()
-                .takeScreenshot(driver, element);
+            Screenshot screenshot = new AShot().takeScreenshot(driver, element);
 
             String filename = generateFilename(screenshotName + "_element");
             Path directory = createScreenshotDirectory(DEFAULT_SCREENSHOTS_DIR);

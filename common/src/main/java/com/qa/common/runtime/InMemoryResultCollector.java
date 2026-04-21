@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class InMemoryResultCollector implements ConcurrentEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(InMemoryResultCollector.class);
+    private static final Logger LOG = LoggerFactory.getLogger(InMemoryResultCollector.class);
 
     private final AtomicInteger totalScenarios = new AtomicInteger(0);
     private final AtomicInteger passedScenarios = new AtomicInteger(0);
@@ -62,7 +62,7 @@ public final class InMemoryResultCollector implements ConcurrentEventListener {
 
     private void onTestRunStarted(TestRunStarted event) {
         startTime = event.getInstant();
-        log.debug("Test run iniciado: {}", startTime);
+        LOG.debug("Test run iniciado: {}", startTime);
     }
 
     private void onTestCaseFinished(TestCaseFinished event) {
@@ -79,7 +79,7 @@ public final class InMemoryResultCollector implements ConcurrentEventListener {
             String scenarioName = event.getTestCase().getName();
             String errorMsg = error != null ? error.getMessage() : "Unknown error";
             errors.add(scenarioName + ": " + errorMsg);
-            log.debug("Escenario fallido: {} - {}", scenarioName, errorMsg);
+            LOG.debug("Escenario fallido: {} - {}", scenarioName, errorMsg);
         } else {
             // SKIPPED, PENDING, UNDEFINED, AMBIGUOUS
             skippedScenarios.incrementAndGet();
@@ -89,7 +89,7 @@ public final class InMemoryResultCollector implements ConcurrentEventListener {
     private void onTestRunFinished(TestRunFinished event) {
         endTime = event.getInstant();
         finished = true;
-        log.debug("Test run finalizado: {} (total={}, passed={}, failed={})",
+        LOG.debug("Test run finalizado: {} (total={}, passed={}, failed={})",
                 endTime, totalScenarios.get(), passedScenarios.get(), failedScenarios.get());
     }
 
@@ -117,16 +117,9 @@ public final class InMemoryResultCollector implements ConcurrentEventListener {
             status = ExecutionResult.Status.PASSED;
         }
 
-        return new ExecutionResult.Builder()
-                .status(status)
-                .totalScenarios(total)
-                .passedScenarios(passed)
-                .failedScenarios(failed)
-                .duration(Duration.between(start, end))
-                .startTime(start)
-                .endTime(end)
-                .errors(List.copyOf(errors))
-                .build();
+        return new ExecutionResult.Builder().status(status).totalScenarios(total).passedScenarios(passed).
+                failedScenarios(failed).duration(Duration.between(start, end)).startTime(start).endTime(end).
+                errors(List.copyOf(errors)).build();
     }
 
     /**

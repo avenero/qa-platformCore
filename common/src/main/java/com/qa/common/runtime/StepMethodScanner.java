@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
  *
  * <h2>Comportamiento ante clases nulas o sin steps</h2>
  * <p>Si {@link StepComponent#getStepDefinitionClass()} retorna {@code null} (componente
- * aún no implementado), se emite un log DEBUG y se retorna lista vacía sin lanzar excepción.
- * Si la reflexión falla por cualquier motivo, se emite un log WARN y se retorna lista vacía.
+ * aún no implementado), se emite un LOG DEBUG y se retorna lista vacía sin lanzar excepción.
+ * Si la reflexión falla por cualquier motivo, se emite un LOG WARN y se retorna lista vacía.
  *
  * <h2>Parámetros especiales (DataTable / DocString)</h2>
  * <p>Cucumber puede inyectar {@code DataTable} o {@code DocString} como último parámetro
@@ -79,7 +79,7 @@ import java.util.stream.Collectors;
  */
 public final class StepMethodScanner {
 
-    private static final Logger log = LoggerFactory.getLogger(StepMethodScanner.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StepMethodScanner.class);
 
     /**
      * Regex para extraer tokens Cucumber del patrón:
@@ -96,9 +96,7 @@ public final class StepMethodScanner {
      */
     public List<StepDefinitionInfo> scanAll(List<StepDiscoveryService.ComponentInfo> components) {
         Objects.requireNonNull(components, "components no puede ser null");
-        return components.stream()
-                .flatMap(info -> scan(info).stream())
-                .collect(Collectors.toUnmodifiableList());
+        return components.stream().flatMap(info -> scan(info).stream()).collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -115,7 +113,7 @@ public final class StepMethodScanner {
 
         Class<?> stepClass = componentInfo.component().getStepDefinitionClass();
         if (stepClass == null) {
-            log.debug("Componente '{}' no tiene stepDefinitionClass (aún no implementado) — se omite.",
+            LOG.debug("Componente '{}' no tiene stepDefinitionClass (aún no implementado) — se omite.",
                     componentInfo.component().getId());
             return List.of();
         }
@@ -128,7 +126,7 @@ public final class StepMethodScanner {
                     componentInfo.component().getDisplayNameByLocale(),
                     componentInfo.component().getDescriptionByLocale());
         } catch (Exception e) {
-            log.warn("Error escaneando la clase de steps '{}' del componente '{}': {}",
+            LOG.warn("Error escaneando la clase de steps '{}' del componente '{}': {}",
                     stepClass.getName(), componentInfo.component().getId(), e.getMessage());
             return List.of();
         }
@@ -170,7 +168,7 @@ public final class StepMethodScanner {
             String  replacementId = resolveReplacementId(stepDefAnn);
 
             if (deprecated) {
-                log.warn("StepDef '{}' está marcado como DEPRECATED. Reemplazo: {}.",
+                LOG.warn("StepDef '{}' está marcado como DEPRECATED. Reemplazo: {}.",
                         stepDefId, replacementId != null ? "'" + replacementId + "'" : "(sin declarar)");
             }
 
@@ -188,11 +186,11 @@ public final class StepMethodScanner {
                     descriptionByLocale != null ? descriptionByLocale : Map.of()
             ));
 
-            log.debug("Step descubierto: [{}] '{}' → stepDefId='{}'",
+            LOG.debug("Step descubierto: [{}] '{}' → stepDefId='{}'",
                     pp.phase().name(), pp.pattern(), stepDefId);
         }
 
-        log.debug("Escaneados {} steps en '{}' (componente: '{}', capa: '{}')",
+        LOG.debug("Escaneados {} steps en '{}' (componente: '{}', capa: '{}')",
                 result.size(), stepClass.getSimpleName(), componentId, layer);
         return List.copyOf(result);
     }

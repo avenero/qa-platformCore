@@ -15,14 +15,45 @@ import java.util.Map;
  */
 @StepId("web.browser.config")
 public class BrowserConfigComponent implements StepComponent {
-    @Override public String getName()                  { return "Configuracion de Navegador"; }
-    @Override public String getDisplayName()           { return "Configuracion de Navegador"; }
-    @Override public String getDescription()           { return "Configuracion del browser, modo headless, capabilities"; }
-    @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
-    @Override public String getCategory()              { return "Configuracion Web"; }
-    @Override public String getIcon()                  { return "web"; }
-    @Override public int getDisplayOrder()             { return 10; }
-    @Override public Class<?> getStepDefinitionClass() { return BrowserConfigSteps.class; }
+    @Override
+    public String getName() {
+        return "Configuracion de Navegador";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Configuracion de Navegador";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Configuracion del browser, modo headless, capabilities";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.GIVEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Configuracion Web";
+    }
+
+    @Override
+    public String getIcon() {
+        return "web";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return 10;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return BrowserConfigSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

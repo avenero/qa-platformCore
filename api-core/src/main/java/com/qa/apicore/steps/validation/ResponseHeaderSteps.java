@@ -17,14 +17,14 @@ public class ResponseHeaderSteps {
 
     @Then("valido que el header de respuesta {string} sea {string}")
     public void validoHeaderDeRespuesta(String header, String expectedValue) {
-        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header))
-            .as("Header '" + header + "' esperado: " + expectedValue).isEqualTo(expectedValue);
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header)).
+            as("Header '" + header + "' esperado: " + expectedValue).isEqualTo(expectedValue);
     }
 
     @Then("valido que el header de respuesta {string} contenga {string}")
     public void validoHeaderContenga(String header, String text) {
-        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header))
-            .as("Header '" + header + "' deberia contener: " + text).contains(text);
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header)).
+            as("Header '" + header + "' deberia contener: " + text).contains(text);
     }
 
     @Then("valido que la respuesta tenga Content-Type {string}")
@@ -34,14 +34,14 @@ public class ResponseHeaderSteps {
 
     @Then("valido que la respuesta tenga header Cache-Control")
     public void validoCacheControl() {
-        Assertions.assertThat(apiHelper().getLastResponse().getHeader("Cache-Control"))
-            .as("Se esperaba header Cache-Control").isNotNull();
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader("Cache-Control")).
+            as("Se esperaba header Cache-Control").isNotNull();
     }
 
     @Then("valido que la respuesta tenga header Set-Cookie")
     public void validoSetCookie() {
-        Assertions.assertThat(apiHelper().getLastResponse().getHeader("Set-Cookie"))
-            .as("Se esperaba header Set-Cookie").isNotNull();
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader("Set-Cookie")).
+            as("Se esperaba header Set-Cookie").isNotNull();
     }
 
     @Then("extraigo el header {string} y lo guardo como {string}")
@@ -61,9 +61,8 @@ public class ResponseHeaderSteps {
      */
     @Then("valido que el header {string} NO esté presente")
     public void validoHeaderNoEstePresente(String header) {
-        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header))
-            .as("El header '%s' NO debería estar presente", header)
-            .isNull();
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header)).
+            as("El header '%s' NO debería estar presente", header).isNull();
     }
 
     /**
@@ -71,8 +70,7 @@ public class ResponseHeaderSteps {
      */
     @Then("valido que el header {string} esté presente")
     public void validoHeaderEstePresente(String header) {
-        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header))
-            .as("El header '%s' debería estar presente", header)
-            .isNotNull();
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header)).
+            as("El header '%s' debería estar presente", header).isNotNull();
     }
 }

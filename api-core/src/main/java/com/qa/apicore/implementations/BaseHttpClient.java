@@ -9,7 +9,10 @@ import com.qa.common.utils.TextUtilities;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import kong.unirest.*;
+import kong.unirest.Header;
+import kong.unirest.Headers;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 
 /**
  * Implementación base del cliente HTTP para el QA Automation Framework.
@@ -169,7 +172,44 @@ import kong.unirest.*;
  */
 public class BaseHttpClient implements HttpClient {
 
-  private static final TestLogger.LoggerWrapper log = TestLogger.getLogger(BaseHttpClient.class);
+  private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(BaseHttpClient.class);
+
+  // =================================================================================
+  // CONSTANTES
+  // =================================================================================
+
+  /** Nanoseconds per millisecond — used to convert System.nanoTime() duration to ms. */
+  private static final long NANOS_PER_MS = 1_000_000;
+
+  /** Default connection timeout in milliseconds (30 seconds). */
+  private static final int DEFAULT_CONNECTION_TIMEOUT_MS = 30000;
+
+  /** Default read/response timeout in milliseconds (60 seconds). */
+  private static final int DEFAULT_READ_TIMEOUT_MS = 60000;
+
+  /** Default retry delay in milliseconds (1 second). */
+  private static final int DEFAULT_RETRY_DELAY_MS = 1000;
+
+  /** Maximum characters of response body to truncate for logging. */
+  private static final int RESPONSE_BODY_LOG_LIMIT = 4000;
+
+  /** HTTP redirect threshold: codes &gt;= this indicate redirect responses. */
+  private static final int HTTP_REDIRECT_THRESHOLD = 300;
+
+  /** HTTP client-error threshold: codes &gt;= this indicate client errors. */
+  private static final int HTTP_CLIENT_ERROR_THRESHOLD = 400;
+
+  /** HTTP server-error threshold: codes &gt;= this indicate server errors. */
+  private static final int HTTP_SERVER_ERROR_THRESHOLD = 500;
+
+  /** Duration threshold in ms above which formatDuration shows seconds with 1 decimal. */
+  private static final long DURATION_LONG_THRESHOLD_MS = 10000;
+
+  /** Duration threshold in ms above which formatDuration shows seconds with 2 decimals. */
+  private static final long DURATION_SHORT_THRESHOLD_MS = 1000;
+
+  /** Divisor to convert milliseconds to seconds as double for format strings. */
+  private static final double MILLIS_TO_SECONDS = 1000.0;
 
   // =================================================================================
   // ESTADO INTERNO
@@ -183,12 +223,12 @@ public class BaseHttpClient implements HttpClient {
   private String currentHost;
 
   // Configuración de timeouts
-  private int connectionTimeout = 30000; // 30 segundos por defecto
-  private int readTimeout = 60000; // 60 segundos por defecto
+  private int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT_MS;
+  private int readTimeout = DEFAULT_READ_TIMEOUT_MS;
 
   // Configuración de retry policy
   private int maxRetries = 0; // Sin retry por defecto
-  private int retryDelay = 1000; // 1 segundo por defecto
+  private int retryDelay = DEFAULT_RETRY_DELAY_MS;
 
   // Cookies para cross-framework
   private final Map<String, String> cookies = new ConcurrentHashMap<>();
@@ -238,9 +278,17 @@ public class BaseHttpClient implements HttpClient {
             // Crear contexto SSL sin validación (sin logs internos)
             javax.net.ssl.TrustManager[] trustAll = new javax.net.ssl.TrustManager[]{
                 new javax.net.ssl.X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[0]; }
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] c, String a) { /* trust-all */ }
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] c, String a) { /* trust-all */ }
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return new java.security.cert.X509Certificate[0];
+                    }
+                    public void checkClientTrusted(
+                            java.security.cert.X509Certificate[] c, String a) {
+                        /* trust-all */
+                    }
+                    public void checkServerTrusted(
+                            java.security.cert.X509Certificate[] c, String a) {
+                        /* trust-all */
+                    }
                 }
             };
             javax.net.ssl.SSLContext sslContext = javax.net.ssl.SSLContext.getInstance("TLS");
@@ -253,19 +301,17 @@ public class BaseHttpClient implements HttpClient {
             javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier);
 
             // Configurar Unirest globalmente
-            Unirest.config()
-                .sslContext(sslContext)
-                .hostnameVerifier(hostnameVerifier)
-                .verifySsl(false); // Deshabilitar verificación SSL
+            Unirest.config().sslContext(sslContext).hostnameVerifier(hostnameVerifier).
+                verifySsl(false); // Deshabilitar verificación SSL
 
             sslValidationDisabled = true;
             globalSSLConfigured = true;
 
             // Log solo la primera vez que se configura (no en cada instancia)
-            log.debug("SSL: Validación de certificados deshabilitada para testing");
+            LOG.debug("SSL: Validación de certificados deshabilitada para testing");
 
           } catch (Exception e) {
-            log.error("❌ Error configurando SSL: {}", e.getMessage());
+            LOG.error("❌ Error configurando SSL: {}", e.getMessage());
           }
         }
       }
@@ -283,17 +329,14 @@ public class BaseHttpClient implements HttpClient {
     }
 
     // Sanitizar: remover comillas dobles y espacios
-    String sanitizedHost =
-        host.trim()
-            .replaceAll("^\"|\"$", "") // Remover comillas al inicio y final
-            .replaceAll("^'|'$", ""); // Remover comillas simples al inicio y final
+    String sanitizedHost = host.trim().replaceAll("^\"|\"$", "").replaceAll("^'|'$", "");
 
     if (sanitizedHost.isEmpty()) {
       throw new IllegalArgumentException("Host no puede estar vacío después de sanitización");
     }
 
     this.currentHost = sanitizedHost;
-    log.debug("Host establecido: {}", this.currentHost);
+    LOG.debug("Host establecido: {}", this.currentHost);
   }
 
   @Override
@@ -322,7 +365,7 @@ public class BaseHttpClient implements HttpClient {
 
     if (value == null) {
       headers.remove(normalizedKey);
-      log.debug("Header removido: {}", normalizedKey);
+      LOG.debug("Header removido: {}", normalizedKey);
     } else {
       // También normalizar value si tiene comillas
       String normalizedValue = value.trim();
@@ -333,7 +376,7 @@ public class BaseHttpClient implements HttpClient {
       }
 
       headers.put(normalizedKey, normalizedValue);
-      log.debug(
+      LOG.debug(
           "Header agregado: {} = {}",
           normalizedKey,
           TextUtilities.sanitizeValue(normalizedKey, normalizedValue));
@@ -361,7 +404,7 @@ public class BaseHttpClient implements HttpClient {
       return; // No-op silencioso para null/vacío
     }
     headers.remove(headerName.trim());
-    log.debug("Header removido: {}", headerName);
+    LOG.debug("Header removido: {}", headerName);
   }
 
   @Override
@@ -372,10 +415,10 @@ public class BaseHttpClient implements HttpClient {
 
     if (value == null) {
       queryParams.remove(key);
-      log.debug("Query param removido: {}", key);
+      LOG.debug("Query param removido: {}", key);
     } else {
       queryParams.put(key, value);
-      log.debug("Query param agregado: {} = {}", key, value);
+      LOG.debug("Query param agregado: {} = {}", key, value);
     }
   }
 
@@ -402,10 +445,10 @@ public class BaseHttpClient implements HttpClient {
 
     if (value == null) {
       fields.remove(key);
-      log.debug("Field removido: {}", key);
+      LOG.debug("Field removido: {}", key);
     } else {
       fields.put(key, value);
-      log.debug("Field agregado: {} = {}", key, value);
+      LOG.debug("Field agregado: {} = {}", key, value);
     }
   }
 
@@ -427,7 +470,7 @@ public class BaseHttpClient implements HttpClient {
   @Override
   public void setBody(String body) {
     this.body = body;
-    log.debug("Body establecido (longitud: {} caracteres)", body != null ? body.length() : 0);
+    LOG.debug("Body establecido (longitud: {} caracteres)", body != null ? body.length() : 0);
   }
 
   @Override
@@ -446,7 +489,7 @@ public class BaseHttpClient implements HttpClient {
       throw new IllegalArgumentException("Content type no puede ser null o vacío");
     }
     addHeader("Content-Type", contentType.trim());
-    log.debug("Content-Type establecido: {}", contentType);
+    LOG.debug("Content-Type establecido: {}", contentType);
   }
 
   @Override
@@ -460,7 +503,7 @@ public class BaseHttpClient implements HttpClient {
       throw new IllegalArgumentException("Accept type no puede ser null o vacío");
     }
     addHeader("Accept", acceptType.trim());
-    log.debug("Accept-Type establecido: {}", acceptType);
+    LOG.debug("Accept-Type establecido: {}", acceptType);
   }
 
   @Override
@@ -472,35 +515,35 @@ public class BaseHttpClient implements HttpClient {
   public void configureForJson() {
     setContentType("application/json");
     setAcceptType("application/json");
-    log.debug("Configuración JSON aplicada (Content-Type y Accept)");
+    LOG.debug("Configuración JSON aplicada (Content-Type y Accept)");
   }
 
   @Override
   public void configureForXml() {
     setContentType("application/xml");
     setAcceptType("application/xml");
-    log.debug("Configuración XML aplicada (Content-Type y Accept)");
+    LOG.debug("Configuración XML aplicada (Content-Type y Accept)");
   }
 
   @Override
   public void configureForFormData() {
     setContentType("application/x-www-form-urlencoded");
     setAcceptType("application/json");
-    log.debug("Configuración Form Data aplicada (Content-Type: form-urlencoded, Accept: JSON)");
+    LOG.debug("Configuración Form Data aplicada (Content-Type: form-urlencoded, Accept: JSON)");
   }
 
   @Override
   public void configureForPlainText() {
     setContentType("text/plain");
     setAcceptType("text/plain");
-    log.debug("Configuración Plain Text aplicada (Content-Type y Accept: text/plain)");
+    LOG.debug("Configuración Plain Text aplicada (Content-Type y Accept: text/plain)");
   }
 
   @Override
   public void configureForMultipart() {
     setContentType("multipart/form-data");
     setAcceptType("application/json");
-    log.debug("Configuración Multipart aplicada (Content-Type: multipart/form-data, Accept: JSON)");
+    LOG.debug("Configuración Multipart aplicada (Content-Type: multipart/form-data, Accept: JSON)");
   }
 
   @Override
@@ -555,7 +598,7 @@ public class BaseHttpClient implements HttpClient {
     if (hasBody() && getContentType() == null) {
       String detectedType = detectContentType(body);
       setContentType(detectedType);
-      log.debug("Content-Type auto-detectado y establecido: {}", detectedType);
+      LOG.debug("Content-Type auto-detectado y establecido: {}", detectedType);
     }
   }
 
@@ -569,7 +612,7 @@ public class BaseHttpClient implements HttpClient {
       throw new IllegalArgumentException("Connection timeout debe ser mayor a 0: " + timeoutMs);
     }
     this.connectionTimeout = timeoutMs;
-    log.debug("Connection timeout establecido: {} ms", timeoutMs);
+    LOG.debug("Connection timeout establecido: {} ms", timeoutMs);
   }
 
   @Override
@@ -578,7 +621,7 @@ public class BaseHttpClient implements HttpClient {
       throw new IllegalArgumentException("Read timeout debe ser mayor a 0: " + timeoutMs);
     }
     this.readTimeout = timeoutMs;
-    log.debug("Read timeout establecido: {} ms", timeoutMs);
+    LOG.debug("Read timeout establecido: {} ms", timeoutMs);
   }
 
   @Override
@@ -601,7 +644,7 @@ public class BaseHttpClient implements HttpClient {
     }
     this.maxRetries = maxRetries;
     this.retryDelay = retryDelayMs;
-    log.debug("Retry policy configurado: maxRetries={}, delay={}ms", maxRetries, retryDelayMs);
+    LOG.debug("Retry policy configurado: maxRetries={}, delay={}ms", maxRetries, retryDelayMs);
   }
 
   @Override
@@ -673,7 +716,7 @@ public class BaseHttpClient implements HttpClient {
 
       lastResponse = performRequest(method, fullUrl);
 
-      this.lastRequestDuration = (System.nanoTime() - startTime) / 1_000_000; // ms
+      this.lastRequestDuration = (System.nanoTime() - startTime) / NANOS_PER_MS;
       logResponse();
 
       clearRequestData();
@@ -682,7 +725,7 @@ public class BaseHttpClient implements HttpClient {
       return convertToFrameworkResponse(lastResponse);
 
     } catch (Exception ex) {
-      log.error("Error ejecutando petición HTTP: {}", ex.getClass().getSimpleName(), ex);
+      LOG.error("Error ejecutando petición HTTP: {}", ex.getClass().getSimpleName(), ex);
       throw new FrameworkTechnicalException("executeRequest", ex.getMessage());
     }
   }
@@ -771,10 +814,11 @@ public class BaseHttpClient implements HttpClient {
   }
 
   public Map<String, String> getLastResponseHeaders() {
-    if (lastResponse == null) return new HashMap<>();
+    if (lastResponse == null) {
+      return new HashMap<>();
+    }
 
-    return lastResponse.getHeaders().all().stream()
-        .collect(
+    return lastResponse.getHeaders().all().stream().collect(
             java.util.stream.Collectors.toMap(
                 Header::getName, Header::getValue, (existing, replacement) -> existing));
   }
@@ -800,23 +844,13 @@ public class BaseHttpClient implements HttpClient {
     debug.append("Host: ").append(currentHost).append("\n");
     debug.append("Connection Timeout: ").append(connectionTimeout).append("ms\n");
     debug.append("Read Timeout: ").append(readTimeout).append("ms\n");
-    debug
-        .append("Retry Policy: ")
-        .append(maxRetries)
-        .append(" retries, ")
-        .append(retryDelay)
-        .append("ms delay\n");
+    debug.append("Retry Policy: ").append(maxRetries).append(" retries, ").append(retryDelay).append("ms delay\n");
     debug.append("Cookies: ").append(cookies.size()).append(" cookies\n");
     debug.append("Auto Cookie Handling: ").append(automaticCookieHandling).append("\n");
     debug.append("User Context: ").append(hasUserContext() ? "Set" : "Not Set").append("\n");
     debug.append("Auto Apply User Context: ").append(autoApplyUserContext).append("\n");
     if (lastResponse != null) {
-      debug
-          .append("Last Request: ")
-          .append(lastRequestMethod)
-          .append(" ")
-          .append(lastRequestUrl)
-          .append("\n");
+      debug.append("Last Request: ").append(lastRequestMethod).append(" ").append(lastRequestUrl).append("\n");
       debug.append("Last Response Status: ").append(lastResponse.getStatus()).append("\n");
       debug.append("Last Request Duration: ").append(lastRequestDuration).append("ms\n");
     } else {
@@ -831,17 +865,17 @@ public class BaseHttpClient implements HttpClient {
 
   public void clearHeaders() {
     headers.clear();
-    log.debug("Headers limpiados");
+    LOG.debug("Headers limpiados");
   }
 
   public void clearFields() {
     fields.clear();
-    log.debug("Fields limpiados");
+    LOG.debug("Fields limpiados");
   }
 
   public void clearQueryParams() {
     queryParams.clear();
-    log.debug("Query parameters limpiados");
+    LOG.debug("Query parameters limpiados");
   }
 
   @Override
@@ -850,12 +884,12 @@ public class BaseHttpClient implements HttpClient {
     queryParams.clear();
     fields.clear();
     body = null;
-    log.debug("Datos de petición limpiados");
+    LOG.debug("Datos de petición limpiados");
   }
 
   public void clearAll() {
     clearRequestData();
-    log.debug("Todos los datos de petición limpiados");
+    LOG.debug("Todos los datos de petición limpiados");
   }
 
   @Override
@@ -863,11 +897,11 @@ public class BaseHttpClient implements HttpClient {
     clearRequestData();
     cookies.clear();
     currentHost = null;
-    connectionTimeout = 30000;
-    readTimeout = 60000;
+    connectionTimeout = DEFAULT_CONNECTION_TIMEOUT_MS;
+    readTimeout = DEFAULT_READ_TIMEOUT_MS;
     maxRetries = 0;
-    retryDelay = 1000;
-    log.debug("Cliente HTTP reseteado completamente");
+    retryDelay = DEFAULT_RETRY_DELAY_MS;
+    LOG.debug("Cliente HTTP reseteado completamente");
   }
 
   // =================================================================================
@@ -888,7 +922,7 @@ public class BaseHttpClient implements HttpClient {
           }
           this.cookies.put(name, value);
         });
-    log.debug("Cookies configuradas: {}", this.cookies.keySet());
+    LOG.debug("Cookies configuradas: {}", this.cookies.keySet());
   }
 
   @Override
@@ -904,10 +938,10 @@ public class BaseHttpClient implements HttpClient {
 
     if (value == null) {
       cookies.remove(name);
-      log.debug("Cookie removida: {}", name);
+      LOG.debug("Cookie removida: {}", name);
     } else {
       cookies.put(name, value);
-      log.debug("Cookie agregada: {} = {}", name, value);
+      LOG.debug("Cookie agregada: {} = {}", name, value);
     }
   }
 
@@ -933,19 +967,19 @@ public class BaseHttpClient implements HttpClient {
       throw new IllegalArgumentException("Cookie name no puede ser null o vacío");
     }
     cookies.remove(name);
-    log.debug("Cookie removida: {}", name);
+    LOG.debug("Cookie removida: {}", name);
   }
 
   @Override
   public void clearCookies() {
     cookies.clear();
-    log.debug("Todas las cookies limpiadas");
+    LOG.debug("Todas las cookies limpiadas");
   }
 
   @Override
   public void setAutomaticCookieHandling(boolean enabled) {
     this.automaticCookieHandling = enabled;
-    log.debug("Manejo automático de cookies: {}", enabled ? "habilitado" : "deshabilitado");
+    LOG.debug("Manejo automático de cookies: {}", enabled ? "habilitado" : "deshabilitado");
   }
 
   @Override
@@ -968,7 +1002,7 @@ public class BaseHttpClient implements HttpClient {
 
     this.currentUserId = userId.trim();
     this.currentSessionId = sessionId.trim();
-    log.debug("Contexto de usuario establecido: userId={}, sessionId={}", userId, sessionId);
+    LOG.debug("Contexto de usuario establecido: userId={}, sessionId={}", userId, sessionId);
   }
 
   @Override
@@ -989,7 +1023,7 @@ public class BaseHttpClient implements HttpClient {
           this.userContext.put(key, value);
         });
 
-    log.debug(
+    LOG.debug(
         "Contexto de usuario establecido con {} campos adicionales", additionalContext.size());
   }
 
@@ -1043,10 +1077,10 @@ public class BaseHttpClient implements HttpClient {
       this.currentSessionId = value;
     } else if (value == null) {
       userContext.remove(key);
-      log.debug("Context value removido: {}", key);
+      LOG.debug("Context value removido: {}", key);
     } else {
       userContext.put(key, value);
-      log.debug("Context value establecido: {} = {}", key, value);
+      LOG.debug("Context value establecido: {} = {}", key, value);
     }
   }
 
@@ -1060,13 +1094,13 @@ public class BaseHttpClient implements HttpClient {
     currentUserId = null;
     currentSessionId = null;
     userContext.clear();
-    log.debug("Contexto de usuario limpiado completamente");
+    LOG.debug("Contexto de usuario limpiado completamente");
   }
 
   @Override
   public void setAutoApplyUserContext(boolean enabled) {
     this.autoApplyUserContext = enabled;
-    log.debug("Auto aplicar contexto de usuario: {}", enabled ? "habilitado" : "deshabilitado");
+    LOG.debug("Auto aplicar contexto de usuario: {}", enabled ? "habilitado" : "deshabilitado");
   }
 
   @Override
@@ -1084,11 +1118,8 @@ public class BaseHttpClient implements HttpClient {
    */
   protected void configureUnirest(boolean followRedirects) {
     Unirest.config().reset();
-    Unirest.config()
-        .verifySsl(false)
-        .followRedirects(followRedirects)
-        .connectTimeout(connectionTimeout)
-        .socketTimeout(readTimeout);
+    Unirest.config().verifySsl(false).followRedirects(followRedirects).connectTimeout(connectionTimeout).
+        socketTimeout(readTimeout);
 
     // Configurar cookies si las hay
     if (!cookies.isEmpty()) {
@@ -1130,10 +1161,8 @@ public class BaseHttpClient implements HttpClient {
         if (!first) {
           urlWithParams.append("&");
         }
-        urlWithParams
-            .append(entry.getKey())
-            .append("=")
-            .append(entry.getValue() != null ? entry.getValue().toString() : "");
+        urlWithParams.append(entry.getKey()).append("=").
+            append(entry.getValue() != null ? entry.getValue().toString() : "");
         first = false;
       }
 
@@ -1149,26 +1178,26 @@ public class BaseHttpClient implements HttpClient {
    */
   protected void logRequest(String method, String url) {
     // Separador visual para delimitar inicio de petición
-    log.info("────────────────────────────────────────────────────────────────");
-    log.info("🌐 HTTP Request → {} {}", method.toUpperCase(), url);
+    LOG.info("────────────────────────────────────────────────────────");
+    LOG.info("🌐 HTTP Request → {} {}", method.toUpperCase(), url);
 
     if (!headers.isEmpty()) {
       // Formatear headers sin el formato Map {key=value}
       String formattedHeaders = formatHeadersForLogging(sanitizeHeaders(headers));
-      log.info("   📋 Headers: {}", formattedHeaders);
+      LOG.info("   📋 Headers: {}", formattedHeaders);
     }
 
     // Los query params ya están incluidos en la URL, no mostrarlos duplicados
     // if (!queryParams.isEmpty()) {
-    //     log.info("   🔍 Query Params: {}", queryParams);
+    //     LOG.info("   🔍 Query Params: {}", queryParams);
     // }
 
     if (!fields.isEmpty()) {
-      log.info("   📎 Multipart Fields: {}", fields.keySet());
+      LOG.info("   📎 Multipart Fields: {}", fields.keySet());
     } else if (hasBody()) {
       String sanitizedBody = TextUtilities.sanitizeBody(body);
       String formattedBody = formatJsonIfPossible(sanitizedBody);
-      log.info("   📊 Body:\n{}", formattedBody);
+      LOG.info("   📊 Body:\n{}", formattedBody);
     }
   }
 
@@ -1199,13 +1228,13 @@ public class BaseHttpClient implements HttpClient {
     String statusEmoji = getStatusEmoji(status);
     String durationFormatted = formatDuration(lastRequestDuration);
 
-    log.info("{} HTTP Response ← {} ({})", statusEmoji, status, durationFormatted);
+    LOG.info("{} HTTP Response ← {} ({})", statusEmoji, status, durationFormatted);
 
     // Mostrar headers solo si hay información relevante (no vacíos)
     if (!lastResponse.getHeaders().all().isEmpty()) {
       String headersFormatted = formatResponseHeaders(lastResponse.getHeaders());
       if (!headersFormatted.trim().isEmpty()) {
-        log.info("   📋 Headers: {}", headersFormatted);
+        LOG.info("   📋 Headers: {}", headersFormatted);
       }
     }
 
@@ -1213,12 +1242,12 @@ public class BaseHttpClient implements HttpClient {
     if (body != null && !body.trim().isEmpty()) {
       String sanitizedBody = TextUtilities.sanitizeBody(body);
       String formattedBody = formatJsonIfPossible(sanitizedBody);
-      String truncatedBody = TextUtilities.truncateContent(formattedBody, 4000);
-      log.info("   📄 Body:\n{}", truncatedBody);
+      String truncatedBody = TextUtilities.truncateContent(formattedBody, RESPONSE_BODY_LOG_LIMIT);
+      LOG.info("   📄 Body:\n{}", truncatedBody);
     }
 
     // Separador visual para delimitar fin de respuesta
-    log.info("────────────────────────────────────────────────────────────────");
+    LOG.info("────────────────────────────────────────────────────────");
   }
 
   /**
@@ -1249,20 +1278,26 @@ public class BaseHttpClient implements HttpClient {
 
   /** Obtiene el emoji apropiado según el código de estado HTTP. */
   private String getStatusEmoji(int status) {
-    if (status >= 200 && status < 300) return "✅"; // Éxito
-    if (status >= 300 && status < 400) return "🔀"; // Redirección
-    if (status >= 400 && status < 500) return "⚠️"; // Error del cliente
+    if (status >= 200 && status < HTTP_REDIRECT_THRESHOLD) {
+      return "✅"; // Éxito
+    }
+    if (status >= HTTP_REDIRECT_THRESHOLD && status < HTTP_CLIENT_ERROR_THRESHOLD) {
+      return "🔀"; // Redirección
+    }
+    if (status >= HTTP_CLIENT_ERROR_THRESHOLD && status < HTTP_SERVER_ERROR_THRESHOLD) {
+      return "⚠️"; // Error del cliente
+    }
     return "❌"; // Error del servidor
   }
 
   /** Formatea la duración en un formato legible (ms o segundos). */
   private String formatDuration(long durationMs) {
-    if (durationMs >= 10000) {
+    if (durationMs >= DURATION_LONG_THRESHOLD_MS) {
       // 10+ segundos: mostrar con 1 decimal (ej: 15.3s)
-      return String.format("%.1fs", durationMs / 1000.0);
-    } else if (durationMs >= 1000) {
+      return String.format("%.1fs", durationMs / MILLIS_TO_SECONDS);
+    } else if (durationMs >= DURATION_SHORT_THRESHOLD_MS) {
       // 1-10 segundos: mostrar con 2 decimales (ej: 2.45s)
-      return String.format("%.2fs", durationMs / 1000.0);
+      return String.format("%.2fs", durationMs / MILLIS_TO_SECONDS);
     }
     // Menos de 1 segundo: mostrar en ms
     return durationMs + "ms";
@@ -1274,11 +1309,9 @@ public class BaseHttpClient implements HttpClient {
       return "";
     }
 
-    // Mostrar solo headers más relevantes para no saturar el log
+    // Mostrar solo headers más relevantes para no saturar el LOG
     StringBuilder formatted = new StringBuilder();
-    headers.all().stream()
-        .filter(h -> isRelevantHeader(h.getName()))
-        .forEach(
+    headers.all().stream().filter(h -> isRelevantHeader(h.getName())).forEach(
             h -> {
               if (formatted.length() > 0) {
                 formatted.append(", ");
@@ -1291,7 +1324,9 @@ public class BaseHttpClient implements HttpClient {
 
   /** Determina si un header es relevante para mostrar en logs. */
   private boolean isRelevantHeader(String headerName) {
-    if (headerName == null) return false;
+    if (headerName == null) {
+      return false;
+    }
     String name = headerName.toLowerCase();
     // Mostrar solo headers importantes
     return name.equals("content-type")
@@ -1400,20 +1435,16 @@ public class BaseHttpClient implements HttpClient {
   private void ensureContentTypeHeader() {
     // Verificación case-insensitive de Content-Type
     boolean hasContentType =
-        headers.keySet().stream()
-            .anyMatch(key -> key != null && key.equalsIgnoreCase("Content-Type"));
+        headers.keySet().stream().anyMatch(key -> key != null && key.equalsIgnoreCase("Content-Type"));
 
     if (!hasContentType) {
-      log.warn("No se especificó Content-Type, usando application/json por defecto");
+      LOG.warn("No se especificó Content-Type, usando application/json por defecto");
       headers.put("Content-Type", "application/json");
     } else {
-      log.debug(
+      LOG.debug(
           "Content-Type ya configurado: {}",
-          headers.entrySet().stream()
-              .filter(e -> e.getKey() != null && e.getKey().equalsIgnoreCase("Content-Type"))
-              .map(Map.Entry::getValue)
-              .findFirst()
-              .orElse("unknown"));
+          headers.entrySet().stream().filter(e -> e.getKey() != null && e.getKey().equalsIgnoreCase("Content-Type")).
+              map(Map.Entry::getValue).findFirst().orElse("unknown"));
     }
   }
 

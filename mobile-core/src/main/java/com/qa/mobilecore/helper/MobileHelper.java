@@ -11,7 +11,6 @@ import com.qa.mobilecore.pool.DevicePool;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.InteractsWithApps;
 import io.appium.java_client.android.AndroidDriver;
-import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.remote.SupportsContextSwitching;
 import io.appium.java_client.remote.SupportsRotation;
 import org.openqa.selenium.By;
@@ -53,6 +52,10 @@ import java.util.Set;
  * @since 2.2.0 driver() delega a MobileDriverFactory.getOrCreateDriver() (lazy)
  */
 public class MobileHelper {
+
+    private static final int DEFAULT_WAIT_TIMEOUT_SEC = 15;
+    private static final int NOTIFICATION_SWIPE_X = 200;
+    private static final int NOTIFICATION_SWIPE_END_Y = 300;
 
     private final ConfigManager       config;
     private final MobileDriverFactory mobileDriverFactory;
@@ -358,7 +361,9 @@ public class MobileHelper {
             androidDriver.openNotifications();
         } else {
             driver().executeScript("mobile:swipe",
-                Map.of("direction", "down", "startX", 200, "startY", 0, "endX", 200, "endY", 300));
+                Map.of("direction", "down",
+                    "startX", NOTIFICATION_SWIPE_X, "startY", 0,
+                    "endX", NOTIFICATION_SWIPE_X, "endY", NOTIFICATION_SWIPE_END_Y));
         }
         TestLogger.logInfo("MOBILE_HELPER", "Centro de notificaciones abierto", null);
     }
@@ -497,7 +502,7 @@ public class MobileHelper {
      * Espera hasta que un elemento sea visible (timeout por defecto 15s).
      */
     public void waitForVisible(String locator) {
-        WebDriverWait wait = new WebDriverWait(driver(), Duration.ofSeconds(15));
+        WebDriverWait wait = new WebDriverWait(driver(), Duration.ofSeconds(DEFAULT_WAIT_TIMEOUT_SEC));
         wait.until(ExpectedConditions.visibilityOf(findElement(locator)));
         TestLogger.logInfo("MOBILE_HELPER", "Elemento visible: " + locator, null);
     }
@@ -506,7 +511,7 @@ public class MobileHelper {
      * Espera hasta que un texto aparezca en pantalla.
      */
     public void waitForText(String text) {
-        WebDriverWait wait = new WebDriverWait(driver(), Duration.ofSeconds(15));
+        WebDriverWait wait = new WebDriverWait(driver(), Duration.ofSeconds(DEFAULT_WAIT_TIMEOUT_SEC));
         wait.until(ExpectedConditions.visibilityOfElementLocated(
             By.xpath("//*[contains(@text,'" + text.replace("'", "\\'") + "')]")));
         TestLogger.logInfo("MOBILE_HELPER", "Texto visible: " + text, null);
@@ -519,11 +524,11 @@ public class MobileHelper {
         AppiumDriver appiumDriver = driver();
         switch (key.toUpperCase().trim()) {
             case "BACK" -> appiumDriver.navigate().back();
-            case "HOME" -> ((io.appium.java_client.android.AndroidDriver) appiumDriver)
-                    .pressKey(new io.appium.java_client.android.nativekey.KeyEvent(
+            case "HOME" -> ((io.appium.java_client.android.AndroidDriver) appiumDriver).
+                    pressKey(new io.appium.java_client.android.nativekey.KeyEvent(
                         io.appium.java_client.android.nativekey.AndroidKey.HOME));
-            case "RECENT", "APP_SWITCH" -> ((io.appium.java_client.android.AndroidDriver) appiumDriver)
-                    .pressKey(new io.appium.java_client.android.nativekey.KeyEvent(
+            case "RECENT", "APP_SWITCH" -> ((io.appium.java_client.android.AndroidDriver) appiumDriver).
+                    pressKey(new io.appium.java_client.android.nativekey.KeyEvent(
                         io.appium.java_client.android.nativekey.AndroidKey.APP_SWITCH));
             default -> throw new IllegalArgumentException(
                 "Tecla de sistema no soportada: " + key + ". Usar: BACK, HOME, RECENT");
@@ -579,12 +584,7 @@ public class MobileHelper {
                 ? DeviceType.IOS_SIMULATOR : DeviceType.ANDROID_EMULATOR;
         }
 
-        return DeviceDescriptor.builder(id, type)
-            .platformName(platform)
-            .platformVersion(version)
-            .deviceName(name)
-            .udid(udid.isBlank() ? null : udid)
-            .appiumServerUrl(url)
-            .build();
+        return DeviceDescriptor.builder(id, type).platformName(platform).platformVersion(version).deviceName(name).
+            udid(udid.isBlank() ? null : udid).appiumServerUrl(url).build();
     }
 }

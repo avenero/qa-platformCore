@@ -63,7 +63,7 @@ import com.qa.common.logging.TestLogger;
  */
 public final class DatabaseServiceFactory {
 
-  private static final TestLogger.LoggerWrapper log =
+  private static final TestLogger.LoggerWrapper LOG =
       TestLogger.getLogger(DatabaseServiceFactory.class);
 
   // Configuraciones por defecto para cada tipo de BD
@@ -90,7 +90,7 @@ public final class DatabaseServiceFactory {
     validateDatabaseType(databaseType);
 
     String normalizedType = databaseType.toLowerCase().trim();
-    log.debug("Creando DatabaseService para tipo: {}", normalizedType);
+    LOG.debug("Creando DatabaseService para tipo: {}", normalizedType);
 
     try {
       BaseDatabaseService dbService = new BaseDatabaseService(normalizedType);
@@ -99,11 +99,11 @@ public final class DatabaseServiceFactory {
       int timeout = getDefaultTimeoutForType(normalizedType);
       dbService.setConnectionTimeout(timeout);
 
-      log.debug("DatabaseService creado para {} con timeout: {} ms", normalizedType, timeout);
+      LOG.debug("DatabaseService creado para {} con timeout: {} ms", normalizedType, timeout);
       return dbService;
 
     } catch (Exception e) {
-      log.error("Error creando DatabaseService para tipo {}: {}", normalizedType, e.getMessage());
+      LOG.error("Error creando DatabaseService para tipo {}: {}", normalizedType, e.getMessage());
       throw new RuntimeException(
           "No se pudo crear DatabaseService para tipo: " + normalizedType, e);
     }
@@ -123,7 +123,7 @@ public final class DatabaseServiceFactory {
     validateTimeout(timeoutMs);
 
     String normalizedType = databaseType.toLowerCase().trim();
-    log.debug(
+    LOG.debug(
         "Creando DatabaseService para {} con timeout personalizado: {} ms",
         normalizedType,
         timeoutMs);
@@ -132,14 +132,14 @@ public final class DatabaseServiceFactory {
       BaseDatabaseService dbService = new BaseDatabaseService(normalizedType);
       dbService.setConnectionTimeout(timeoutMs);
 
-      log.debug(
+      LOG.debug(
           "DatabaseService creado para {} con timeout personalizado: {} ms",
           normalizedType,
           timeoutMs);
       return dbService;
 
     } catch (Exception e) {
-      log.error(
+      LOG.error(
           "Error creando DatabaseService para tipo {} con timeout {}: {}",
           normalizedType,
           timeoutMs,
@@ -156,13 +156,13 @@ public final class DatabaseServiceFactory {
    * @return DatabaseService optimizado para Oracle
    */
   public static DatabaseService getOracleInstance() {
-    log.debug("Creando DatabaseService optimizado para Oracle");
+    LOG.debug("Creando DatabaseService optimizado para Oracle");
     DatabaseService dbService = getInstance("oracle");
 
     // Configuraciones específicas adicionales para Oracle podrían ir aquí
     // Por ejemplo: configuraciones de pool específicas, hints SQL, etc.
 
-    log.debug("DatabaseService para Oracle creado con configuraciones optimizadas");
+    LOG.debug("DatabaseService para Oracle creado con configuraciones optimizadas");
     return dbService;
   }
 
@@ -173,13 +173,13 @@ public final class DatabaseServiceFactory {
    * @return DatabaseService optimizado para SQL Server
    */
   public static DatabaseService getSqlServerInstance() {
-    log.debug("Creando DatabaseService optimizado para SQL Server");
+    LOG.debug("Creando DatabaseService optimizado para SQL Server");
     DatabaseService dbService = getInstance("sqlserver");
 
     // Configuraciones específicas adicionales para SQL Server podrían ir aquí
     // Por ejemplo: configuraciones de aislamiento, bulk operations, etc.
 
-    log.debug("DatabaseService para SQL Server creado con configuraciones optimizadas");
+    LOG.debug("DatabaseService para SQL Server creado con configuraciones optimizadas");
     return dbService;
   }
 
@@ -190,13 +190,13 @@ public final class DatabaseServiceFactory {
    * @return DatabaseService configurado para PostgreSQL
    */
   public static DatabaseService getPostgreSQLInstance() {
-    log.debug("Creando DatabaseService para PostgreSQL");
+    LOG.debug("Creando DatabaseService para PostgreSQL");
     DatabaseService dbService = getInstance("postgresql");
 
     // Configuraciones específicas adicionales para PostgreSQL podrían ir aquí
     // Por ejemplo: soporte JSON nativo, array types, etc.
 
-    log.debug("DatabaseService para PostgreSQL creado con configuraciones optimizadas");
+    LOG.debug("DatabaseService para PostgreSQL creado con configuraciones optimizadas");
     return dbService;
   }
 
@@ -207,13 +207,13 @@ public final class DatabaseServiceFactory {
    * @return DatabaseService configurado para MySQL
    */
   public static DatabaseService getMySQLInstance() {
-    log.debug("Creando DatabaseService para MySQL");
+    LOG.debug("Creando DatabaseService para MySQL");
     DatabaseService dbService = getInstance("mysql");
 
     // Configuraciones específicas adicionales para MySQL podrían ir aquí
     // Por ejemplo: configuraciones de charset, engine preferences, etc.
 
-    log.debug("DatabaseService para MySQL creado con configuraciones optimizadas");
+    LOG.debug("DatabaseService para MySQL creado con configuraciones optimizadas");
     return dbService;
   }
 
@@ -226,16 +226,16 @@ public final class DatabaseServiceFactory {
    */
   public static boolean testConnection(String databaseType) {
     try {
-      log.debug("Probando conectividad para tipo de BD: {}", databaseType);
+      LOG.debug("Probando conectividad para tipo de BD: {}", databaseType);
       DatabaseService dbService = getInstance(databaseType);
       boolean result = dbService.testConnection();
       dbService.cleanup();
 
-      log.debug("Test de conectividad para {}: {}", databaseType, result ? "EXITOSO" : "FALLIDO");
+      LOG.debug("Test de conectividad para {}: {}", databaseType, result ? "EXITOSO" : "FALLIDO");
       return result;
 
     } catch (Exception e) {
-      log.warn("Error en test de conectividad para {}: {}", databaseType, e.getMessage());
+      LOG.warn("Error en test de conectividad para {}: {}", databaseType, e.getMessage());
       return false;
     }
   }

@@ -30,14 +30,49 @@ import java.util.Map;
 @Deprecated(since = "2.1.0", forRemoval = false)
 @StepId(value = "web.dragdrop", deprecated = true, replacedBy = "web.drag.drop")
 public class DragDropComponent implements StepComponent {
-    @Override public String getName()                  { return "Drag and Drop"; }
-    @Override public String getDisplayName()           { return "Drag and Drop"; }
-    @Override public String getDescription()           { return "Arrastrar y soltar elementos"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Interaccion"; }
-    @Override public String getIcon()                  { return "open_with"; }
-    @Override public int getDisplayOrder()             { return 95; }
-    @Override public Class<?> getStepDefinitionClass() { return DragDropSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 95;
+
+    @Override
+    public String getName() {
+        return "Drag and Drop";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Drag and Drop";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Arrastrar y soltar elementos";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Interaccion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "open_with";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return DragDropSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

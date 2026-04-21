@@ -16,7 +16,10 @@ import org.skyscreamer.jsonassert.JSONCompare;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.JSONCompareResult;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -53,6 +56,9 @@ public final class JsonUtilities {
     /** Profundidad máxima de anidamiento – previene DoS por stack overflow. */
     private static final int MAX_JSON_DEPTH = 50;
 
+    /** Bytes per kilobyte, used for size-to-MB conversion in error messages. */
+    private static final double BYTES_PER_KB = 1024.0;
+
 
     /**
      * ObjectMapper seguro configurado según OWASP best practices.
@@ -77,12 +83,10 @@ public final class JsonUtilities {
         mapper.configure(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY, true);
         // SEGURIDAD: Visibilidad explícita (CVE-2019-12384)
         mapper.setVisibility(
-            mapper.getSerializationConfig()
-                .getDefaultVisibilityChecker()
-                .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
-                .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
-                .withCreatorVisibility(JsonAutoDetect.Visibility.NONE)
+            mapper.getSerializationConfig().getDefaultVisibilityChecker().
+                withFieldVisibility(JsonAutoDetect.Visibility.ANY).withGetterVisibility(JsonAutoDetect.Visibility.NONE).
+                withSetterVisibility(JsonAutoDetect.Visibility.NONE).
+                withCreatorVisibility(JsonAutoDetect.Visibility.NONE)
         );
         // PERFORMANCE: Serialización
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
@@ -109,12 +113,14 @@ public final class JsonUtilities {
      * @throws FrameworkBusinessException si excede {@value #MAX_JSON_SIZE_BYTES} bytes
      */
     public static void validateJsonSize(String jsonString) throws FrameworkBusinessException {
-        if (jsonString == null) return;
+        if (jsonString == null) {
+            return;
+        }
         int sizeBytes = jsonString.getBytes().length;
         if (sizeBytes > MAX_JSON_SIZE_BYTES) {
             String msg = String.format(
                 "JSON excede el tamaño máximo: %d bytes (máximo: %d bytes / %.2f MB)",
-                sizeBytes, MAX_JSON_SIZE_BYTES, MAX_JSON_SIZE_BYTES / (1024.0 * 1024.0));
+                sizeBytes, MAX_JSON_SIZE_BYTES, MAX_JSON_SIZE_BYTES / (BYTES_PER_KB * BYTES_PER_KB));
             TestLogger.logError("JSON_UTILITIES_SECURITY", msg, null);
             throw new FrameworkBusinessException("validateJsonSize", msg);
         }
@@ -127,11 +133,16 @@ public final class JsonUtilities {
      * @throws FrameworkBusinessException si supera {@value #MAX_JSON_DEPTH} niveles
      */
     public static void validateJsonDepth(String jsonString) throws FrameworkBusinessException {
-        if (jsonString == null || jsonString.trim().isEmpty()) return;
-        int depth = 0, maxDepth = 0;
+        if (jsonString == null || jsonString.trim().isEmpty()) {
+            return;
+        }
+        int depth = 0;
+        int maxDepth = 0;
         for (char c : jsonString.toCharArray()) {
             if (c == '{' || c == '[') {
-                if (++depth > maxDepth) maxDepth = depth;
+                if (++depth > maxDepth) {
+                    maxDepth = depth;
+                }
                 if (maxDepth > MAX_JSON_DEPTH) {
                     String msg = String.format(
                         "JSON excede profundidad máxima: %d niveles (máximo: %d)",
@@ -193,7 +204,9 @@ public final class JsonUtilities {
      */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> jsonToMap(String json) {
-        if (json == null || json.trim().isEmpty()) return new HashMap<>();
+        if (json == null || json.trim().isEmpty()) {
+            return new HashMap<>();
+        }
         try {
             return OBJECT_MAPPER.readValue(json, Map.class);
         } catch (JsonProcessingException e) {
@@ -210,8 +223,12 @@ public final class JsonUtilities {
      * @return representación JSON del objeto
      */
     public static String toJsonString(Object obj) {
-        if (obj == null) return "null";
-        if (obj instanceof String) return (String) obj;
+        if (obj == null) {
+            return "null";
+        }
+        if (obj instanceof String) {
+            return (String) obj;
+        }
         try {
             return OBJECT_MAPPER.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
@@ -237,13 +254,17 @@ public final class JsonUtilities {
     public static Object getJsonParameter(String jsonBody, String fieldPath)
             throws FrameworkBusinessException {
         try {
-            if (jsonBody == null || fieldPath == null) return null;
+            if (jsonBody == null || fieldPath == null) {
+                return null;
+            }
             if (!fieldPath.contains(".")) {
                 return findValueGeneric(jsonBody, fieldPath);
             }
             String[] parts = fieldPath.split("\\.", 2);
             Object current = findValueGeneric(jsonBody, parts[0]);
-            if (current == null) return null;
+            if (current == null) {
+                return null;
+            }
             if (parts.length > 1) {
                 return getJsonParameter(toJsonString(current), parts[1]);
             }
@@ -321,7 +342,9 @@ public final class JsonUtilities {
      * @return valor encontrado, o {@code null} si no existe
      */
     public static Object findValue(Object response, String targetKey) {
-        if (response == null || targetKey == null) return null;
+        if (response == null || targetKey == null) {
+            return null;
+        }
         // Parsear String JSON
         if (response instanceof String) {
             try {
@@ -354,7 +377,9 @@ public final class JsonUtilities {
      * @return valor encontrado o {@code null}
      */
     public static Object getByJsonPath(String json, String jsonPath) {
-        if (json == null || json.trim().isEmpty()) return null;
+        if (json == null || json.trim().isEmpty()) {
+            return null;
+        }
         try {
             return JsonPath.read(json, jsonPath);
         } catch (PathNotFoundException e) {
@@ -391,13 +416,13 @@ public final class JsonUtilities {
     @SuppressWarnings("unchecked")
     public static <T> List<T> getListByJsonPath(String json, String jsonPath, Class<T> elementType) {
         Object result = getByJsonPath(json, jsonPath);
-        if (result == null) return new ArrayList<>();
+        if (result == null) {
+            return new ArrayList<>();
+        }
         if (result instanceof List) {
             List<?> list = (List<?>) result;
-            return list.stream()
-                .filter(item -> elementType.isInstance(item))
-                .map(item -> elementType.cast(item))
-                .collect(Collectors.toList());
+            return list.stream().filter(item -> elementType.isInstance(item)).map(item -> elementType.cast(item)).
+                collect(Collectors.toList());
         }
         return new ArrayList<>();
     }
@@ -414,8 +439,12 @@ public final class JsonUtilities {
      * @return {@code true} si son estructuralmente equivalentes
      */
     public static boolean areJsonEqual(String json1, String json2) {
-        if (json1 == null && json2 == null) return true;
-        if (json1 == null || json2 == null) return false;
+        if (json1 == null && json2 == null) {
+            return true;
+        }
+        if (json1 == null || json2 == null) {
+            return false;
+        }
         try {
             JSONCompareResult result = JSONCompare.compareJSON(json1, json2, JSONCompareMode.NON_EXTENSIBLE);
             return result.passed();
@@ -434,7 +463,9 @@ public final class JsonUtilities {
      * @return String con las diferencias encontradas
      */
     public static String diffJson(String expected, String actual) {
-        if (expected == null || actual == null) return "Uno de los JSON es null";
+        if (expected == null || actual == null) {
+            return "Uno de los JSON es null";
+        }
         try {
             JSONCompareResult result = JSONCompare.compareJSON(expected, actual, JSONCompareMode.NON_EXTENSIBLE);
             return result.passed() ? "JSON son equivalentes" : result.getMessage();
@@ -450,7 +481,9 @@ public final class JsonUtilities {
      * @return {@code true} si es JSON válido
      */
     public static boolean isValidJson(String json) {
-        if (json == null || json.trim().isEmpty()) return false;
+        if (json == null || json.trim().isEmpty()) {
+            return false;
+        }
         String trimmed = json.trim();
         try {
             if (trimmed.startsWith("{")) {
@@ -473,7 +506,9 @@ public final class JsonUtilities {
      * @return {@code true} si actual contiene todos los campos de expected
      */
     public static boolean jsonContainsAllFields(String expected, String actual) {
-        if (expected == null || actual == null) return false;
+        if (expected == null || actual == null) {
+            return false;
+        }
         try {
             JSONCompareResult result = JSONCompare.compareJSON(expected, actual, JSONCompareMode.LENIENT);
             return result.passed();
@@ -493,7 +528,9 @@ public final class JsonUtilities {
      * Maneja tanto objetos JSON ({}) como arrays ([]).
      */
     static Object findValueGeneric(String jsonString, String key) {
-        if (jsonString == null || jsonString.trim().isEmpty()) return null;
+        if (jsonString == null || jsonString.trim().isEmpty()) {
+            return null;
+        }
         String trimmed = jsonString.trim();
         try {
             if (trimmed.startsWith("{")) {
@@ -509,15 +546,21 @@ public final class JsonUtilities {
     }
 
     private static Object findInObject(JSONObject jsonObj, String key) {
-        if (jsonObj.has(key)) return jsonObj.get(key);
+        if (jsonObj.has(key)) {
+            return jsonObj.get(key);
+        }
         for (String k : jsonObj.keySet()) {
             Object value = jsonObj.get(k);
             if (value instanceof JSONObject) {
                 Object result = findInObject((JSONObject) value, key);
-                if (result != null) return result;
+                if (result != null) {
+                    return result;
+                }
             } else if (value instanceof JSONArray) {
                 Object result = findInArray((JSONArray) value, key);
-                if (result != null) return result;
+                if (result != null) {
+                    return result;
+                }
             }
         }
         return null;
@@ -528,10 +571,14 @@ public final class JsonUtilities {
             Object item = jsonArray.get(i);
             if (item instanceof JSONObject) {
                 Object result = findInObject((JSONObject) item, key);
-                if (result != null) return result;
+                if (result != null) {
+                    return result;
+                }
             } else if (item instanceof JSONArray) {
                 Object result = findInArray((JSONArray) item, key);
-                if (result != null) return result;
+                if (result != null) {
+                    return result;
+                }
             }
         }
         return null;
@@ -541,18 +588,26 @@ public final class JsonUtilities {
      * Busca recursivamente un valor en un Map.
      */
     static Object findValueInMap(Map<String, Object> map, String targetKey) {
-        if (map == null || targetKey == null) return null;
+        if (map == null || targetKey == null) {
+            return null;
+        }
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (entry.getKey().equals(targetKey)) return entry.getValue();
+            if (entry.getKey().equals(targetKey)) {
+                return entry.getValue();
+            }
             Object value = entry.getValue();
             if (value instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Object nested = findValueInMap((Map<String, Object>) value, targetKey);
-                if (nested != null) return nested;
+                if (nested != null) {
+                    return nested;
+                }
             } else if (value instanceof List) {
                 @SuppressWarnings("unchecked")
                 Object nested = findValueInList((List<Object>) value, targetKey);
-                if (nested != null) return nested;
+                if (nested != null) {
+                    return nested;
+                }
             }
         }
         return null;
@@ -562,16 +617,22 @@ public final class JsonUtilities {
      * Busca recursivamente un valor en una List.
      */
     static Object findValueInList(List<Object> list, String targetKey) {
-        if (list == null || targetKey == null) return null;
+        if (list == null || targetKey == null) {
+            return null;
+        }
         for (Object item : list) {
             if (item instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Object nested = findValueInMap((Map<String, Object>) item, targetKey);
-                if (nested != null) return nested;
+                if (nested != null) {
+                    return nested;
+                }
             } else if (item instanceof List) {
                 @SuppressWarnings("unchecked")
                 Object nested = findValueInList((List<Object>) item, targetKey);
-                if (nested != null) return nested;
+                if (nested != null) {
+                    return nested;
+                }
             }
         }
         return null;

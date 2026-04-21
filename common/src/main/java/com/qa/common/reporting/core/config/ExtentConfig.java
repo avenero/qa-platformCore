@@ -63,15 +63,20 @@ public class ExtentConfig {
     }
 
     /**
-     * Temas disponibles para Extent Reports
+     * Temas disponibles para Extent Reports.
      */
     public enum Theme {
+        /** Tema estándar (fondo blanco). */
         STANDARD,
+        /** Tema oscuro (fondo negro). */
         DARK
     }
 
     /**
-     * Agrega información de sistema custom
+     * Agrega información de sistema personalizada al reporte.
+     *
+     * @param key   nombre de la propiedad del sistema
+     * @param value valor de la propiedad
      */
     public void addSystemInfo(String key, String value) {
         this.systemInfo.put(key, value);
@@ -168,7 +173,9 @@ public class ExtentConfig {
     }
 
     /**
-     * Obtiene la ruta completa del reporte
+     * Obtiene la ruta completa del reporte combinando outputPath y reportName.
+     *
+     * @return ruta absoluta o relativa al archivo HTML del reporte
      */
     public String getFullReportPath() {
         return outputPath + (outputPath.endsWith("/") ? "" : "/") + reportName;

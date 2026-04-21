@@ -32,6 +32,15 @@ import java.util.List;
  */
 public final class ElementLocatorHelper {
 
+    private static final String PREFIX_ACCESSIBILITY = "~";
+    private static final String PREFIX_ID = "id:";
+    private static final String PREFIX_XPATH = "xpath:";
+    private static final String PREFIX_CLASS = "class:";
+    private static final String PREFIX_TEXT = "text:";
+    private static final String PREFIX_PRED = "pred:";
+    private static final String PREFIX_CHAIN = "chain:";
+    private static final String PREFIX_UIA = "uia:";
+
     private ElementLocatorHelper() {}
 
     /**
@@ -76,54 +85,55 @@ public final class ElementLocatorHelper {
 
     private static org.openqa.selenium.By resolveBy(String expression) {
         if (expression == null || expression.isBlank()) {
-            throw new IllegalArgumentException("La expresion de localización no puede ser nula o vacía");
+            throw new IllegalArgumentException(
+                "La expresion de localizacion no puede ser nula o vacia");
         }
 
-        // "~<value>" → Accessibility ID (más portable entre Android e iOS)
-        if (expression.startsWith("~")) {
-            return AppiumBy.accessibilityId(expression.substring(1));
+        // "~<value>" → Accessibility ID (mas portable entre Android e iOS)
+        if (expression.startsWith(PREFIX_ACCESSIBILITY)) {
+            return AppiumBy.accessibilityId(expression.substring(PREFIX_ACCESSIBILITY.length()));
         }
 
         // "id:<value>" → Resource ID (Android) o name (iOS)
-        if (expression.startsWith("id:")) {
-            return AppiumBy.id(expression.substring(3));
+        if (expression.startsWith(PREFIX_ID)) {
+            return AppiumBy.id(expression.substring(PREFIX_ID.length()));
         }
 
         // "xpath:<value>" → XPath
-        if (expression.startsWith("xpath:")) {
-            return AppiumBy.xpath(expression.substring(6));
+        if (expression.startsWith(PREFIX_XPATH)) {
+            return AppiumBy.xpath(expression.substring(PREFIX_XPATH.length()));
         }
 
         // "class:<value>" → ClassName
-        if (expression.startsWith("class:")) {
-            return AppiumBy.className(expression.substring(6));
+        if (expression.startsWith(PREFIX_CLASS)) {
+            return AppiumBy.className(expression.substring(PREFIX_CLASS.length()));
         }
 
         // "text:<value>" → XPath buscando por texto visible (Android y iOS)
-        if (expression.startsWith("text:")) {
-            String text = expression.substring(5);
+        if (expression.startsWith(PREFIX_TEXT)) {
+            String text = expression.substring(PREFIX_TEXT.length());
             // Busca en @text (Android), @label y @value (iOS)
             return AppiumBy.xpath(
                 "//*[@text='" + text + "' or @label='" + text + "' or @value='" + text + "']");
         }
 
         // "pred:<value>" → iOS predicate string
-        if (expression.startsWith("pred:")) {
-            return AppiumBy.iOSNsPredicateString(expression.substring(5));
+        if (expression.startsWith(PREFIX_PRED)) {
+            return AppiumBy.iOSNsPredicateString(expression.substring(PREFIX_PRED.length()));
         }
 
         // "chain:<value>" → iOS class chain
-        if (expression.startsWith("chain:")) {
-            return AppiumBy.iOSClassChain(expression.substring(6));
+        if (expression.startsWith(PREFIX_CHAIN)) {
+            return AppiumBy.iOSClassChain(expression.substring(PREFIX_CHAIN.length()));
         }
 
         // "uia:<value>" → Android UIAutomator
-        if (expression.startsWith("uia:")) {
-            return AppiumBy.androidUIAutomator(expression.substring(4));
+        if (expression.startsWith(PREFIX_UIA)) {
+            return AppiumBy.androidUIAutomator(expression.substring(PREFIX_UIA.length()));
         }
 
         // Sin prefijo → Accessibility ID por default
-        // Es la estrategia más portable entre Android e iOS y facilita la IA de sugerencias
+        // Es la estrategia mas portable entre Android e iOS y facilita la IA de sugerencias
         TestLogger.logInfo("LOCATOR",
             "Sin prefijo detectado, usando accessibilityId por default: " + expression, null);
         return AppiumBy.accessibilityId(expression);

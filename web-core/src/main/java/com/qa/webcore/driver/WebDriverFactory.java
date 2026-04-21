@@ -1,6 +1,5 @@
 package com.qa.webcore.driver;
 
-import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.webcore.config.WebConfigKeys;
 import org.openqa.selenium.Proxy;
@@ -18,6 +17,8 @@ import org.openqa.selenium.safari.SafariOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.net.URI;
 import java.net.URL;
 import java.time.Duration;
 
@@ -51,7 +52,7 @@ import java.time.Duration;
  */
 public class WebDriverFactory {
 
-    private static final Logger log = LoggerFactory.getLogger(WebDriverFactory.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WebDriverFactory.class);
 
     // =========================================================================
     // Enums
@@ -113,17 +114,37 @@ public class WebDriverFactory {
             return this;
         }
 
-        public BrowserType    getBrowserType()        { return browserType; }
-        public ExecutionMode  getExecutionMode()      { return executionMode; }
-        public boolean        isHeadless()            { return headless; }
-        public String         getGridHubUrl()         { return gridHubUrl; }
-        public String         getProxyUrl()           { return proxyUrl; }
-        public boolean        isAcceptInsecureCerts() { return acceptInsecureCerts; }
+        public BrowserType getBrowserType() {
+            return browserType;
+        }
+
+        public ExecutionMode getExecutionMode() {
+            return executionMode;
+        }
+
+        public boolean isHeadless() {
+            return headless;
+        }
+
+        public String getGridHubUrl() {
+            return gridHubUrl;
+        }
+
+        public String getProxyUrl() {
+            return proxyUrl;
+        }
+
+        public boolean isAcceptInsecureCerts() {
+            return acceptInsecureCerts;
+        }
     }
 
     // =========================================================================
     // Constructor privado — utility class
     // =========================================================================
+
+    /** Default page load timeout in seconds applied to every new driver instance. */
+    private static final int DEFAULT_PAGE_LOAD_TIMEOUT_SECONDS = 30;
 
     private WebDriverFactory() {}
 
@@ -163,7 +184,7 @@ public class WebDriverFactory {
      */
     public static WebDriver createDriver(DriverConfig config) {
         String driverStrategy = resolveDriverStrategy();
-        log.info("[WebDriverFactory] Creando WebDriver: browser={} mode={} headless={} strategy={}",
+        LOG.info("[WebDriverFactory] Creando WebDriver: browser={} mode={} headless={} strategy={}",
                 config.getBrowserType(), config.getExecutionMode(), config.isHeadless(), driverStrategy);
 
         WebDriver driver = (config.getExecutionMode() == ExecutionMode.LOCAL)
@@ -171,7 +192,7 @@ public class WebDriverFactory {
                 : createGridDriver(config);
 
         configureDriver(driver);
-        log.info("[WebDriverFactory] ✅ WebDriver listo: {}", config.getBrowserType());
+        LOG.info("[WebDriverFactory] ✅ WebDriver listo: {}", config.getBrowserType());
         return driver;
     }
 
@@ -192,7 +213,7 @@ public class WebDriverFactory {
         WebDriver driver = createDriver(config);
         if (context != null) {
             context.registry().registerInstance(WebDriver.class, driver);
-            log.debug("[WebDriverFactory] WebDriver registrado en ServiceRegistry del contexto");
+            LOG.debug("[WebDriverFactory] WebDriver registrado en ServiceRegistry del contexto");
         }
         return driver;
     }
@@ -213,22 +234,22 @@ public class WebDriverFactory {
      */
     public static void closeDriver(ExecutionContext context) {
         if (context == null) {
-            log.debug("[WebDriverFactory] closeDriver() invocado con context=null — no-op");
+            LOG.debug("[WebDriverFactory] closeDriver() invocado con context=null — no-op");
             return;
         }
         context.registry().get(WebDriver.class).ifPresentOrElse(
             driver -> {
                 try {
                     driver.quit();
-                    log.info("[WebDriverFactory] ✅ WebDriver cerrado vía ServiceRegistry");
+                    LOG.info("[WebDriverFactory] ✅ WebDriver cerrado vía ServiceRegistry");
                 } catch (Exception e) {
                     // Puede ocurrir si el driver ya fue cerrado (NoSuchSessionException).
                     // Absorbemos silenciosamente — el objetivo (driver cerrado) se cumplió.
-                    log.warn("[WebDriverFactory] Aviso al cerrar WebDriver (puede ser cierre doble): {}",
+                    LOG.warn("[WebDriverFactory] Aviso al cerrar WebDriver (puede ser cierre doble): {}",
                              e.getMessage());
                 }
             },
-            () -> log.debug("[WebDriverFactory] No hay WebDriver en ServiceRegistry — nada que cerrar")
+            () -> LOG.debug("[WebDriverFactory] No hay WebDriver en ServiceRegistry — nada que cerrar")
         );
     }
 
@@ -246,7 +267,7 @@ public class WebDriverFactory {
     }
 
     /**
-     * Crea ChromeDriver con estrategia de fallback de 3 niveles:
+     * Crea ChromeDriver con estrategia de fallback de 3 niveles.
      * <ol>
      *   <li>System Property manual ({@code webdriver.chrome.driver})</li>
      *   <li>Selenium Manager (automático en Selenium 4.6+)</li>
@@ -259,7 +280,7 @@ public class WebDriverFactory {
         // Estrategia 0: System Property configurada manualmente — respetar siempre
         String manualPath = System.getProperty("webdriver.chrome.driver");
         if (manualPath != null && !manualPath.isEmpty()) {
-            log.debug("[WebDriverFactory] Usando System Property: webdriver.chrome.driver={}", manualPath);
+            LOG.debug("[WebDriverFactory] Usando System Property: webdriver.chrome.driver={}", manualPath);
             try {
                 return new ChromeDriver(options);
             } catch (Exception e) {
@@ -271,10 +292,10 @@ public class WebDriverFactory {
         // Estrategia 1: Selenium Manager (Selenium 4.6+, automático)
         try {
             WebDriver driver = new ChromeDriver(options);
-            log.info("[WebDriverFactory] ✅ ChromeDriver inicializado vía Selenium Manager");
+            LOG.info("[WebDriverFactory] ✅ ChromeDriver inicializado vía Selenium Manager");
             return driver;
         } catch (Exception seleniumManagerEx) {
-            log.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Chrome: {}", seleniumManagerEx.getMessage());
+            LOG.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Chrome: {}", seleniumManagerEx.getMessage());
         }
 
         // Estrategia 2: Buscar chromedriver en PATH del sistema
@@ -283,10 +304,10 @@ public class WebDriverFactory {
             System.setProperty("webdriver.chrome.driver", pathDriver);
             try {
                 WebDriver driver = new ChromeDriver(options);
-                log.info("[WebDriverFactory] ✅ ChromeDriver inicializado desde PATH: {}", pathDriver);
+                LOG.info("[WebDriverFactory] ✅ ChromeDriver inicializado desde PATH: {}", pathDriver);
                 return driver;
             } catch (Exception pathEx) {
-                log.warn("[WebDriverFactory] ⚠  chromedriver en PATH también falló: {}", pathEx.getMessage());
+                LOG.warn("[WebDriverFactory] ⚠  chromedriver en PATH también falló: {}", pathEx.getMessage());
             }
         }
 
@@ -295,7 +316,7 @@ public class WebDriverFactory {
     }
 
     /**
-     * Crea FirefoxDriver con estrategia de fallback de 3 niveles:
+     * Crea FirefoxDriver con estrategia de fallback de 3 niveles.
      * <ol>
      *   <li>System Property manual ({@code webdriver.gecko.driver})</li>
      *   <li>Selenium Manager (automático en Selenium 4.6+)</li>
@@ -307,7 +328,7 @@ public class WebDriverFactory {
 
         String manualPath = System.getProperty("webdriver.gecko.driver");
         if (manualPath != null && !manualPath.isEmpty()) {
-            log.debug("[WebDriverFactory] Usando System Property: webdriver.gecko.driver={}", manualPath);
+            LOG.debug("[WebDriverFactory] Usando System Property: webdriver.gecko.driver={}", manualPath);
             try {
                 return new FirefoxDriver(options);
             } catch (Exception e) {
@@ -319,10 +340,11 @@ public class WebDriverFactory {
         // Estrategia 1: Selenium Manager
         try {
             WebDriver driver = new FirefoxDriver(options);
-            log.info("[WebDriverFactory] ✅ FirefoxDriver inicializado vía Selenium Manager");
+            LOG.info("[WebDriverFactory] ✅ FirefoxDriver inicializado vía Selenium Manager");
             return driver;
         } catch (Exception seleniumManagerEx) {
-            log.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Firefox: {}", seleniumManagerEx.getMessage());
+            LOG.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Firefox: {}",
+                     seleniumManagerEx.getMessage());
         }
 
         // Estrategia 2: PATH
@@ -331,10 +353,10 @@ public class WebDriverFactory {
             System.setProperty("webdriver.gecko.driver", pathDriver);
             try {
                 WebDriver driver = new FirefoxDriver(options);
-                log.info("[WebDriverFactory] ✅ FirefoxDriver inicializado desde PATH: {}", pathDriver);
+                LOG.info("[WebDriverFactory] ✅ FirefoxDriver inicializado desde PATH: {}", pathDriver);
                 return driver;
             } catch (Exception pathEx) {
-                log.warn("[WebDriverFactory] ⚠  geckodriver en PATH también falló: {}", pathEx.getMessage());
+                LOG.warn("[WebDriverFactory] ⚠  geckodriver en PATH también falló: {}", pathEx.getMessage());
             }
         }
 
@@ -343,7 +365,7 @@ public class WebDriverFactory {
     }
 
     /**
-     * Crea EdgeDriver con estrategia de fallback de 3 niveles:
+     * Crea EdgeDriver con estrategia de fallback de 3 niveles.
      * <ol>
      *   <li>System Property manual ({@code webdriver.edge.driver})</li>
      *   <li>Selenium Manager (automático en Selenium 4.6+)</li>
@@ -355,7 +377,7 @@ public class WebDriverFactory {
 
         String manualPath = System.getProperty("webdriver.edge.driver");
         if (manualPath != null && !manualPath.isEmpty()) {
-            log.debug("[WebDriverFactory] Usando System Property: webdriver.edge.driver={}", manualPath);
+            LOG.debug("[WebDriverFactory] Usando System Property: webdriver.edge.driver={}", manualPath);
             try {
                 return new EdgeDriver(options);
             } catch (Exception e) {
@@ -367,10 +389,10 @@ public class WebDriverFactory {
         // Estrategia 1: Selenium Manager
         try {
             WebDriver driver = new EdgeDriver(options);
-            log.info("[WebDriverFactory] ✅ EdgeDriver inicializado vía Selenium Manager");
+            LOG.info("[WebDriverFactory] ✅ EdgeDriver inicializado vía Selenium Manager");
             return driver;
         } catch (Exception seleniumManagerEx) {
-            log.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Edge: {}", seleniumManagerEx.getMessage());
+            LOG.warn("[WebDriverFactory] ⚠  Selenium Manager falló para Edge: {}", seleniumManagerEx.getMessage());
         }
 
         // Estrategia 2: PATH
@@ -379,10 +401,10 @@ public class WebDriverFactory {
             System.setProperty("webdriver.edge.driver", pathDriver);
             try {
                 WebDriver driver = new EdgeDriver(options);
-                log.info("[WebDriverFactory] ✅ EdgeDriver inicializado desde PATH: {}", pathDriver);
+                LOG.info("[WebDriverFactory] ✅ EdgeDriver inicializado desde PATH: {}", pathDriver);
                 return driver;
             } catch (Exception pathEx) {
-                log.warn("[WebDriverFactory] ⚠  msedgedriver en PATH también falló: {}", pathEx.getMessage());
+                LOG.warn("[WebDriverFactory] ⚠  msedgedriver en PATH también falló: {}", pathEx.getMessage());
             }
         }
 
@@ -400,11 +422,11 @@ public class WebDriverFactory {
      */
     private static WebDriver createLocalSafariDriver(DriverConfig config) {
         if (config.isHeadless()) {
-            log.warn("[WebDriverFactory] Safari no soporta modo headless — se ignora la opción");
+            LOG.warn("[WebDriverFactory] Safari no soporta modo headless — se ignora la opción");
         }
         try {
             WebDriver driver = new SafariDriver();
-            log.info("[WebDriverFactory] ✅ SafariDriver inicializado");
+            LOG.info("[WebDriverFactory] ✅ SafariDriver inicializado");
             return driver;
         } catch (Exception e) {
             throw new WebDriverInitializationException(
@@ -425,14 +447,14 @@ public class WebDriverFactory {
                     "Configure '" + WebConfigKeys.GRID_URL + "' en la configuración.");
         }
         try {
-            URL hubUrl = new java.net.URI(config.getGridHubUrl()).toURL();
+            URL hubUrl = new URI(config.getGridHubUrl()).toURL();
             WebDriver driver = switch (config.getBrowserType()) {
                 case CHROME  -> new RemoteWebDriver(hubUrl, buildChromeOptions(config));
                 case FIREFOX -> new RemoteWebDriver(hubUrl, buildFirefoxOptions(config));
                 case EDGE    -> new RemoteWebDriver(hubUrl, buildEdgeOptions(config));
                 case SAFARI  -> new RemoteWebDriver(hubUrl, buildSafariOptions());
             };
-            log.info("[WebDriverFactory] ✅ RemoteWebDriver conectado a Grid: {}", config.getGridHubUrl());
+            LOG.info("[WebDriverFactory] ✅ RemoteWebDriver conectado a Grid: {}", config.getGridHubUrl());
             return driver;
         } catch (WebDriverInitializationException e) {
             throw e;
@@ -459,7 +481,7 @@ public class WebDriverFactory {
         if (config.getProxyUrl() != null) {
             options.setProxy(buildProxy(config.getProxyUrl()));
         }
-        log.debug("[WebDriverFactory] ChromeOptions: headless={} proxy={}", config.isHeadless(), config.getProxyUrl());
+        LOG.debug("[WebDriverFactory] ChromeOptions: headless={} proxy={}", config.isHeadless(), config.getProxyUrl());
         return options;
     }
 
@@ -533,8 +555,10 @@ public class WebDriverFactory {
         }
 
         for (String dir : paths) {
-            if (dir == null || dir.isEmpty()) continue;
-            java.io.File candidate = new java.io.File(dir + fileName);
+            if (dir == null || dir.isEmpty()) {
+                continue;
+            }
+            File candidate = new File(dir + fileName);
             if (candidate.exists() && candidate.canExecute()) {
                 return candidate.getAbsolutePath();
             }
@@ -545,8 +569,7 @@ public class WebDriverFactory {
     /** Lee la estrategia de driver desde ConfigManager (para logging). */
     private static String resolveDriverStrategy() {
         try {
-            return com.qa.common.config.ConfigManager.getInstance()
-                    .get(WebConfigKeys.DRIVER_STRATEGY, "auto");
+            return com.qa.common.config.ConfigManager.getInstance().get(WebConfigKeys.DRIVER_STRATEGY, "auto");
         } catch (Exception e) {
             return "auto";
         }
@@ -559,7 +582,7 @@ public class WebDriverFactory {
         proxy.setFtpProxy(proxyUrl);
         proxy.setSslProxy(proxyUrl);
         proxy.setNoProxy("*.local,localhost,127.0.0.1");
-        log.debug("[WebDriverFactory] Proxy configurado: {}", proxyUrl);
+        LOG.debug("[WebDriverFactory] Proxy configurado: {}", proxyUrl);
         return proxy;
     }
 
@@ -592,15 +615,15 @@ public class WebDriverFactory {
     private static void configureDriver(WebDriver driver) {
         try {
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(0));
-            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
+            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(DEFAULT_PAGE_LOAD_TIMEOUT_SECONDS));
             try {
                 driver.manage().window().maximize();
             } catch (Exception e) {
-                log.warn("[WebDriverFactory] No se pudo maximizar ventana: {}", e.getMessage());
+                LOG.warn("[WebDriverFactory] No se pudo maximizar ventana: {}", e.getMessage());
             }
-            log.debug("[WebDriverFactory] Timeouts configurados (implicit=0s, pageLoad=30s)");
+            LOG.debug("[WebDriverFactory] Timeouts configurados (implicit=0s, pageLoad=30s)");
         } catch (Exception e) {
-            log.error("[WebDriverFactory] Error configurando driver: {}", e.getMessage());
+            LOG.error("[WebDriverFactory] Error configurando driver: {}", e.getMessage());
         }
     }
 }

@@ -118,10 +118,7 @@ public class ReportingManager {
 
         // Nota: Las integraciones externas (Jira/Xray) se manejan en el Backend.
 
-        return new ReportingPipeline.Builder()
-                .withConfig(config)
-                .addSteps(steps)
-                .build();
+        return new ReportingPipeline.Builder().withConfig(config).addSteps(steps).build();
     }
 
     /**

@@ -3,7 +3,11 @@ package com.qa.common.database.repository;
 import com.qa.common.database.interfaces.DatabaseConnector;
 import com.qa.common.logging.TestLogger;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -71,6 +75,12 @@ public class QueryRepository {
 
     private final DatabaseConnector connector;
 
+    /**
+     * Crea un repositorio con el conector dado.
+     *
+     * @param connector conector de base de datos activo, no null
+     * @throws IllegalArgumentException si el conector es null
+     */
     public QueryRepository(DatabaseConnector connector) {
         if (connector == null) {
             throw new IllegalArgumentException("DatabaseConnector no puede ser null");

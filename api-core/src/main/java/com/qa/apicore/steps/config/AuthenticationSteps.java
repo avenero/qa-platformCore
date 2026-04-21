@@ -20,25 +20,22 @@ import java.util.Map;
  * Fase BDD: GIVEN.
  *
  * <p>Todos los steps canónicos llevan {@link StepDef} con ID explícito para garantizar
- * estabilidad frente a refactorizaciones. El formato es {@code api.authentication.<sub-id>}.
+ * estabilidad frente a refactorizaciones. El formato es {@code api.authentication.{sub-id}}.
  *
  * @author Abel Venero
  * @since 2.0.0
  */
 public class AuthenticationSteps {
 
-    // ─── Obtención de servicios desde el ServiceRegistry ───────────────────────
+    // ─── Obtención de servicios desde el ServiceRegistry ───────────
 
     private HttpClient getHttpClient() {
-        return ExecutionContext.current()
-                .map(ctx -> ctx.service(HttpClient.class))
-                .orElseGet(BaseHttpClient::new);
+        return ExecutionContext.current().map(ctx -> ctx.service(HttpClient.class)).orElseGet(BaseHttpClient::new);
     }
 
     private AuthenticationService getAuthentication() {
-        return ExecutionContext.current()
-                .map(ctx -> ctx.service(AuthenticationService.class))
-                .orElseGet(() -> new BaseAuthenticationManager(getHttpClient()));
+        return ExecutionContext.current().map(ctx -> ctx.service(AuthenticationService.class)).
+                orElseGet(() -> new BaseAuthenticationManager(getHttpClient()));
     }
 
     private ApiHelper getApiHelper() {

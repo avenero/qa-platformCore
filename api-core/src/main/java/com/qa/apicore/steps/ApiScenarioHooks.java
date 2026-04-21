@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ApiScenarioHooks {
 
-    private static final Logger log = LoggerFactory.getLogger(ApiScenarioHooks.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ApiScenarioHooks.class);
 
     /**
      * Bootstrapea los servicios API en el {@link ServiceRegistry} si todavía no fueron
@@ -73,7 +73,7 @@ public class ApiScenarioHooks {
                     new BaseAuthenticationManager(httpClient));
             registry.registerInstance(ApiHelper.class, new ApiHelper(httpClient));
 
-            log.debug("[ApiScenarioHooks] Servicios API registrados en modo standalone: "
+            LOG.debug("[ApiScenarioHooks] Servicios API registrados en modo standalone: "
                     + "HttpClient, AuthenticationService, ApiHelper");
         });
     }

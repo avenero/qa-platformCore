@@ -16,14 +16,46 @@ import java.util.Map;
  */
 @StepId("db.setup")
 public class DatabaseSetupComponent implements StepComponent {
-    @Override public String getName()                  { return "DB Setup"; }
-    @Override public String getDisplayName()           { return "Conexion a Base de Datos"; }
-    @Override public String getDescription()           { return "Establecer conexion a Oracle, PostgreSQL, MySQL o SQL Server"; }
-    @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
-    @Override public String getCategory()              { return "Configuracion"; }
-    @Override public String getIcon()                  { return "storage"; }
-    @Override public int getDisplayOrder()             { return 10; }
-    @Override public Class<?> getStepDefinitionClass() { return DatabaseConnectionSteps.class; }
+
+    @Override
+    public String getName() {
+        return "DB Setup";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Conexion a Base de Datos";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Establecer conexion a Oracle, PostgreSQL, MySQL o SQL Server";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.GIVEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Configuracion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "storage";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return 10;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return DatabaseConnectionSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

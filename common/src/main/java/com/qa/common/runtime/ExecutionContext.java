@@ -29,7 +29,7 @@ import java.util.UUID;
  */
 public final class ExecutionContext {
 
-    private static final Logger log = LoggerFactory.getLogger(ExecutionContext.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ExecutionContext.class);
     private static final ThreadLocal<ExecutionContext> CURRENT = new ThreadLocal<>();
 
     private final ExecutionConfig config;
@@ -80,7 +80,7 @@ public final class ExecutionContext {
      */
     public void activate() {
         CURRENT.set(this);
-        log.debug("ExecutionContext activado en hilo: {}", Thread.currentThread().getName());
+        LOG.debug("ExecutionContext activado en hilo: {}", Thread.currentThread().getName());
     }
 
     /**
@@ -88,15 +88,30 @@ public final class ExecutionContext {
      */
     public static void deactivate() {
         CURRENT.remove();
-        log.debug("ExecutionContext desactivado en hilo: {}", Thread.currentThread().getName());
+        LOG.debug("ExecutionContext desactivado en hilo: {}", Thread.currentThread().getName());
     }
 
     // --- Accessors ---
 
-    public ExecutionConfig config() { return config; }
-    public ServiceRegistry registry() { return registry; }
-    public VariableStore variables() { return variables; }
-    public EventBus eventBus() { return eventBus; }
+    /** @return la configuración inmutable de esta ejecución */
+    public ExecutionConfig config() {
+        return config;
+    }
+
+    /** @return el registro de servicios de esta ejecución */
+    public ServiceRegistry registry() {
+        return registry;
+    }
+
+    /** @return el almacén de variables de esta ejecución */
+    public VariableStore variables() {
+        return variables;
+    }
+
+    /** @return el bus de eventos de esta ejecución */
+    public EventBus eventBus() {
+        return eventBus;
+    }
 
     /**
      * Atajo: obtiene un servicio del registry.
@@ -129,7 +144,7 @@ public final class ExecutionContext {
         registry.destroyAll();   // Cierra recursos AutoCloseable antes de limpiar
         eventBus.clear();
         deactivate();
-        log.debug("ExecutionContext limpiado completamente");
+        LOG.debug("ExecutionContext limpiado completamente");
     }
 
     /**
@@ -213,15 +228,20 @@ public final class ExecutionContext {
          */
         public ExecutionContext build() {
             if (config == null) {
-                ExecutionConfig.Builder cfgBuilder = new ExecutionConfig.Builder()
-                        .environment("test");
+                ExecutionConfig.Builder cfgBuilder = new ExecutionConfig.Builder().environment("test");
                 String sid = (scenarioId != null) ? scenarioId : UUID.randomUUID().toString();
                 cfgBuilder.property("scenarioId", sid);
                 config = cfgBuilder.build();
             }
-            if (registry == null)  registry  = new ServiceRegistry();
-            if (variables == null) variables  = new VariableStore();
-            if (eventBus  == null) eventBus   = new EventBus();
+            if (registry == null) {
+                registry = new ServiceRegistry();
+            }
+            if (variables == null) {
+                variables = new VariableStore();
+            }
+            if (eventBus == null) {
+                eventBus = new EventBus();
+            }
 
             return new ExecutionContext(config, registry, variables, eventBus);
         }

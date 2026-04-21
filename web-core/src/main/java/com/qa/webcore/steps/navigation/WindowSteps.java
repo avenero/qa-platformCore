@@ -44,8 +44,8 @@ public class WindowSteps {
 
     @Then("valido que se despliegue la nueva ventana {string}")
     public void validoQueSeDespliegueLaNuevaVentana(String expectedWindowName) {
-        Assertions.assertThat(helper.getWindowName())
-            .as("Error, los valores no son iguales").isEqualTo(expectedWindowName);
+        Assertions.assertThat(helper.getWindowName()).
+            as("Error, los valores no son iguales").isEqualTo(expectedWindowName);
         DriverManager.quitDriver();
     }
 }

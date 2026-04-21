@@ -62,11 +62,9 @@ public class ContextSwitchSteps {
     @Then("deberia existir un contexto WebView disponible")
     public void deberiaExistirContextoWebView() {
         Set<String> contexts = mobile().getContexts();
-        boolean hasWebView = contexts.stream()
-            .anyMatch(c -> c.toUpperCase().contains("WEBVIEW"));
-        Assertions.assertThat(hasWebView)
-            .as("Deberia haber al menos un contexto WEBVIEW disponible. Contextos: " + contexts)
-            .isTrue();
+        boolean hasWebView = contexts.stream().anyMatch(c -> c.toUpperCase().contains("WEBVIEW"));
+        Assertions.assertThat(hasWebView).
+            as("Deberia haber al menos un contexto WEBVIEW disponible. Contextos: " + contexts).isTrue();
         TestLogger.logInfo("CTX_SWITCH", "WebView context detectado (OK)", null);
     }
 

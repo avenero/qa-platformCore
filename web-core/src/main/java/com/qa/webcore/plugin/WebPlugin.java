@@ -5,12 +5,26 @@ import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.ServiceRegistry;
 import com.qa.common.runtime.StepComponent;
-import com.qa.webcore.components.bdd.*;
+import com.qa.webcore.components.bdd.AlertComponent;
+import com.qa.webcore.components.bdd.BrowserConfigComponent;
+import com.qa.webcore.components.bdd.ClickComponent;
+import com.qa.webcore.components.bdd.DragDropComponent;
+import com.qa.webcore.components.bdd.ElementValidationComponent;
+import com.qa.webcore.components.bdd.FrameComponent;
+import com.qa.webcore.components.bdd.InputComponent;
+import com.qa.webcore.components.bdd.NavigationComponent;
+import com.qa.webcore.components.bdd.PageValidationComponent;
+import com.qa.webcore.components.bdd.ScreenshotComponent;
+import com.qa.webcore.components.bdd.ScrollComponent;
+import com.qa.webcore.components.bdd.SelectComponent;
+import com.qa.webcore.components.bdd.TableValidationComponent;
+import com.qa.webcore.components.bdd.WaitComponent;
+import com.qa.webcore.components.bdd.WebEnvironmentComponent;
+import com.qa.webcore.components.bdd.WindowComponent;
 import com.qa.webcore.driver.DriverManager;
 import com.qa.webcore.driver.WebDriverFactory;
 import com.qa.webcore.utils.WebHelper;
 
-import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,14 +64,16 @@ import java.util.Set;
  */
 public class WebPlugin implements CorePlugin {
 
-    private static final Logger log = LoggerFactory.getLogger(WebPlugin.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WebPlugin.class);
 
     // =========================================================================
     // Metadatos del plugin
     // =========================================================================
 
     @Override
-    public String getName() { return "web"; }
+    public String getName() {
+        return "web";
+    }
 
     @Override
     public Set<String> getActivationTags() {
@@ -65,7 +81,9 @@ public class WebPlugin implements CorePlugin {
     }
 
     @Override
-    public int getOrder() { return 100; }
+    public int getOrder() {
+        return 100;
+    }
 
     // =========================================================================
     // Servicios
@@ -73,9 +91,9 @@ public class WebPlugin implements CorePlugin {
 
     @Override
     public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
-        log.debug("[WebPlugin] Registrando servicios Web...");
+        LOG.debug("[WebPlugin] Registrando servicios Web...");
         registry.registerLazy(WebHelper.class, WebHelper::new);
-        log.info("[WebPlugin] Servicio registrado: WebHelper (lazy)");
+        LOG.info("[WebPlugin] Servicio registrado: WebHelper (lazy)");
     }
 
     // =========================================================================
@@ -91,7 +109,7 @@ public class WebPlugin implements CorePlugin {
      */
     @Override
     public void onScenarioStart(ExecutionContext context) {
-        log.debug("[WebPlugin] onScenarioStart — driver lazy, se creará en @Before de Cucumber");
+        LOG.debug("[WebPlugin] onScenarioStart — driver lazy, se creará en @Before de Cucumber");
     }
 
     /**
@@ -105,12 +123,12 @@ public class WebPlugin implements CorePlugin {
      */
     @Override
     public void onScenarioEnd(ExecutionContext context) {
-        log.debug("[WebPlugin] onScenarioEnd — cerrando WebDriver si existe en ServiceRegistry");
+        LOG.debug("[WebPlugin] onScenarioEnd — cerrando WebDriver si existe en ServiceRegistry");
         // Cierre autoritativo vía ServiceRegistry (registrado por WebHooksSteps.beforeScenario)
         WebDriverFactory.closeDriver(context);
         // Safety-net: limpia el ThreadLocal de DriverManager para evitar leaks entre escenarios
         DriverManager.quitDriverSafely();
-        log.debug("[WebPlugin] onScenarioEnd — completado");
+        LOG.debug("[WebPlugin] onScenarioEnd — completado");
     }
 
     // =========================================================================

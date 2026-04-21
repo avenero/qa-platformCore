@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  */
 public final class DefaultLifecycleManager implements LifecycleManager {
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultLifecycleManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultLifecycleManager.class);
 
     private final List<CorePlugin> plugins;
 
@@ -41,10 +41,9 @@ public final class DefaultLifecycleManager implements LifecycleManager {
      */
     public DefaultLifecycleManager(List<CorePlugin> plugins) {
         Objects.requireNonNull(plugins, "plugins no puede ser null");
-        this.plugins = plugins.stream()
-                .sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder()))
-                .collect(Collectors.toUnmodifiableList());
-        log.debug("DefaultLifecycleManager creado con {} plugins: {}",
+        this.plugins = plugins.stream().sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder())).
+                collect(Collectors.toUnmodifiableList());
+        LOG.debug("DefaultLifecycleManager creado con {} plugins: {}",
                 this.plugins.size(),
                 this.plugins.stream().map(CorePlugin::getName).collect(Collectors.joining(", ")));
     }
@@ -60,11 +59,11 @@ public final class DefaultLifecycleManager implements LifecycleManager {
 
         // Registrar servicios de todos los plugins activos
         List<CorePlugin> activePlugins = resolveActivePlugins(config.getTags());
-        log.info("Plugins activos para ejecucion: {}",
+        LOG.info("Plugins activos para ejecucion: {}",
                 activePlugins.stream().map(CorePlugin::getName).collect(Collectors.joining(", ")));
 
         for (CorePlugin plugin : activePlugins) {
-            log.debug("Registrando servicios del plugin: {}", plugin.getName());
+            LOG.debug("Registrando servicios del plugin: {}", plugin.getName());
             plugin.registerServices(registry, config);
         }
 
@@ -89,14 +88,14 @@ public final class DefaultLifecycleManager implements LifecycleManager {
         // Advertir si el escenario tiene tags de capa pero ningún plugin los reconoce
         validateScenarioLayerTags(scenarioMetadata.tags(), activePlugins);
 
-        log.debug("onScenarioStart: '{}' → {} plugin(s) activos",
+        LOG.debug("onScenarioStart: '{}' → {} plugin(s) activos",
                 scenarioMetadata.name(), activePlugins.size());
 
         for (CorePlugin plugin : activePlugins) {
             try {
                 plugin.onScenarioStart(context);
             } catch (Exception e) {
-                log.error("Error en onScenarioStart del plugin {}: {}", plugin.getName(), e.getMessage(), e);
+                LOG.error("Error en onScenarioStart del plugin {}: {}", plugin.getName(), e.getMessage(), e);
             }
         }
 
@@ -119,14 +118,14 @@ public final class DefaultLifecycleManager implements LifecycleManager {
         List<CorePlugin> reversed = new ArrayList<>(activePlugins);
         Collections.reverse(reversed);
 
-        log.debug("onScenarioEnd: '{}' → {} plugin(s) activos (orden inverso)",
+        LOG.debug("onScenarioEnd: '{}' → {} plugin(s) activos (orden inverso)",
                 scenarioMetadata.name(), reversed.size());
 
         for (CorePlugin plugin : reversed) {
             try {
                 plugin.onScenarioEnd(context);
             } catch (Exception e) {
-                log.error("Error en onScenarioEnd del plugin {}: {}", plugin.getName(), e.getMessage(), e);
+                LOG.error("Error en onScenarioEnd del plugin {}: {}", plugin.getName(), e.getMessage(), e);
             }
         }
 
@@ -141,9 +140,11 @@ public final class DefaultLifecycleManager implements LifecycleManager {
 
     @Override
     public void shutdown(ExecutionContext context) {
-        if (context == null) return;
+        if (context == null) {
+            return;
+        }
 
-        log.debug("Shutdown de ejecucion");
+        LOG.debug("Shutdown de ejecucion");
         context.eventBus().publish(ExecutionEvent.of(
                 ExecutionEvent.Type.EXECUTION_END,
                 "Ejecucion finalizada"));
@@ -169,12 +170,10 @@ public final class DefaultLifecycleManager implements LifecycleManager {
             return plugins;
         }
 
-        return plugins.stream()
-                .filter(plugin -> {
+        return plugins.stream().filter(plugin -> {
                     Set<String> activationTags = plugin.getActivationTags();
                     return activationTags.stream().anyMatch(requestedTags::contains);
-                })
-                .collect(Collectors.toUnmodifiableList());
+                }).collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -186,9 +185,8 @@ public final class DefaultLifecycleManager implements LifecycleManager {
         }
 
         Set<String> tags = Set.copyOf(scenarioTags);
-        return plugins.stream()
-                .filter(plugin -> plugin.getActivationTags().stream().anyMatch(tags::contains))
-                .collect(Collectors.toUnmodifiableList());
+        return plugins.stream().filter(plugin -> plugin.getActivationTags().stream().anyMatch(tags::contains)).
+                collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -200,11 +198,8 @@ public final class DefaultLifecycleManager implements LifecycleManager {
             return Set.of();
         }
         // Extraer palabras que empiezan con @
-        return java.util.regex.Pattern.compile("@\\w+")
-                .matcher(tagExpression)
-                .results()
-                .map(m -> m.group())
-                .collect(Collectors.toUnmodifiableSet());
+        return java.util.regex.Pattern.compile("@\\w+").matcher(tagExpression).results().map(m -> m.group()).
+                collect(Collectors.toUnmodifiableSet());
     }
 
     /**
@@ -223,9 +218,7 @@ public final class DefaultLifecycleManager implements LifecycleManager {
      * @return conjunto inmutable de tags (con prefijo @)
      */
     public Set<String> getKnownLayerTags() {
-        return plugins.stream()
-                .flatMap(p -> p.getActivationTags().stream())
-                .collect(Collectors.toUnmodifiableSet());
+        return plugins.stream().flatMap(p -> p.getActivationTags().stream()).collect(Collectors.toUnmodifiableSet());
     }
 
     /**
@@ -246,16 +239,15 @@ public final class DefaultLifecycleManager implements LifecycleManager {
 
         // Hay tags pero ningún plugin activó → detectar si son tags de capa mal escritos
         Set<String> knownTags = getKnownLayerTags();
-        Set<String> matchedLayerTags = scenarioTags.stream()
-                .filter(t -> knownTags.contains(t.toLowerCase()))
-                .collect(Collectors.toUnmodifiableSet());
+        Set<String> matchedLayerTags = scenarioTags.stream().filter(t -> knownTags.contains(t.toLowerCase())).
+                collect(Collectors.toUnmodifiableSet());
 
         if (!matchedLayerTags.isEmpty()) {
-            log.warn("⚠️ Escenario tiene tags de capa {} pero ningún plugin se activó. " +
+            LOG.warn("⚠️ Escenario tiene tags de capa {} pero ningún plugin se activó. " +
                      "Verificar que el plugin correspondiente esté registrado. " +
                      "Tags conocidos: {}", matchedLayerTags, knownTags);
-        } else if (log.isDebugEnabled()) {
-            log.debug("ℹ️ Escenario con tags {} no coincide con ningún plugin de capa. " +
+        } else if (LOG.isDebugEnabled()) {
+            LOG.debug("ℹ️ Escenario con tags {} no coincide con ningún plugin de capa. " +
                       "Tags de capa conocidos: {}", scenarioTags, knownTags);
         }
     }

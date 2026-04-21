@@ -15,14 +15,41 @@ import java.util.Map;
  */
 @StepId("api.cookies")
 public class ApiCookieComponent implements StepComponent {
-    @Override public String getName()                  { return "Cookies"; }
-    @Override public String getDisplayName()           { return "Cookies"; }
-    @Override public String getDescription()           { return "Gestion de cookies en la peticion HTTP"; }
-    @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
-    @Override public String getCategory()              { return "Configuracion de Peticion"; }
-    @Override public String getIcon()                  { return "cookie"; }
-    @Override public int getDisplayOrder()             { return 40; }
-    @Override public Class<?> getStepDefinitionClass() { return CookieSteps.class; }
+
+    /** Display order for this component in the UI step palette. */
+    private static final int DISPLAY_ORDER = 40;
+    @Override
+    public String getName() {
+        return "Cookies";
+    }
+    @Override
+    public String getDisplayName() {
+        return "Cookies";
+    }
+    @Override
+    public String getDescription() {
+        return "Gestion de cookies en la peticion HTTP";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.GIVEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Configuracion de Peticion";
+    }
+    @Override
+    public String getIcon() {
+        return "cookie";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return CookieSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

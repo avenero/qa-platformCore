@@ -8,7 +8,9 @@ import com.qa.common.database.connectors.SQLServerConnector;
 import com.qa.common.database.interfaces.DatabaseConnector;
 import com.qa.common.logging.TestLogger;
 import com.zaxxer.hikari.HikariDataSource;
+
 import javax.sql.DataSource;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,6 +81,12 @@ public class DbConnectorFactory {
     private static final String PROP_DB_DRIVER = "db.driver";
     private static final String PROP_DB_POOL_SIZE = "db.pool.size";
 
+    /** Tamaño de pool por defecto cuando no se configura explícitamente. */
+    private static final int DEFAULT_POOL_SIZE = 10;
+
+    /** Mínimo de conexiones en el pool HikariCP. */
+    private static final int MIN_POOL_SIZE = 2;
+
     // =========================================================================
     // CACHE DE CONEXIONES (NUEVO v1.1.0)
     // =========================================================================
@@ -87,7 +95,7 @@ public class DbConnectorFactory {
      * Cache de conectores activos por tipo de BD.
      * Permite reutilizar conexiones en múltiples steps sin recrearlas.
      */
-    private static final Map<String, DatabaseConnector> activeConnectors = new HashMap<>();
+    private static final Map<String, DatabaseConnector> ACTIVE_CONNECTORS = new HashMap<>();
 
     /**
      * Crea un conector basado en el tipo de base de datos.
@@ -162,21 +170,6 @@ public class DbConnectorFactory {
     }
 
     /**
-     * Crea un conector genérico desde System Properties (para compatibilidad hacia atrás).
-     *
-     * <p>Lee configuración desde:</p>
-     * <ul>
-     *   <li>db.url</li>
-     *   <li>db.username</li>
-     *   <li>db.password</li>
-     *   <li>db.driver</li>
-     *   <li>db.pool.size (opcional, default: 10)</li>
-     * </ul>
-     *
-     * @return DatabaseConnector configurado
-     * @throws IllegalArgumentException Si faltan propiedades requeridas
-     */
-    /**
      * Crea un conector genérico desde ConfigManager.
      *
      * <p><b>⭐ MÉTODO RECOMENDADO:</b> Este método usa ConfigManager para leer configuraciones,
@@ -240,7 +233,7 @@ public class DbConnectorFactory {
 
         validateProperties(jdbcUrl, username, password, driver);
 
-        int poolSize = config.getInt("db.pool.size.max", 10);
+        int poolSize = config.getInt("db.pool.size.max", DEFAULT_POOL_SIZE);
 
         TestLogger.logInfo("DB_CONNECTOR_FACTORY",
             "Creando conector desde ConfigManager",
@@ -259,7 +252,7 @@ public class DbConnectorFactory {
      * @return DatabaseConnector configurado
      */
     public static DatabaseConnector create(String jdbcUrl, String username, String password, String driverClassName) {
-        return create(jdbcUrl, username, password, driverClassName, 10);
+        return create(jdbcUrl, username, password, driverClassName, DEFAULT_POOL_SIZE);
     }
 
     /**
@@ -323,10 +316,10 @@ public class DbConnectorFactory {
         String type = dbType.toLowerCase().trim();
 
         // Reutilizar si ya existe
-        if (activeConnectors.containsKey(type)) {
+        if (ACTIVE_CONNECTORS.containsKey(type)) {
             TestLogger.logInfo("DB_CONNECTOR_FACTORY",
                 "♻️ Reutilizando conexión cacheada: " + type, null);
-            return activeConnectors.get(type);
+            return ACTIVE_CONNECTORS.get(type);
         }
 
         TestLogger.logInfo("DB_CONNECTOR_FACTORY",
@@ -336,7 +329,7 @@ public class DbConnectorFactory {
         DatabaseConnector connector = getConnectorFromConfigManager(type);
 
         // Cachear
-        activeConnectors.put(type, connector);
+        ACTIVE_CONNECTORS.put(type, connector);
 
         TestLogger.logInfo("DB_CONNECTOR_FACTORY",
             "✅ Conexión establecida y cacheada: " + type, null);
@@ -354,7 +347,7 @@ public class DbConnectorFactory {
         if (dbType == null || dbType.trim().isEmpty()) {
             return null;
         }
-        return activeConnectors.get(dbType.toLowerCase().trim());
+        return ACTIVE_CONNECTORS.get(dbType.toLowerCase().trim());
     }
 
     /**
@@ -368,7 +361,7 @@ public class DbConnectorFactory {
         }
 
         String type = dbType.toLowerCase().trim();
-        DatabaseConnector connector = activeConnectors.remove(type);
+        DatabaseConnector connector = ACTIVE_CONNECTORS.remove(type);
 
         if (connector != null) {
             try {
@@ -394,14 +387,14 @@ public class DbConnectorFactory {
      * </pre>
      */
     public static void disconnectAll() {
-        if (activeConnectors.isEmpty()) {
+        if (ACTIVE_CONNECTORS.isEmpty()) {
             return;
         }
 
         TestLogger.logInfo("DB_CONNECTOR_FACTORY",
-            "🧹 Cerrando todas las conexiones activas (" + activeConnectors.size() + ")...", null);
+            "🧹 Cerrando todas las conexiones activas (" + ACTIVE_CONNECTORS.size() + ")...", null);
 
-        activeConnectors.forEach((type, connector) -> {
+        ACTIVE_CONNECTORS.forEach((type, connector) -> {
             try {
                 connector.close();
                 TestLogger.logInfo("DB_CONNECTOR_FACTORY",
@@ -412,7 +405,7 @@ public class DbConnectorFactory {
             }
         });
 
-        activeConnectors.clear();
+        ACTIVE_CONNECTORS.clear();
     }
 
     // =========================================================================
@@ -471,8 +464,8 @@ public class DbConnectorFactory {
             }
         }
 
-        // Obtener pool size (default 10)
-        int poolSize = config.getInt(dbType + ".db.pool.size.max", 10);
+        // Obtener pool size (default DEFAULT_POOL_SIZE)
+        int poolSize = config.getInt(dbType + ".db.pool.size.max", DEFAULT_POOL_SIZE);
 
         // Crear conector
         return create(jdbcUrl, username, password, driver, poolSize);
@@ -586,19 +579,22 @@ public class DbConnectorFactory {
     }
 
     /**
-     * Implementación interna genérica de DatabaseConnector.
+     * Implementación interna genérica de {@link DatabaseConnector} basada en HikariCP.
+     *
+     * <p>Creada por {@link #create(String, String, String, String, int)} y usada
+     * cuando no hay un conector específico por tipo de BD disponible.</p>
      */
     private static class GenericDatabaseConnector implements DatabaseConnector {
         private final HikariDataSource dataSource;
 
-        public GenericDatabaseConnector(String jdbcUrl, String username, String password,
+        GenericDatabaseConnector(String jdbcUrl, String username, String password,
                                        String driverClassName, int maxPoolSize) {
             TestLogger.logInfo("DB_CONNECTOR_FACTORY",
                 "Creando conector genérico de base de datos",
                 Map.of("driver", driverClassName, "poolSize", maxPoolSize));
 
             this.dataSource = (HikariDataSource) DatabaseConfig.createHikariDataSource(
-                jdbcUrl, username, password, driverClassName, maxPoolSize, 2
+                jdbcUrl, username, password, driverClassName, maxPoolSize, MIN_POOL_SIZE
             );
         }
 

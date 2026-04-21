@@ -18,6 +18,9 @@ public class MySQLConnector extends BaseConnector {
 
     private static final String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
 
+    /**
+     * Constructor que lee la configuración desde las System Properties {@code mysql.db.*}.
+     */
     public MySQLConnector() {
         this(
             System.getProperty("mysql.db.url"),
@@ -26,6 +29,13 @@ public class MySQLConnector extends BaseConnector {
         );
     }
 
+    /**
+     * Constructor con parámetros explícitos de conexión.
+     *
+     * @param jdbcUrl  URL JDBC de MySQL (ej: {@code jdbc:mysql://host:port/db})
+     * @param username usuario de la base de datos
+     * @param password contraseña de la base de datos
+     */
     public MySQLConnector(String jdbcUrl, String username, String password) {
         super(jdbcUrl, username, password, DRIVER_CLASS, "MYSQL");
     }

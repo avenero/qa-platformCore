@@ -45,8 +45,12 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
+      # -Pstrict: activa ignoreFailures=false en Checkstyle y SpotBugs.
+      # --continue: ejecuta todas las tareas para obtener todos los reportes.
+      # El job falla (bloqueando el publish) si hay test failures, violaciones de
+      # estilo o bugs detectados.
       - name: Run release validation
-        run: ./gradlew test jacocoTestReport checkstyleMain spotbugsMain --continue --no-daemon
+        run: ./gradlew test jacocoTestReport checkstyleMain spotbugsMain --continue --no-daemon -Pstrict
         env:
           CI: true
 

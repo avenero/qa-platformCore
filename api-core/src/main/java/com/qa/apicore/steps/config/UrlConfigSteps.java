@@ -12,12 +12,15 @@ import io.cucumber.java.en.Given;
  *
  * <p>Todos los steps canónicos de este archivo llevan {@link StepDef} con ID explícito
  * para garantizar estabilidad frente a refactorizaciones del código fuente.
- * El formato de ID es {@code api.url.<sub-id>}.
+ * El formato de ID es {@code api.url.{sub-id}}.
  *
  * @author Abel Venero
  * @since 2.0.0
  */
 public class UrlConfigSteps {
+
+    /** Milliseconds per second, used for converting timeout seconds to milliseconds. */
+    private static final int MILLIS_PER_SECOND = 1000;
 
     private ApiHelper apiHelper() { return ApiHelper.forCurrentContext(); }
 
@@ -94,7 +97,7 @@ public class UrlConfigSteps {
              displayName = "Configurar timeout de petición")
     @Given("configuro el timeout de la petición a {int} segundos")
     public void configuroTimeoutEnSegundos(int seconds) {
-        apiHelper().setTimeout(seconds * 1000);
+        apiHelper().setTimeout(seconds * MILLIS_PER_SECOND);
     }
 
     /**

@@ -15,14 +15,49 @@ import java.util.Map;
  */
 @StepId("web.window")
 public class WindowComponent implements StepComponent {
-    @Override public String getName()                  { return "Ventanas y Pestanas"; }
-    @Override public String getDisplayName()           { return "Ventanas y Pestanas"; }
-    @Override public String getDescription()           { return "Gestion de multiples ventanas y pestanas"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Navegacion"; }
-    @Override public String getIcon()                  { return "tab"; }
-    @Override public int getDisplayOrder()             { return 50; }
-    @Override public Class<?> getStepDefinitionClass() { return WindowSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 50;
+
+    @Override
+    public String getName() {
+        return "Ventanas y Pestanas";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Ventanas y Pestanas";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Gestion de multiples ventanas y pestanas";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Navegacion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "tab";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return WindowSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

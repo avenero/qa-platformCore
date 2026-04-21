@@ -56,21 +56,20 @@ public class SelectSteps {
 
     @Then("verifico que la lista de opciones para el combobox {string} sea")
     public void verificoQueLaListaDeOpcionesParaElComboboxSea(String locator, List<String> expectedOptions) {
-        Assertions.assertThat(helper.getListComboBox(locator))
-            .as("Lista de opciones no coincide").isEqualTo(expectedOptions);
+        Assertions.assertThat(helper.getListComboBox(locator)).
+            as("Lista de opciones no coincide").isEqualTo(expectedOptions);
         helper.captureScreen(scenario);
     }
 
     @Then("verifico el texto del combobox {string} sea {string}")
     public void verificoElTextoDelComboboxSea(String locator, String expectedText) {
-        Assertions.assertThat(helper.getTextOfCombobox(locator))
-            .as("Texto no coincide").isEqualTo(expectedText);
+        Assertions.assertThat(helper.getTextOfCombobox(locator)).as("Texto no coincide").isEqualTo(expectedText);
     }
 
     @Then("verifico que el check {string} este seleccionado")
     public void verificoQueElCheckEsteSeleccionado(String locator) {
-        Assertions.assertThat(helper.radioBtnIsSelect(locator))
-            .as("El elemento " + locator + " no esta seleccionado!").isTrue();
+        Assertions.assertThat(helper.radioBtnIsSelect(locator)).
+            as("El elemento " + locator + " no esta seleccionado!").isTrue();
     }
 
     @Then("las opciones del campo {string} deben ser {string}")

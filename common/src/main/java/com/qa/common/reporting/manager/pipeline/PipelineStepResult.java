@@ -19,40 +19,82 @@ public class PipelineStepResult {
     private final String message;
     private final Throwable error;
 
+    /**
+     * Constructor privado para forzar el uso de los factory methods.
+     *
+     * @param success {@code true} si el resultado es exitoso
+     * @param message mensaje descriptivo, puede ser null
+     * @param error   excepción causa, puede ser null
+     */
     private PipelineStepResult(boolean success, String message, Throwable error) {
         this.success = success;
         this.message = message;
         this.error = error;
     }
 
-    /** Resultado exitoso sin mensaje. */
+    /**
+     * Crea un resultado exitoso sin mensaje.
+     *
+     * @return nueva instancia de resultado exitoso
+     */
     public static PipelineStepResult success() {
         return new PipelineStepResult(true, null, null);
     }
 
-    /** Resultado exitoso con mensaje descriptivo. */
+    /**
+     * Crea un resultado exitoso con mensaje descriptivo.
+     *
+     * @param message mensaje descriptivo del resultado
+     * @return nueva instancia de resultado exitoso con mensaje
+     */
     public static PipelineStepResult success(String message) {
         return new PipelineStepResult(true, message, null);
     }
 
-    /** Resultado fallido con mensaje de error. */
+    /**
+     * Crea un resultado fallido con mensaje de error.
+     *
+     * @param message mensaje descriptivo del error
+     * @return nueva instancia de resultado fallido
+     */
     public static PipelineStepResult failure(String message) {
         return new PipelineStepResult(false, message, null);
     }
 
-    /** Resultado fallido con mensaje de error y excepción causa. */
+    /**
+     * Crea un resultado fallido con mensaje de error y excepción causa.
+     *
+     * @param message mensaje descriptivo del error
+     * @param error   excepción que originó el fallo
+     * @return nueva instancia de resultado fallido con causa
+     */
     public static PipelineStepResult failure(String message, Throwable error) {
         return new PipelineStepResult(false, message, error);
     }
 
+    /**
+     * Indica si el step del pipeline fue exitoso.
+     *
+     * @return {@code true} si el resultado es exitoso
+     */
     public boolean isSuccess() {
         return success;
     }
 
+    /**
+     * Obtiene el mensaje asociado al resultado.
+     *
+     * @return mensaje del resultado, puede ser null
+     */
     public String getMessage() {
         return message;
     }
 
+    /**
+     * Obtiene la excepción que causó el fallo, si existe.
+     *
+     * @return excepción causante, o null si no hay error
+     */
     public Throwable getError() {
         return error;
     }

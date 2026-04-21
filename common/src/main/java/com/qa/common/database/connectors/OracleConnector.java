@@ -18,6 +18,9 @@ public class OracleConnector extends BaseConnector {
 
     private static final String DRIVER_CLASS = "oracle.jdbc.OracleDriver";
 
+    /**
+     * Constructor que lee la configuración desde las System Properties {@code oracle.db.*}.
+     */
     public OracleConnector() {
         this(
             System.getProperty("oracle.db.url"),
@@ -26,6 +29,13 @@ public class OracleConnector extends BaseConnector {
         );
     }
 
+    /**
+     * Constructor con parámetros explícitos de conexión.
+     *
+     * @param jdbcUrl  URL JDBC de Oracle (ej: {@code jdbc:oracle:thin:@//host:port/service})
+     * @param username usuario de la base de datos
+     * @param password contraseña de la base de datos
+     */
     public OracleConnector(String jdbcUrl, String username, String password) {
         super(jdbcUrl, username, password, DRIVER_CLASS, "ORACLE");
     }

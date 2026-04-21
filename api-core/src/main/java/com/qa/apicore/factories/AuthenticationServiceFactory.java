@@ -56,7 +56,7 @@ import com.qa.common.logging.TestLogger;
  */
 public final class AuthenticationServiceFactory {
 
-  private static final TestLogger.LoggerWrapper log =
+  private static final TestLogger.LoggerWrapper LOG =
       TestLogger.getLogger(AuthenticationServiceFactory.class);
 
   // Constructor privado para factory
@@ -71,7 +71,7 @@ public final class AuthenticationServiceFactory {
    * @return nueva instancia de AuthenticationService
    */
   public static AuthenticationService getInstance() {
-    log.debug("Creando AuthenticationService con HttpClient automático");
+    LOG.debug("Creando AuthenticationService con HttpClient automático");
     HttpClient httpClient = HttpClientFactory.getInstance();
     return new BaseAuthenticationManager(httpClient);
   }
@@ -89,7 +89,7 @@ public final class AuthenticationServiceFactory {
       throw new IllegalArgumentException("HttpClient no puede ser null");
     }
 
-    log.debug("Creando AuthenticationService con HttpClient proporcionado");
+    LOG.debug("Creando AuthenticationService con HttpClient proporcionado");
     return new BaseAuthenticationManager(httpClient);
   }
 
@@ -113,7 +113,7 @@ public final class AuthenticationServiceFactory {
     authService.setDefaultClientCredentials(clientId, clientSecret);
     authService.setDefaultTokenEndpoint(tokenEndpoint);
 
-    log.debug(
+    LOG.debug(
         "AuthenticationService configurado para OAuth2 - clientId: {}, endpoint: {}",
         clientId,
         tokenEndpoint);
@@ -137,7 +137,7 @@ public final class AuthenticationServiceFactory {
 
     if (scopes != null && scopes.length > 0) {
       authService.setDefaultScopes(scopes);
-      log.debug("Scopes configurados: {}", (Object) scopes);
+      LOG.debug("Scopes configurados: {}", (Object) scopes);
     }
 
     return authService;
@@ -157,7 +157,7 @@ public final class AuthenticationServiceFactory {
     AuthenticationService authService = getInstance();
     authService.setDefaultRefreshTokenEndpoint(refreshTokenEndpoint);
 
-    log.debug(
+    LOG.debug(
         "AuthenticationService configurado para Bearer Token - refresh endpoint: {}",
         refreshTokenEndpoint);
     return authService;
@@ -173,7 +173,7 @@ public final class AuthenticationServiceFactory {
   public static AuthenticationService getBasicAuthInstance() {
     AuthenticationService authService = getInstance();
 
-    log.debug("AuthenticationService configurado para Basic Auth");
+    LOG.debug("AuthenticationService configurado para Basic Auth");
     return authService;
   }
 
@@ -191,7 +191,7 @@ public final class AuthenticationServiceFactory {
     AuthenticationService authService = getInstance();
     authService.setApiKeyHeader(apiKeyHeader);
 
-    log.debug("AuthenticationService configurado para API Key - header: {}", apiKeyHeader);
+    LOG.debug("AuthenticationService configurado para API Key - header: {}", apiKeyHeader);
     return authService;
   }
 
@@ -226,7 +226,7 @@ public final class AuthenticationServiceFactory {
         break;
       case "basic":
         // Basic auth no requiere configuración de endpoint específico
-        log.debug("Basic auth configurado - usar getBasicAuthToken() con endpoint específico");
+        LOG.debug("Basic auth configurado - usar getBasicAuthToken() con endpoint específico");
         break;
       case "apikey":
         authService.setApiKeyHeader(config.getApiKeyHeader());
@@ -244,7 +244,7 @@ public final class AuthenticationServiceFactory {
       authService.setCacheEnabled(true);
     }
 
-    log.debug(
+    LOG.debug(
         "AuthenticationService configurado completamente para tipo: {}", config.getAuthType());
     return authService;
   }
@@ -257,7 +257,8 @@ public final class AuthenticationServiceFactory {
    */
   public static String getFactoryInfo() {
     return String.format(
-        "AuthenticationServiceFactory v1.0.0 - Implementación: %s - Tipos soportados: oauth2, bearer, basic, apikey",
+        "AuthenticationServiceFactory v1.0.0 - Implementación: %s"
+            + " - Tipos soportados: oauth2, bearer, basic, apikey",
         BaseAuthenticationManager.class.getSimpleName());
   }
 

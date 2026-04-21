@@ -1,7 +1,7 @@
 package com.qa.common.http.model;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Clase común para representar respuestas HTTP entre todos los frameworks.
@@ -12,13 +12,22 @@ import java.util.HashMap;
  */
 public class HttpResponse {
 
+    /** Lower bound of HTTP 3xx (redirect) status code range. */
+    private static final int HTTP_REDIRECT_MIN = 300;
+
+    /** Upper bound of HTTP 5xx (server error) status code range (exclusive). */
+    private static final int HTTP_SERVER_ERROR_MAX = 600;
+
     private final int statusCode;
     private final String body;
     private Map<String, String> headers;  // No puede ser final - usado por setHeaders()
     private final long duration;
 
     /**
-     * Constructor básico para respuesta HTTP.
+     * Constructor básico para respuesta HTTP sin headers ni duración.
+     *
+     * @param statusCode código de estado HTTP
+     * @param body       cuerpo de la respuesta
      */
     public HttpResponse(int statusCode, String body) {
         this.statusCode = statusCode;
@@ -29,6 +38,11 @@ public class HttpResponse {
 
     /**
      * Constructor completo para respuesta HTTP.
+     *
+     * @param statusCode código de estado HTTP
+     * @param body       cuerpo de la respuesta
+     * @param headers    mapa de headers HTTP de la respuesta
+     * @param duration   duración de la solicitud en milisegundos
      */
     public HttpResponse(int statusCode, String body, Map<String, String> headers, long duration) {
         this.statusCode = statusCode;
@@ -84,18 +98,38 @@ public class HttpResponse {
     // MÉTODOS DE VALIDACIÓN
     // =================================================================================
 
+    /**
+     * Indica si la respuesta es exitosa (código 2xx).
+     *
+     * @return {@code true} si el código de estado está entre 200 y 299 inclusive
+     */
     public boolean isSuccessful() {
-        return statusCode >= 200 && statusCode < 300;
+        return statusCode >= 200 && statusCode < HTTP_REDIRECT_MIN;
     }
 
+    /**
+     * Indica si la respuesta es un error del cliente (código 4xx).
+     *
+     * @return {@code true} si el código de estado está entre 400 y 499 inclusive
+     */
     public boolean isClientError() {
         return statusCode >= 400 && statusCode < 500;
     }
 
+    /**
+     * Indica si la respuesta es un error del servidor (código 5xx).
+     *
+     * @return {@code true} si el código de estado está entre 500 y 599 inclusive
+     */
     public boolean isServerError() {
-        return statusCode >= 500 && statusCode < 600;
+        return statusCode >= 500 && statusCode < HTTP_SERVER_ERROR_MAX;
     }
 
+    /**
+     * Indica si la respuesta contiene cuerpo no vacío.
+     *
+     * @return {@code true} si el body no es null ni está vacío
+     */
     public boolean hasContent() {
         return body != null && !body.trim().isEmpty();
     }
@@ -115,6 +149,8 @@ public class HttpResponse {
 
     /**
      * Obtiene un resumen de la respuesta para logging.
+     *
+     * @return cadena de texto con estado, tamaño del body y duración
      */
     public String getSummary() {
         return String.format("Status: %d, Content-Length: %d bytes, Duration: %dms",

@@ -16,14 +16,49 @@ import java.util.Map;
  */
 @StepId("db.validation")
 public class DatabaseValidationComponent implements StepComponent {
-    @Override public String getName()                  { return "DB Validation"; }
-    @Override public String getDisplayName()           { return "Validacion de Resultados DB"; }
-    @Override public String getDescription()           { return "Validar existencia de resultados, valores de columnas y extraer datos al contexto del escenario"; }
-    @Override public BddPhase getPhase()               { return BddPhase.THEN; }
-    @Override public String getCategory()              { return "Validacion"; }
-    @Override public String getIcon()                  { return "fact_check"; }
-    @Override public int getDisplayOrder()             { return 30; }
-    @Override public Class<?> getStepDefinitionClass() { return DatabaseConnectionSteps.class; }
+
+    /** Display order for this component in the UI. */
+    private static final int DISPLAY_ORDER = 30;
+
+    @Override
+    public String getName() {
+        return "DB Validation";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Validacion de Resultados DB";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Validar existencia de resultados, valores de columnas y extraer datos al contexto del escenario";
+    }
+
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.THEN;
+    }
+
+    @Override
+    public String getCategory() {
+        return "Validacion";
+    }
+
+    @Override
+    public String getIcon() {
+        return "fact_check";
+    }
+
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return DatabaseConnectionSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {
@@ -39,7 +74,8 @@ public class DatabaseValidationComponent implements StepComponent {
         return Map.of(
             "es", "Validar existencia de resultados, valores de columnas y extraer datos al contexto del escenario",
             "en", "Validate result existence, column values and extract data to scenario context",
-            "fr", "Valider l'existence des resultats, les valeurs de colonnes et extraire des donnees dans le contexte du scenario"
+            "fr", "Valider l'existence des resultats, les valeurs de colonnes"
+                + " et extraire des donnees dans le contexte du scenario"
         );
     }
 }

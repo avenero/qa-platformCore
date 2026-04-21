@@ -15,14 +15,41 @@ import java.util.Map;
  */
 @StepId("api.execution")
 public class ApiExecutionComponent implements StepComponent {
-    @Override public String getName()                  { return "Ejecucion HTTP"; }
-    @Override public String getDisplayName()           { return "Ejecucion HTTP"; }
-    @Override public String getDescription()           { return "Envio de peticiones GET, POST, PUT, DELETE, PATCH"; }
-    @Override public BddPhase getPhase()               { return BddPhase.WHEN; }
-    @Override public String getCategory()              { return "Ejecucion"; }
-    @Override public String getIcon()                  { return "send"; }
-    @Override public int getDisplayOrder()             { return 70; }
-    @Override public Class<?> getStepDefinitionClass() { return HttpExecutionSteps.class; }
+
+    /** Display order for this component in the UI step palette. */
+    private static final int DISPLAY_ORDER = 70;
+    @Override
+    public String getName() {
+        return "Ejecucion HTTP";
+    }
+    @Override
+    public String getDisplayName() {
+        return "Ejecucion HTTP";
+    }
+    @Override
+    public String getDescription() {
+        return "Envio de peticiones GET, POST, PUT, DELETE, PATCH";
+    }
+    @Override
+    public BddPhase getPhase() {
+        return BddPhase.WHEN;
+    }
+    @Override
+    public String getCategory() {
+        return "Ejecucion";
+    }
+    @Override
+    public String getIcon() {
+        return "send";
+    }
+    @Override
+    public int getDisplayOrder() {
+        return DISPLAY_ORDER;
+    }
+    @Override
+    public Class<?> getStepDefinitionClass() {
+        return HttpExecutionSteps.class;
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

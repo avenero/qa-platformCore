@@ -33,6 +33,7 @@ public class IosDeviceScanner {
 
     private static final String SIMCTL_CMD = "xcrun simctl list devices --json";
     private static final int TIMEOUT_SEC = 10;
+    private static final int DEVICE_ID_PREFIX_LENGTH = 8;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
@@ -56,10 +57,14 @@ public class IosDeviceScanner {
             return result;
         }
 
-        if (!includeSimulators) return result;
+        if (!includeSimulators) {
+            return result;
+        }
 
         String json = runSimctl();
-        if (json == null || json.isBlank()) return result;
+        if (json == null || json.isBlank()) {
+            return result;
+        }
 
         result.addAll(parseSimctlJson(json));
         TestLogger.logInfo("IOS_SCANNER",
@@ -71,7 +76,9 @@ public class IosDeviceScanner {
      * Verifica si xcrun está disponible (solo macOS con Xcode).
      */
     public boolean isXcrunAvailable() {
-        if (!isMacOS()) return false;
+        if (!isMacOS()) {
+            return false;
+        }
         try {
             Process p = Runtime.getRuntime().exec(new String[]{"xcrun", "--version"});
             return p.waitFor(3, TimeUnit.SECONDS) && p.exitValue() == 0;
@@ -121,24 +128,25 @@ public class IosDeviceScanner {
                 Map.Entry<String, JsonNode> runtimeEntry = runtimes.next();
                 String runtimeKey = runtimeEntry.getKey(); // e.g. "com.apple.CoreSimulator.SimRuntime.iOS-17-0"
 
-                if (!runtimeKey.contains("iOS")) continue;
+                if (!runtimeKey.contains("iOS")) {
+                    continue;
+                }
 
                 String iosVersion = extractIosVersion(runtimeKey);
 
                 for (JsonNode sim : runtimeEntry.getValue()) {
                     String state = sim.path("state").asText("");
-                    if (!"Booted".equalsIgnoreCase(state)) continue;
+                    if (!"Booted".equalsIgnoreCase(state)) {
+                        continue;
+                    }
 
                     String udid = sim.path("udid").asText("");
                     String name = sim.path("name").asText("iOS Simulator");
-                    String deviceId = "ios-sim-" + udid.substring(0, Math.min(8, udid.length())).toLowerCase();
+                    String deviceId = "ios-sim-"
+                        + udid.substring(0, Math.min(DEVICE_ID_PREFIX_LENGTH, udid.length())).toLowerCase();
 
-                    DeviceDescriptor device = DeviceDescriptor.builder(deviceId, DeviceType.IOS_SIMULATOR)
-                        .platformName("iOS")
-                        .platformVersion(iosVersion)
-                        .deviceName(name)
-                        .udid(udid)
-                        .build();
+                    DeviceDescriptor device = DeviceDescriptor.builder(deviceId, DeviceType.IOS_SIMULATOR).
+                        platformName("iOS").platformVersion(iosVersion).deviceName(name).udid(udid).build();
 
                     result.add(device);
                     TestLogger.logInfo("IOS_SCANNER",

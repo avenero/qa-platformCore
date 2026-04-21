@@ -14,6 +14,9 @@ import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import org.openqa.selenium.WebDriver;
 
+import java.util.Map;
+import java.util.Optional;
+
 /**
  * Hooks de ciclo de vida de Cucumber para la capa Web.
  *
@@ -34,28 +37,31 @@ import org.openqa.selenium.WebDriver;
  */
 public class WebHooksSteps {
 
+    /** Timeout de carga de pagina para el hook before (en segundos). */
+    private static final int HOOK_PAGE_LOAD_TIMEOUT = 90;
+
     private final WebHelper helper = new WebHelper();
 
     // =========================================================================
     // @Before — inicialización por escenario
     // =========================================================================
 
-    @SuppressWarnings("deprecation") // HOST_LEGACY: mantenida para retrocompatibilidad con proyectos legacy — ver WebConfigKeys
+    // HOST_LEGACY: mantenida para retrocompatibilidad con proyectos legacy — ver WebConfigKeys
+    @SuppressWarnings("deprecation")
     @Before(value = "@web or @ui or @selenium or @browser", order = 100)
     public void beforeScenario(Scenario scenario) {
         // Nombre del módulo para el logger (ExecutionConfig tiene prioridad)
-        String moduleName = ExecutionContext.current()
-                .map(ctx -> ctx.config().getProperty("framework.module.name", "PLATFORM"))
-                .orElseGet(() -> ConfigManager.getInstance().get("framework.module.name", "PLATFORM"));
+        String moduleName = ExecutionContext.current().
+                map(ctx -> ctx.config().getProperty("framework.module.name", "PLATFORM")).
+                orElseGet(() -> ConfigManager.getInstance().get("framework.module.name", "PLATFORM"));
         TestLogger.setFramework(moduleName);
 
-        java.util.Optional<ExecutionContext> ctxOpt = ExecutionContext.current();
+        Optional<ExecutionContext> ctxOpt = ExecutionContext.current();
 
         // Verificar presencia de driver: ServiceRegistry cuando hay contexto, DriverManager en standalone.
         // Esto garantiza que el driver vive en el ExecutionContext y no en un singleton global.
-        boolean driverPresente = ctxOpt
-                .map(ctx -> ctx.registry().isRegistered(WebDriver.class))
-                .orElseGet(DriverManager::isDriverInitialized);
+        boolean driverPresente = ctxOpt.map(ctx -> ctx.registry().isRegistered(WebDriver.class)).
+                orElseGet(DriverManager::isDriverInitialized);
 
         if (!driverPresente) {
             BrowserType browser  = resolveBrowser();
@@ -75,17 +81,16 @@ public class WebHooksSteps {
             }
 
             TestLogger.logInfo("WEB_HOOKS", "Driver inicializado",
-                    java.util.Map.of("browser", browser.name(), "headless", headless));
+                    Map.of("browser", browser.name(), "headless", headless));
         }
 
         // Navegar a URL base — prioridad: ServiceRegistry del contexto → DriverManager standalone
-        WebDriver driver = ctxOpt
-                .flatMap(ctx -> ctx.registry().get(WebDriver.class))
-                .orElseGet(DriverManager::getDriver);
+        WebDriver driver = ctxOpt.flatMap(ctx -> ctx.registry().get(WebDriver.class)).
+                orElseGet(DriverManager::getDriver);
         String baseUrl = helper.getConfigProperty(WebConfigKeys.HOST_LEGACY, "about:blank");
         driver.navigate().to(baseUrl);
         driver.manage().window().maximize();
-        WaitUtils.setPageLoadTimeout(90);
+        WaitUtils.setPageLoadTimeout(HOOK_PAGE_LOAD_TIMEOUT);
         TestLogger.logInfo("WEB_HOOKS", "Escenario iniciado: " + scenario.getName(), null);
     }
 
@@ -113,9 +118,8 @@ public class WebHooksSteps {
             }
             // 2. Limpiar cookies mientras el driver aún está abierto.
             //    Prioridad: ServiceRegistry del contexto → DriverManager standalone.
-            WebDriver current = ExecutionContext.current()
-                    .flatMap(ctx -> ctx.registry().get(WebDriver.class))
-                    .orElseGet(DriverManager::getDriverOrNull);
+            WebDriver current = ExecutionContext.current().flatMap(ctx -> ctx.registry().get(WebDriver.class)).
+                    orElseGet(DriverManager::getDriverOrNull);
             if (current != null) {
                 try {
                     current.manage().deleteAllCookies();
@@ -149,21 +153,21 @@ public class WebHooksSteps {
      */
     private BrowserType resolveBrowser() {
         // 1. ExecutionConfig.browser (inmutable, por ejecución)
-        BrowserType fromConfig = ExecutionContext.current()
-                .map(ctx -> ctx.config().getBrowser())
-                .filter(b -> b != null && !b.isEmpty())
-                .map(b -> {
+        BrowserType fromConfig = ExecutionContext.current().map(ctx -> ctx.config().getBrowser()).
+                filter(b -> b != null && !b.isEmpty()).map(b -> {
                     try { return helper.parseBrowserType(b); }
                     catch (Exception e) { return null; }
-                })
-                .orElse(null);
-        if (fromConfig != null) return fromConfig;
+                }).orElse(null);
+        if (fromConfig != null) {
+            return fromConfig;
+        }
 
         // 2. VariableStore override (set por steps de configuración)
-        BrowserType fromVar = ExecutionContext.current()
-                .flatMap(ctx -> ctx.variables().get(WebConfigKeys.BROWSER_RUNTIME_VAR, BrowserType.class))
-                .orElse(null);
-        if (fromVar != null) return fromVar;
+        BrowserType fromVar = ExecutionContext.current().
+                flatMap(ctx -> ctx.variables().get(WebConfigKeys.BROWSER_RUNTIME_VAR, BrowserType.class)).orElse(null);
+        if (fromVar != null) {
+            return fromVar;
+        }
 
         // 3. Fallback a ConfigManager
         return helper.parseBrowserType(
@@ -180,17 +184,19 @@ public class WebHooksSteps {
      */
     private boolean resolveHeadless() {
         // 1. ExecutionConfig.property
-        Boolean fromConfig = ExecutionContext.current()
-                .flatMap(ctx -> ctx.config().getProperty(WebConfigKeys.HEADLESS))
-                .map(Boolean::parseBoolean)
-                .orElse(null);
-        if (fromConfig != null) return fromConfig;
+        Boolean fromConfig = ExecutionContext.current().
+                flatMap(ctx -> ctx.config().getProperty(WebConfigKeys.HEADLESS)).
+                map(Boolean::parseBoolean).orElse(null);
+        if (fromConfig != null) {
+            return fromConfig;
+        }
 
         // 2. VariableStore override
-        Boolean fromVar = ExecutionContext.current()
-                .flatMap(ctx -> ctx.variables().get(WebConfigKeys.HEADLESS_RUNTIME_VAR, Boolean.class))
-                .orElse(null);
-        if (fromVar != null) return fromVar;
+        Boolean fromVar = ExecutionContext.current().
+                flatMap(ctx -> ctx.variables().get(WebConfigKeys.HEADLESS_RUNTIME_VAR, Boolean.class)).orElse(null);
+        if (fromVar != null) {
+            return fromVar;
+        }
 
         // 3. Fallback a ConfigManager
         return ConfigManager.getInstance().getBoolean(WebConfigKeys.HEADLESS, false);

@@ -21,13 +21,12 @@ public class PageValidationSteps {
 
     @Then("valido que exista el texto")
     public void validoQueExistaElTexto(String texto) {
-        Assertions.assertThat(helper.existText(texto))
-            .as("El texto '" + texto + "' no existe").isTrue();
+        Assertions.assertThat(helper.existText(texto)).as("El texto '" + texto + "' no existe").isTrue();
     }
 
     @Then("valido que la variable {string} sea igual a la variable {string}")
     public void validoQueLaVariableSeaIgualALaVariable(String varName1, String varName2) {
-        Assertions.assertThat(helper.getTextVariableTemp(varName1))
-            .as("Las variables no son iguales").isEqualTo(helper.getTextVariableTemp(varName2));
+        Assertions.assertThat(helper.getTextVariableTemp(varName1)).
+            as("Las variables no son iguales").isEqualTo(helper.getTextVariableTemp(varName2));
     }
 }

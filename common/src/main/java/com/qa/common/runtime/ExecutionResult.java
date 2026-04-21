@@ -43,14 +43,45 @@ public final class ExecutionResult {
         this.errors = Collections.unmodifiableList(builder.errors);
     }
 
-    public Status getStatus() { return status; }
-    public int getTotalScenarios() { return totalScenarios; }
-    public int getPassedScenarios() { return passedScenarios; }
-    public int getFailedScenarios() { return failedScenarios; }
-    public Duration getDuration() { return duration; }
-    public Instant getStartTime() { return startTime; }
-    public Instant getEndTime() { return endTime; }
-    public List<String> getErrors() { return errors; }
+    /** @return estado general de la ejecución */
+    public Status getStatus() {
+        return status;
+    }
+
+    /** @return total de escenarios ejecutados */
+    public int getTotalScenarios() {
+        return totalScenarios;
+    }
+
+    /** @return escenarios que pasaron */
+    public int getPassedScenarios() {
+        return passedScenarios;
+    }
+
+    /** @return escenarios que fallaron */
+    public int getFailedScenarios() {
+        return failedScenarios;
+    }
+
+    /** @return duración total de la ejecución */
+    public Duration getDuration() {
+        return duration;
+    }
+
+    /** @return instante de inicio de la ejecución */
+    public Instant getStartTime() {
+        return startTime;
+    }
+
+    /** @return instante de fin de la ejecución */
+    public Instant getEndTime() {
+        return endTime;
+    }
+
+    /** @return lista de errores registrados */
+    public List<String> getErrors() {
+        return errors;
+    }
 
     public boolean isSuccess() {
         return status == Status.PASSED;
@@ -65,6 +96,9 @@ public final class ExecutionResult {
                 + ", duration=" + duration + "}";
     }
 
+    /**
+     * Builder for constructing {@link ExecutionResult} instances.
+     */
     public static final class Builder {
         private Status status = Status.PASSED;
         private int totalScenarios;

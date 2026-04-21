@@ -42,7 +42,7 @@ import java.util.Map;
  */
 public class LoggingInitializer {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoggingInitializer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggingInitializer.class);
 
     // Módulos soportados
     public static final String MODULE_API = "API";
@@ -71,7 +71,8 @@ public class LoggingInitializer {
      * Constructor privado para prevenir instanciación.
      */
     private LoggingInitializer() {
-        throw new UnsupportedOperationException("LoggingInitializer es una clase de utilidad y no debe ser instanciada");
+        throw new UnsupportedOperationException(
+            "LoggingInitializer es una clase de utilidad y no debe ser instanciada");
     }
 
     /**
@@ -89,19 +90,19 @@ public class LoggingInitializer {
         MDC.put(MDC_FRAMEWORK, "QA-Framework");
         MDC.put(MDC_THREAD, Thread.currentThread().getName());
 
-        logger.info("Contexto de logging inicializado para el módulo: {}", moduleName);
+        LOGGER.info("Contexto de logging inicializado para el módulo: {}", moduleName);
     }
 
     /**
      * Establece el contexto del test actual en el MDC.
-     * Permite identificar qué test está generando cada log.
+     * Permite identificar qué test está generando cada LOG.
      *
      * @param testName Nombre del test en ejecución
      */
     public static void setTestContext(String testName) {
         if (testName != null && !testName.trim().isEmpty()) {
             MDC.put(MDC_TEST_NAME, testName);
-            logger.debug("Contexto de test establecido: {}", testName);
+            LOGGER.debug("Contexto de test establecido: {}", testName);
         }
     }
 
@@ -113,7 +114,7 @@ public class LoggingInitializer {
     public static void setEnvironment(String environment) {
         if (environment != null && !environment.trim().isEmpty()) {
             MDC.put(MDC_ENVIRONMENT, environment.toLowerCase());
-            logger.debug("Entorno establecido: {}", environment);
+            LOGGER.debug("Entorno establecido: {}", environment);
         }
     }
 
@@ -125,7 +126,7 @@ public class LoggingInitializer {
     public static void setContext(Map<String, String> contextMap) {
         if (contextMap != null && !contextMap.isEmpty()) {
             contextMap.forEach(MDC::put);
-            logger.debug("Contexto múltiple establecido: {}", contextMap);
+            LOGGER.debug("Contexto múltiple establecido: {}", contextMap);
         }
     }
 
@@ -157,7 +158,7 @@ public class LoggingInitializer {
         String testName = MDC.get(MDC_TEST_NAME);
         if (testName != null) {
             MDC.remove(MDC_TEST_NAME);
-            logger.debug("Contexto de test limpiado: {}", testName);
+            LOGGER.debug("Contexto de test limpiado: {}", testName);
         }
     }
 
@@ -168,7 +169,7 @@ public class LoggingInitializer {
     public static void clearAllContext() {
         String module = MDC.get(MDC_MODULE);
         MDC.clear();
-        logger.info("Contexto MDC completamente limpiado para módulo: {}", module);
+        LOGGER.info("Contexto MDC completamente limpiado para módulo: {}", module);
     }
 
     /**
@@ -182,13 +183,19 @@ public class LoggingInitializer {
 
         MDC.clear();
 
-        if (module != null) MDC.put(MDC_MODULE, module);
-        if (framework != null) MDC.put(MDC_FRAMEWORK, framework);
-        if (environment != null) MDC.put(MDC_ENVIRONMENT, environment);
+        if (module != null) {
+            MDC.put(MDC_MODULE, module);
+        }
+        if (framework != null) {
+            MDC.put(MDC_FRAMEWORK, framework);
+        }
+        if (environment != null) {
+            MDC.put(MDC_ENVIRONMENT, environment);
+        }
 
         MDC.put(MDC_THREAD, Thread.currentThread().getName());
 
-        logger.debug("Contexto MDC reiniciado manteniendo: module={}, framework={}", module, framework);
+        LOGGER.debug("Contexto MDC reiniciado manteniendo: module={}, framework={}", module, framework);
     }
 
     /**
@@ -200,7 +207,7 @@ public class LoggingInitializer {
     public static void initializeComplete(String moduleName, String environment) {
         initModuleContext(moduleName);
         setEnvironment(environment);
-        logger.info("Logging inicializado completamente - Módulo: {}, Entorno: {}", moduleName, environment);
+        LOGGER.info("Logging inicializado completamente - Módulo: {}, Entorno: {}", moduleName, environment);
     }
 
     /**
@@ -209,7 +216,7 @@ public class LoggingInitializer {
      */
     public static void initialize() {
         // Fuerza la carga de la clase y ejecución del bloque static
-        logger.debug("LoggingInitializer cargado y configurado");
+        LOGGER.debug("LoggingInitializer cargado y configurado");
     }
 }
 
