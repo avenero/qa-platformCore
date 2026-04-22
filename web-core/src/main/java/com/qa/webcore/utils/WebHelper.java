@@ -39,8 +39,9 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -92,6 +93,9 @@ public class WebHelper {
 
     /** Milliseconds per second, used for converting seconds-based timeouts. */
     private static final long MILLIS_PER_SECOND = 1000L;
+
+    /** Tolerance for floating-point equality comparisons. */
+    private static final double DOUBLE_COMPARISON_TOLERANCE = 1e-9;
 
     public WebHelper() {
         // Constructor vacío - todas las operaciones delegadas a ScenarioContext estático
@@ -1523,7 +1527,7 @@ public class WebHelper {
             double val1 = Double.parseDouble(getTextVariableTemp(var1));
             double val2 = Double.parseDouble(getTextVariableTemp(var2));
             double result = Double.parseDouble(getTextVariableTemp(varResult));
-            return (val1 + val2) == result;
+            return Math.abs((val1 + val2) - result) < DOUBLE_COMPARISON_TOLERANCE;
         } catch (Exception e) {
             TestLogger.logWarning("WEB_HELPER",
                 "Error validando suma de variables: " + e.getMessage(), null);
@@ -1609,8 +1613,7 @@ public class WebHelper {
     public String generateRutUy() {
         final int rutMin = 10000000;
         final int rutRange = 90000000;
-        Random random = new Random();
-        int rut = rutMin + random.nextInt(rutRange);
+        int rut = rutMin + ThreadLocalRandom.current().nextInt(rutRange);
         return String.valueOf(rut);
     }
 
@@ -1676,7 +1679,7 @@ public class WebHelper {
     }
 
     public void attachScenario(String data, Scenario scenario) {
-        scenario.attach(data.getBytes(), "text/plain", "data.txt");
+        scenario.attach(data.getBytes(StandardCharsets.UTF_8), "text/plain", "data.txt");
     }
 
     // =========================================================================

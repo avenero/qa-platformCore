@@ -131,13 +131,18 @@ public class GestureSteps {
 
     /**
      * Hace tap en coordenadas absolutas de la pantalla.
-     */
-    @When("hago tap en las coordenadas ({int}, {int})")
+     *
+     * <p>En <strong>Cucumber Expression</strong>, {@code (...)} indica un fragmento
+     * <em>opcional</em> y no puede contener parámetros como {@code {int}}. Por eso
+     * el patrón correcto es {@code {int}, {int}} sin paréntesis. En Gherkin:
+     * {@code When hago tap en las coordenadas 120, 340}.
+     
+    @When("hago tap en las coordenadas {int}, {int}")
     public void hagoTapEnCoordenadas(int x, int y) {
         mobile().tapAt(x, y);
         TestLogger.logInfo("GESTURE", "Tap en coordenadas (" + x + ", " + y + ")", null);
     }
-
+*/
     // =========================================================================
     // Helpers
     // =========================================================================

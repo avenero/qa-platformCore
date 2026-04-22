@@ -70,6 +70,14 @@ subprojects {
     }
 
     // =========================================================================
+    // DEPENDENCIAS DE TEST COMUNES
+    // junit-platform-launcher debe ser explícito para evitar deprecación en Gradle 9.0
+    // =========================================================================
+    dependencies {
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    // =========================================================================
     // CONFIGURACIÓN DE TESTS
     // =========================================================================
     tasks.withType(Test).configureEach {
@@ -142,8 +150,12 @@ subprojects {
 
     // =========================================================================
     // PUBLICACIÓN CENTRALIZADA
-    // - `publishToMavenLocal`: flujo oficial para desarrollo/integración local
-    // - `publish`: solo para versiones release sin sufijo SNAPSHOT
+    // Estrategia:
+    //   - SNAPSHOT  → publishToMavenLocal  (desarrollo local, sin tocar GitHub)
+    //   - Release   → GitHubPackages       (artefacto estable para otros proyectos)
+    // Comandos:
+    //   ./gradlew publish               (publica según versión: Local o GitHub)
+    //   ./gradlew publishToMavenLocal   (siempre local, útil en CI local)
     // =========================================================================
     publishing {
         publications {
@@ -155,7 +167,12 @@ subprojects {
             }
         }
         repositories {
-            if (!project.version.toString().endsWith('-SNAPSHOT')) {
+            if (project.version.toString().endsWith('-SNAPSHOT')) {
+                maven {
+                    name = "MavenLocal"
+                    url = uri("${System.getProperty('user.home')}/.m2/repository")
+                }
+            } else {
                 maven {
                     name = "GitHubPackages"
                     url = uri(findProperty("githubPackagesRepoUrl") ?: "https://maven.pkg.github.com/avenero/qa-platformCore")

@@ -3,6 +3,7 @@ package com.qa.apicore.steps.validation;
 import com.qa.apicore.utils.ApiHelper;
 import com.qa.common.runtime.ExecutionContext;
 import io.cucumber.java.en.Then;
+import java.nio.charset.StandardCharsets;
 import org.assertj.core.api.Assertions;
 
 /**
@@ -42,7 +43,7 @@ public class ResponsePerformanceSteps {
     @Then("valido que el tamaño de la respuesta sea menor a {int} KB")
     public void validoTamanoRespuesta(int maxKb) {
         String body = apiHelper().getLastResponse().getBody();
-        int sizeKb = (body != null ? body.getBytes().length : 0) / BYTES_PER_KB;
+        int sizeKb = (body != null ? body.getBytes(StandardCharsets.UTF_8).length : 0) / BYTES_PER_KB;
         Assertions.assertThat(sizeKb).as("Tamano (" + sizeKb + "KB) excede " + maxKb + "KB").isLessThanOrEqualTo(maxKb);
     }
 }

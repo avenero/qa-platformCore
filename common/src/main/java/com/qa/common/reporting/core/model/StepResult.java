@@ -48,6 +48,9 @@ public class StepResult {
     private String location;          // Clase.método que ejecuta el step
     private String[] arguments;       // Argumentos capturados del step
 
+    // Detalle HTTP (opcional — solo steps de capa API con HttpDetailRedactor aplicado)
+    private com.qa.common.logging.HttpStepDetail httpDetail;
+
     // =================================================================================
     // CONSTRUCTORES
     // =================================================================================
@@ -211,6 +214,14 @@ public class StepResult {
 
     public void setArguments(String[] arguments) {
         this.arguments = arguments;
+    }
+
+    public com.qa.common.logging.HttpStepDetail getHttpDetail() {
+        return httpDetail;
+    }
+
+    public void setHttpDetail(com.qa.common.logging.HttpStepDetail httpDetail) {
+        this.httpDetail = httpDetail;
     }
 
     @Override

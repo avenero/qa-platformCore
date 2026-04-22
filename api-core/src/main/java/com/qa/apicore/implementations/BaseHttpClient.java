@@ -6,8 +6,10 @@ import com.qa.common.http.exceptions.FrameworkTechnicalException;
 import com.qa.common.http.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.utils.TextUtilities;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import kong.unirest.Header;
 import kong.unirest.Headers;
@@ -245,6 +247,8 @@ public class BaseHttpClient implements HttpClient {
   private String lastRequestUrl;
   private String lastRequestMethod;
   private long lastRequestDuration;
+  /** Body de la última petición — guardado antes de clearRequestData() para HttpDetailRedactor. */
+  private String lastRequestBody;
 
   // Configuración SSL
   private boolean sslValidationDisabled = false;
@@ -480,7 +484,7 @@ public class BaseHttpClient implements HttpClient {
 
   @Override
   public long getBodySize() {
-    return body != null ? body.getBytes().length : 0;
+    return body != null ? body.getBytes(StandardCharsets.UTF_8).length : 0;
   }
 
   @Override
@@ -688,6 +692,7 @@ public class BaseHttpClient implements HttpClient {
    */
   public HttpResponse executeRequest(String method, String endpoint, boolean followRedirects)
       throws FrameworkTechnicalException {
+    Objects.requireNonNull(method, "HTTP method cannot be null");
     try {
       if (!hasValidHost()) {
         throw new FrameworkTechnicalException(
@@ -719,6 +724,8 @@ public class BaseHttpClient implements HttpClient {
       this.lastRequestDuration = (System.nanoTime() - startTime) / NANOS_PER_MS;
       logResponse();
 
+      // Guardar body ANTES del clear — permite que HttpDetailRedactor lo use post-ejecucion
+      this.lastRequestBody = body;
       clearRequestData();
 
       // Convertir kong.unirest.HttpResponse a nuestro HttpResponse
@@ -836,6 +843,11 @@ public class BaseHttpClient implements HttpClient {
   @Override
   public long getLastRequestDuration() {
     return lastRequestDuration;
+  }
+
+  @Override
+  public String getLastRequestBody() {
+    return lastRequestBody;
   }
 
   @Override

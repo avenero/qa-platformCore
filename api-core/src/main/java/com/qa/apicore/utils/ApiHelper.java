@@ -10,6 +10,7 @@ import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.utils.JsonUtilities;
 import com.qa.common.utils.TextUtilities;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
@@ -394,7 +395,7 @@ public class ApiHelper {
             String processedPassword = resolve(password);
 
             String credentials = Base64.getEncoder().
-                encodeToString((processedUsername + ":" + processedPassword).getBytes());
+                encodeToString((processedUsername + ":" + processedPassword).getBytes(StandardCharsets.UTF_8));
 
             httpClient.addHeader("Authorization", "Basic " + credentials);
 
@@ -1079,7 +1080,8 @@ public class ApiHelper {
             if (url == null) {
                 throw new IllegalArgumentException("Archivo de body no encontrado: " + filePath);
             }
-            String content = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(url.toURI())));
+            byte[] contentBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(url.toURI()));
+            String content = new String(contentBytes, StandardCharsets.UTF_8);
             httpClient.setBody(content);
             TestLogger.logInfo("API_HELPER", "Body cargado desde archivo: " + filePath, null);
         } catch (Exception e) {
@@ -1322,7 +1324,8 @@ public class ApiHelper {
      */
     public void validateResponseSchemaFromFile(String filePath) throws FrameworkBusinessException {
         try {
-            String schema = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(resolve(filePath))));
+            byte[] schemaBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(resolve(filePath)));
+            String schema = new String(schemaBytes, StandardCharsets.UTF_8);
             validateResponseSchema(schema);
         } catch (java.io.IOException e) {
             throw new FrameworkBusinessException("validateResponseSchemaFromFile",

@@ -5,6 +5,7 @@ import com.qa.common.logging.TestLogger;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.net.URI;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
@@ -148,7 +149,7 @@ public final class AppiumServerManager {
             // Consumir el output en un thread demonio para evitar bloqueos
             Thread reader = new Thread(() -> {
                 try (BufferedReader r = new BufferedReader(
-                        new InputStreamReader(process.getInputStream()))) {
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = r.readLine()) != null) {
                         TestLogger.logInfo("APPIUM_SERVER", "[appium] " + line, null);

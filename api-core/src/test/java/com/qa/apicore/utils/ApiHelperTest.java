@@ -114,6 +114,7 @@ class ApiHelperTest {
         @Override public String detectContentType(String b) { return "application/json"; }
         @Override public void autoDetectAndSetContentType() {}
         @Override public String getDebugInfo() { return "StubHttpClient"; }
+        @Override public String getLastRequestBody() { return capturedBody; }
     }
 
     // =========================================================================

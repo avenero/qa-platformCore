@@ -93,21 +93,17 @@ public class NativeElementSteps {
     // =========================================================================
 
     @StepDef(value = "mobile.native-element.legacy-verifico-visible",
-             deprecated = true, replacedBy = "mobile.validation#verificoElementoVisible")
-    @Then("verifico que el elemento nativo {string} este visible")
-    public void verificoElementoNativoVisible(String locator) {
+             deprecated = true,
+             replacedBy = "mobile.native-element#elementoDebeSerVisible")
+    @Then("el elemento nativo {string} debe ser visible")
+    public void elementoDebeSerVisible(String locator) {
         String resolved = ctx().variables().resolve(locator);
         boolean visible = mobile().isVisible(resolved);
         Assertions.assertThat(visible).as("El elemento '%s' deberia ser visible", resolved).isTrue();
         TestLogger.logInfo("NATIVE_EL", "Elemento visible: " + resolved, null);
     }
 
-    @Then("el elemento {string} debe ser visible")
-    public void elementoDebeSerVisible(String locator) {
-        verificoElementoNativoVisible(locator);
-    }
-
-    @Then("el elemento {string} no debe ser visible")
+    @Then("el elemento nativo {string} no debe ser visible")
     public void elementoNoDebeSerVisible(String locator) {
         String resolved = ctx().variables().resolve(locator);
         boolean visible = mobile().isVisible(resolved);
@@ -197,7 +193,7 @@ public class NativeElementSteps {
     /**
      * Espera un número específico de segundos (hard wait, útil en mobile).
      */
-    @When("espero {int} segundos")
+    @When("espero {int} segundos en el dispositivo")
     public void esperarSegundos(int seconds) {
         try {
             Thread.sleep(seconds * MILLIS_PER_SECOND);
@@ -230,7 +226,7 @@ public class NativeElementSteps {
     /**
      * Guarda el valor de un atributo de un elemento como variable.
      */
-    @Given("guardo el valor del atributo {string} del elemento {string} como {string}")
+    @Given("guardo el valor del atributo {string} del elemento nativo {string} como {string}")
     public void guardoAtributoComoVariable(String attribute, String locator, String variable) {
         String resolvedLocator = ctx().variables().resolve(locator);
         String resolvedAttr    = ctx().variables().resolve(attribute);

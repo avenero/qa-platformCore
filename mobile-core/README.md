@@ -248,8 +248,8 @@ Cuando borro el contenido del campo "~search_input"
 Cuando toco el boton "~btn_login"
 Cuando marco el switch "~remember_me"
 Cuando desmarco el switch "~notifications"
-Entonces el elemento "~welcome_message" debe ser visible
-Entonces el elemento "~error_banner" no debe ser visible
+Entonces el elemento nativo "~welcome_message" debe ser visible
+Entonces el elemento nativo "~error_banner" no debe ser visible
 Entonces el elemento "~submit_button" debe estar habilitado
 Entonces el texto del elemento "~title" debe ser "Bienvenido"
 Entonces el texto del elemento "~subtitle" debe contener "sesion"

@@ -41,4 +41,12 @@ public interface HttpResponseAccessor {
      * @return Duracion en ms, -1 si no se ha ejecutado ninguna peticion
      */
     long getLastRequestDuration();
+
+    /**
+     * Obtiene el body de la ultima peticion HTTP ejecutada (antes de ser limpiado).
+     * Se usa para construir {@code HttpStepDetail} desde el pipeline de {@code HttpDetailRedactor}.
+     *
+     * @return body de la ultima peticion, o null si no aplica
+     */
+    String getLastRequestBody();
 }

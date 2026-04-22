@@ -86,7 +86,7 @@ public final class ElementLocatorHelper {
     private static org.openqa.selenium.By resolveBy(String expression) {
         if (expression == null || expression.isBlank()) {
             throw new IllegalArgumentException(
-                "La expresion de localizacion no puede ser nula o vacia");
+                "La expresion de localizacion no puede ser nula o vacía");
         }
 
         // "~<value>" → Accessibility ID (mas portable entre Android e iOS)

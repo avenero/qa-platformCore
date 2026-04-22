@@ -16,6 +16,7 @@ import org.skyscreamer.jsonassert.JSONCompare;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.JSONCompareResult;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -116,7 +117,7 @@ public final class JsonUtilities {
         if (jsonString == null) {
             return;
         }
-        int sizeBytes = jsonString.getBytes().length;
+        int sizeBytes = jsonString.getBytes(StandardCharsets.UTF_8).length;
         if (sizeBytes > MAX_JSON_SIZE_BYTES) {
             String msg = String.format(
                 "JSON excede el tamaño máximo: %d bytes (máximo: %d bytes / %.2f MB)",

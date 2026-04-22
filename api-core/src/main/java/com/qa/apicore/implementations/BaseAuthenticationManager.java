@@ -10,6 +10,7 @@ import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.utils.JsonUtilities;
 import com.qa.common.utils.TextUtilities;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
@@ -193,7 +194,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
 
       // Configurar autenticación básica
       String credentials =
-          Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
+          Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
       httpClient.addHeader("Authorization", "Basic " + credentials);
       httpClient.configureForFormData();
       httpClient.setBody("grant_type=client_credentials");
@@ -901,7 +902,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       }
 
       // Decodificar payload (segunda parte)
-      String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
+      String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
       return JsonUtilities.jsonToMap(payloadJson);
 
     } catch (Exception e) {
@@ -1106,7 +1107,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       throws FrameworkBusinessException, FrameworkTechnicalException {
     httpClient.clearRequestData();
     String credentials =
-        Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
+        Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
     httpClient.addHeader("Authorization", "Basic " + credentials);
     httpClient.configureForFormData();
 
@@ -1199,7 +1200,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       if (introspectionClientId != null && introspectionClientSecret != null) {
         String credentials =
             Base64.getEncoder().encodeToString(
-                    (introspectionClientId + ":" + introspectionClientSecret).getBytes());
+                    (introspectionClientId + ":" + introspectionClientSecret).getBytes(StandardCharsets.UTF_8));
         httpClient.addHeader("Authorization", "Basic " + credentials);
       }
 
@@ -1297,7 +1298,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       if (introspectionClientId != null && introspectionClientSecret != null) {
         String credentials =
             Base64.getEncoder().encodeToString(
-                    (introspectionClientId + ":" + introspectionClientSecret).getBytes());
+                    (introspectionClientId + ":" + introspectionClientSecret).getBytes(StandardCharsets.UTF_8));
         httpClient.addHeader("Authorization", "Basic " + credentials);
       }
 
@@ -1359,7 +1360,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       if (introspectionClientId != null && introspectionClientSecret != null) {
         String credentials =
             Base64.getEncoder().encodeToString(
-                    (introspectionClientId + ":" + introspectionClientSecret).getBytes());
+                    (introspectionClientId + ":" + introspectionClientSecret).getBytes(StandardCharsets.UTF_8));
         httpClient.addHeader("Authorization", "Basic " + credentials);
       }
 
