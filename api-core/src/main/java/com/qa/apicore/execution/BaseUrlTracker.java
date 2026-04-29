@@ -76,7 +76,7 @@ public final class BaseUrlTracker {
 
     /** {@code true} si hubo al menos un step que sobrescribió la URL del ambiente. */
     public boolean wasOverriddenFromEnvironment() {
-        if (history.size() < 2) return false;
+        if (history.size() < 2) { return false; }
         return history.get(0).source() == BaseUrlSource.ENVIRONMENT
             && history.stream().anyMatch(c -> c.source() == BaseUrlSource.STEP_LITERAL);
     }

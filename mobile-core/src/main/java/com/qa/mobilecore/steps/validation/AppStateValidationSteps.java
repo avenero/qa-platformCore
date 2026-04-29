@@ -35,9 +35,9 @@ public class AppStateValidationSteps {
         // Appium doesn't expose a reliable "isBackground()" API across platforms,
         // so we verify the session is still alive (driver didn't crash) and trust
         // that the preceding "envio la app al background" step placed it there.
-        Assertions.assertThat(mobile().hasActiveSession())
-            .as("La sesion Appium deberia estar activa para verificar app en segundo plano")
-            .isTrue();
+        Assertions.assertThat(mobile().hasActiveSession()).
+            as("La sesion Appium deberia estar activa para verificar app en segundo plano").
+            isTrue();
         TestLogger.logInfo("MOBILE_APP_STATE", "App en segundo plano (sesion activa confirmada)", null);
     }
 

@@ -137,12 +137,12 @@ public class ApiPlugin implements CorePlugin {
         }
 
         ExecutionConfig cfg = context.config();
-        Optional<String> envUrl = BASE_URL_KEYS.stream()
-            .map(key -> cfg.getProperty(key))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .filter(v -> !v.isBlank())
-            .findFirst();
+        Optional<String> envUrl = BASE_URL_KEYS.stream().
+            map(key -> cfg.getProperty(key)).
+            filter(Optional::isPresent).
+            map(Optional::get).
+            filter(v -> !v.isBlank()).
+            findFirst();
 
         if (envUrl.isPresent()) {
             String normalized = normalizeBaseUrl(envUrl.get());
@@ -207,7 +207,7 @@ public class ApiPlugin implements CorePlugin {
     /** Normaliza una base URL: agrega {@code https://} si falta schema, quita trailing slash. */
     public static String normalizeBaseUrl(String url) {
         String u = url == null ? "" : url.trim();
-        if (u.isEmpty()) return u;
+        if (u.isEmpty()) { return u; }
         if (!u.startsWith("http://") && !u.startsWith("https://")) {
             LOG.warn("[BASE-URL] Schema no especificado en '{}'; asumiendo https://", u);
             u = "https://" + u;

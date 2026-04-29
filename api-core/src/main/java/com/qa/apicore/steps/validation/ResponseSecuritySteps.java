@@ -14,9 +14,11 @@ import java.util.List;
  */
 public class ResponseSecuritySteps {
 
-    private ApiHelper apiHelper() { return ApiHelper.forCurrentContext(); }
+    private static final int MAX_CLIENT_ERROR_CODE = 499;
     private static final List<String> SENSITIVE_HEADERS =
         List.of("Server", "X-Powered-By", "X-AspNet-Version", "X-AspNetMvc-Version");
+
+    private ApiHelper apiHelper() { return ApiHelper.forCurrentContext(); }
 
     /**
      * Valida que la URL de la última petición enviada utilice el protocolo HTTPS.
@@ -81,9 +83,9 @@ public class ResponseSecuritySteps {
     @Then("valido que la respuesta rechazó el ataque de SQL injection {string}")
     public void validoQueRespuestaRechazaAtaqueSqlInjection(String payload) {
         int code = apiHelper().getLastResponse().getStatusCode();
-        Assertions.assertThat(code)
-            .as("SQL injection '%s' debería ser rechazado con código 4xx, pero fue: %d", payload, code)
-            .isBetween(400, 499);
+        Assertions.assertThat(code).
+            as("SQL injection '%s' debería ser rechazado con código 4xx, pero fue: %d", payload, code).
+            isBetween(400, MAX_CLIENT_ERROR_CODE);
     }
 
     /**
@@ -109,10 +111,10 @@ public class ResponseSecuritySteps {
     public void validoQueRespuestaRechazaAtaqueXss(String payload) {
         String body = apiHelper().getLastResponse().getBody();
         if (body != null) {
-            Assertions.assertThat(body)
-                .as("La respuesta no debería reflejar el payload XSS: %s", payload)
-                .doesNotContainIgnoringCase("<script>")
-                .doesNotContain(payload);
+            Assertions.assertThat(body).
+                as("La respuesta no debería reflejar el payload XSS: %s", payload).
+                doesNotContainIgnoringCase("<script>").
+                doesNotContain(payload);
         }
     }
 }

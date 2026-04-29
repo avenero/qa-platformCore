@@ -135,8 +135,8 @@ public interface HttpRequestBuilder {
         String host = getHost();
         if (host != null && host.contains("{" + name + "}")) {
             try {
-                String encoded = java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8)
-                    .replace("+", "%20");
+                String encoded = java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8).
+                    replace("+", "%20");
                 setHost(host.replace("{" + name + "}", encoded));
             } catch (Exception e) {
                 setHost(host.replace("{" + name + "}", value));

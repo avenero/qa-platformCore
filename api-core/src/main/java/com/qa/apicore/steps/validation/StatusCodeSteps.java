@@ -50,7 +50,7 @@ public class StatusCodeSteps {
      */
     @StepDef(value = "api.status.success",
              displayName = "Validar respuesta exitosa (2xx)")
-    @Then("valido que la respuesta sea exitosa (2xx)")
+    @Then("valido que la respuesta sea exitosa \\(2xx\\)")
     public void validoQueLaRespuestaSeaExitosa() {
         Assertions.assertThat(apiHelper().getLastResponse().getStatusCode()).
             as("Se esperaba status 2xx (200-299)").isBetween(200, STATUS_2XX_MAX);
@@ -61,7 +61,7 @@ public class StatusCodeSteps {
      */
     @StepDef(value = "api.status.client-error",
              displayName = "Validar error de cliente (4xx)")
-    @Then("valido que la respuesta sea error de cliente (4xx)")
+    @Then("valido que la respuesta sea error de cliente \\(4xx\\)")
     public void validoQuelaRespuestaSeaErrorDeCliente() {
         Assertions.assertThat(apiHelper().getLastResponse().getStatusCode()).
             as("Se esperaba status 4xx (400-499)").isBetween(400, STATUS_4XX_MAX);
@@ -72,7 +72,7 @@ public class StatusCodeSteps {
      */
     @StepDef(value = "api.status.server-error",
              displayName = "Validar error de servidor (5xx)")
-    @Then("valido que la respuesta sea error de servidor (5xx)")
+    @Then("valido que la respuesta sea error de servidor \\(5xx\\)")
     public void validoQuelaRespuestaSeaErrorDeServidor() {
         Assertions.assertThat(apiHelper().getLastResponse().getStatusCode()).
             as("Se esperaba status 5xx (500-599)").isBetween(500, STATUS_5XX_MAX);

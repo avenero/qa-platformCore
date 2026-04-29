@@ -11,6 +11,7 @@ import com.qa.common.http.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.utils.JsonUtilities;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -500,7 +501,7 @@ public class ValidationUtilities {
 
     try {
       Object actualValue = JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
-      if (!expectedValue.equals(actualValue)) {
+      if (!valuesEquivalent(expectedValue, actualValue)) {
         throw new FrameworkBusinessException(
             "validateJsonPath",
             String.format(
@@ -513,6 +514,48 @@ public class ValidationUtilities {
       throw new FrameworkBusinessException(
           "validateJsonPath",
           String.format("Error validating JSON path '%s': %s", jsonPath, e.getMessage()));
+    }
+  }
+
+  private static boolean valuesEquivalent(Object expectedValue, Object actualValue) {
+    if (expectedValue == actualValue) {
+      return true;
+    }
+    if (expectedValue == null || actualValue == null) {
+      return false;
+    }
+    if (expectedValue.equals(actualValue)) {
+      return true;
+    }
+
+    if (expectedValue instanceof String expectedString) {
+      String normalizedExpected = expectedString.trim();
+      if (actualValue instanceof Number actualNumber && isNumeric(normalizedExpected)) {
+        return new BigDecimal(normalizedExpected).compareTo(new BigDecimal(actualNumber.toString())) == 0;
+      }
+      if (actualValue instanceof Boolean actualBoolean) {
+        if ("true".equalsIgnoreCase(normalizedExpected) || "false".equalsIgnoreCase(normalizedExpected)) {
+          return Boolean.parseBoolean(normalizedExpected) == actualBoolean;
+        }
+      }
+    }
+
+    if (expectedValue instanceof Number expectedNumber && actualValue instanceof Number actualNumber) {
+      return new BigDecimal(expectedNumber.toString()).compareTo(new BigDecimal(actualNumber.toString())) == 0;
+    }
+
+    return false;
+  }
+
+  private static boolean isNumeric(String value) {
+    if (value == null || value.isBlank()) {
+      return false;
+    }
+    try {
+      new BigDecimal(value);
+      return true;
+    } catch (NumberFormatException e) {
+      return false;
     }
   }
 
@@ -803,7 +846,8 @@ public class ValidationUtilities {
             String.format("JSON path '%s' is null or does not exist", jsonPath));
       }
       String valueStr = value.toString();
-      if (!valueStr.matches(regex)) {
+      String effectiveRegex = normalizeRegexIfDoubleEscaped(regex);
+      if (!valueStr.matches(effectiveRegex)) {
         throw new FrameworkBusinessException(
             "validateJsonPathMatchesPattern",
             String.format("JSON path '%s' value '%s' does not match pattern '%s'",
@@ -817,6 +861,20 @@ public class ValidationUtilities {
           "validateJsonPathMatchesPattern",
           String.format("Error validating JSON path pattern '%s': %s", jsonPath, e.getMessage()));
     }
+  }
+
+  /**
+   * Normaliza patrones de regex que llegan doblemente escapados desde Cucumber/Gherkin
+   * (por ejemplo "\\\\."), transformándolos a su forma efectiva para Java regex ("\\.").
+   */
+  private static String normalizeRegexIfDoubleEscaped(String regex) {
+    if (regex == null) {
+      return null;
+    }
+    if (regex.contains("\\\\")) {
+      return regex.replace("\\\\", "\\");
+    }
+    return regex;
   }
 
   // =================================================================================

@@ -138,9 +138,9 @@ public class UrlConfigSteps {
     public void configuroUrlBaseDesdeVariable(String variableKey) {
         ExecutionContext ctx = ExecutionContext.requireCurrent();
         // Variables del ambiente se inyectan por el BE como "env.KEY"
-        String value = ctx.config().getProperty("env." + variableKey)
-            .or(() -> ctx.config().getProperty(variableKey))
-            .orElseThrow(() -> new IllegalArgumentException(
+        String value = ctx.config().getProperty("env." + variableKey).
+            or(() -> ctx.config().getProperty(variableKey)).
+            orElseThrow(() -> new IllegalArgumentException(
                 "La variable '" + variableKey + "' no está definida en el ambiente seleccionado. " +
                 "Verificá que el ambiente tenga esa variable configurada en la plataforma."
             ));
@@ -163,10 +163,10 @@ public class UrlConfigSteps {
     @Given("uso la URL base del ambiente seleccionado")
     public void usoUrlBaseDelAmbiente() {
         ExecutionContext ctx = ExecutionContext.requireCurrent();
-        String url = ctx.config().getProperty("base.url")
-            .or(() -> ctx.config().getProperty("api.base.url"))
-            .filter(v -> !v.isBlank())
-            .orElseThrow(() -> new IllegalStateException(
+        String url = ctx.config().getProperty("base.url").
+            or(() -> ctx.config().getProperty("api.base.url")).
+            filter(v -> !v.isBlank()).
+            orElseThrow(() -> new IllegalStateException(
                 "No hay base URL configurada en el ambiente seleccionado. " +
                 "Verificá que el ambiente tenga una Base URL definida en la plataforma."
             ));

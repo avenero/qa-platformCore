@@ -36,7 +36,7 @@ public final class UrlLiteralDetector {
      * @param paramValue  valor del parámetro en runtime
      */
     public static Optional<String> buildWarningIfLiteral(String stepPattern, String paramValue) {
-        if (!isAbsoluteUrl(paramValue)) return Optional.empty();
+        if (!isAbsoluteUrl(paramValue)) { return Optional.empty(); }
         return Optional.of(String.format(
             "El step '%s' usó una URL absoluta literal: '%s'. " +
             "Considerá reemplazarla por un path relativo y configurar el host en el ambiente.",

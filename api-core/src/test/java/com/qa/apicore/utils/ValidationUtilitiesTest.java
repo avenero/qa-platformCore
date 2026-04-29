@@ -222,6 +222,8 @@ class ValidationUtilitiesTest {
 
         private static final String JSON_SIMPLE =
             "{\"user\":{\"name\":\"Abel\",\"age\":30,\"active\":true,\"tags\":[\"qa\",\"dev\"]}}";
+        private static final String JSON_WITH_EMAIL =
+            "{\"email\":\"qa-architecture@scotiabank.com\"}";
 
         @Test
         @DisplayName("validateJsonPath lanza excepción cuando response es null")
@@ -254,6 +256,20 @@ class ValidationUtilitiesTest {
         }
 
         @Test
+        @DisplayName("validateJsonPath acepta expected String cuando actual JSON es Number")
+        void jsonPathStringExpectedMatchesNumberActual() throws FrameworkBusinessException {
+            ValidationUtilities.validateJsonPath(
+                response(200, "{\"number\":0}"), "$.number", "0");
+        }
+
+        @Test
+        @DisplayName("validateJsonPath acepta expected String cuando actual JSON es Boolean")
+        void jsonPathStringExpectedMatchesBooleanActual() throws FrameworkBusinessException {
+            ValidationUtilities.validateJsonPath(
+                response(200, "{\"active\":true}"), "$.active", "true");
+        }
+
+        @Test
         @DisplayName("validateJsonPathExists lanza excepción cuando response es null")
         void jsonPathExisteResponseNullFalla() {
             assertThatThrownBy(() ->
@@ -276,6 +292,24 @@ class ValidationUtilitiesTest {
                 ValidationUtilities.validateJsonType(
                     new HttpResponse(200, null, new HashMap<>(), 0L), "$.user.name", "string"))
                 .isInstanceOf(FrameworkBusinessException.class);
+        }
+
+        @Test
+        @DisplayName("validateJsonPathMatchesPattern pasa con regex normal de email")
+        void jsonPathPatternEmailRegexNormalOk() throws FrameworkBusinessException {
+            ValidationUtilities.validateJsonPathMatchesPattern(
+                response(200, JSON_WITH_EMAIL),
+                "$.email",
+                "^[^@]+@[^@]+\\.[^@]+$");
+        }
+
+        @Test
+        @DisplayName("validateJsonPathMatchesPattern pasa con regex doblemente escapada desde feature")
+        void jsonPathPatternEmailRegexDoubleEscapedOk() throws FrameworkBusinessException {
+            ValidationUtilities.validateJsonPathMatchesPattern(
+                response(200, JSON_WITH_EMAIL),
+                "$.email",
+                "^[^@]+@[^@]+\\\\.[^@]+$");
         }
     }
 
