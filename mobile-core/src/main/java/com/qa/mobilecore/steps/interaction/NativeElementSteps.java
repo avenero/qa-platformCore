@@ -35,13 +35,6 @@ public class NativeElementSteps {
             "Texto ingresado en '" + resolvedLocator + "': " + resolvedText, null);
     }
 
-    @StepDef(value = "mobile.native-element.legacy-escribo",
-             deprecated = true, replacedBy = "mobile.native-element#ingresarTextoNativo")
-    @When("escribo {string} en el campo {string}")
-    public void escriboEnCampo(String text, String locator) {
-        ingresarTextoNativo(text, locator);
-    }
-
     @When("presiono el boton nativo {string}")
     public void presionoBotonNativo(String locator) {
         String resolved = ctx().variables().resolve(locator);
@@ -49,25 +42,11 @@ public class NativeElementSteps {
         TestLogger.logInfo("NATIVE_EL", "Tap en boton: " + resolved, null);
     }
 
-    @StepDef(value = "mobile.native-element.legacy-toco-boton",
-             deprecated = true, replacedBy = "mobile.native-element#presionoBotonNativo")
-    @When("toco el boton {string}")
-    public void tocoElBoton(String locator) {
-        presionoBotonNativo(locator);
-    }
-
     @When("limpio el campo nativo {string}")
     public void limpioElCampoNativo(String locator) {
         String resolved = ctx().variables().resolve(locator);
         mobile().clearField(resolved);
         TestLogger.logInfo("NATIVE_EL", "Campo limpiado: " + resolved, null);
-    }
-
-    @StepDef(value = "mobile.native-element.legacy-borro-campo",
-             deprecated = true, replacedBy = "mobile.native-element#limpioElCampoNativo")
-    @When("borro el contenido del campo {string}")
-    public void borroContenidoCampo(String locator) {
-        limpioElCampoNativo(locator);
     }
 
     @When("marco el switch {string}")
@@ -92,9 +71,8 @@ public class NativeElementSteps {
     // Validaciones de elementos (THEN)
     // =========================================================================
 
-    @StepDef(value = "mobile.native-element.legacy-verifico-visible",
-             deprecated = true,
-             replacedBy = "mobile.native-element#elementoDebeSerVisible")
+    @StepDef(value = "mobile.native-element.verifico-visible",
+             displayName = "Verificar que elemento nativo sea visible")
     @Then("el elemento nativo {string} debe ser visible")
     public void elementoDebeSerVisible(String locator) {
         String resolved = ctx().variables().resolve(locator);

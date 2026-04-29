@@ -50,6 +50,17 @@ public interface HttpRequestBuilder {
     // =========================================================================
 
     /**
+     * Obtiene todos los headers actualmente configurados.
+     * Implementación default retorna un mapa vacío.
+     *
+     * @return Mapa con todos los headers configurados (nunca null, puede estar vacío)
+     * @since 2.0.0
+     */
+    default Map<String, String> getHeaders() {
+        return Map.of();
+    }
+
+    /**
      * Agrega un header HTTP a la petición.
      *
      * @param key   Nombre del header (no puede ser null o vacío)
@@ -123,7 +134,13 @@ public interface HttpRequestBuilder {
     default void addPathParam(String name, String value) {
         String host = getHost();
         if (host != null && host.contains("{" + name + "}")) {
-            setHost(host.replace("{" + name + "}", value));
+            try {
+                String encoded = java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8)
+                    .replace("+", "%20");
+                setHost(host.replace("{" + name + "}", encoded));
+            } catch (Exception e) {
+                setHost(host.replace("{" + name + "}", value));
+            }
         } else {
             addQueryParam(name, value);
         }

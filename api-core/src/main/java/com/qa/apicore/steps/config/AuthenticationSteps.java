@@ -5,7 +5,7 @@ import com.qa.apicore.implementations.BaseHttpClient;
 import com.qa.apicore.interfaces.AuthenticationService;
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.apicore.utils.ApiHelper;
-import com.qa.common.http.exceptions.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.annotation.StepDef;
@@ -84,19 +84,6 @@ public class AuthenticationSteps {
         String token = getAuthentication().getBearerTokenForIdentifier(processed);
         getHttpClient().addHeader("Authorization", "Bearer " + token);
         TestLogger.logInfo("AUTH_STEPS", "Autenticacion Bearer para identificador: " + processed, null);
-    }
-
-    /**
-     * @deprecated usar {@link #agregoAutenticacionBearerConIdentificador(String)} con el RUT
-     *             como {@code identifier}.
-     */
-    @Deprecated(since = "2.1.0", forRemoval = false)
-    @StepDef(value = "api.authentication.legacy-bearer-rut",
-             deprecated = true, replacedBy = "api.authentication.bearer.identifier",
-             displayName = "Bearer por RUT (DEPRECATED)")
-    @Given("agrego autenticación Bearer para RUT {string}")
-    public void agregoAutenticacionBearerParaRUT(String rut) throws FrameworkBusinessException {
-        agregoAutenticacionBearerConIdentificador(rut);
     }
 
     /**
@@ -195,33 +182,25 @@ public class AuthenticationSteps {
         getHttpClient().removeHeader("Authorization");
     }
 
-    // =========================================================================
-    // Steps DEPRECATED — mantener hasta próxima release mayor
-    // =========================================================================
-
     /**
-     * @deprecated usar {@link #agregoElTokenPersonalizado(String)} con
-     *             {@code "EXPIRED_TOKEN_FOR_SECURITY_TEST"} como valor.
+     * Simula un token JWT expirado en el header {@code Authorization}.
+     * Útil para verificar que el API rechaza tokens caducados con 401.
      */
-    @Deprecated(since = "2.1.0", forRemoval = false)
-    @StepDef(value = "api.authentication.legacy-token-expirado",
-             deprecated = true, replacedBy = "api.authentication.custom-token",
-             displayName = "Token expirado para seguridad (DEPRECATED)")
-    @Given("agrego token expirado para prueba de seguridad")
-    public void agregoTokenExpirado() {
+    @StepDef(value = "api.authentication.simular-token-expirado",
+             displayName = "Simular token expirado en Authorization")
+    @Given("simulo un token expirado en el header Authorization")
+    public void simuloTokenExpirado() {
         getHttpClient().addHeader("Authorization", "Bearer EXPIRED_TOKEN_FOR_SECURITY_TEST");
     }
 
     /**
-     * @deprecated usar {@link #agregoElTokenPersonalizado(String)} con
-     *             {@code "INVALID_TOKEN_xyz"} como valor.
+     * Simula un token JWT con formato inválido en el header {@code Authorization}.
+     * Útil para verificar que el API rechaza tokens malformados con 401.
      */
-    @Deprecated(since = "2.1.0", forRemoval = false)
-    @StepDef(value = "api.authentication.legacy-token-invalido",
-             deprecated = true, replacedBy = "api.authentication.custom-token",
-             displayName = "Token inválido para seguridad (DEPRECATED)")
-    @Given("agrego token inválido para prueba de seguridad")
-    public void agregoTokenInvalido() {
+    @StepDef(value = "api.authentication.simular-token-invalido",
+             displayName = "Simular token inválido en Authorization")
+    @Given("simulo un token inválido en el header Authorization")
+    public void simuloTokenInvalido() {
         getHttpClient().addHeader("Authorization", "Bearer INVALID_TOKEN_xyz");
     }
 }

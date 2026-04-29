@@ -33,14 +33,35 @@ public class CookieSteps {
         TestLogger.logInfo("COOKIE_STEPS", "Cookie agregada: " + name, null);
     }
 
-    @Given("agrego cookie de sesión {string}")
-    public void agregoCookieDeSesion(String sessionCookie) {
+    /**
+     * Establece el header {@code Cookie} con el valor completo (raw) proporcionado.
+     * Usar cuando se necesita control total sobre el string del header Cookie,
+     * incluyendo atributos como {@code Path}, {@code HttpOnly}, {@code Secure}, etc.
+     *
+     * <p>Ejemplo:
+     * <pre>
+     * Given agrego el header Cookie completo "JSESSIONID=abc123; Path=/; HttpOnly"
+     * </pre>
+     */
+    @Given("agrego el header Cookie completo {string}")
+    public void agregoElHeaderCookieCompleto(String fullCookieHeader) {
         getHttpRequestBuilder().addHeader("Cookie",
-                ExecutionContext.requireCurrent().variables().resolve(sessionCookie));
+                ExecutionContext.requireCurrent().variables().resolve(fullCookieHeader));
     }
 
-    @Given("agrego cookie expirada {string} para prueba de seguridad")
-    public void agregoCookieExpirada(String name) {
+    /**
+     * Simula una cookie expirada enviando {@code name=EXPIRED; Max-Age=0} en el
+     * header {@code Cookie}. Útil para verificar que el API rechaza cookies vencidas.
+     *
+     * <p>Ejemplo:
+     * <pre>
+     * Given simulo la cookie expirada "AUTH_TOKEN"
+     * When ejecuto una petición "GET"
+     * Then valido que la respuesta sea error de cliente (4xx)
+     * </pre>
+     */
+    @Given("simulo la cookie expirada {string}")
+    public void simuloCookieExpirada(String name) {
         getHttpRequestBuilder().addHeader("Cookie", name + "=EXPIRED; Max-Age=0");
     }
 

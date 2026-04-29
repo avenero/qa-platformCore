@@ -1,7 +1,7 @@
 package com.qa.apicore.steps.validation;
 
 import com.qa.apicore.utils.ApiHelper;
-import com.qa.common.http.exceptions.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.runtime.annotation.StepDef;
 import io.cucumber.java.en.Then;
 import org.assertj.core.api.Assertions;
@@ -36,12 +36,11 @@ public class StatusCodeSteps {
 
     /**
      * Valida que el código de respuesta HTTP sea exactamente el esperado.
-     * Es el step de validación de status más utilizado.
      */
     @StepDef(value = "api.status.exact",
-             displayName = "Validar código de respuesta exacto")
-    @Then("valido que el codigo de respuesta del servicio sea {int}")
-    public void validoQueElCodigoDeRespuestaDelServicioSea(int statusCode)
+             displayName = "Validar código HTTP de respuesta")
+    @Then("valido que el código HTTP de respuesta sea {int}")
+    public void validoQueElCodigoHttpDeRespuestaSea(int statusCode)
             throws FrameworkBusinessException {
         apiHelper().validateResponseStatusCode(statusCode);
     }
@@ -51,10 +50,10 @@ public class StatusCodeSteps {
      */
     @StepDef(value = "api.status.success",
              displayName = "Validar respuesta exitosa (2xx)")
-    @Then("valido que el servicio responda con éxito")
-    public void validoExito() {
+    @Then("valido que la respuesta sea exitosa (2xx)")
+    public void validoQueLaRespuestaSeaExitosa() {
         Assertions.assertThat(apiHelper().getLastResponse().getStatusCode()).
-            as("Se esperaba status 2xx").isBetween(200, STATUS_2XX_MAX);
+            as("Se esperaba status 2xx (200-299)").isBetween(200, STATUS_2XX_MAX);
     }
 
     /**
@@ -62,10 +61,10 @@ public class StatusCodeSteps {
      */
     @StepDef(value = "api.status.client-error",
              displayName = "Validar error de cliente (4xx)")
-    @Then("valido que el servicio responda con error de cliente")
-    public void validoErrorCliente() {
+    @Then("valido que la respuesta sea error de cliente (4xx)")
+    public void validoQuelaRespuestaSeaErrorDeCliente() {
         Assertions.assertThat(apiHelper().getLastResponse().getStatusCode()).
-            as("Se esperaba status 4xx").isBetween(400, STATUS_4XX_MAX);
+            as("Se esperaba status 4xx (400-499)").isBetween(400, STATUS_4XX_MAX);
     }
 
     /**
@@ -73,32 +72,31 @@ public class StatusCodeSteps {
      */
     @StepDef(value = "api.status.server-error",
              displayName = "Validar error de servidor (5xx)")
-    @Then("valido que el servicio responda con error de servidor")
-    public void validoErrorServidor() {
+    @Then("valido que la respuesta sea error de servidor (5xx)")
+    public void validoQuelaRespuestaSeaErrorDeServidor() {
         Assertions.assertThat(apiHelper().getLastResponse().getStatusCode()).
-            as("Se esperaba status 5xx").isBetween(500, STATUS_5XX_MAX);
+            as("Se esperaba status 5xx (500-599)").isBetween(500, STATUS_5XX_MAX);
     }
 
     /**
      * Valida que el código de respuesta esté dentro de un rango numérico inclusivo.
      */
     @StepDef(value = "api.status.range",
-             displayName = "Validar código en rango")
-    @Then("valido que el status code esté entre {int} y {int}")
-    public void validoStatusCodeEnRango(int min, int max) {
+             displayName = "Validar código de respuesta en rango")
+    @Then("valido que el código de respuesta esté entre {int} y {int}")
+    public void validoQueElCodigoDeRespuestaEsteEntre(int min, int max) {
         Assertions.assertThat(apiHelper().getLastResponse().getStatusCode()).
             as("Se esperaba status entre " + min + " y " + max).isBetween(min, max);
     }
 
     /**
      * Valida que el código de respuesta NO sea el indicado.
-     * Útil para verificar que ciertos errores no ocurren.
      */
     @StepDef(value = "api.status.not",
-             displayName = "Validar que código NO sea el indicado")
-    @Then("valido que el status code NO sea {int}")
-    public void validoStatusCodeNoSea(int statusCode) {
+             displayName = "Validar que código de respuesta NO sea el indicado")
+    @Then("valido que el código de respuesta NO sea {int}")
+    public void validoQueElCodigoDeRespuestaNoSea(int statusCode) {
         Assertions.assertThat(apiHelper().getLastResponse().getStatusCode()).
-            as("Status code NO deberia ser " + statusCode).isNotEqualTo(statusCode);
+            as("Código de respuesta NO debería ser " + statusCode).isNotEqualTo(statusCode);
     }
 }

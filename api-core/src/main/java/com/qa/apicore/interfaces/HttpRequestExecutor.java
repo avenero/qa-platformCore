@@ -1,7 +1,7 @@
 package com.qa.apicore.interfaces;
 
 import com.qa.common.http.enums.HttpMethod;
-import com.qa.common.http.exceptions.FrameworkTechnicalException;
+import com.qa.common.exception.FrameworkTechnicalException;
 import com.qa.common.http.model.HttpResponse;
 
 /**

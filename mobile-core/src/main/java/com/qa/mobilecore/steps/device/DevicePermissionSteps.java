@@ -29,7 +29,7 @@ public class DevicePermissionSteps {
     }
 
     @Given("deniego permiso {string} a la aplicacion")
-    public void deniogoPermiso(String permission) {
+    public void denigoPermiso(String permission) {
         String resolved = ctx().variables().resolve(permission);
         mobile().denyPermission(resolved);
         TestLogger.logInfo("PERMISSION", "Permiso denegado: " + resolved, null);
@@ -61,8 +61,8 @@ public class DevicePermissionSteps {
     }
 
     @Given("deniego el permiso de ubicacion")
-    public void deniogoPermisoUbicacion() {
-        deniogoPermiso("android.permission.ACCESS_FINE_LOCATION");
+    public void denigoPermisoUbicacion() {
+        denigoPermiso("android.permission.ACCESS_FINE_LOCATION");
     }
 
     @Given("concedo el permiso de camara")
@@ -71,8 +71,8 @@ public class DevicePermissionSteps {
     }
 
     @Given("deniego el permiso de camara")
-    public void deniogoPermisoCamara() {
-        deniogoPermiso("android.permission.CAMERA");
+    public void denigoPermisoCamara() {
+        denigoPermiso("android.permission.CAMERA");
     }
 
     @Given("concedo el permiso de notificaciones")
@@ -81,8 +81,8 @@ public class DevicePermissionSteps {
     }
 
     @Given("deniego el permiso de notificaciones")
-    public void deniogoPermisoNotificaciones() {
-        deniogoPermiso("android.permission.POST_NOTIFICATIONS");
+    public void denigoPermisoNotificaciones() {
+        denigoPermiso("android.permission.POST_NOTIFICATIONS");
     }
 
     @Given("concedo el permiso de microfono")

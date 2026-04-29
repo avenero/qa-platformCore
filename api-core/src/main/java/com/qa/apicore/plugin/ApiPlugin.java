@@ -12,6 +12,9 @@ import com.qa.apicore.components.ApiResponseHeaderComponent;
 import com.qa.apicore.components.ApiSecurityComponent;
 import com.qa.apicore.components.ApiStatusCodeComponent;
 import com.qa.apicore.components.ApiUrlComponent;
+import com.qa.apicore.execution.BaseUrlSource;
+import com.qa.apicore.execution.BaseUrlTracker;
+import com.qa.apicore.execution.ExecutionMeta;
 import com.qa.apicore.implementations.BaseAuthenticationManager;
 import com.qa.apicore.implementations.BaseHttpClient;
 import com.qa.apicore.interfaces.AuthenticationService;
@@ -21,12 +24,14 @@ import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.ServiceRegistry;
+
 import com.qa.common.runtime.StepComponent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -48,6 +53,20 @@ public class ApiPlugin implements CorePlugin {
 
     /** Orden de registro del plugin API dentro del sistema de plugins. */
     private static final int PLUGIN_ORDER = 50;
+
+    /**
+     * Claves de propiedad que el BE puede usar para inyectar la base URL del ambiente.
+     * El bootstrap las prueba en orden y usa la primera que tenga valor.
+     */
+    private static final List<String> BASE_URL_KEYS = List.of(
+        "base.url",
+        "api.base.url",
+        "api.baseurl",
+        "api.baseurl.qa"   // legacy — compatibilidad con proyectos que usan esta clave
+    );
+
+    /** Tracker activo por hilo — permite ejecución paralela sin tocar el ServiceRegistry. */
+    private static final ThreadLocal<BaseUrlTracker> TRACKER = new ThreadLocal<>();
 
     @Override
     public String getName() {
@@ -89,13 +108,166 @@ public class ApiPlugin implements CorePlugin {
     @Override
     public void onScenarioStart(ExecutionContext context) {
         LOG.debug("[ApiPlugin] onScenarioStart — reiniciando estado HTTP para escenario");
-        context.registry().get(HttpClient.class).ifPresent(HttpClient::clearRequestData);
+
+        BaseUrlTracker tracker = new BaseUrlTracker();
+        TRACKER.set(tracker);
+
+        context.registry().get(HttpClient.class).ifPresent(client -> {
+            client.clearRequestData();
+            applyHttpPolicyFromExecutionConfig(context, client);
+            bootstrapBaseUrl(context, client, tracker);
+        });
+    }
+
+    /**
+     * Bootstrap: si el ExecutionConfig trae una base URL del ambiente y el cliente
+     * aún no tiene host configurado, la aplica automáticamente.
+     *
+     * <p>Esto hace que un escenario sin steps de host use el ambiente seleccionado
+     * en la plataforma como fuente de verdad, sin necesidad de steps explícitos.
+     *
+     * <p>Si el cliente ya tiene host (rehúso entre escenarios sin reset completo),
+     * se respeta el valor existente sin sobreescribir.
+     */
+    private void bootstrapBaseUrl(ExecutionContext context, HttpClient client, BaseUrlTracker tracker) {
+        // Solo hace bootstrap si el cliente no tiene host previo
+        if (client.hasValidHost()) {
+            LOG.debug("[BASE-URL] Cliente ya tiene host configurado antes del bootstrap; se respeta.");
+            return;
+        }
+
+        ExecutionConfig cfg = context.config();
+        Optional<String> envUrl = BASE_URL_KEYS.stream()
+            .map(key -> cfg.getProperty(key))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .filter(v -> !v.isBlank())
+            .findFirst();
+
+        if (envUrl.isPresent()) {
+            String normalized = normalizeBaseUrl(envUrl.get());
+            client.setHost(normalized);
+            tracker.record(normalized, BaseUrlSource.ENVIRONMENT, null);
+        } else {
+            LOG.warn("[BASE-URL] No hay base URL de ambiente en ExecutionConfig. " +
+                     "El escenario debe proveer el host explícitamente.");
+        }
+    }
+
+    /**
+     * Aplica un override de base URL desde un step.
+     * Llamado por {@link com.qa.apicore.steps.config.UrlConfigSteps} en lugar de
+     * invocar {@code client.setHost()} directamente.
+     *
+     * <p>Valida la política {@code base.url.override.allowed} (inyectada por el BE).
+     * En modo estricto, los steps con URL literal lanzan {@link BaseUrlOverrideException}.
+     *
+     * @param context     contexto de ejecución activo
+     * @param newUrl      URL ya normalizada a aplicar
+     * @param source      origen del cambio
+     * @param stepPattern pattern del step que solicita el cambio (para logs y warnings)
+     */
+    public static void applyBaseUrlOverride(
+        ExecutionContext context,
+        String          newUrl,
+        BaseUrlSource   source,
+        String          stepPattern
+    ) {
+        boolean strict = "false".equalsIgnoreCase(
+            context.config().getProperty("base.url.override.allowed").orElse("true"));
+
+        if (strict && source == BaseUrlSource.STEP_LITERAL) {
+            throw new BaseUrlOverrideException(
+                "El proyecto no permite sobrescribir la base URL del ambiente desde un step " +
+                "con URL literal. Step: '" + stepPattern + "'. " +
+                "Usá paths relativos o configurá el host en el ambiente de la plataforma."
+            );
+        }
+
+        String normalized = normalizeBaseUrl(newUrl);
+
+        context.registry().get(HttpClient.class).ifPresent(c -> c.setHost(normalized));
+
+        Optional.ofNullable(TRACKER.get()).ifPresent(t -> t.record(normalized, source, stepPattern));
+
+        if (source == BaseUrlSource.STEP_LITERAL) {
+            LOG.warn("[BASE-URL] Step '{}' sobrescribió la base URL con literal: '{}'",
+                     stepPattern, normalized);
+        } else {
+            LOG.info("[BASE-URL] Step '{}' aplicó base URL ({}): '{}'",
+                     stepPattern, source, normalized);
+        }
+    }
+
+    /** Obtiene el {@link ExecutionMeta} del escenario actual para enviarlo al BE. */
+    public static Optional<ExecutionMeta> currentExecutionMeta(ExecutionContext context) {
+        return Optional.ofNullable(TRACKER.get()).map(ExecutionMeta::from);
+    }
+
+    /** Normaliza una base URL: agrega {@code https://} si falta schema, quita trailing slash. */
+    public static String normalizeBaseUrl(String url) {
+        String u = url == null ? "" : url.trim();
+        if (u.isEmpty()) return u;
+        if (!u.startsWith("http://") && !u.startsWith("https://")) {
+            LOG.warn("[BASE-URL] Schema no especificado en '{}'; asumiendo https://", u);
+            u = "https://" + u;
+        }
+        return u.endsWith("/") ? u.substring(0, u.length() - 1) : u;
+    }
+
+    /**
+     * Aplica timeouts y reintentos declarados en {@link ExecutionConfig} (inyectados por el BE).
+     * Claves: {@code http.connect.timeout.ms}, {@code http.read.timeout.ms}, {@code http.max.retries}.
+     */
+    private static void applyHttpPolicyFromExecutionConfig(ExecutionContext context, HttpClient client) {
+        ExecutionConfig cfg = context.config();
+        parsePositiveInt(cfg.getProperty("http.connect.timeout.ms")).ifPresent(v -> client.setConnectionTimeout(v));
+        parsePositiveInt(cfg.getProperty("http.read.timeout.ms")).ifPresent(v -> client.setReadTimeout(v));
+        Optional<String> retries = cfg.getProperty("http.max.retries");
+        if (retries.isPresent()) {
+            try {
+                int n = Integer.parseInt(retries.get().trim());
+                if (n >= 0) {
+                    int delay = client.getRetryDelay() > 0 ? client.getRetryDelay() : 500;
+                    client.setRetryPolicy(n, delay);
+                }
+            } catch (NumberFormatException ignored) {
+                // mantener política por defecto del cliente
+            }
+        }
+    }
+
+    private static Optional<Integer> parsePositiveInt(Optional<String> raw) {
+        if (raw.isEmpty() || raw.get().isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            int v = Integer.parseInt(raw.get().trim());
+            if (v > 0) {
+                return Optional.of(v);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return Optional.empty();
     }
 
     @Override
     public void onScenarioEnd(ExecutionContext context) {
         LOG.debug("[ApiPlugin] onScenarioEnd — limpiando cliente HTTP");
         context.registry().get(HttpClient.class).ifPresent(HttpClient::reset);
+
+        // Log del resumen de URL efectiva (para debugging en CI)
+        Optional.ofNullable(TRACKER.get()).ifPresent(tracker -> {
+            if (tracker.hasBaseUrl()) {
+                LOG.info("[BASE-URL] URL efectiva al finalizar escenario: '{}' (fuente: {})",
+                         tracker.getEffectiveBaseUrl(), tracker.getSource());
+                if (tracker.wasOverriddenFromEnvironment()) {
+                    LOG.warn("[BASE-URL] La URL del ambiente fue sobrescrita por un step literal. " +
+                             "Revisar si el escenario es portable.");
+                }
+            }
+        });
+        TRACKER.remove();
     }
 
     /**

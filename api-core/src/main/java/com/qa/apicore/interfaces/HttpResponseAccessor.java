@@ -2,6 +2,9 @@ package com.qa.apicore.interfaces;
 
 import com.qa.common.http.model.HttpResponse;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * Contrato de solo lectura sobre la ultima respuesta HTTP recibida.
  *
@@ -49,4 +52,20 @@ public interface HttpResponseAccessor {
      * @return body de la ultima peticion, o null si no aplica
      */
     String getLastRequestBody();
+
+    /**
+     * Identificador de correlación de la última petición (p. ej. UUID), si existe.
+     *
+     * @return id o {@code null} si no aplica
+     */
+    default String getLastRequestId() {
+        return null;
+    }
+
+    /**
+     * Snapshot de headers de la última petición enviada (antes de limpiar el cliente).
+     */
+    default Map<String, String> getLastRequestHeadersSnapshot() {
+        return Collections.emptyMap();
+    }
 }

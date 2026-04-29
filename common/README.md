@@ -6,22 +6,25 @@
 
 ---
 
-## 📑 Índice
+## Índice
 
 1. [¿Qué es Common?](#1-qué-es-common)
 2. [Mapa completo de paquetes](#2-mapa-completo-de-paquetes)
 3. [El Motor de Ejecución — runtime/](#3-el-motor-de-ejecución--runtime)
-4. [Sistema de Logging — logging/](#4-sistema-de-logging--logging)
-5. [Gestión de Configuración — config/](#5-gestión-de-configuración--config)
-6. [HTTP Base — http/](#6-http-base--http)
-7. [Base de Datos — database/](#7-base-de-datos--database)
-8. [Utilidades — utils/](#8-utilidades--utils)
-9. [Hooks de Cucumber — cucumber/hooks/](#9-hooks-de-cucumber--cucumberhooks)
-10. [Driver (WebDriver compartido) — driver/](#10-driver-webdriver-compartido--driver)
-11. [Reportes — reporting/](#11-reportes--reporting)
-12. [Cómo usar Common en otro módulo](#12-cómo-usar-common-en-otro-módulo)
-13. [Dependencias](#13-dependencias)
-14. [Convención de IDs de Step](#14-convención-de-ids-de-step)
+4. [Excepciones del Framework — exception/](#4-excepciones-del-framework--exception)
+5. [Sistema de Logging — logging/](#5-sistema-de-logging--logging)
+6. [Gestión de Configuración — config/](#6-gestión-de-configuración--config)
+7. [HTTP Base — http/](#7-http-base--http)
+8. [Base de Datos — database/](#8-base-de-datos--database)
+9. [Utilidades — utils/](#9-utilidades--utils)
+10. [Hooks de Cucumber — cucumber/hooks/](#10-hooks-de-cucumber--cucumberhooks)
+11. [Driver (WebDriver compartido) — driver/](#11-driver-webdriver-compartido--driver)
+12. [Reportes — reporting/](#12-reportes--reporting)
+13. [Contrato con el Backend](#13-contrato-con-el-backend-api-pública-del-core)
+14. [Cómo usar Common en otro módulo](#14-cómo-usar-common-en-otro-módulo)
+15. [Dependencias](#15-dependencias)
+16. [Convención de IDs de Step](#16-convención-de-ids-de-step)
+17. [Catálogo de Steps a nivel método — API v2.3.0](#17-catálogo-de-steps-a-nivel-método--api-v230)
 
 ---
 
@@ -29,29 +32,28 @@
 
 **Common** es la **capa fundacional** del framework — la base sobre la que se construyen las capas especializadas (`api-core`, `web-core`, `mobile-core`). Ninguna de esas capas puede funcionar sin `common`.
 
-Piénsalo como los **cimientos de un edificio**: no ves los cimientos cuando miras el edificio terminado, pero sin ellos, nada se sostiene.
-
 ### ¿Qué hace Common?
 
-| Paquete | Función en palabras simples |
-|---------|----------------------------|
-| `runtime/` | El motor que orquesta cómo se ejecutan los escenarios de prueba |
+| Paquete | Función |
+|---------|---------|
+| `runtime/` | Motor que orquesta cómo se ejecutan los escenarios de prueba |
+| `exception/` | Jerarquía de excepciones del framework (errores de negocio y técnicos) |
 | `logging/` | Registra todo lo que pasa durante las pruebas, de forma ordenada y segura |
 | `config/` | Lee la configuración del proyecto (URLs, credenciales, timeouts) |
-| `http/` | Define el modelo básico de una petición/respuesta HTTP |
+| `http/` | Define los modelos básicos de una petición/respuesta HTTP |
 | `database/` | Conecta con bases de datos (Oracle, PostgreSQL, MySQL, SQL Server) |
-| `utils/` | Herramientas para manejar JSON, textos, fechas, archivos y variables |
+| `utils/` | Herramientas para variables de escenario, datos de prueba, JSON y texto |
 | `cucumber/hooks/` | Administra el ciclo de vida de cada escenario de prueba |
 | `driver/` | Base compartida para el manejo de WebDrivers |
-| `reporting/` | Genera evidencias y reportes de las pruebas ejecutadas |
+| `reporting/` | Genera reportes HTML y captura evidencia HTTP de las pruebas ejecutadas |
 
 ### ¿Qué NO hace Common?
 
-- ❌ **No contiene steps de Selenium ni Appium** (esos van en web-core y mobile-core)
-- ❌ **No tiene lógica de negocio** (eso va en el proyecto de pruebas)
-- ❌ **No conoce las URLs ni la estructura** de ningún sistema específico
+- **No contiene steps de Selenium ni Appium** (esos van en web-core y mobile-core)
+- **No tiene lógica de negocio** (eso va en el proyecto de pruebas)
+- **No conoce las URLs ni la estructura** de ningún sistema específico
 
-> **Nota:** `database/` sí contiene steps BDD (`DatabaseConnectionSteps`) porque la BD es un recurso transversal usado por cualquier capa — no es exclusivo de API, Web ni Mobile.
+> `database/` sí contiene steps BDD (`DatabaseConnectionSteps`) porque la BD es un recurso transversal usado por cualquier capa — no es exclusivo de API, Web ni Mobile.
 
 ---
 
@@ -61,90 +63,128 @@ Piénsalo como los **cimientos de un edificio**: no ves los cimientos cuando mir
 common/
 └── src/main/java/com/qa/common/
     │
-    ├── runtime/                         ← ⭐ MOTOR DE EJECUCIÓN (novedad v2.0)
-    │   ├── CorePlugin.java              ← Interfaz que todo plugin debe implementar
-    │   ├── CucumberRuntimeEngine.java   ← Director de la orquesta de ejecución
-    │   ├── ExecutionContext.java        ← Tablero de control de un escenario
-    │   ├── ExecutionConfig.java         ← Configuración de una ejecución
-    │   ├── ExecutionRequest.java        ← Solicitud de ejecución
-    │   ├── ExecutionResult.java         ← Resultado de una ejecución
-    │   ├── ServiceRegistry.java         ← Casillero de servicios (lazy injection)
-    │   ├── VariableStore.java           ← Cuaderno de variables entre steps
-    │   ├── StepComponent.java           ← Ficha técnica de un grupo de steps
-    │   ├── BddPhase.java                ← Enum: GIVEN, WHEN, THEN
-    │   ├── DefaultLifecycleManager.java ← Gestiona ciclo de vida de plugins
-    │   ├── LifecycleManager.java        ← Interfaz del lifecycle manager
-    │   ├── InMemoryResultCollector.java ← Colecta resultados en memoria
-    │   ├── ScenarioMetadata.java        ← Record: metadata de un escenario (2.1.0)
-    │   ├── ScenarioLifecycleBridge.java ← Bridge Cucumber events → LifecycleManager (2.1.0)
-    │   ├── StepDiscoveryService.java    ← Descubre steps (nivel componente y nivel método)
-    │   ├── StepInfo.java                ← DTO nivel componente (para el Backend)
-    │   ├── StepDefinitionInfo.java      ← DTO nivel step individual (2.2.0) ⭐
-    │   ├── ParamInfo.java               ← DTO parámetro de un step (2.2.0)
-    │   ├── StepMethodScanner.java       ← Scanner reflexivo @Given/@When/@Then (2.2.0) ⭐
+    ├── runtime/                              ← MOTOR DE EJECUCIÓN
+    │   ├── CorePlugin.java
+    │   ├── CucumberRuntimeEngine.java
+    │   ├── ExecutionContext.java
+    │   ├── ExecutionConfig.java
+    │   ├── ExecutionRequest.java
+    │   ├── ExecutionResult.java
+    │   ├── ServiceRegistry.java
+    │   ├── VariableStore.java
+    │   ├── StepComponent.java
+    │   ├── BddPhase.java
+    │   ├── DefaultLifecycleManager.java
+    │   ├── LifecycleManager.java
+    │   ├── InMemoryResultCollector.java
+    │   ├── ScenarioMetadata.java
+    │   ├── ScenarioLifecycleBridge.java
+    │   ├── StepDiscoveryService.java
+    │   ├── StepInfo.java
+    │   ├── StepDefinitionInfo.java
+    │   ├── ParamInfo.java
+    │   ├── StepMethodScanner.java
     │   ├── annotation/
-    │   │   ├── StepId.java              ← @StepId en clase StepComponent (ID estable)
-    │   │   └── StepDef.java             ← @StepDef en método step (ID nivel método) (2.2.0)
-    │   └── events/                      ← Eventos del ciclo de vida
+    │   │   ├── StepId.java
+    │   │   └── StepDef.java
+    │   └── events/
     │
-    ├── logging/                         ← SISTEMA DE LOGGING
-    │   ├── TestLogger.java              ← Logger principal con contexto automático
-    │   └── LoggingInitializer.java      ← Inicializa el contexto de log (MDC)
+    ├── exception/                            ← EXCEPCIONES DEL FRAMEWORK
+    │   ├── FrameworkException.java           ← Base abstracta de toda excepción del framework
+    │   ├── FrameworkBusinessException.java   ← Validación fallida, regla de negocio violada
+    │   └── FrameworkTechnicalException.java  ← Error de infraestructura (timeout, red, config)
     │
-    ├── config/                          ← GESTIÓN DE CONFIGURACIÓN
-    │   ├── ConfigManager.java           ← Singleton que lee config del proyecto
-    │   └── providers/                   ← Proveedores de configuración por fuente
+    ├── logging/                              ← SISTEMA DE LOGGING
+    │   ├── TestLogger.java                   ← Logger principal con contexto automático (MDC)
+    │   └── LoggingInitializer.java           ← Inicializa el contexto de log por escenario
     │
-    ├── http/                            ← HTTP BASE (modelos compartidos)
+    ├── config/                               ← GESTIÓN DE CONFIGURACIÓN
+    │   ├── ConfigManager.java
+    │   └── providers/
+    │
+    ├── http/                                 ← HTTP BASE (modelos compartidos)
     │   ├── model/
-    │   │   └── HttpResponse.java        ← Modelo de respuesta HTTP (status+body+headers)
-    │   ├── enums/
-    │   │   └── HttpMethod.java          ← Enum: GET, POST, PUT, PATCH, DELETE
-    │   └── exceptions/
-    │       ├── FrameworkBusinessException.java   ← Excepción de validación fallida
-    │       └── FrameworkTechnicalException.java  ← Excepción técnica (timeout, red)
+    │   │   └── HttpResponse.java             ← status + body + headers + elapsedMs
+    │   └── enums/
+    │       └── HttpMethod.java               ← GET, POST, PUT, PATCH, DELETE
     │
-    ├── database/                        ← PLUGIN DE BASE DE DATOS (CorePlugin)
+    ├── database/                             ← PLUGIN DE BASE DE DATOS (CorePlugin)
     │   ├── plugin/
-    │   │   └── DatabasePlugin.java       ← Implementa CorePlugin; orden=0 (primero)
-    │   ├── components/                   ← 3 StepComponent (GIVEN/WHEN/THEN)
-    │   │   ├── DatabaseSetupComponent.java      ← GIVEN: establecer conexión
-    │   │   ├── DatabaseExecutionComponent.java  ← WHEN: ejecutar SQL
-    │   │   └── DatabaseValidationComponent.java ← THEN: validar resultados
+    │   │   └── DatabasePlugin.java
+    │   ├── components/
+    │   │   ├── DatabaseSetupComponent.java
+    │   │   ├── DatabaseExecutionComponent.java
+    │   │   └── DatabaseValidationComponent.java
     │   ├── connectors/
-    │   │   ├── BaseConnector.java        ← Base compartida
-    │   │   ├── OracleConnector.java      ← Oracle DB
-    │   │   ├── PostgreSQLConnector.java  ← PostgreSQL
-    │   │   ├── MySQLConnector.java       ← MySQL
-    │   │   └── SQLServerConnector.java   ← SQL Server
+    │   │   ├── BaseConnector.java
+    │   │   ├── OracleConnector.java
+    │   │   ├── PostgreSQLConnector.java
+    │   │   ├── MySQLConnector.java
+    │   │   └── SQLServerConnector.java
     │   ├── factory/
-    │   │   └── DbConnectorFactory.java   ← Crea y cachea conectores
+    │   │   └── DbConnectorFactory.java
     │   ├── helpers/
-    │   │   └── DatabaseHelper.java       ← Fachada: ejecuta queries y valida resultados
+    │   │   └── DatabaseHelper.java
     │   ├── interfaces/
-    │   │   └── DatabaseConnector.java    ← Interfaz de conector genérico
+    │   │   └── DatabaseConnector.java
     │   ├── config/
-    │   │   └── DatabaseConfig.java       ← Configuración HikariCP
+    │   │   └── DatabaseConfig.java
     │   ├── repository/
-    │   │   └── QueryRepository.java      ← Ejecuta queries genéricos (sin steps)
+    │   │   └── QueryRepository.java
     │   └── steps/
-    │       └── DatabaseConnectionSteps.java ← Steps BDD para BD (GIVEN/WHEN/THEN)
+    │       └── DatabaseConnectionSteps.java
     │
-    ├── utils/                           ← UTILIDADES GENERALES
-    │   ├── DataUtilities.java           ← Variables entre steps + interpolación ${...}
-    │   ├── DataGenerator.java           ← Genera datos aleatorios (UUID, timestamps, etc.)
-    │   ├── JsonUtilities.java           ← Parseo y manipulación de JSON
-    │   ├── TextUtilities.java           ← Operaciones con texto
-    │   ├── FileUtilities.java           ← Lectura de archivos
-    │   ├── SecurityUtilities.java       ← Enmascaramiento de datos sensibles
-    │   └── ConfigurationUtilities.java  ← Helpers para configuración
+    ├── utils/                                ← UTILIDADES GENERALES
+    │   ├── DataUtilities.java                ← Variables de escenario + interpolación de placeholders
+    │   ├── DataGenerator.java                ← UUID, timestamps, strings aleatorios
+    │   ├── JsonUtilities.java                ← Parseo, extracción JSONPath, validación de esquemas
+    │   ├── TextUtilities.java                ← Operaciones con texto y sanitización de logs
+    │   ├── FileUtilities.java                ← Lectura de archivos
+    │   ├── SecurityUtilities.java            ← Enmascaramiento de datos sensibles
+    │   └── ConfigurationUtilities.java       ← Helpers para configuración
     │
-    ├── cucumber/hooks/                  ← HOOKS DE CUCUMBER
-    │   └── ScenarioExecutionHooks.java  ← Hooks Before/After del ciclo de vida
+    ├── cucumber/hooks/                       ← HOOKS DE CUCUMBER
+    │   └── ScenarioExecutionHooks.java       ← Before/After ciclo de vida de escenario
     │
-    ├── driver/                          ← BASE DE DRIVER (compartida por web y mobile)
+    ├── driver/                               ← BASE DE DRIVER (compartida por web y mobile)
     │
-    └── reporting/                       ← REPORTES Y EVIDENCIAS
+    └── reporting/                            ← REPORTES Y EVIDENCIAS
+        ├── cucumber/
+        │   └── CucumberReportingPlugin.java  ← EventListener: genera reporte post-ejecución
+        ├── core/
+        │   ├── adapter/
+        │   │   ├── ResultAdapter.java
+        │   │   └── cucumber/
+        │   │       └── CucumberResultAdapter.java  ← JSON Cucumber → modelo propio
+        │   ├── config/
+        │   │   ├── ExtentConfig.java
+        │   │   └── ReportingConfig.java
+        │   ├── model/
+        │   │   ├── Attachment.java
+        │   │   ├── EnvironmentInfo.java
+        │   │   ├── HttpStepDetail.java        ← DTO inmutable: snapshot HTTP redactado
+        │   │   ├── ScenarioResult.java
+        │   │   ├── StepResult.java
+        │   │   ├── TestExecutionResult.java
+        │   │   └── TestStatus.java
+        │   └── util/
+        │       ├── EvidenceCollector.java
+        │       ├── HttpDetailRedactor.java    ← Construye HttpStepDetail con redacción
+        │       └── TagExtractor.java
+        ├── extent/
+        │   └── generator/
+        │       ├── ExtentReportGenerator.java
+        │       └── ReportingManager.java      ← Fachada del pipeline
+        └── manager/
+            └── pipeline/
+                ├── PipelineContext.java
+                ├── PipelineResult.java
+                ├── PipelineStepResult.java
+                ├── ReportingPipeline.java
+                ├── ReportingStep.java
+                └── steps/
+                    ├── ConversionStep.java
+                    └── ExtentGenerationStep.java
 ```
 
 ---
@@ -197,15 +237,13 @@ public interface CorePlugin {
 El `ExecutionContext` es el objeto que existe durante la vida de un escenario y reúne todo lo que se necesita:
 
 ```java
-// Obtener el contexto del escenario actual
-ExecutionContext ctx = ExecutionContext.current();
+ExecutionContext ctx = ExecutionContext.requireCurrent();
 
 // Acceder a un servicio registrado (ej: desde un step)
 HttpClient client = ctx.service(HttpClient.class);
 
 // Acceder a las variables del escenario
 ctx.variables().set("token", "Bearer eyJhbG...");
-String token = ctx.variables().resolve("token");
 
 // Interpolar variables en un string
 String body = ctx.variables().interpolate('{"token": "${token}"}');
@@ -214,89 +252,132 @@ String body = ctx.variables().interpolate('{"token": "${token}"}');
 
 ### `ServiceRegistry` — El casillero de servicios
 
-El `ServiceRegistry` es el mecanismo de **inyección de dependencias sin Spring**. Funciona con inicialización *lazy* (perezosa): los servicios se crean solo cuando alguien los pide por primera vez.
+El `ServiceRegistry` es el mecanismo de **inyección de dependencias sin Spring**. Los servicios se crean solo cuando alguien los pide por primera vez (lazy initialization):
 
 ```java
 // En ApiPlugin.registerServices():
 registry.registerLazy(HttpClient.class, () -> HttpClientFactory.create(config));
 
-// En un step, al ejecutarse:
+// En un step:
 HttpClient client = context.service(HttpClient.class);
-// → Se crea el HttpClient en ese momento (si no existía)
-// → La siguiente vez que se pida, se reutiliza el mismo objeto
+// → Se crea el HttpClient en ese momento si no existía
 ```
-
-**¿Por qué lazy?** Porque si un escenario tiene `@api` y `@web` pero no usa autenticación, no tiene sentido crear el `AuthenticationService`. Se crea solo si algún step lo pide.
 
 ### `VariableStore` — El cuaderno de notas
 
-Almacena variables que los steps guardan y comparten entre sí:
+Almacena variables que los steps guardan y comparten entre sí dentro de un mismo escenario:
 
 ```java
 VariableStore vars = context.variables();
 
-// Guardar una variable
 vars.set("userId", "12345");
-
-// Leer una variable
 String id = vars.resolve("userId");  // → "12345"
 
 // Reemplazar ${variables} en un texto
-String body = vars.interpolate("https://api.com/users/${userId}");
+String url = vars.interpolate("https://api.com/users/${userId}");
 // → "https://api.com/users/12345"
 ```
 
 ### `BddPhase` — Enum de fases
 
 ```java
-BddPhase.GIVEN  // Pasos de configuración (Given / And antes de When)
-BddPhase.WHEN   // Pasos de ejecución (When)
-BddPhase.THEN   // Pasos de validación (Then / And después de When)
+BddPhase.GIVEN  // Pasos de configuración
+BddPhase.WHEN   // Pasos de ejecución
+BddPhase.THEN   // Pasos de validación
 ```
 
 ---
 
-## 4. Sistema de Logging — `logging/`
+## 4. Excepciones del Framework — `exception/`
+
+El framework tiene una jerarquía de excepciones propia en el paquete `com.qa.common.exception`. **Todas las capas del framework lanzan estas excepciones** — son el contrato de error entre Core, api-core, web-core, mobile-core y el Backend.
+
+```
+FrameworkException  (abstracta — base de toda excepción del framework)
+    ├── FrameworkBusinessException   ← error funcional / de validación
+    └── FrameworkTechnicalException  ← error de infraestructura
+```
+
+### Cuándo usar cada una
+
+| Excepción | Cuándo se lanza | Ejemplos |
+|-----------|-----------------|---------|
+| `FrameworkBusinessException` | Una validación falló o una regla de negocio fue violada | Status esperado 200, se recibió 404; campo requerido ausente; dato no cumple el esquema |
+| `FrameworkTechnicalException` | Error en la infraestructura que impide continuar | Fallo al inicializar el WebDriver, timeout de conexión, archivo de config no encontrado, error de cifrado |
+
+Ambas extienden `RuntimeException` vía `FrameworkException`, por lo que no requieren declaración en `throws`.
+
+```java
+// En un step de validación
+if (!status.equals(expected)) {
+    throw new FrameworkBusinessException(
+        "validateStatusCode",
+        "Status esperado " + expected + " pero se recibió " + status);
+}
+
+// En un servicio técnico
+try {
+    driver = factory.createDriver(config);
+} catch (Exception e) {
+    throw new FrameworkTechnicalException("initDriver", "No se pudo inicializar el driver", e);
+}
+```
+
+---
+
+## 5. Sistema de Logging — `logging/`
+
+El paquete `logging/` contiene exactamente dos clases: `TestLogger` y `LoggingInitializer`. Estas son responsables del **logging en tiempo real** durante la ejecución de pruebas. No confundir con la captura de evidencia HTTP para reportes (eso es `reporting/core/util/HttpDetailRedactor`).
+
+### Relación entre las 4 clases de observabilidad
+
+```
+TestLogger / LoggingInitializer      → logs en consola/archivo en tiempo real (Logback + MDC)
+                    ↕  capas distintas, se complementan
+HttpDetailRedactor                   → construye snapshot HTTP redactado → HttpStepDetail
+HttpStepDetail                       → DTO inmutable: DB, WebSocket, FE, adjuntos externos
+```
+
+Un módulo de pruebas que importe el framework obtiene **ambos beneficios automáticamente**:
+- Logging estructurado en tiempo real via `TestLogger` (visible en consola/archivo)
+- Captura de evidencia HTTP para reportes via `HttpDetailRedactor` / `HttpStepDetail`
 
 ### `TestLogger` — El logger principal
 
-Todos los steps y servicios del framework usan `TestLogger` (nunca `System.out.println()`). Agrega automáticamente contexto de módulo y escenario a cada línea de log.
+Todos los steps y servicios del framework usan `TestLogger`. Agrega automáticamente contexto de módulo y escenario a cada línea de log vía MDC (Mapped Diagnostic Context de Logback).
 
 ```java
-// Mensajes informacionales
-TestLogger.logInfo("API_HELPER_CONFIG", "✅ Host base establecido: " + url);
-
-// Mensajes de error
-TestLogger.logError("HTTP_ERROR", "Error al ejecutar petición: " + e.getMessage());
-
-// Mensajes de debug (no aparecen en producción)
-TestLogger.logDebug("HTTP_EXEC", "Armando petición con headers: " + headers);
+TestLogger.logInfo("API_HELPER_CONFIG", "Host base establecido: " + url, null);
+TestLogger.logError("HTTP_ERROR", "Error al ejecutar petición", Map.of("error", e.getMessage()));
+TestLogger.logDebug("HTTP_EXEC", "Armando petición", Map.of("headers", headers));
+TestLogger.logWarning("DATA_UTILITIES", "Variable no encontrada", null);
 ```
 
 **Formato en el log:**
 ```
-12:02:36.014 INFO  [API] [Mi Escenario] com.qa.common.logging.TestLogger - [API_HELPER_CONFIG] ✅ Host base establecido: https://api.com
+12:02:36.014 INFO  [API] [Mi Escenario] - [API_HELPER_CONFIG] Host base establecido: https://api.com
 ```
 
-Cada parte tiene significado:
 - `[API]` → Módulo activo (api, web, mobile)
 - `[Mi Escenario]` → Nombre del escenario en ejecución
-- `[API_HELPER_CONFIG]` → Categoría del mensaje (fácil de filtrar en logs)
+- `[API_HELPER_CONFIG]` → Categoría del mensaje (fácil de filtrar)
+
+### `LoggingInitializer` — Inicialización del contexto MDC
+
+Se ejecuta al inicio de cada escenario (vía `ScenarioExecutionHooks`) e inicializa el contexto MDC con los datos del escenario activo. Sin esto, el MDC no tiene valores y los logs pierden el contexto `[módulo] [escenario]`.
 
 ### Enmascaramiento automático de datos sensibles
 
-El framework detecta automáticamente palabras clave sensibles en los logs y las enmascara:
+El framework detecta automáticamente palabras clave sensibles en los logs y las enmascara. Las palabras clave incluyen: `password`, `token`, `secret`, `authorization`, `apikey`, `api_key`, `credential`.
 
 ```
 Antes: Authorization: Bearer eyJhbGciOiJIUzM4...
 Después: Authorization: Bearer ***MASKED***
 ```
 
-Las palabras clave que se enmascaran incluyen: `password`, `token`, `secret`, `authorization`, `apikey`, `api_key`, `credential`.
-
 ---
 
-## 5. Gestión de Configuración — `config/`
+## 6. Gestión de Configuración — `config/`
 
 ### `ConfigManager` — El lector de configuración
 
@@ -309,97 +390,63 @@ Singleton que lee configuración desde múltiples fuentes en orden de prioridad:
 4. Valores por defecto del framework
 ```
 
-**Uso básico:**
-
 ```java
 ConfigManager config = ConfigManager.getInstance();
 
-// Leer un valor
 String baseUrl = config.get("api.base.url");
-
-// Leer con valor por defecto si no existe
 int timeout = Integer.parseInt(config.get("api.timeout", "30000"));
-
-// Verificar si existe una clave
-if (config.has("db.url")) {
-    // conectar a BD...
-}
+if (config.has("db.url")) { ... }
 ```
 
-**Archivo de configuración del proyecto** (`config-app.properties`):
+**Archivo `config-app.properties`:**
 
 ```properties
-# URLs del sistema a probar
 api.base.url=https://mi-sistema-qa.com/
 web.base.url=https://mi-sistema-qa.com
-
-# Configuración del navegador
 web.browser=chrome
 web.headless=true
-web.timeout=30
-
-# Timeouts
 api.timeout=30000
 
-# Variables que se toman de environment (.env.local)
+# Valores tomados de variables de entorno
 db.username=${DB_USER}
 db.password=${DB_PASS}
+
+# Reporting
+reporting.enabled=true
+extent.enabled=true
+reporting.cucumber.json.path=target/cucumber-reports/cucumber.json
 ```
 
 ---
 
-## 6. HTTP Base — `http/`
+## 7. HTTP Base — `http/`
 
-Este paquete define los **tipos de datos compartidos** que todas las capas usan para representar peticiones y respuestas HTTP. No hace peticiones por sí solo — eso lo hace `api-core` con `BaseHttpClient`.
+Define los **tipos de datos compartidos** que todas las capas usan para representar respuestas HTTP. No hace peticiones por sí solo — eso lo hace `api-core` con `BaseHttpClient`.
 
 ### `HttpResponse` — Modelo de respuesta
 
 ```java
-// Representa cualquier respuesta HTTP recibida
 HttpResponse response = httpClient.getLastResponse();
 
-int status    = response.getStatus();    // Ej: 200, 404, 500
-String body   = response.getBody();      // El cuerpo como texto
-Map<String, String> headers = response.getHeaders(); // Headers de respuesta
-long timeMs   = response.getElapsedTimeMs(); // Tiempo en milisegundos
+int status    = response.getStatus();        // 200, 404, 500...
+String body   = response.getBody();          // Cuerpo como texto
+Map<String, String> headers = response.getHeaders();
+long timeMs   = response.getElapsedTimeMs(); // Tiempo en ms
 ```
 
 ### `HttpMethod` — Métodos HTTP
 
 ```java
-// Los métodos HTTP estándar
-HttpMethod.GET     // Consultar datos
-HttpMethod.POST    // Crear / enviar datos
-HttpMethod.PUT     // Reemplazar datos
-HttpMethod.PATCH   // Modificar parcialmente
-HttpMethod.DELETE  // Eliminar datos
+HttpMethod.GET | POST | PUT | PATCH | DELETE
 ```
 
-### Excepciones
-
-| Excepción | Cuándo se lanza |
-|-----------|-----------------|
-| `FrameworkBusinessException` | Una validación falló (ej: status esperado 200, se recibió 404) |
-| `FrameworkTechnicalException` | Error técnico (timeout, sin conexión de red, servidor no disponible) |
-
-Ambas extienden de `RuntimeException`, por lo que no requieren declaración en `throws`.
+> Las excepciones del framework ya no residen en este paquete. Ver [Sección 4 — exception/](#4-excepciones-del-framework--exception).
 
 ---
 
-## 7. Base de Datos — `database/`
+## 8. Base de Datos — `database/`
 
-Permite a los tests conectarse a bases de datos para **preparar datos de prueba** o **verificar que las operaciones del sistema afectaron la BD correctamente**.
-
-### Flujo de conexión
-
-```
-DbConnectorFactory.connectAndCache("oracle")
-        │
-        ├── Lee oracle.db.url, oracle.db.username, oracle.db.password de config
-        ├── Detecta el tipo de BD por la URL
-        ├── Crea OracleConnector con pool HikariCP
-        └── Cachea la conexión (reutilizable en el mismo escenario)
-```
+Permite a los tests conectarse a bases de datos para preparar datos de prueba o verificar resultados.
 
 ### Conectores disponibles
 
@@ -413,136 +460,112 @@ DbConnectorFactory.connectAndCache("oracle")
 ### `DatabaseHelper` — Ejecutar queries
 
 ```java
-// Ejecutar una query que devuelve una fila
-Map<String, Object> resultado = DatabaseHelper.executeQuery(
+Map<String, Object> row = DatabaseHelper.executeQuery(
     connector,
     "SELECT balance, status FROM accounts WHERE user_id = ?",
     "12345"
 );
-
-// Obtener un valor específico
-Object saldo = DatabaseHelper.getColumnValue(resultado, "balance");
-
-// Validar que la query retornó resultados
-DatabaseHelper.validateHasResults(resultado);
-
-// Validar el valor de una columna
-DatabaseHelper.validateColumnValue(resultado, "status", "ACTIVE");
+DatabaseHelper.validateColumnValue(row, "status", "ACTIVE");
+Object saldo = DatabaseHelper.getColumnValue(row, "balance");
 ```
 
 ### Steps de BD disponibles (Gherkin)
 
 ```gherkin
-# Conectar a la BD
 Given establezco conexion a base de datos "oracle"
-Given establezco conexion a base de datos "postgresql"
-
-# Ejecutar queries
 When ejecuto la consulta "SELECT * FROM users WHERE id = ?" con parametros "12345"
-When ejecuto la sentencia "UPDATE users SET status = ? WHERE id = ?" con parametros "ACTIVE,12345"
-
-# Validar resultados
-Then valido que la consulta retorne resultados
-Then valido que la consulta no retorne resultados
 Then valido que la columna "status" tenga el valor "ACTIVE"
 Then obtengo el valor de la columna "balance" y lo almaceno en "saldo"
 ```
 
-**Configuración necesaria en `config-app.properties`:**
+**Configuración en `config-app.properties`:**
 
 ```properties
-# Una sección por cada BD que se use
 oracle.db.url=jdbc:oracle:thin:@//servidor:1521/DB
 oracle.db.username=${ORACLE_USER}
 oracle.db.password=${ORACLE_PASS}
-
-postgresql.db.url=jdbc:postgresql://servidor:5432/testdb
-postgresql.db.username=${PG_USER}
-postgresql.db.password=${PG_PASS}
 ```
 
 ---
 
-## 8. Utilidades — `utils/`
+## 9. Utilidades — `utils/`
 
-### `DataUtilities` — Variables entre steps e interpolación
+### `DataUtilities` — Variables de escenario e interpolación de placeholders
 
-Esta es la clase más usada por los steps. Gestiona las variables del escenario y reemplaza `${variable}` en textos.
+Gestiona las variables del escenario y resuelve placeholders `{{var}}` y `${var}` en textos.
+
+**Responsabilidad única:** acceso al `VariableStore` del `ExecutionContext` activo y resolución de variables en texto. Para operaciones JSON usar `JsonUtilities`; para texto usar `TextUtilities`.
 
 ```java
-// Guardar una variable (típicamente desde un step "And almaceno...")
+// Guardar/leer variables en el escenario
 DataUtilities.storeValue("token", "Bearer eyJhbG...");
-
-// Leer una variable
 String token = DataUtilities.getValue("token");
 
-// Reemplazar ${variables} en un texto
-String body = DataUtilities.replaceVariables('{"token": "${token}"}');
-// → '{"token": "Bearer eyJhbG..."}'
+// Guardar/recuperar objetos tipados
+DataUtilities.storeObject("miPojo", unObjeto);
+MiClase obj = DataUtilities.getObject("miPojo", MiClase.class);
+boolean existe = DataUtilities.hasObject("miPojo");
 
-// Verificar si un JSON tiene un campo (usando JSONPath)
-boolean existe = DataUtilities.hasJsonField(responseBody, "$.user.id");
+// Resolver placeholders en texto
+// {{var}} → busca solo en ExecutionContext
+// ${var}  → busca en ExecutionContext → System.getProperty → System.getenv
+String body = DataUtilities.replaceVariables('{"id": "${userId}"}');
 
-// Extraer un valor de un JSON
-String userId = DataUtilities.getJsonParameter(responseBody, "$.user.id");
+// Guardar con prefijo de capa (crea clave "api.token")
+DataUtilities.saveToContext("api", "token", "abc123");
+
+// Acceso bulk (mapa inmutable)
+Map<String, Object> all = DataUtilities.getAllVariables();
 ```
+
+> Para código nuevo preferir directamente:
+> `ExecutionContext.requireCurrent().variables().set(key, value)`
 
 ### `DataGenerator` — Generar datos de prueba
 
 ```java
-// UUID v4 aleatorio (para IDs únicos en cada ejecución)
-String uuid = DataGenerator.generateUUID();
-// → "550e8400-e29b-41d4-a716-446655440000"
-
-// Timestamp actual en milisegundos
-long ts = DataGenerator.generateTimestamp();
-
-// Número aleatorio en un rango
-int numero = DataGenerator.generateRandomNumber(1, 100);
-
-// String aleatorio de longitud N
-String random = DataGenerator.generateRandomString(8);
+String uuid    = DataGenerator.generateUUID();
+long ts        = DataGenerator.generateTimestamp();
+int numero     = DataGenerator.generateRandomNumber(1, 100);
+String random  = DataGenerator.generateRandomString(8);
 ```
 
 ### `JsonUtilities` — Manipular JSON
 
 ```java
-// Parsear un JSON a un Map
 Map<String, Object> mapa = JsonUtilities.toMap(jsonString);
-
-// Convertir un objeto a JSON
-String json = JsonUtilities.toJson(miObjeto);
-
-// Extraer valor con JSONPath
-Object valor = JsonUtilities.extractValue(jsonString, "$.user.name");
-
-// Validar si un string es JSON válido
-boolean esJson = JsonUtilities.isValidJson(texto);
+String json              = JsonUtilities.toJson(miObjeto);
+Object valor             = JsonUtilities.extractValue(jsonString, "$.user.name");
+boolean esJson           = JsonUtilities.isValidJson(texto);
 ```
 
-### `SecurityUtilities` — Datos sensibles
+### `TextUtilities` — Operaciones con texto
 
 ```java
-// Enmascarar un valor sensible para el log
-String seguro = SecurityUtilities.mask("mi-contraseña-secreta");
-// → "mi-c********************"
+String capitalizado = TextUtilities.capitalize("hola mundo");
+boolean valido      = TextUtilities.isValidString(texto);
+String sanitizado   = TextUtilities.sanitizeForLogging("password", valor); // → "***MASKED***"
+```
 
-// Verificar si una clave parece sensible
-boolean esSensible = SecurityUtilities.isSensitiveKey("password");
-// → true
+### `SecurityUtilities` — Enmascaramiento de datos sensibles
+
+```java
+String seguro      = SecurityUtilities.mask("mi-contraseña");
+boolean esSensible = SecurityUtilities.isSensitiveKey("password"); // → true
 ```
 
 ---
 
-## 9. Hooks de Cucumber — `cucumber/hooks/`
+## 10. Hooks de Cucumber — `cucumber/hooks/`
 
 ### `ScenarioExecutionHooks` — El ciclo de vida del escenario
 
-Esta clase se ejecuta automáticamente antes y después de **cada escenario**:
+Se ejecuta automáticamente antes y después de **cada escenario**:
 
 ```
 @Before (orden 0)
-    → Inicializar el ExecutionContext
+    → Inicializar el ExecutionContext (ThreadLocal)
+    → Inicializar contexto MDC de logging (LoggingInitializer)
     → Activar los plugins correspondientes a los tags del escenario
     → Registrar los servicios que cada plugin declara
     → Llamar onScenarioStart() en cada plugin activo
@@ -553,30 +576,126 @@ Cucumber ejecuta los steps del escenario...
     → Llamar onScenarioEnd() en cada plugin activo
     → Limpiar el ExecutionContext
     → Limpiar las variables del escenario (VariableStore)
+    → Limpiar el contexto MDC de logging
 ```
 
-**¿Por qué importa esto?** Porque garantiza que cada escenario **empieza con estado limpio**. El cliente HTTP del escenario anterior no contamina el siguiente.
+Garantiza que cada escenario **empieza con estado limpio**. El cliente HTTP del escenario anterior no contamina el siguiente.
 
 ---
 
-## 10. Driver (WebDriver compartido) — `driver/`
+## 11. Driver (WebDriver compartido) — `driver/`
 
-Paquete base con utilidades compartidas entre `web-core` (Selenium) y `mobile-core` (Appium). Contiene abstracciones genéricas para el manejo de drivers que luego cada capa especializa.
-
----
-
-## 11. Reportes — `reporting/`
-
-Gestiona la generación de evidencias de las pruebas:
-- Capturas de pantalla automáticas en fallos
-- Logs de ejecución por escenario
-- Datos de contexto cuando falla un test
+Paquete base con abstracciones genéricas para manejo de drivers compartidas entre `web-core` (Selenium/Playwright) y `mobile-core` (Appium).
 
 ---
 
-## 12. Contrato con el Backend (API Pública del Core)
+## 12. Reportes — `reporting/`
 
-El paquete `runtime/` expone las clases que el Backend de CuAleon consume directamente. **Estas son las únicas clases que el Backend debe importar:**
+Opera **desacoplado** del motor de ejecución: se activa después de que todos los escenarios terminan, vía evento `TestRunFinished`.
+
+```
+Tests ejecutan (Cucumber)
+    ↓
+Cucumber escribe: target/cucumber-reports/cucumber.json
+    ↓  TestRunFinished event
+CucumberReportingPlugin.handleTestRunFinished()
+    ↓  Guard clauses verifican habilitación y existencia del JSON
+ReportingManager → Pipeline:
+    ├── ConversionStep        → JSON → TestExecutionResult (modelo en memoria)
+    └── ExtentGenerationStep  → TestExecutionResult → HTML
+Output: build/reports/extent/execution-report.html
+```
+
+### Guard Clauses — Sin Fallos Silenciosos
+
+| Guard | Condición | Log emitido |
+|-------|-----------|-------------|
+| #1 | `reporting.enabled=false` | `INFO` — reporting deshabilitado intencionalmente |
+| #2 | `cucumber.json` ausente tras 10 reintentos con backoff progresivo | `ERROR` — ruta esperada + acción correctiva |
+| #3 | JSON vacío o sin escenarios (`[]`) | `ERROR` — sin escenarios ejecutados |
+
+### Modelo de datos — Contrato Core ↔ Backend ↔ Frontend
+
+Los modelos en `reporting/core/model/` son el contrato de datos entre el Core y el Backend. Son serializables a JSON y pueden ser consumidos directamente por el BE para persistencia o por el FE para visualización.
+
+```
+TestExecutionResult
+  ├── EnvironmentInfo          (entorno, browser, fecha, duración total)
+  └── List<ScenarioResult>
+        ├── status, durationMs, errorMessage
+        └── List<StepResult>
+              ├── keyword, name, status, durationMs, errorMessage
+              ├── HttpStepDetail  (opcional — solo API layer, ya redactado)
+              └── List<Attachment> (screenshots, logs)
+```
+
+### `HttpStepDetail` y `HttpDetailRedactor` — Evidencia HTTP
+
+Estas clases están en `reporting.core` (no en `logging`) porque su función es capturar snapshots HTTP para **reportes y persistencia**, no para logging en tiempo real.
+
+```java
+// En api-core, al ejecutar una petición HTTP:
+HttpStepDetail detail = HttpDetailRedactor.build(
+    method, url, requestHeaders, requestBody,
+    responseStatus, responseHeaders, responseBody, durationMs);
+
+// El HttpStepDetail resultante es un DTO inmutable con datos sensibles redactados,
+// seguro para: base de datos · WebSocket · FE · adjuntos externos
+```
+
+### Artefactos generados
+
+| Artefacto | Path | Condición |
+|-----------|------|-----------|
+| Reporte HTML ExtentReports | `build/reports/extent/execution-report.html` | `extent.enabled=true` |
+| cucumber.json | `target/cucumber-reports/cucumber.json` | Plugin JSON registrado en el runner |
+| cucumber.html | `target/cucumber-reports/cucumber.html` | Plugin HTML registrado en el runner |
+
+### Integración con plataformas externas — Estado arquitectónico
+
+La integración con Jira/Xray, Azure DevOps y otras plataformas es **responsabilidad del Backend**. El Core provee el HTML y/o el modelo `TestExecutionResult`.
+
+| Funcionalidad | Jira/Xray | Azure DevOps |
+|---------------|-----------|--------------|
+| Sincronizar resultados | Implementado (BE) | Implementado (BE) |
+| Adjuntar HTML (manual, desde FE) | Implementado (BE) | Pendiente |
+| Adjuntar HTML (automático) | Pendiente | Pendiente |
+
+**Decisión arquitectónica pendiente — Opción A vs B:**
+
+| | Opción A (actual) | Opción B |
+|--|--|--|
+| **Quién genera el HTML** | Core (ExtentReports) | Backend |
+| **Flujo** | Core produce HTML → BE almacena URL → FE adjunta | Core expone `TestExecutionResult` JSON → BE genera artefacto |
+| **Ventaja** | Sin cambios en Core ni BE | Mayor flexibilidad de formato (HTML, PDF, etc.) |
+| **Desventaja** | Formato acoplado a ExtentReports en el Core | Requiere `JsonExportStep` + BE genera el reporte |
+
+### Extensión del pipeline
+
+Implementar `ReportingStep` y registrar en `ReportingManager`:
+
+```java
+public class JsonExportStep implements ReportingStep {
+    @Override
+    public PipelineStepResult execute(PipelineContext context) {
+        TestExecutionResult result = context.getExecutionResult();
+        // serializar a JSON en build/reports/execution-result.json
+        return PipelineStepResult.success("jsonExport");
+    }
+
+    @Override
+    public boolean isEnabled(ReportingConfig config) { return config.isJsonExportEnabled(); }
+
+    @Override
+    public String getName() { return "JSON Export"; }
+}
+```
+
+---
+
+## 13. Contrato con el Backend (API Pública del Core)
+
+El paquete `runtime/` expone las clases que el Backend consume directamente:
 
 | Clase | Paquete | Rol |
 |-------|---------|-----|
@@ -605,11 +724,11 @@ El paquete `runtime/` expone las clases que el Backend de CuAleon consume direct
 ExecutionResult result = engine.execute(request);
 
 result.getStatus()          // PASSED | FAILED | ERROR
-result.getTotalScenarios()  // int: total de escenarios ejecutados
-result.getPassedScenarios() // int: escenarios exitosos
-result.getFailedScenarios() // int: escenarios fallidos
-result.getDurationMs()      // long: tiempo total en ms
-result.getScenarioResults() // List<ScenarioResult>: detalle por escenario
+result.getTotalScenarios()
+result.getPassedScenarios()
+result.getFailedScenarios()
+result.getDurationMs()
+result.getScenarioResults() // List<ScenarioResult>
 ```
 
 ---
@@ -629,7 +748,7 @@ dependencies {
 ### Publicar Common localmente (para desarrollo):
 
 ```bash
-cd qa-frameworks-core
+cd qa-platformCore
 ./gradlew :common:publishToMavenLocal
 
 # O publicar todo el framework de una vez:
@@ -656,78 +775,13 @@ cd qa-frameworks-core
 | **PostgreSQL** | 42.x | Driver PostgreSQL |
 | **MySQL Connector** | 8.x | Driver MySQL |
 | **MSSQL JDBC** | 12.x | Driver SQL Server |
+| **ExtentReports** | 5.x | Generación de reportes HTML |
 
 ---
 
-## 13. Catálogo de Steps — Modelo de Dos Niveles (v2.2.0)
+## 16. Convención de IDs de Step
 
-El `StepDiscoveryService` expone el catálogo en dos granularidades complementarias:
-
-### Nivel 1: Componente (`StepInfo`)
-
-Agrupa steps por responsabilidad. Cada `StepComponent` es un grupo cohesivo de steps.
-
-```java
-// Endpoint sugerido: GET /api/steps
-List<StepInfo> components = discovery.discoverAllAsStepInfo();
-// → [{id: "api.authentication", layer: "api", phase: "GIVEN", ...}, ...]
-
-// Resolver un componente por su ID
-Optional<ComponentInfo> info = discovery.resolveStep("api.authentication");
-```
-
-### Nivel 2: Step Individual (`StepDefinitionInfo`)
-
-Representa cada método `@Given/@When/@Then` con su patrón Cucumber y parámetros. Usa reflexión sobre `StepComponent.getStepDefinitionClass()`.
-
-```java
-// Endpoint sugerido: GET /api/steps/defs
-List<StepDefinitionInfo> defs = discovery.discoverAllStepDefs();
-// → [{stepDefId: "api.auth.bearer.rut",
-//     cucumberPattern: "agrego autenticación Bearer para RUT {string}",
-//     phase: GIVEN, layer: "api", componentId: "api.authentication",
-//     params: [{position:0, name:"rut", javaType:"String", cucumberToken:"{string}"}]}, ...]
-
-// Resolver un step individual por su ID
-Optional<StepDefinitionInfo> sdi = discovery.resolveStepDef("api.auth.bearer.rut");
-
-// Obtener todos los steps de un componente
-List<StepDefinitionInfo> authSteps = discovery.discoverStepDefsByComponent("api.authentication");
-```
-
-### Declarar IDs estables con `@StepDef`
-
-La anotación `@StepDef` en el método de step declara su ID estable. Sin ella, el scanner deriva un ID como `{componentId}#{methodName}` (menos estable ante renombrados):
-
-```java
-// En AuthenticationSteps.java
-@StepDef("api.authentication.bearer.rut")        // ID estable declarado explícitamente
-@Given("agrego autenticación Bearer para RUT {string}")
-public void agregoAutenticacionBearerParaRUT(String rut) { ... }
-
-// Ciclo de deprecación a nivel step
-@StepDef(value = "api.auth.old", deprecated = true, replacedBy = "api.auth.bearer.rut")
-@Given("patron viejo")
-public void patronViejo() { ... }
-```
-
-### Extracción de parámetros
-
-El scanner mapea tokens del patrón Cucumber a parámetros Java por posición:
-
-| Patrón | Parámetro Java | `cucumberToken` | `javaType` |
-|--------|---------------|-----------------|------------|
-| `{string}` | `String rut` | `"{string}"` | `"String"` |
-| `{int}` | `int code` | `"{int}"` | `"int"` |
-| *(sin token)* | `Map<String,String> claims` | `null` | `"Map"` |
-
-Los parámetros sin token (`cucumberToken == null`) son DataTable o DocString inyectados por Cucumber.
-
----
-
-## 14. Convención de IDs de Step
-
-El **ID de un step component** (`stepId`) es el identificador estable que el Backend almacena en la base de datos para referenciar un componente de steps dentro de escenarios, ejecuciones, exports y operaciones de lint/import. Es el contrato de integración entre Core, Backend y Frontend.
+El **ID de un step component** (`stepId`) es el identificador estable que el Backend almacena en la base de datos para referenciar un componente de steps dentro de escenarios, ejecuciones y operaciones de lint/import.
 
 ### Formato canónico
 
@@ -737,36 +791,27 @@ El **ID de un step component** (`stepId`) es el identificador estable que el Bac
 
 | Segmento | Descripción | Ejemplos |
 |----------|-------------|---------|
-| `{capa}` | Capa origen del componente | `api`, `web`, `mobile`, `db` |
-| `{dominio}` | Responsabilidad principal (lowercase, sin espacios) | `authentication`, `navigation`, `device.config` |
-| `{subdominio}` | *(Opcional)* Refinamiento cuando hay varios componentes en el mismo dominio | `response.body`, `validation.element` |
+| `{capa}` | Capa origen | `api`, `web`, `mobile`, `db` |
+| `{dominio}` | Responsabilidad principal (lowercase) | `authentication`, `navigation`, `device.config` |
+| `{subdominio}` | Refinamiento opcional | `response.body`, `validation.element` |
 
 ### Cómo declarar un ID
 
-Toda clase que implementa `StepComponent` **debe** llevar la anotación `@StepId`:
-
 ```java
-import com.qa.common.runtime.annotation.StepId;
-
 @StepId("api.authentication")
-public class ApiAuthComponent implements StepComponent {
-    // No es necesario hacer @Override de getId() — la anotación lo resuelve
-    ...
-}
+public class ApiAuthComponent implements StepComponent { ... }
 ```
-
-La anotación tiene precedencia sobre cualquier implementación del método `getId()`. El método `StepComponent.getId()` la lee automáticamente vía reflexión en tiempo de ejecución.
 
 ### Reglas de estabilidad
 
-> ⚠️ El `stepId` es un **contrato público**. El Backend lo persiste en la base de datos. Cambiar un ID sin deprecación previa romperá escenarios existentes.
+> El `stepId` es un **contrato público**. El Backend lo persiste. Cambiar un ID sin deprecación previa romperá escenarios existentes.
 
 | Regla | Detalle |
 |-------|---------|
-| **No cambiar IDs sin deprecar primero** | Si se debe renombrar un componente, mantener el ID anterior marcado como `deprecated = true` durante al menos una release. |
-| **Declarar `replacedBy`** | Al deprecar, indicar el ID del sucesor para que el Backend pueda migrar automáticamente los escenarios persistidos. |
-| **Unicidad obligatoria** | No pueden existir dos componentes con el mismo `stepId` en el classpath. `StepDiscoveryService` detecta duplicados al inicializar y emite una advertencia. |
-| **Formato consistente** | Lowercase, separado con puntos, sin espacios ni guiones bajos. Se permiten guiones en el último segmento (`app-state`, `drag-drop`) solo si mejoran la legibilidad. |
+| No cambiar IDs sin deprecar primero | Mantener el ID anterior con `deprecated = true` durante al menos una release |
+| Declarar `replacedBy` | Para que el Backend pueda migrar automáticamente los escenarios persistidos |
+| Unicidad obligatoria | `StepDiscoveryService` detecta duplicados al inicializar |
+| Formato consistente | Lowercase, separado con puntos, sin espacios ni guiones bajos |
 
 ### Ciclo de deprecación
 
@@ -780,39 +825,18 @@ public class ApiUrlComponent implements StepComponent { ... }
 public class ApiUrlComponent implements StepComponent { ... }
 ```
 
-### Resolución desde el Backend
-
-El `StepDiscoveryService` expone `resolveStep(String stepId)` como bridge principal:
-
-```java
-// En un servicio del Backend (ej: ScenarioExecutionService)
-StepDiscoveryService discovery = CucumberRuntimeEngine.withServiceLoader().getDiscoveryService();
-
-Optional<StepDiscoveryService.ComponentInfo> info = discovery.resolveStep("api.authentication");
-
-info.ifPresent(c -> {
-    // c.component() → el StepComponent
-    // c.pluginName() → "api"
-    // c.getDisplayNameForLocale("en") → "Authentication"
-});
-```
-
 ---
 
-## 15. Catálogo de Steps a nivel método — API v2.3.0
+## 17. Catálogo de Steps a nivel método — API v2.3.0
 
-> Contrato de catálogo step-level para macros/CustomSteps, lint BDD y sugerencias IA.
-
-### 15.1 Modelo de dos niveles
+### Modelo de dos niveles
 
 | Nivel | Clase | Descripción |
 |---|---|---|
-| **Componente** | `StepInfo` | Agrupa steps por responsabilidad (ej: `api.authentication`). Expuesto en `GET /api/steps`. |
-| **Step individual** | `StepDefinitionInfo` | Un método Cucumber concreto (ej: `api.authentication.bearer.identifier`). Expuesto en `GET /api/steps/defs`. |
+| **Componente** | `StepInfo` | Agrupa steps por responsabilidad. Expuesto en `GET /api/steps`. |
+| **Step individual** | `StepDefinitionInfo` | Un método Cucumber concreto. Expuesto en `GET /api/steps/defs`. |
 
-### 15.2 `ParamSchema` — tipos lógicos de parámetros
-
-`ParamSchema` es la vista semántica de un parámetro, orientada al consumo por el Backend y el FE:
+### `ParamSchema` — tipos lógicos de parámetros
 
 | Tipo lógico | Tipos Java que lo generan | Uso en FE |
 |---|---|---|
@@ -824,16 +848,7 @@ info.ifPresent(c -> {
 | `table` | `DataTable` nativo | Data table editor |
 | `docstring` | `String` sin token Cucumber | Text area multilínea |
 
-Obtención desde el Backend:
-```java
-StepDefinitionInfo sdi = discovery.findById("api.url.set-endpoint").orElseThrow();
-sdi.paramSchemas().forEach(schema ->
-    log.info("param={} type={} required={}", schema.name(), schema.type(), schema.required()));
-```
-
-### 15.3 `StepDefinitionInfo` enriquecido (v2.3.0)
-
-Desde v2.3.0, `StepDefinitionInfo` incluye:
+### `StepDefinitionInfo` enriquecido (v2.3.0)
 
 ```
 stepDefId()            → "api.authentication.bearer.identifier"
@@ -841,67 +856,42 @@ cucumberPattern()      → "agrego autenticación Bearer con identificador {stri
 phase()                → BddPhase.GIVEN
 layer()                → "api"
 componentId()          → "api.authentication"
-params()               → List<ParamInfo>  (reflexión Java)
-paramSchemas()         → List<ParamSchema> (tipos lógicos — derivado de params())
+params()               → List<ParamInfo>
+paramSchemas()         → List<ParamSchema>
 displayName()          → "Autenticación Bearer por identificador"
-displayNameByLocale()  → {"es": "...", "en": "...", "fr": "..."} (heredado del componente)
-descriptionByLocale()  → {"es": "...", "en": "...", "fr": "..."} (heredado del componente)
+displayNameByLocale()  → {"es": "...", "en": "...", "fr": "..."}
 deprecated()           → false
-replacementStepDefId() → null
 ```
 
-### 15.4 API de `StepDiscoveryService` — nivel step
+### API de `StepDiscoveryService`
 
 ```java
 StepDiscoveryService discovery = StepDiscoveryService.withServiceLoader();
 
-// Catálogo completo de steps individuales
 List<StepDefinitionInfo> catalog = discovery.discoverAllSteps();
 
-// Resolución directa por ID (bridge BE ↔ Core)
 Optional<StepDefinitionInfo> sdi = discovery.findById("api.authentication.bearer.identifier");
 sdi.ifPresent(s -> {
     log.info("Patrón: {}", s.cucumberPattern());
-    log.info("Nombre ES: {}", s.getDisplayNameForLocale("es"));
     s.paramSchemas().forEach(p ->
         log.info("  {} : {} required={}", p.name(), p.type(), p.required()));
 });
-
-// También disponibles (nombres legacy, misma semántica):
-List<StepDefinitionInfo> all  = discovery.discoverAllStepDefs();   // = discoverAllSteps()
-Optional<StepDefinitionInfo>  = discovery.resolveStepDef("id");    // = findById("id")
 ```
 
-### 15.5 Convención de IDs con `@StepDef`
+### Declarar IDs estables con `@StepDef`
 
-Los IDs de step explícitos se declaran con la anotación `@StepDef` (en el método) y siguen el formato:
-
-```
-{componentId}.{sub-id}
-```
-
-Ejemplos:
 ```java
-@StepDef("api.url.set-endpoint")        // componente: api.url
-@StepDef("api.authentication.basic")    // componente: api.authentication
-@StepDef("web.navigation.go-to-url")    // componente: web.navigation
-@StepDef("mobile.device.config.platform") // componente: mobile.device.config
+@StepDef("api.authentication.bearer.rut")
+@Given("agrego autenticación Bearer para RUT {string}")
+public void agregoAutenticacionBearerParaRUT(String rut) { ... }
+
+// Ciclo de deprecación
+@StepDef(value = "api.auth.old", deprecated = true, replacedBy = "api.auth.bearer.rut")
+@Given("patron viejo")
+public void patronViejo() { ... }
 ```
 
-Sin `@StepDef`, el scanner deriva el ID como `{componentId}#{methodName}` (menos estable frente a renombrados).
-
-**Contrato de estabilidad:** una vez publicado, un `@StepDef` ID es un contrato público. Para cambiarlo:
-```java
-// Paso 1 (mínimo una release): marcar como deprecated
-@StepDef(value = "api.url.legacy-ambiente",
-         deprecated = true, replacedBy = "api.url.set-endpoint")
-@Given("configuro el ambiente {string}")
-public void configuroElAmbiente(String env) { ... }
-
-// Paso 2 (release siguiente): eliminar el step antiguo
-```
-
-### 15.6 Steps anotados por módulo (referencia)
+### Steps anotados por módulo (referencia)
 
 | Módulo | Componente | IDs canónicos |
 |---|---|---|
@@ -913,14 +903,13 @@ public void configuroElAmbiente(String env) { ... }
 | web-core | `web.input` | `web.input.type-text`, `web.input.type-from-variable`, `web.input.type-random-name`, `web.input.type-if-exists`, `web.input.clear`, `web.input.upload-file` |
 | mobile-core | `mobile.device.config` | `mobile.device.config.platform`, `mobile.device.config.device-id`, `mobile.device.config.platform-version`, `mobile.device.config.emulator`, `mobile.device.config.physical`, `mobile.device.config.ios-simulator`, `mobile.device.config.appium-server`, `mobile.device.config.orientation`, `mobile.device.config.capabilities`, `mobile.device.config.udid` |
 
-> Los steps del resto de componentes (headers, body, response, click, gestos, etc.) están
-> **pendientes de anotar** con `@StepDef`. Sus IDs derivados siguen el patrón
-> `{componentId}#{methodName}` hasta que se agreguen las anotaciones explícitas.
+> Los steps de los componentes restantes (headers, body, response, click, gestos, etc.) están pendientes de anotar con `@StepDef`. Sus IDs derivados siguen el patrón `{componentId}#{methodName}` hasta que se agreguen las anotaciones explícitas.
 
 ---
 
-> 📖 **Documentación relacionada:**
+> **Documentación relacionada:**
 > - [api-core/README.md](../api-core/README.md) — Capa de pruebas de API
 > - [web-core/README.md](../web-core/README.md) — Capa de pruebas Web
 > - [mobile-core/README.md](../mobile-core/README.md) — Capa de pruebas Mobile
 > - [README.md](../README.md) — Visión general del framework
+> - [reporting/README.md](src/main/java/com/qa/common/reporting/README.md) — Módulo de reportes

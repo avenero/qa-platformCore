@@ -106,11 +106,15 @@ public record StepDefinitionInfo(
         boolean deprecated,
         String replacementStepDefId,
         Map<String, String> displayNameByLocale,
-        Map<String, String> descriptionByLocale
+        Map<String, String> descriptionByLocale,
+        /** Read from {@code @StepMetadata} — true if the step can change the HTTP base URL. */
+        boolean canOverrideBaseUrl,
+        /** Read from {@code @StepMetadata} — true if the URL is hardcoded in the pattern. */
+        boolean usesLiteralUrl
 ) {
 
     // =========================================================================
-    // Canonical compact constructor (v2.3.0 — 11 fields)
+    // Canonical compact constructor (v2.4.0 — 13 fields)
     // =========================================================================
 
     /**
@@ -141,7 +145,7 @@ public record StepDefinitionInfo(
                 ? Map.copyOf(displayNameByLocale) : Map.of();
         descriptionByLocale = (descriptionByLocale != null)
                 ? Map.copyOf(descriptionByLocale) : Map.of();
-        // replacementStepDefId: nullable
+        // replacementStepDefId, canOverrideBaseUrl, usesLiteralUrl: no normalization needed
     }
 
     // =========================================================================
@@ -149,17 +153,37 @@ public record StepDefinitionInfo(
     // =========================================================================
 
     /**
-     * Constructor de compatibilidad con código anterior a v2.3.0.
+     * Constructor de compatibilidad con v2.3.0 (11 args, sin flags de override).
      *
-     * <p>Equivale a llamar al constructor canónico con {@code displayNameByLocale = Map.of()}
-     * y {@code descriptionByLocale = Map.of()}.
+     * @deprecated desde v2.4.0 — usar el constructor de 13 argumentos que incluye
+     *             {@code canOverrideBaseUrl} y {@code usesLiteralUrl}.
+     */
+    @Deprecated(since = "2.4.0", forRemoval = false)
+    //CHECKSTYLE:OFF: ParameterNumber
+    public StepDefinitionInfo(
+            String stepDefId,
+            String cucumberPattern,
+            List<ParamInfo> params,
+            BddPhase phase,
+            String layer,
+            String componentId,
+            String displayName,
+            boolean deprecated,
+            String replacementStepDefId,
+            Map<String, String> displayNameByLocale,
+            Map<String, String> descriptionByLocale) {
+        this(stepDefId, cucumberPattern, params, phase, layer, componentId,
+             displayName, deprecated, replacementStepDefId,
+             displayNameByLocale, descriptionByLocale,
+             false, false);
+    }
+
+    /**
+     * Constructor de compatibilidad con código anterior a v2.3.0 (9 args, sin i18n ni flags).
      *
-     * @deprecated desde v2.3.0 — preferir el constructor completo de 11 argumentos para
-     *             propagar los mapas i18n del componente padre. Este constructor se mantiene
-     *             para no romper tests y código cliente existente.
+     * @deprecated desde v2.3.0 — preferir el constructor completo de 13 argumentos.
      */
     @Deprecated(since = "2.3.0", forRemoval = false)
-    //CHECKSTYLE:OFF: ParameterNumber
     public StepDefinitionInfo(
             String stepDefId,
             String cucumberPattern,
@@ -172,7 +196,7 @@ public record StepDefinitionInfo(
             String replacementStepDefId) {
         this(stepDefId, cucumberPattern, params, phase, layer, componentId,
              displayName, deprecated, replacementStepDefId,
-             Map.of(), Map.of());
+             Map.of(), Map.of(), false, false);
     }
     //CHECKSTYLE:ON: ParameterNumber
 

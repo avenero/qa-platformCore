@@ -14,21 +14,23 @@ import java.util.List;
  */
 public class ResponseSecuritySteps {
 
-    /** HTTP 401 Unauthorized — expected rejection code for security validations. */
-    private static final int HTTP_UNAUTHORIZED = 401;
-    /** HTTP 403 Forbidden — expected rejection code for security validations. */
-    private static final int HTTP_FORBIDDEN = 403;
-    /** HTTP 422 Unprocessable Entity — expected rejection code for security validations. */
-    private static final int HTTP_UNPROCESSABLE = 422;
-
     private ApiHelper apiHelper() { return ApiHelper.forCurrentContext(); }
     private static final List<String> SENSITIVE_HEADERS =
         List.of("Server", "X-Powered-By", "X-AspNet-Version", "X-AspNetMvc-Version");
 
+    /**
+     * Valida que la URL de la última petición enviada utilice el protocolo HTTPS.
+     *
+     * <p><b>Nota de ambiente:</b> en entornos locales ({@code localhost}) la URL suele
+     * ser {@code http://}. Este step sólo pasa en ambientes con TLS configurado
+     * (staging, producción). Marcar escenarios que lo usen con {@code @wip} o
+     * {@code @deuda-tecnica} si el ambiente de CI no tiene SSL.
+     */
     @Then("valido que la respuesta use HTTPS")
     public void validoHttps() {
         Assertions.assertThat(apiHelper().getLastRequestUrl()).
-            as("La peticion deberia usar HTTPS").startsWith("https://");
+            as("La peticion deberia usar HTTPS (verifica que el ambiente tenga TLS configurado)").
+            startsWith("https://");
     }
 
     @Then("valido que no haya headers de información sensible expuestos")
@@ -60,18 +62,57 @@ public class ResponseSecuritySteps {
             doesNotContainIgnoringCase("NullPointerException");
     }
 
-    @Then("valido protección contra SQL injection intentando {string}")
-    public void validoSqlInjection(String payload) {
+    /**
+     * Valida que la respuesta <strong>ya obtenida</strong> haya rechazado un intento de
+     * SQL injection: el código HTTP debe ser 4xx (error de cliente).
+     *
+     * <p><b>Importante:</b> este step NO envía ningún payload. El payload debe enviarse
+     * en el step de body anterior (p.ej. {@code establezco el request body JSON}).
+     * El parámetro {@code payload} se usa solo como descripción en el reporte de fallos.
+     *
+     * <p>Ejemplo de uso correcto:
+     * <pre>
+     * Given establezco el cuerpo JSON con los siguientes datos
+     *   | password | ' OR '1'='1 |
+     * When ejecuto una petición "POST"
+     * Then valido que la respuesta rechazó el ataque de SQL injection "' OR '1'='1"
+     * </pre>
+     */
+    @Then("valido que la respuesta rechazó el ataque de SQL injection {string}")
+    public void validoQueRespuestaRechazaAtaqueSqlInjection(String payload) {
         int code = apiHelper().getLastResponse().getStatusCode();
-        Assertions.assertThat(code).as("SQL Injection deberia ser rechazado").
-            isIn(400, HTTP_UNAUTHORIZED, HTTP_FORBIDDEN, HTTP_UNPROCESSABLE);
+        Assertions.assertThat(code)
+            .as("SQL injection '%s' debería ser rechazado con código 4xx, pero fue: %d", payload, code)
+            .isBetween(400, 499);
     }
 
-    @Then("valido protección contra XSS intentando {string}")
-    public void validoXss(String payload) {
+    /**
+     * Valida que la respuesta <strong>ya obtenida</strong> no refleje en su body el payload
+     * XSS indicado. Cubre dos controles:
+     * <ol>
+     *   <li>El payload literal no aparece en el body (reflection check).</li>
+     *   <li>El tag {@code <script>} no aparece en el body.</li>
+     * </ol>
+     *
+     * <p><b>Importante:</b> este step NO envía ningún payload. El payload debe enviarse
+     * en el step de body anterior.
+     *
+     * <p>Ejemplo de uso correcto:
+     * <pre>
+     * Given establezco el cuerpo JSON con los siguientes datos
+     *   | usernameOrEmail | &lt;script&gt;alert('xss')&lt;/script&gt; |
+     * When ejecuto una petición "POST"
+     * Then valido que la respuesta rechazó el ataque XSS "&lt;script&gt;alert('xss')&lt;/script&gt;"
+     * </pre>
+     */
+    @Then("valido que la respuesta rechazó el ataque XSS {string}")
+    public void validoQueRespuestaRechazaAtaqueXss(String payload) {
         String body = apiHelper().getLastResponse().getBody();
         if (body != null) {
-            Assertions.assertThat(body).as("La respuesta no deberia reflejar payload XSS").doesNotContain("<script>");
+            Assertions.assertThat(body)
+                .as("La respuesta no debería reflejar el payload XSS: %s", payload)
+                .doesNotContainIgnoringCase("<script>")
+                .doesNotContain(payload);
         }
     }
 }

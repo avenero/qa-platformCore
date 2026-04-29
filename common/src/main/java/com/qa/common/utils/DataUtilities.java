@@ -1,6 +1,5 @@
 package com.qa.common.utils;
 
-import com.qa.common.http.exceptions.FrameworkBusinessException;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 
@@ -9,22 +8,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Fachada de compatibilidad para utilidades de datos del framework QA.
+ * Integración del {@link ExecutionContext} para gestión de variables entre steps.
  *
- * <p><b>Arquitectura:</b> Esta clase es una fachada delgada. La lógica real reside en:
- * <ul>
- *   <li>{@link JsonUtilities}   — Serialización JSON, extracción, JSONPath, comparación</li>
- *   <li>{@link TextUtilities}   — Normalización, sanitización y comparación de texto</li>
- *   <li>{@link DataGenerator}   — Generación de datos de prueba y fechas</li>
- *   <li>{@link FileUtilities}   — Lectura/escritura de archivos</li>
- * </ul>
+ * <p><b>Responsabilidad única:</b> Esta clase provee acceso tipado al
+ * {@link com.qa.common.runtime.VariableStore} del contexto activo, resolución de
+ * placeholders en texto y almacenamiento con prefijo de capa.
  *
- * <p><b>Lógica propia:</b> La resolución de placeholders ({@code ${var}} / {@code {{var}}})
- * y {@code saveToContext} son exclusivos de esta clase. Todos operan
- * <b>exclusivamente</b> sobre el {@link com.qa.common.runtime.VariableStore}
- * del {@link ExecutionContext} activo — sin stores estáticos.
- *
- * <p><b>⚠️ Uso recomendado para código nuevo:</b>
+ * <p><b>Para código nuevo usar directamente:</b>
  * <ul>
  *   <li>JSON   → {@link JsonUtilities}</li>
  *   <li>Texto  → {@link TextUtilities}</li>
@@ -34,22 +24,21 @@ import java.util.regex.Pattern;
  *
  * @author Abel Venero
  * @since 1.0.0
- * @version 4.0.0 — stores estáticos eliminados (6-Abr-2026)
+ * @version 5.0.0 — delegaciones eliminadas; solo lógica propia de store y placeholders
  */
 public class DataUtilities {
 
     private DataUtilities() {
-        // utility class — no instances
     }
 
     // =========================================================================
-    // VARIABLE STORE — storeValue / getValue / clearVariables
+    // VARIABLE STORE — storeValue / getValue
     // =========================================================================
 
     /**
      * Almacena una variable en el {@link ExecutionContext} activo.
      *
-     * <p>Para código nuevo usar directamente:
+     * <p>Para código nuevo preferir:
      * {@code ExecutionContext.requireCurrent().variables().set(key, value)}.
      *
      * @param key   clave (no null)
@@ -60,13 +49,13 @@ public class DataUtilities {
             return;
         }
         boolean stored = ExecutionContext.current().map(ctx -> {
-                if (value != null) {
-                    ctx.variables().set(key, value);
-                } else {
-                    ctx.variables().remove(key);
-                }
-                return true;
-            }).orElse(false);
+            if (value != null) {
+                ctx.variables().set(key, value);
+            } else {
+                ctx.variables().remove(key);
+            }
+            return true;
+        }).orElse(false);
         if (!stored) {
             TestLogger.logWarning("DATA_UTILITIES",
                 "storeValue('" + key + "') ignorado: no hay ExecutionContext activo", null);
@@ -78,7 +67,7 @@ public class DataUtilities {
     }
 
     /**
-     * Obtiene una variable del {@link ExecutionContext} activo.
+     * Obtiene una variable del {@link ExecutionContext} activo como String.
      *
      * @param key clave
      * @return valor como String, o {@code null} si no existe o no hay contexto
@@ -87,24 +76,14 @@ public class DataUtilities {
         if (key == null) {
             return null;
         }
-        return ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).map(Object::toString).
-            orElse(null);
-    }
-
-    /**
-     * No-op: las variables se limpian automáticamente al cierre del
-     * {@link ExecutionContext} (gestionado por {@code ScenarioExecutionHooks}).
-     *
-     * @deprecated Usar el ciclo de vida del ExecutionContext
-     */
-    @Deprecated
-    public static void clearVariables() {
-        TestLogger.logDebug("DATA_UTILITIES",
-            "clearVariables() no-op: el ExecutionContext gestiona el ciclo de vida", null);
+        return ExecutionContext.current()
+            .flatMap(ctx -> ctx.variables().get(key, Object.class))
+            .map(Object::toString)
+            .orElse(null);
     }
 
     // =========================================================================
-    // OBJECT STORE — storeObject / getObject / hasObject / clearObjects
+    // OBJECT STORE — storeObject / getObject / hasObject / getObjectType
     // =========================================================================
 
     /**
@@ -119,13 +98,13 @@ public class DataUtilities {
             return;
         }
         boolean stored = ExecutionContext.current().map(ctx -> {
-                if (object != null) {
-                    ctx.variables().set(key, object);
-                } else {
-                    ctx.variables().remove(key);
-                }
-                return true;
-            }).orElse(false);
+            if (object != null) {
+                ctx.variables().set(key, object);
+            } else {
+                ctx.variables().remove(key);
+            }
+            return true;
+        }).orElse(false);
         if (!stored) {
             TestLogger.logWarning("DATA_UTILITIES",
                 "storeObject('" + key + "') ignorado: no hay ExecutionContext activo", null);
@@ -140,7 +119,7 @@ public class DataUtilities {
 
     /**
      * Recupera un objeto tipado del {@link ExecutionContext} activo.
-     * Si el tipo no coincide exactamente, intenta conversión inteligente via Jackson.
+     * Si el tipo no coincide exactamente, intenta conversión via Jackson.
      *
      * @param <T>   tipo esperado
      * @param key   clave
@@ -152,7 +131,9 @@ public class DataUtilities {
         if (key == null || clazz == null) {
             return null;
         }
-        Object obj = ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).orElse(null);
+        Object obj = ExecutionContext.current()
+            .flatMap(ctx -> ctx.variables().get(key, Object.class))
+            .orElse(null);
         if (obj == null) {
             return null;
         }
@@ -170,7 +151,7 @@ public class DataUtilities {
     }
 
     /**
-     * Recupera un objeto del {@link ExecutionContext} activo.
+     * Recupera un objeto sin tipo del {@link ExecutionContext} activo.
      *
      * @param key clave
      * @return objeto almacenado, o {@code null} si no existe
@@ -179,7 +160,9 @@ public class DataUtilities {
         if (key == null) {
             return null;
         }
-        return ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).orElse(null);
+        return ExecutionContext.current()
+            .flatMap(ctx -> ctx.variables().get(key, Object.class))
+            .orElse(null);
     }
 
     /**
@@ -192,40 +175,20 @@ public class DataUtilities {
         if (key == null) {
             return false;
         }
-        return ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).isPresent();
+        return ExecutionContext.current()
+            .flatMap(ctx -> ctx.variables().get(key, Object.class))
+            .isPresent();
     }
 
     /**
-     * Retorna la clase ({@link Class}) del objeto en el {@link ExecutionContext} activo.
+     * Retorna el tipo ({@link Class}) del objeto almacenado bajo la clave dada.
      *
      * @param key clave
-     * @return Class del objeto, o {@code null} si no existe
+     * @return {@code Class} del objeto, o {@code null} si no existe
      */
     public static Class<?> getObjectType(String key) {
         Object obj = getObject(key);
         return obj != null ? obj.getClass() : null;
-    }
-
-    /**
-     * No-op: los objetos se limpian automáticamente al cierre del {@link ExecutionContext}.
-     *
-     * @deprecated Usar el ciclo de vida del ExecutionContext
-     */
-    @Deprecated
-    public static void clearObjects() {
-        TestLogger.logDebug("DATA_UTILITIES",
-            "clearObjects() no-op: el ExecutionContext gestiona el ciclo de vida", null);
-    }
-
-    /**
-     * No-op: todos los stores se limpian automáticamente al cierre del {@link ExecutionContext}.
-     *
-     * @deprecated Usar el ciclo de vida del ExecutionContext
-     */
-    @Deprecated
-    public static void clearAll() {
-        TestLogger.logDebug("DATA_UTILITIES",
-            "clearAll() no-op: el ExecutionContext gestiona el ciclo de vida", null);
     }
 
     // =========================================================================
@@ -250,13 +213,14 @@ public class DataUtilities {
         }
         String result = text;
 
-        // --- Formato {{var}} → solo ExecutionContext ---
         Pattern curly = Pattern.compile("\\{\\{([^}]+)}}");
         Matcher m1 = curly.matcher(result);
         while (m1.find()) {
             String name = m1.group(1);
-            String repl = ExecutionContext.current().flatMap(ctx -> ctx.variables().get(name, Object.class)).
-                map(Object::toString).orElse(null);
+            String repl = ExecutionContext.current()
+                .flatMap(ctx -> ctx.variables().get(name, Object.class))
+                .map(Object::toString)
+                .orElse(null);
             if (repl == null) {
                 TestLogger.logWarning("DATA_UTILITIES",
                     "Variable {{" + name + "}} no encontrada - conservando placeholder", null);
@@ -265,19 +229,16 @@ public class DataUtilities {
             result = result.replace("{{" + name + "}}", repl);
         }
 
-        // --- Formato ${var} → ExecutionContext → System ---
         Pattern dollar = Pattern.compile("\\$\\{([^}]+)}");
         Matcher m2 = dollar.matcher(result);
         while (m2.find()) {
             String name = m2.group(1);
-            String repl = ExecutionContext.current().flatMap(ctx -> ctx.variables().get(name, Object.class)).
-                map(Object::toString).orElse(null);
-            if (repl == null) {
-                repl = System.getProperty(name);
-            }
-            if (repl == null) {
-                repl = System.getenv(name);
-            }
+            String repl = ExecutionContext.current()
+                .flatMap(ctx -> ctx.variables().get(name, Object.class))
+                .map(Object::toString)
+                .orElse(null);
+            if (repl == null) repl = System.getProperty(name);
+            if (repl == null) repl = System.getenv(name);
             if (repl == null) {
                 TestLogger.logWarning("DATA_UTILITIES",
                     "Variable ${" + name + "} no encontrada - conservando placeholder", null);
@@ -314,166 +275,17 @@ public class DataUtilities {
     }
 
     // =========================================================================
-    // DELEGACIONES → JsonUtilities  (backward compatibility)
+    // MAPA DE VARIABLES (acceso bulk)
     // =========================================================================
 
     /**
-     * Deserializa un JSON a un objeto tipado.
+     * Retorna todas las variables almacenadas en el {@link ExecutionContext} activo.
      *
-     * @param <T>   tipo del objeto resultado
-     * @param json  cadena JSON a deserializar
-     * @param clazz clase de destino
-     * @return objeto del tipo indicado
-     * @throws FrameworkBusinessException si el JSON es inválido
-     * @see JsonUtilities#deserializeJson(String, Class)
+     * @return mapa inmutable con todas las variables, o mapa vacío si no hay contexto
      */
-    public static <T> T deserializeJson(String json, Class<T> clazz) throws FrameworkBusinessException {
-        return JsonUtilities.deserializeJson(json, clazz);
-    }
-
-    /**
-     * Obtiene un parámetro del JSON usando JSONPath.
-     *
-     * @param jsonBody  cuerpo JSON como String
-     * @param fieldPath ruta al campo (JSONPath o notación de punto)
-     * @return valor del campo encontrado
-     * @throws FrameworkBusinessException si el JSON es inválido
-     * @see JsonUtilities#getJsonParameter(String, String)
-     */
-    public static Object getJsonParameter(String jsonBody, String fieldPath) throws FrameworkBusinessException {
-        return JsonUtilities.getJsonParameter(jsonBody, fieldPath);
-    }
-
-    /**
-     * Obtiene un parámetro del JSON usando JSONPath (alias de getJsonParameter).
-     *
-     * @param jsonBody  cuerpo JSON como String
-     * @param fieldPath ruta al campo (JSONPath o notación de punto)
-     * @return valor del campo encontrado
-     * @throws FrameworkBusinessException si el JSON es inválido
-     * @see JsonUtilities#getJsonParameter(String, String)
-     */
-    public static Object getJsonParameters(String jsonBody, String fieldPath) throws FrameworkBusinessException {
-        return JsonUtilities.getJsonParameter(jsonBody, fieldPath);
-    }
-
-    /**
-     * Verifica si un campo existe en el JSON dado.
-     *
-     * @param jsonBody  cuerpo JSON como String
-     * @param fieldPath ruta al campo a verificar
-     * @return {@code true} si el campo existe
-     * @see JsonUtilities#hasJsonField(String, String)
-     */
-    public static boolean hasJsonField(String jsonBody, String fieldPath) {
-        return JsonUtilities.hasJsonField(jsonBody, fieldPath);
-    }
-
-    /**
-     * Busca un valor en un objeto o mapa por clave recursivamente.
-     *
-     * @param response  objeto o mapa donde buscar
-     * @param targetKey clave a buscar
-     * @return valor encontrado o {@code null}
-     * @see JsonUtilities#findValue(Object, String)
-     */
-    public static Object findValue(Object response, String targetKey) {
-        return JsonUtilities.findValue(response, targetKey);
-    }
-
-    /**
-     * Extrae un token de un JSON de respuesta.
-     *
-     * @param jsonResponse respuesta JSON como String
-     * @param tokenField   nombre del campo que contiene el token
-     * @return valor del token encontrado
-     * @throws FrameworkBusinessException si el JSON es inválido o el campo no existe
-     * @see JsonUtilities#getToken(String, String)
-     */
-    public static String getToken(String jsonResponse, String tokenField) throws FrameworkBusinessException {
-        return JsonUtilities.getToken(jsonResponse, tokenField);
-    }
-
-    /**
-     * Convierte un JSON a un mapa de clave-valor.
-     *
-     * @param json cadena JSON a convertir
-     * @return mapa con los campos del JSON
-     * @see JsonUtilities#jsonToMap(String)
-     */
-    public static Map<String, Object> jsonToMap(String json) {
-        return JsonUtilities.jsonToMap(json);
-    }
-
-    // =========================================================================
-    // DELEGACIONES → TextUtilities  (backward compatibility)
-    // =========================================================================
-
-    /**
-     * Capitaliza la primera letra de un String.
-     *
-     * @param str String a capitalizar
-     * @return String con la primera letra en mayúscula
-     * @see TextUtilities#capitalize(String)
-     */
-    public static String capitalize(String str) {
-        return TextUtilities.capitalize(str);
-    }
-
-    /**
-     * Verifica si un String es válido (no nulo y no vacío).
-     *
-     * @param str String a verificar
-     * @return {@code true} si es no nulo y no está en blanco
-     * @see TextUtilities#isValidString(String)
-     */
-    public static boolean isValidString(String str) {
-        return TextUtilities.isValidString(str);
-    }
-
-    /**
-     * Sanitiza un valor usando la clave como contexto para detectar datos sensibles.
-     *
-     * @param key   clave/nombre del campo
-     * @param value valor a sanitizar
-     * @return valor sanitizado o {@code "***HIDDEN***"} si es sensible
-     * @see TextUtilities#sanitizeValue(String, String)
-     */
-    public static String sanitizeValue(String key, String value) {
-        return TextUtilities.sanitizeValue(key, value);
-    }
-
-    /**
-     * Sanitiza el body de una petición/respuesta HTTP para logs.
-     *
-     * @param body body a sanitizar
-     * @return body con campos sensibles enmascarados
-     * @see TextUtilities#sanitizeBody(String)
-     */
-    public static String sanitizeBody(String body) {
-        return TextUtilities.sanitizeBody(body);
-    }
-
-    /**
-     * Trunca contenido largo para incluirlo en logs o mensajes.
-     *
-     * @param content   contenido a truncar
-     * @param maxLength longitud máxima permitida
-     * @return contenido truncado con {@code "... [TRUNCATED]"} si aplica
-     * @see TextUtilities#truncateContent(String, int)
-     */
-    public static String truncateContent(String content, int maxLength) {
-        return TextUtilities.truncateContent(content, maxLength);
-    }
-
-    /**
-     * Sanitiza claves sensibles dentro de un JSON/texto para logs.
-     *
-     * @param data texto o JSON a sanitizar
-     * @return texto con valores sensibles reemplazados
-     * @see TextUtilities#sanitizeForLog(String)
-     */
-    public static String sanitizeForLog(String data) {
-        return TextUtilities.sanitizeForLog(data);
+    public static Map<String, Object> getAllVariables() {
+        return ExecutionContext.current()
+            .map(ctx -> ctx.variables().getAll())
+            .orElse(Map.of());
     }
 }

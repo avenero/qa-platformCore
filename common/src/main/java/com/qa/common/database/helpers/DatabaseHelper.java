@@ -1,6 +1,7 @@
 package com.qa.common.database.helpers;
 
 import com.qa.common.database.interfaces.DatabaseConnector;
+import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.logging.TestLogger;
 
 import java.sql.Connection;
@@ -33,13 +34,13 @@ public class DatabaseHelper {
      * @param parameters Parámetros separados por coma (opcional)
      * @return Map con los resultados de la consulta
      * @throws SQLException Si ocurre un error ejecutando la query
-     * @throws com.qa.common.http.exceptions.FrameworkBusinessException Si el connector es null
+     * @throws FrameworkBusinessException Si el connector es null
      */
     public static Map<String, Object> executeQuery(DatabaseConnector connector, String query, String parameters)
-            throws com.qa.common.http.exceptions.FrameworkBusinessException {
+            throws FrameworkBusinessException {
 
         if (connector == null) {
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "executeQuery",
                 "No hay conexión activa. Usa: Given establezco conexion a base de datos \"oracle\""
             );
@@ -100,7 +101,7 @@ public class DatabaseHelper {
             TestLogger.logError("DB_HELPER",
                 "Error ejecutando query: " + e.getMessage(),
                 Map.of("query", query, "sqlState", e.getSQLState()));
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "executeQuery",
                 "Error ejecutando consulta SQL: " + e.getMessage()
             );
@@ -115,13 +116,13 @@ public class DatabaseHelper {
      * @param parameters Parámetros separados por coma (opcional)
      * @return Número de filas afectadas
      * @throws SQLException Si ocurre un error ejecutando la sentencia
-     * @throws com.qa.common.http.exceptions.FrameworkBusinessException Si el connector es null
+     * @throws FrameworkBusinessException Si el connector es null
      */
     public static int executeStatement(DatabaseConnector connector, String sql, String parameters)
-            throws com.qa.common.http.exceptions.FrameworkBusinessException {
+            throws FrameworkBusinessException {
 
         if (connector == null) {
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "executeStatement",
                 "No hay conexión activa. Usa: Given establezco conexion a base de datos \"oracle\""
             );
@@ -158,7 +159,7 @@ public class DatabaseHelper {
             TestLogger.logError("DB_HELPER",
                 "Error ejecutando sentencia: " + e.getMessage(),
                 Map.of("sql", sql, "sqlState", e.getSQLState()));
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "executeStatement",
                 "Error ejecutando sentencia SQL: " + e.getMessage()
             );
@@ -240,19 +241,19 @@ public class DatabaseHelper {
      * Lanza excepción si no hay resultados.
      *
      * @param queryResult Map con el resultado de la query
-     * @throws com.qa.common.http.exceptions.FrameworkBusinessException Si no hay resultados
+     * @throws FrameworkBusinessException Si no hay resultados
      */
     public static void validateHasResults(Map<String, Object> queryResult)
-            throws com.qa.common.http.exceptions.FrameworkBusinessException {
+            throws FrameworkBusinessException {
         if (queryResult == null) {
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "validateHasResults",
                 "No hay resultados previos de query. Ejecuta primero: When ejecuto la consulta \"...\""
             );
         }
 
         if (!hasResults(queryResult)) {
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "validateHasResults",
                 "Se esperaba que la consulta retorne resultados, pero retornó 0 filas"
             );
@@ -269,12 +270,12 @@ public class DatabaseHelper {
      * Lanza excepción si hay resultados.
      *
      * @param queryResult Map con el resultado de la query
-     * @throws com.qa.common.http.exceptions.FrameworkBusinessException Si hay resultados
+     * @throws FrameworkBusinessException Si hay resultados
      */
     public static void validateNoResults(Map<String, Object> queryResult)
-            throws com.qa.common.http.exceptions.FrameworkBusinessException {
+            throws FrameworkBusinessException {
         if (queryResult == null) {
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "validateNoResults",
                 "No hay resultados previos de query. Ejecuta primero: When ejecuto la consulta \"...\""
             );
@@ -282,7 +283,7 @@ public class DatabaseHelper {
 
         if (hasResults(queryResult)) {
             int rowCount = getRowCount(queryResult);
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "validateNoResults",
                 "Se esperaba que la consulta NO retorne resultados, pero retornó " + rowCount + " fila(s)"
             );
@@ -298,12 +299,12 @@ public class DatabaseHelper {
      * @param queryResult Map con el resultado de la query
      * @param columnName Nombre de la columna a validar
      * @param expectedValue Valor esperado
-     * @throws com.qa.common.http.exceptions.FrameworkBusinessException Si el valor no coincide
+     * @throws FrameworkBusinessException Si el valor no coincide
      */
     public static void validateColumnValue(Map<String, Object> queryResult, String columnName, String expectedValue)
-            throws com.qa.common.http.exceptions.FrameworkBusinessException {
+            throws FrameworkBusinessException {
         if (queryResult == null || queryResult.isEmpty()) {
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "validateColumnValue",
                 "No hay resultados previos de query. Ejecuta primero: When ejecuto la consulta \"...\""
             );
@@ -312,7 +313,7 @@ public class DatabaseHelper {
         Object actualValue = getColumnValue(queryResult, columnName);
 
         if (actualValue == null) {
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "validateColumnValue",
                 "La columna '" + columnName + "' no existe en el resultado o es null"
             );
@@ -320,7 +321,7 @@ public class DatabaseHelper {
 
         String actualValueStr = actualValue.toString();
         if (!expectedValue.equals(actualValueStr)) {
-            throw new com.qa.common.http.exceptions.FrameworkBusinessException(
+            throw new FrameworkBusinessException(
                 "validateColumnValue",
                 "El valor de la columna '" + columnName + "' no coincide. " +
                 "Esperado: '" + expectedValue + "', Actual: '" + actualValueStr + "'"

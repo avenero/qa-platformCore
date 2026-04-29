@@ -60,8 +60,8 @@ public class AppManagementSteps {
         TestLogger.logInfo("APP_MGT", "App instalada desde: " + resolved, null);
     }
 
-    @Given("desinstalo la aplicacion {string}")
-    public void desinstaloLaAplicacion(String bundleOrPackage) {
+    @Given("desinstalo la app {string}")
+    public void desinstaloApp(String bundleOrPackage) {
         String resolved = ctx().variables().resolve(bundleOrPackage);
         mobile().removeApp(resolved);
         TestLogger.logInfo("APP_MGT", "App desinstalada: " + resolved, null);
@@ -87,20 +87,20 @@ public class AppManagementSteps {
         TestLogger.logInfo("APP_MGT", "Aplicacion cerrada", null);
     }
 
-    @When("reinicio la aplicacion movil")
-    public void reinicioLaAplicacion() {
+    @When("reinicio la app")
+    public void reinicioLaApp() {
         mobile().restartApp();
         TestLogger.logInfo("APP_MGT", "Aplicacion reiniciada", null);
     }
 
-    @When("pongo la app en background por {int} segundos")
-    public void pongoAppEnBackground(int seconds) {
+    @When("envio la app al background por {int} segundos")
+    public void envioAppAlBackground(int seconds) {
         mobile().backgroundApp(seconds);
         TestLogger.logInfo("APP_MGT", "App en background por " + seconds + "s", null);
     }
 
-    @When("traigo la aplicacion al primer plano con id {string}")
-    public void traigoAplicacionAlPrimerPlano(String bundleOrPackage) {
+    @When("activo la app {string}")
+    public void activoLaApp(String bundleOrPackage) {
         String resolved = ctx().variables().resolve(bundleOrPackage);
         mobile().activateApp(resolved);
         TestLogger.logInfo("APP_MGT", "App activada: " + resolved, null);

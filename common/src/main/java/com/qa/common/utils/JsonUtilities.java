@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
-import com.qa.common.http.exceptions.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.logging.TestLogger;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -257,6 +257,10 @@ public final class JsonUtilities {
         try {
             if (jsonBody == null || fieldPath == null) {
                 return null;
+            }
+            // JSONPath syntax ($.field, $[0], etc.) → delegate to JsonPath library
+            if (fieldPath.startsWith("$")) {
+                return getByJsonPath(jsonBody, fieldPath);
             }
             if (!fieldPath.contains(".")) {
                 return findValueGeneric(jsonBody, fieldPath);

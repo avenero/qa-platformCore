@@ -1,6 +1,7 @@
 package com.qa.common.runtime;
 
 import com.qa.common.runtime.annotation.StepDef;
+import com.qa.common.runtime.annotation.StepMetadata;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -161,11 +162,14 @@ public final class StepMethodScanner {
 
             List<ParamInfo> params = buildParamInfoList(method, pp.pattern());
 
-            StepDef stepDefAnn    = method.getAnnotation(StepDef.class);
-            String  stepDefId     = resolveStepDefId(stepDefAnn, componentId, method.getName());
-            String  displayName   = resolveDisplayName(stepDefAnn, pp.pattern());
-            boolean deprecated    = (stepDefAnn != null && stepDefAnn.deprecated());
-            String  replacementId = resolveReplacementId(stepDefAnn);
+            StepDef      stepDefAnn      = method.getAnnotation(StepDef.class);
+            StepMetadata stepMetaAnn     = method.getAnnotation(StepMetadata.class);
+            String       stepDefId       = resolveStepDefId(stepDefAnn, componentId, method.getName());
+            String       displayName     = resolveDisplayName(stepDefAnn, pp.pattern());
+            boolean      deprecated      = (stepDefAnn != null && stepDefAnn.deprecated());
+            String       replacementId   = resolveReplacementId(stepDefAnn);
+            boolean      canOverrideUrl  = stepMetaAnn != null && stepMetaAnn.canOverrideBaseUrl();
+            boolean      usesLiteralUrl  = stepMetaAnn != null && stepMetaAnn.usesLiteralUrl();
 
             if (deprecated) {
                 LOG.warn("StepDef '{}' está marcado como DEPRECATED. Reemplazo: {}.",
@@ -183,7 +187,9 @@ public final class StepMethodScanner {
                     deprecated,
                     replacementId,
                     displayNameByLocale != null ? displayNameByLocale : Map.of(),
-                    descriptionByLocale != null ? descriptionByLocale : Map.of()
+                    descriptionByLocale != null ? descriptionByLocale : Map.of(),
+                    canOverrideUrl,
+                    usesLiteralUrl
             ));
 
             LOG.debug("Step descubierto: [{}] '{}' → stepDefId='{}'",

@@ -3,7 +3,7 @@ package com.qa.apicore.steps.execution;
 import com.qa.apicore.implementations.BaseHttpClient;
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.apicore.utils.ApiHelper;
-import com.qa.common.http.exceptions.FrameworkTechnicalException;
+import com.qa.common.exception.FrameworkTechnicalException;
 import com.qa.common.http.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
@@ -45,13 +45,34 @@ public class HttpExecutionSteps {
 
     /**
      * Ejecuta una petición HTTP con el método especificado ({@code GET}, {@code POST},
-     * {@code PUT}, {@code PATCH}, {@code DELETE}) contra el endpoint configurado.
-     * Es el step principal de ejecución HTTP.
+     * {@code PUT}, {@code PATCH}, {@code DELETE}) contra el endpoint previamente configurado
+     * con los steps de GIVEN.
+     *
+     * <p><b>Nota semántica:</b> "una petición" es correcto; sin embargo, el alias
+     * {@link #envioLaPeticion(String)} usa "envío" (primera persona) que es más
+     * consistente con el estilo imperativo del resto de los WHEN del catálogo.
      */
     @StepDef(value = "api.execution.execute",
              displayName = "Ejecutar petición HTTP")
     @When("ejecuto una petición {string}")
     public void ejecutoUnaPeticionAlEndpoint(String method) throws FrameworkTechnicalException {
+        ejecutarPeticionHttp(method, true);
+    }
+
+    /**
+     * Alias semántico de {@link #ejecutoUnaPeticionAlEndpoint(String)}.
+     * Usa voz activa de primera persona, consistente con el estilo imperativo del
+     * catálogo BDD ({@code envío}, {@code configuro}, {@code agrego}).
+     *
+     * <p>Ejemplo:
+     * <pre>
+     * When envío la petición "POST"
+     * </pre>
+     */
+    @StepDef(value = "api.execution.execute",
+             displayName = "Enviar petición HTTP")
+    @When("envío la petición {string}")
+    public void envioLaPeticion(String method) throws FrameworkTechnicalException {
         ejecutarPeticionHttp(method, true);
     }
 
@@ -111,14 +132,29 @@ public class HttpExecutionSteps {
     }
 
     /**
-     * Ejecuta una petición configurando un timeout máximo de espera.
+     * Ejecuta una petición GET configurando un timeout máximo de espera.
+     *
+     * <p><b>Nota semántica:</b> el step no indica el método HTTP; implica GET por defecto,
+     * lo que puede confundir si se usa en contextos POST/PUT. Para operaciones con método
+     * explícito usar {@link #ejecutoConTimeoutYMetodo(String, int)}.
      */
     @StepDef(value = "api.execution.with-timeout",
-             displayName = "Ejecutar petición con timeout")
+             displayName = "Ejecutar petición GET con timeout")
     @When("ejecuto la petición y espero {int} segundos máximo")
     public void ejecutoConTimeout(int timeoutSeconds) throws FrameworkTechnicalException {
         getHttpClient().setTimeout(timeoutSeconds * MILLIS_PER_SECOND);
         ejecutarPeticionHttp("GET", true);
+    }
+
+    /**
+     * Ejecuta una petición con el método indicado configurando un timeout máximo de espera.
+     */
+    @StepDef(value = "api.execution.with-timeout-method",
+             displayName = "Ejecutar petición con método y timeout")
+    @When("ejecuto la petición {string} y espero {int} segundos máximo")
+    public void ejecutoConTimeoutYMetodo(String method, int timeoutSeconds) throws FrameworkTechnicalException {
+        getHttpClient().setTimeout(timeoutSeconds * MILLIS_PER_SECOND);
+        ejecutarPeticionHttp(method, true);
     }
 
     // =========================================================================
@@ -168,22 +204,6 @@ public class HttpExecutionSteps {
             throws FrameworkTechnicalException {
         getApiHelper().pollUntilJsonFieldEquals(method, endpointKey, jsonPath, expectedValue,
                 maxAttempts, waitSeconds);
-    }
-
-    // =========================================================================
-    // Step DEPRECATED
-    // =========================================================================
-
-    /**
-     * @deprecated usar {@link #ejecutoUnaPeticionAlEndpoint(String)}.
-     */
-    @Deprecated(since = "2.1.0", forRemoval = false)
-    @StepDef(value = "api.execution.legacy-consulta",
-             deprecated = true, replacedBy = "api.execution.execute",
-             displayName = "ejecuto la consulta (DEPRECATED)")
-    @When("ejecuto la consulta con el metodo {string}")
-    public void ejecutoLaConsultaConElMetodo(String method) throws FrameworkTechnicalException {
-        ejecutarPeticionHttp(method, true);
     }
 
     @StepDef(value = "api.execution.no-redirect",

@@ -3,6 +3,7 @@ package com.qa.common.utils;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -39,6 +40,18 @@ public final class TextUtilities {
         "private_key", "bearer", "refresh_token", "access_token", "session"
     );
 
+    /**
+     * Nombres de header HTTP cuyo valor no debe exponerse en logs ni en {@code HttpStepDetail}
+     * (misma política que {@link com.qa.common.reporting.core.util.HttpDetailRedactor}).
+     */
+    private static final Set<String> SENSITIVE_HTTP_HEADER_NAMES = Set.of(
+            "authorization",
+            "cookie",
+            "set-cookie",
+            "x-api-key",
+            "x-auth-token",
+            "proxy-authorization");
+
     private TextUtilities() {
         throw new UnsupportedOperationException("TextUtilities es una clase de utilidad");
     }
@@ -46,6 +59,17 @@ public final class TextUtilities {
     // =========================================================================
     // SANITIZACIÓN PARA LOGS
     // =========================================================================
+
+    /**
+     * Indica si el nombre de un header HTTP está en la lista de valores que no deben
+     * exponerse (logs de consola y detalle persistido/WS).
+     */
+    public static boolean isSensitiveHttpHeaderName(String headerName) {
+        if (headerName == null || headerName.isBlank()) {
+            return false;
+        }
+        return SENSITIVE_HTTP_HEADER_NAMES.contains(headerName.toLowerCase(Locale.ROOT));
+    }
 
     /**
      * Sanitiza un valor para incluirlo en logs de forma segura.

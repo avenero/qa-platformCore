@@ -78,12 +78,10 @@ public final class ServiceRegistry {
         // Buscar factory lazy
         Supplier<?> factory = factories.get(type);
         if (factory != null) {
-            // computeIfAbsent es thread-safe
-            Object created = instances.computeIfAbsent(type, k -> {
-                LOG.debug("Inicializando servicio lazy: {}", type.getSimpleName());
-                return factory.get();
-            });
-            return Optional.of(type.cast(created));
+            LOG.debug("Inicializando servicio lazy: {}", type.getSimpleName());
+            Object created = factory.get();
+            Object existing = instances.putIfAbsent(type, created);
+            return Optional.of(type.cast(existing != null ? existing : created));
         }
 
         return Optional.empty();

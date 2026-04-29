@@ -1,7 +1,7 @@
 package com.qa.apicore.steps.validation;
 
 import com.qa.apicore.utils.ApiHelper;
-import com.qa.common.http.exceptions.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.http.model.HttpResponse;
 import io.cucumber.java.en.Then;
 import org.assertj.core.api.Assertions;
@@ -42,8 +42,11 @@ public class ResponseBodySteps {
         apiHelper().extractFieldFromObject(fieldName, objectPath, variableName);
     }
 
-    @Then("el resultado almaceno el valor de {string}")
-    public void elResultadoAlmacenoElValorDe(String jsonPath) {
+    /**
+     * Extrae el valor del campo JSON indicado y lo guarda con el mismo jsonPath como clave.
+     */
+    @Then("extraigo y guardo el campo {string} de la respuesta")
+    public void extraigoYGuardoElCampo(String jsonPath) {
         try {
             apiHelper().extractAndStoreJsonValueSimple(jsonPath);
         } catch (FrameworkBusinessException e) {
@@ -51,8 +54,18 @@ public class ResponseBodySteps {
         }
     }
 
-    @Then("el resultado almaceno el valor que está dentro de la estructura {string} en {string}")
-    public void almacenoValorEnVariable(String jsonPath, String variableName) throws FrameworkBusinessException {
+    /**
+     * Extrae el valor del campo JSON indicado (jsonPath) y lo guarda en la variable
+     * {@code variableName} para uso en steps posteriores con {@code ${variableName}}.
+     *
+     * <p>Ejemplo:
+     * <pre>
+     * Then extraigo el campo "$.accessToken" de la respuesta y lo guardo como "accessToken"
+     * </pre>
+     */
+    @Then("extraigo el campo {string} de la respuesta y lo guardo como {string}")
+    public void extraigoElCampoYLoGuardoComo(String jsonPath, String variableName)
+            throws FrameworkBusinessException {
         apiHelper().extractAndStoreJsonValue(jsonPath, variableName);
     }
 
@@ -93,9 +106,19 @@ public class ResponseBodySteps {
         apiHelper().validateJsonPathMatchesPattern(jsonPath, regex);
     }
 
-    @Then("valido que el campo {string} del error contenga {string}")
-    public void validoMensajeError(String field, String message) throws FrameworkBusinessException {
-        apiHelper().validateJsonPathValue(field, message);
+    /**
+     * Valida que el campo JSON del mensaje de error sea <em>exactamente</em> igual
+     * al valor esperado (comparación exact-match, no substring).
+     *
+     * <p>Ejemplo:
+     * <pre>
+     * Then valido que el campo de error "$.message" sea exactamente "Credenciales inválidas"
+     * </pre>
+     */
+    @Then("valido que el campo de error {string} sea exactamente {string}")
+    public void validoCampoDeErrorSeaExactamente(String field, String expected)
+            throws FrameworkBusinessException {
+        apiHelper().validateJsonPathValue(field, expected);
     }
 
     // =========================================================================
@@ -169,10 +192,17 @@ public class ResponseBodySteps {
     }
 
     /**
-     * Valida que el campo sea un booleano con valor específico.
+     * Valida que el campo JSON tenga el valor booleano indicado ("true" o "false").
+     * La comparación es case-insensitive sobre la representación en cadena del valor JSON.
+     *
+     * <p>Ejemplo:
+     * <pre>
+     * Then valido que el campo "$.active" tenga el valor booleano "true"
+     * </pre>
      */
-    @Then("valido que el campo {string} sea {string} como booleano")
-    public void validoCampoBooleano(String jsonPath, String boolValue) throws FrameworkBusinessException {
+    @Then("valido que el campo {string} tenga el valor booleano {string}")
+    public void validoCampoTengaValorBooleano(String jsonPath, String boolValue)
+            throws FrameworkBusinessException {
         apiHelper().validateJsonPathValue(jsonPath, boolValue);
     }
 }

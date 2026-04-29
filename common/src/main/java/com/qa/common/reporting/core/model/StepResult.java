@@ -49,7 +49,7 @@ public class StepResult {
     private String[] arguments;       // Argumentos capturados del step
 
     // Detalle HTTP (opcional — solo steps de capa API con HttpDetailRedactor aplicado)
-    private com.qa.common.logging.HttpStepDetail httpDetail;
+    private com.qa.common.reporting.core.model.HttpStepDetail httpDetail;
 
     // =================================================================================
     // CONSTRUCTORES
@@ -216,11 +216,11 @@ public class StepResult {
         this.arguments = arguments;
     }
 
-    public com.qa.common.logging.HttpStepDetail getHttpDetail() {
+    public com.qa.common.reporting.core.model.HttpStepDetail getHttpDetail() {
         return httpDetail;
     }
 
-    public void setHttpDetail(com.qa.common.logging.HttpStepDetail httpDetail) {
+    public void setHttpDetail(com.qa.common.reporting.core.model.HttpStepDetail httpDetail) {
         this.httpDetail = httpDetail;
     }
 

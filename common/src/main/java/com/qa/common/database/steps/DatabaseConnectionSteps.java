@@ -3,7 +3,7 @@ package com.qa.common.database.steps;
 import com.qa.common.database.factory.DbConnectorFactory;
 import com.qa.common.database.helpers.DatabaseHelper;
 import com.qa.common.database.interfaces.DatabaseConnector;
-import com.qa.common.http.exceptions.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import io.cucumber.java.After;

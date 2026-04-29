@@ -1,6 +1,6 @@
 package com.qa.webcore.steps.config;
 
-import com.qa.common.http.exceptions.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.webcore.config.WebConfigKeys;
 import com.qa.webcore.driver.WebDriverFactory.BrowserType;

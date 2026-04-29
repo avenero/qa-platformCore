@@ -2,7 +2,6 @@ package com.qa.mobilecore.steps.device;
 
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.annotation.StepDef;
 import com.qa.mobilecore.helper.MobileHelper;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -45,23 +44,6 @@ public class NotificationSteps {
         String resolved = ctx().variables().resolve(buttonText);
         mobile().tap("text:" + resolved);
         TestLogger.logInfo("NOTIFICATION", "Notificaciones descartadas via: " + resolved, null);
-    }
-
-    @StepDef(value = "mobile.notification.legacy-descarto-todas",
-             deprecated = true, replacedBy = "mobile.notification#descartarNotificacionesConBoton")
-    @When("descarto todas las notificaciones")
-    public void descartarTodasLasNotificaciones() {
-        try {
-            mobile().tap("text:Borrar todo");
-        } catch (Exception e) {
-            try {
-                mobile().tap("text:Clear all");
-            } catch (Exception ex) {
-                TestLogger.logWarning("NOTIFICATION",
-                    "No se encontro boton de limpiar notificaciones", null);
-            }
-        }
-        TestLogger.logInfo("NOTIFICATION", "Notificaciones descartadas", null);
     }
 
     @Then("verifico que existe una notificacion con el texto {string}")

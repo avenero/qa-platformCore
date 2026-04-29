@@ -58,8 +58,8 @@ public class GestureSteps {
     // Swipe
     // =========================================================================
 
-    @When("deslizo hacia {string}")
-    public void deslizoCiaDireccion(String direction) {
+    @When("hago swipe hacia {string}")
+    public void hagoSwipeHacia(String direction) {
         String resolved = ctx().variables().resolve(direction);
         mobile().swipe(resolved);
         TestLogger.logInfo("GESTURE", "Swipe hacia: " + resolved, null);
@@ -129,20 +129,11 @@ public class GestureSteps {
     // NUEVOS STEPS GENÉRICOS — Gestures v2.2.1
     // =========================================================================
 
-    /**
-     * Hace tap en coordenadas absolutas de la pantalla.
-     *
-     * <p>En <strong>Cucumber Expression</strong>, {@code (...)} indica un fragmento
-     * <em>opcional</em> y no puede contener parámetros como {@code {int}}. Por eso
-     * el patrón correcto es {@code {int}, {int}} sin paréntesis. En Gherkin:
-     * {@code When hago tap en las coordenadas 120, 340}.
-     
     @When("hago tap en las coordenadas {int}, {int}")
     public void hagoTapEnCoordenadas(int x, int y) {
         mobile().tapAt(x, y);
         TestLogger.logInfo("GESTURE", "Tap en coordenadas (" + x + ", " + y + ")", null);
     }
-*/
     // =========================================================================
     // Helpers
     // =========================================================================

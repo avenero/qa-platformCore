@@ -66,6 +66,17 @@ public class CucumberReportingPlugin implements EventListener {
     /**
      * Se ejecuta cuando TODOS los tests han terminado y Cucumber ha escrito todos los reportes.
      *
+     * <p>El flujo es:
+     * <ol>
+     *   <li>Verifica que reporting esté habilitado ({@code reporting.enabled=true}).</li>
+     *   <li>Espera con backoff progresivo a que {@code cucumber.json} exista y tenga contenido.</li>
+     *   <li>Verifica que el JSON no esté vacío.</li>
+     *   <li>Procesa el pipeline: ConversionStep → ExtentGenerationStep.</li>
+     * </ol>
+     *
+     * <p><b>Fallo explícito:</b> cualquier condición que impida la generación
+     * produce un {@code logError} con el motivo concreto — no hay fallos silenciosos.
+     *
      * @param event evento de finalización de Cucumber
      */
     private void handleTestRunFinished(TestRunFinished event) {
@@ -76,6 +87,14 @@ public class CucumberReportingPlugin implements EventListener {
         try {
             ReportingConfig config = ReportingConfig.fromConfigManager();
 
+            // Guard #1 — Reporting deshabilitado explícitamente en configuración
+            if (!config.isEnabled()) {
+                TestLogger.logInfo("REPORTING",
+                    "Reporting deshabilitado (reporting.enabled=false) — se omite generación de reporte.",
+                    null);
+                return;
+            }
+
             // Determinar path del JSON (configurable via reporting.cucumber.json.path en config-app.properties)
             String jsonRelPath = ConfigManager.getInstance().get(
                     "reporting.cucumber.json.path", DEFAULT_JSON_PATH);
@@ -85,18 +104,26 @@ public class CucumberReportingPlugin implements EventListener {
             TestLogger.logInfo("REPORTING", "Buscando cucumber.json",
                     Map.of("path", cucumberJsonPath.toAbsolutePath().toString()));
 
-            // Esperar con backoff progresivo (en vez de Thread.sleep fijo de 500ms)
+            // Guard #2 — cucumber.json no disponible tras los reintentos
             if (!waitForFile(cucumberJsonPath)) {
-                TestLogger.logError("REPORTING", "cucumber.json no encontrado después de reintentos",
-                        Map.of("path", cucumberJsonPath.toAbsolutePath().toString()));
+                TestLogger.logError("REPORTING",
+                    "cucumber.json no encontrado después de " + MAX_IO_WAIT_ATTEMPTS + " intentos. "
+                        + "Verifica que el runner tenga 'json:target/cucumber-reports/cucumber.json' "
+                        + "en sus plugins de Cucumber. Reporte HTML no generado.",
+                    Map.of("path", cucumberJsonPath.toAbsolutePath().toString(),
+                           "intentos", MAX_IO_WAIT_ATTEMPTS,
+                           "accion", "Agrega 'json:<path>' a @ConfigurationParameter(key=PLUGIN_PROPERTY_NAME)"));
                 return;
             }
 
             String cucumberJson = Files.readString(cucumberJsonPath);
 
+            // Guard #3 — JSON vacío o sin escenarios
             if (cucumberJson.isBlank() || cucumberJson.equals("[]")) {
-                TestLogger.logError("REPORTING", "cucumber.json está vacío o sin scenarios",
-                        Map.of("path", cucumberJsonPath.toAbsolutePath().toString()));
+                TestLogger.logError("REPORTING",
+                    "cucumber.json está vacío o no contiene escenarios. "
+                        + "¿Se ejecutaron features válidas? Reporte HTML no generado.",
+                    Map.of("path", cucumberJsonPath.toAbsolutePath().toString()));
                 return;
             }
 
@@ -104,7 +131,7 @@ public class CucumberReportingPlugin implements EventListener {
             TestLogger.logInfo("REPORTING", "cucumber.json leído correctamente",
                     Map.of("bytes", fileSize, "chars", cucumberJson.length()));
 
-            // Inicializar y procesar
+            // Inicializar y procesar pipeline
             ReportingManager.initialize(config);
             TestLogger.logInfo("REPORTING", "Procesando resultados...", null);
             PipelineResult result = ReportingManager.processTestResults(cucumberJson);
@@ -115,13 +142,13 @@ public class CucumberReportingPlugin implements EventListener {
                                 ? result.getExtentReportPath() : "N/A"));
             } else {
                 TestLogger.logError("REPORTING", "Error al generar reportes",
-                        Map.of("failedStep", result.getFailedStep(),
-                                "error", result.getErrorMessage()));
+                        Map.of("failedStep", result.getFailedStep() != null ? result.getFailedStep() : "unknown",
+                                "error", result.getErrorMessage() != null ? result.getErrorMessage() : "sin detalle"));
             }
 
         } catch (Exception e) {
             TestLogger.logError("REPORTING", "Excepción crítica al generar reportes",
-                    Map.of("error", e.getMessage(),
+                    Map.of("error", e.getMessage() != null ? e.getMessage() : e.getClass().getName(),
                             "type", e.getClass().getSimpleName()));
         }
     }

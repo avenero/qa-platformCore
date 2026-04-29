@@ -1,7 +1,7 @@
 package com.qa.common.database.helpers;
 
 import com.qa.common.database.interfaces.DatabaseConnector;
-import com.qa.common.http.exceptions.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkBusinessException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;

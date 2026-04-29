@@ -3,8 +3,8 @@ package com.qa.apicore.utils;
 import com.qa.apicore.implementations.BaseHttpClient;
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.common.config.ConfigManager;
-import com.qa.common.http.exceptions.FrameworkBusinessException;
-import com.qa.common.http.exceptions.FrameworkTechnicalException;
+import com.qa.common.exception.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkTechnicalException;
 import com.qa.common.http.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
@@ -157,15 +157,21 @@ public class ApiHelper {
      */
     public void configureEndpoint(String propertyKey) {
         try {
-            // Preferir ExecutionContext.config() — es por ejecución e inmutable (safe en paralelo)
-            // Fallback a ConfigManager para compatibilidad con ejecución sin Engine
-            String endpointValue = ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(propertyKey)).
-                    filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(propertyKey));
+            String endpointValue;
+            // If the argument is already a URL, use it directly without property lookup
+            if (propertyKey.startsWith("http://") || propertyKey.startsWith("https://")) {
+                endpointValue = propertyKey;
+            } else {
+                // Preferir ExecutionContext.config() — es por ejecución e inmutable (safe en paralelo)
+                // Fallback a ConfigManager para compatibilidad con ejecución sin Engine
+                endpointValue = ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(propertyKey)).
+                        filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(propertyKey));
 
-            if (endpointValue == null || endpointValue.trim().isEmpty()) {
-                throw new RuntimeException(String.format(
-                    "Propiedad '%s' no encontrada o está vacía en config-{env}.properties. " +
-                    "Verifica que la propiedad exista en config-qa.properties", propertyKey));
+                if (endpointValue == null || endpointValue.trim().isEmpty()) {
+                    throw new RuntimeException(String.format(
+                        "Propiedad '%s' no encontrada o está vacía en config-{env}.properties. " +
+                        "Verifica que la propiedad exista en config-qa.properties", propertyKey));
+                }
             }
 
             String processedUrl = resolve(endpointValue);
@@ -937,8 +943,11 @@ public class ApiHelper {
                 String.format("🔍 Iniciando extracción de campo '%s' desde objeto '%s'",
                     fieldName, objectPath), null);
 
-            // Obtener la última respuesta deserializada
-            Object lastResponse = getContextVariable("__lastDeserialized");
+            // Look up the named object first, then fall back to __lastDeserialized
+            Object lastResponse = getContextVariable(objectPath);
+            if (lastResponse == null) {
+                lastResponse = getContextVariable("__lastDeserialized");
+            }
 
             if (lastResponse == null) {
                 throw new FrameworkBusinessException("extractFieldFromObject",
@@ -1096,10 +1105,19 @@ public class ApiHelper {
      * @since 2.0.0
      */
     public void setBodyFromTemplate(String template, Map<String, String> data) {
-        setBodyFromFile(template);
-        String body = httpClient.getBody() != null ? httpClient.getBody() : "";
+        // If template contains {{ or JSON chars, treat it as an inline template rather than a file path
+        String body;
+        if (template.contains("{{") || template.startsWith("{") || template.startsWith("[")) {
+            body = template;
+        } else {
+            setBodyFromFile(template);
+            body = httpClient.getBody() != null ? httpClient.getBody() : "";
+        }
+        // Replace both {{key}} and ${key} placeholder syntaxes
         for (Map.Entry<String, String> entry : data.entrySet()) {
-            body = body.replace("${" + entry.getKey() + "}", resolve(entry.getValue()));
+            String resolvedValue = resolve(entry.getValue());
+            body = body.replace("{{" + entry.getKey() + "}}", resolvedValue);
+            body = body.replace("${" + entry.getKey() + "}", resolvedValue);
         }
         httpClient.setBody(body);
     }
@@ -1111,7 +1129,7 @@ public class ApiHelper {
     public void validateJsonPathValue(String jsonPath, String expectedValue)
             throws FrameworkBusinessException {
         HttpResponse response = httpClient.getLastResponse();
-        ValidationUtilities.validateJsonPath(response, jsonPath, expectedValue);
+        ValidationUtilities.validateJsonPath(response, jsonPath, resolve(expectedValue));
     }
 
     /**
@@ -1241,8 +1259,13 @@ public class ApiHelper {
                                     int expectedCode, int maxAttempts, int waitSeconds)
             throws FrameworkTechnicalException {
         String processedEndpoint = resolve(endpoint);
+        Map<String, String> savedHeaders = new java.util.LinkedHashMap<>(httpClient.getHeaders());
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            executeRequest(method, processedEndpoint);
+            httpClient.setHost(processedEndpoint);
+            if (!savedHeaders.isEmpty()) {
+                httpClient.addHeaders(savedHeaders);
+            }
+            httpClient.get("");
             HttpResponse response = httpClient.getLastResponse();
             if (response != null && response.getStatusCode() == expectedCode) {
                 TestLogger.logInfo("API_HELPER_POLL",
@@ -1284,8 +1307,13 @@ public class ApiHelper {
             throws FrameworkTechnicalException {
         String processedEndpoint = resolve(endpoint);
         String processedExpected  = resolve(expectedValue);
+        Map<String, String> savedHeaders = new java.util.LinkedHashMap<>(httpClient.getHeaders());
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            executeRequest(method, processedEndpoint);
+            httpClient.setHost(processedEndpoint);
+            if (!savedHeaders.isEmpty()) {
+                httpClient.addHeaders(savedHeaders);
+            }
+            httpClient.get("");
             try {
                 HttpResponse response = httpClient.getLastResponse();
                 if (response != null && response.getBody() != null) {

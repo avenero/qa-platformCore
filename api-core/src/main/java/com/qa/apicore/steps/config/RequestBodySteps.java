@@ -7,15 +7,7 @@ import java.util.Map;
 
 /**
  * Steps de configuracion del cuerpo de la peticion HTTP.
- * Migrado de ApiSteps.java + nuevos steps (XML, form-data, template, archivo).
- *
- * <h2>Consolidación v2.2.1</h2>
- * <ul>
- *   <li>{@code establezco el request body {string}} — step canónico inline (sin Content-Type auto)</li>
- *   <li>{@code establezco el request body JSON} (DocString) — step canónico JSON (con Content-Type auto)</li>
- *   <li>Steps antiguos ({@code agrego el request body}, {@code agrego el request},
- *       {@code establezco el cuerpo de la petición como}) marcados deprecated.</li>
- * </ul>
+ * Soporta JSON inline, JSON DocString, DataTable, XML, form-data, template y archivo.
  *
  * @author Abel Venero
  * @since 2.0.0
@@ -48,6 +40,7 @@ public class RequestBodySteps {
      */
     @StepDef(value = "api.request-body.set-json-docstring",
              displayName = "Establecer body JSON (DocString)")
+    @Given("establezco el request body JSON:")
     @Given("establezco el request body JSON")
     public void establezcoElRequestBodyJson(String jsonBody) {
         apiHelper().setJsonBodyFromString(jsonBody);
@@ -63,32 +56,7 @@ public class RequestBodySteps {
     }
 
     // =========================================================================
-    // DEPRECATED — mantener para backward compat, usar los canónicos arriba
-    // =========================================================================
-
-    @StepDef(value = "api.request-body.legacy-body-inline",
-             deprecated = true, replacedBy = "api.request-body.set-inline")
-    @Given("agrego el request body {string}")
-    public void agregoElRequestBody(String body) {
-        apiHelper().setRequestBody(body);
-    }
-
-    @StepDef(value = "api.request-body.legacy-agrego-request",
-             deprecated = true, replacedBy = "api.request-body.set-json-docstring")
-    @Given("agrego el request")
-    public void agregoElRequest(String jsonBody) {
-        apiHelper().setJsonBodyFromString(jsonBody);
-    }
-
-    @StepDef(value = "api.request-body.legacy-cuerpo-peticion",
-             deprecated = true, replacedBy = "api.request-body.set-json-docstring")
-    @Given("establezco el cuerpo de la petición como")
-    public void establezcoElCuerpoDeLaPeticionComo(String body) {
-        apiHelper().setRequestBody(body);
-    }
-
-    // =========================================================================
-    // OTROS STEPS — sin duplicados
+    // OTROS STEPS
     // =========================================================================
 
     @Given("agrego el field {string} con el valor {string}")
@@ -96,6 +64,7 @@ public class RequestBodySteps {
         apiHelper().addField(key, value);
     }
 
+    @Given("establezco el cuerpo XML como:")
     @Given("establezco el cuerpo XML como")
     public void establezcoElCuerpoXml(String xml) {
         apiHelper().setXmlBody(xml);

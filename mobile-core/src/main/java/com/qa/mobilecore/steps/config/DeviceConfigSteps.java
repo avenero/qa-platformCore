@@ -183,11 +183,15 @@ public class DeviceConfigSteps {
     // =========================================================================
 
     /**
-     * Configura dispositivo, plataforma y versión en un único step.
-     * Útil para migraciones de features que usaban el formato legado.
+     * @deprecated Usar los steps individuales:
+     *   {@link #configuroDispositivoMovilComo(String)},
+     *   {@link #configuroPlatformVersion(String)},
+     *   {@link #seleccionoDispositivoConId(String)}.
      */
     @StepDef(value = "mobile.device.config.legacy-combined",
-             displayName = "Configurar dispositivo combinado (legacy)")
+             deprecated = true, replacedBy = "mobile.device.config.platform",
+             displayName = "Configurar dispositivo combinado (DEPRECATED)")
+    @Deprecated(since = "2.1.0", forRemoval = true)
     @Given("configuro el dispositivo {string} con plataforma {string} y version {string}")
     public void configuroDispositivo(String deviceName, String platform, String version) {
         String rPlatform = ctx().variables().resolve(platform);

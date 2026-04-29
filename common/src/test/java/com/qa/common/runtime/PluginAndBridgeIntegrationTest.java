@@ -1,7 +1,7 @@
 package com.qa.common.runtime;
 
 import com.qa.common.database.plugin.DatabasePlugin;
-import com.qa.common.http.exceptions.FrameworkBusinessException;
+import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.runtime.events.EventBus;
 import org.junit.jupiter.api.*;
 

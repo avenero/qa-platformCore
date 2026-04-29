@@ -1,11 +1,23 @@
-package com.qa.common.http.exceptions;
+package com.qa.common.exception;
 
 /**
- * Excepción de negocio del framework. Se utiliza para errores relacionados con validaciones de
- * datos, reglas de negocio, y problemas funcionales en las pruebas.
+ * Excepción de negocio del framework QA.
+ *
+ * <p>Se lanza ante errores funcionales que el framework puede clasificar con precisión:
+ * <ul>
+ *   <li>Aserciones fallidas (status code incorrecto, campo JSON ausente, texto no encontrado)</li>
+ *   <li>Reglas de validación violadas (schema inválido, formato incorrecto)</li>
+ *   <li>Configuración de step incorrecta (parámetro obligatorio faltante)</li>
+ *   <li>Operaciones de datos inválidas (JSON malformado, tipo incompatible)</li>
+ * </ul>
+ *
+ * <p><b>Distinción respecto a {@link FrameworkTechnicalException}:</b><br>
+ * Una excepción de negocio indica que el test encontró un comportamiento inesperado
+ * de la aplicación bajo prueba — no un fallo de infraestructura.
  *
  * @author QA Automation Framework Team
  * @since 1.0.0
+ * @see FrameworkTechnicalException
  */
 public class FrameworkBusinessException extends FrameworkException {
 
@@ -31,7 +43,7 @@ public class FrameworkBusinessException extends FrameworkException {
     }
 
     /**
-     * Constructor con prefijo de método para contexto.
+     * Constructor con prefijo de método para contexto de depuración.
      *
      * @param methodName nombre del método donde ocurrió el error
      * @param message    mensaje descriptivo del error de negocio

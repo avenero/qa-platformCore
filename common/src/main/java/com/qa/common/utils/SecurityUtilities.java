@@ -1,6 +1,6 @@
 package com.qa.common.utils;
 
-import com.qa.common.http.exceptions.FrameworkTechnicalException;
+import com.qa.common.exception.FrameworkTechnicalException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

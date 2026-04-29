@@ -2,14 +2,17 @@ package com.qa.apicore.implementations;
 
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.common.http.enums.HttpMethod;
-import com.qa.common.http.exceptions.FrameworkTechnicalException;
+import com.qa.common.exception.FrameworkTechnicalException;
 import com.qa.common.http.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.utils.TextUtilities;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kong.unirest.Header;
 import kong.unirest.Headers;
@@ -249,6 +252,10 @@ public class BaseHttpClient implements HttpClient {
   private long lastRequestDuration;
   /** Body de la última petición — guardado antes de clearRequestData() para HttpDetailRedactor. */
   private String lastRequestBody;
+  /** Correlación de la última petición — para trazabilidad en {@code HttpStepDetail}. */
+  private String lastRequestId;
+  /** Copia de headers de request antes de {@link #clearRequestData()}. */
+  private Map<String, String> lastRequestHeadersSnapshot = Map.of();
 
   // Configuración SSL
   private boolean sslValidationDisabled = false;
@@ -388,6 +395,10 @@ public class BaseHttpClient implements HttpClient {
   }
 
   @Override
+  public Map<String, String> getHeaders() {
+    return new java.util.LinkedHashMap<>(headers);
+  }
+
   public void addHeaders(Map<String, String> headers) {
     if (headers == null) {
       throw new IllegalArgumentException("Headers map no puede ser null");
@@ -716,6 +727,8 @@ public class BaseHttpClient implements HttpClient {
       // Guardar datos para debugging
       this.lastRequestMethod = method != null ? method.toUpperCase() : null;
       this.lastRequestUrl = fullUrl;
+      this.lastRequestId = UUID.randomUUID().toString();
+      this.lastRequestHeadersSnapshot = new LinkedHashMap<>(headers);
 
       logRequest(method, fullUrl);
 
@@ -851,6 +864,19 @@ public class BaseHttpClient implements HttpClient {
   }
 
   @Override
+  public String getLastRequestId() {
+    return lastRequestId;
+  }
+
+  @Override
+  public Map<String, String> getLastRequestHeadersSnapshot() {
+    if (lastRequestHeadersSnapshot == null || lastRequestHeadersSnapshot.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    return Collections.unmodifiableMap(new LinkedHashMap<>(lastRequestHeadersSnapshot));
+  }
+
+  @Override
   public String getDebugInfo() {
     StringBuilder debug = new StringBuilder("BaseHttpClient Debug Info:\n");
     debug.append("Host: ").append(currentHost).append("\n");
@@ -913,6 +939,8 @@ public class BaseHttpClient implements HttpClient {
     readTimeout = DEFAULT_READ_TIMEOUT_MS;
     maxRetries = 0;
     retryDelay = DEFAULT_RETRY_DELAY_MS;
+    lastRequestId = null;
+    lastRequestHeadersSnapshot = Map.of();
     LOG.debug("Cliente HTTP reseteado completamente");
   }
 
@@ -1392,8 +1420,22 @@ public class BaseHttpClient implements HttpClient {
 
   private kong.unirest.HttpResponse<String> executePost(String url) throws UnirestException {
     if (!fields.isEmpty()) {
-      // Los query params ya están en la URL desde buildFullUrl()
-      return Unirest.post(url).headers(headers).fields(fields).asString();
+      // If Content-Type is application/json, serialize fields as JSON body instead of form encoding
+      String contentType = headers.getOrDefault("Content-Type", "");
+      if (contentType.toLowerCase().contains("application/json")) {
+        try {
+          String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(fields);
+          return Unirest.post(url).headers(headers).body(jsonBody).asString();
+        } catch (Exception e) {
+          throw new UnirestException(e);
+        }
+      }
+      // For multipart/form-data, remove the manually set Content-Type so Unirest
+      // can add the boundary automatically. Without the boundary, the server
+      // fails to parse the request.
+      Map<String, String> headersForMultipart = new java.util.HashMap<>(headers);
+      headersForMultipart.remove("Content-Type");
+      return Unirest.post(url).headers(headersForMultipart).fields(fields).asString();
     } else {
       // Content-Type ya asegurado en executeRequest()
       if (TextUtilities.isValidString(body)) {
@@ -1462,7 +1504,13 @@ public class BaseHttpClient implements HttpClient {
 
   private Map<String, String> sanitizeHeaders(Map<String, String> headersMap) {
     Map<String, String> sanitized = new HashMap<>();
-    headersMap.forEach((k, v) -> sanitized.put(k, TextUtilities.sanitizeValue(k, v)));
+    headersMap.forEach(
+        (k, v) ->
+            sanitized.put(
+                k,
+                TextUtilities.isSensitiveHttpHeaderName(k)
+                    ? "***HIDDEN***"
+                    : TextUtilities.sanitizeValue(k, v)));
     return sanitized;
   }
 
