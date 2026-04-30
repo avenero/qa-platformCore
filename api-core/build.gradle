@@ -22,7 +22,7 @@ dependencies {
     // ===== HTTP CLIENT AVANZADO =====
     // Unirest para peticiones HTTP/HTTPS con soporte SSL
     api 'com.konghq:unirest-java:3.14.5'
-    api 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+    api 'org.apache.httpcomponents.client5:httpclient5:5.6.1'
 
     // ===== BASE DE DATOS =====
     // NOTA: HikariCP y drivers JDBC ya están en COMMON
@@ -43,8 +43,8 @@ dependencies {
     api 'org.hamcrest:hamcrest:2.2'
 
     // ===== CUCUMBER PARA BDD (versiones específicas para API testing) =====
-    api 'io.cucumber:cucumber-java:7.18.0'
-    api 'io.cucumber:cucumber-junit-platform-engine:7.18.0'
+    api 'io.cucumber:cucumber-java:7.34.3'
+    api 'io.cucumber:cucumber-junit-platform-engine:7.34.3'
     api 'org.junit.platform:junit-platform-suite:1.10.0'
 
     // ===== TESTING DEPENDENCIES =====

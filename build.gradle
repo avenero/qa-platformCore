@@ -4,7 +4,8 @@
 // mediante 'apply plugin:' dentro del bloque subprojects {}
 // =============================================================================
 plugins {
-    id "com.github.spotbugs" version "6.0.18" apply false
+    id "com.github.spotbugs"           version "6.5.1"  apply false
+    id "com.github.ben-manes.versions" version "0.54.0"
 }
 
 group = findProperty("coreGroup") ?: "com.qa"
@@ -46,7 +47,7 @@ subprojects {
     // SPOTBUGS — Detección de bugs y code smells
     // =========================================================================
     spotbugs {
-        toolVersion    = "4.8.6"
+        toolVersion    = "4.9.8"
         ignoreFailures = !project.hasProperty('strict')
         effort         = com.github.spotbugs.snom.Effort.valueOf('DEFAULT')
         reportLevel    = com.github.spotbugs.snom.Confidence.valueOf('HIGH')

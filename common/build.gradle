@@ -22,21 +22,21 @@ dependencies {
     api 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2'
 
     // JSON library básica (para DataUtilities)
-    api 'org.json:json:20231013'
+    api 'org.json:json:20251224'
 
     // YAML processing (para ConfigurationProvider)
     api 'org.yaml:snakeyaml:2.2'
 
     // === LOGGING ===
     api 'org.slf4j:slf4j-api:2.0.9'
-    api 'ch.qos.logback:logback-classic:1.5.25'  // Actualizado para resolver CVE-2025-11226 y CVE-2026-1225
-    api 'org.fusesource.jansi:jansi:2.4.0'  // Para colores ANSI en consola
+    api 'ch.qos.logback:logback-classic:1.5.32'  // Actualizado para resolver CVE-2025-11226 y CVE-2026-1225
+    api 'org.fusesource.jansi:jansi:2.4.3'  // Para colores ANSI en consola
 
     // === CUCUMBER (para hooks y contexto comunes) ===
-    api 'io.cucumber:cucumber-java:7.18.0'
+    api 'io.cucumber:cucumber-java:7.34.3'
 
     // === UTILIDADES GENERALES ===
-    api 'org.apache.commons:commons-lang3:3.18.0'
+    api 'org.apache.commons:commons-lang3:3.20.0'
 
     // === TESTING FRAMEWORKS (base común) ===
     api 'org.junit.jupiter:junit-jupiter:5.10.0'
@@ -44,10 +44,10 @@ dependencies {
     api 'org.junit.jupiter:junit-jupiter-api:5.10.0'
 
     // === SEGURIDAD Y ENCRIPTACIÓN (genérico) ===
-    api 'org.bouncycastle:bcprov-jdk18on:1.78.1'
+    api 'org.bouncycastle:bcprov-jdk18on:1.84'
 
     // === UTILIDADES DE ARCHIVO E I/O ===
-    api 'commons-io:commons-io:2.14.0'
+    api 'commons-io:commons-io:2.22.0'
 
     // === JSON PATH & JSON COMPARISON (usado por DataUtilities) ===
     api 'com.jayway.jsonpath:json-path:2.9.0'
@@ -55,10 +55,10 @@ dependencies {
 
     // Forzar versión segura de json-smart (dependencia transitiva de json-path)
     // Resuelve CVE-2024-57699 (HIGH - Uncontrolled Recursion/DoS vulnerability)
-    api 'net.minidev:json-smart:2.5.2'
+    api 'net.minidev:json-smart:2.6.0'
 
     // === REPORTING (Extent Reports para HTML reports) ===
-    api 'com.aventstack:extentreports:5.1.1'
+    api 'com.aventstack:extentreports:5.1.2'
 
     // === HTTP CLIENT (para Jira integration) ===
     api 'org.apache.httpcomponents:httpclient:4.5.14'
@@ -66,7 +66,7 @@ dependencies {
 
     // Forzar versión segura de commons-codec (dependencia transitiva de httpclient)
     // Resuelve WS-2019-0379 (Input Validation vulnerability)
-    api 'commons-codec:commons-codec:1.17.1'
+    api 'commons-codec:commons-codec:1.22.0'
 
     // === DATABASE CONNECTION POOLING & DRIVERS ===
     // HikariCP para gestión genérica de conexiones
@@ -75,7 +75,7 @@ dependencies {
     // JDBC Drivers (disponibles para todos los módulos)
     // Nota: Cada proyecto puede usar el driver que necesite
     api 'com.mysql:mysql-connector-j:8.4.0'  // Actualizado (reemplaza mysql-connector-java para resolver CVE-2023-22102)
-    api 'org.postgresql:postgresql:42.7.7'
+    api 'org.postgresql:postgresql:42.7.11'
     api 'com.microsoft.sqlserver:mssql-jdbc:12.8.2.jre11'  // Actualizado para resolver CVE-2025-59250
     api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
 
@@ -116,7 +116,7 @@ dependencies {
     testImplementation 'net.javacrumbs.json-unit:json-unit-assertj:2.38.0'
 
     // Concurrency testing
-    testImplementation 'org.awaitility:awaitility:4.2.0'
+    testImplementation 'org.awaitility:awaitility:4.3.0'
 }
 
 // ========================================================================

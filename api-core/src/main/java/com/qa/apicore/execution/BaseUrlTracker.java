@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Rastrea la base URL efectiva durante la ejecución de un escenario.
  *
- * <p>Se crea una instancia por escenario (vive dentro de {@code ApiPlugin.onScenarioStart}) y
+ * <p>Se crea una instancia por escenario (vive dentro de {@code com.qa.apicore.plugin.ApiPlugin#onScenarioStart}) y
  * acumula:
  * <ul>
  *   <li>La URL efectiva actual ({@link #getEffectiveBaseUrl()}).</li>
@@ -19,7 +19,7 @@ import java.util.List;
  *   <li>El historial completo de cambios ({@link #getHistory()}).</li>
  * </ul>
  *
- * <p>Al finalizar el escenario, {@link ApiPlugin} lee estos datos para construir
+ * <p>Al finalizar el escenario, {@link com.qa.apicore.plugin.ApiPlugin} lee estos datos para construir
  * el {@link ExecutionMeta} que se envía al BE.
  */
 public final class BaseUrlTracker {
