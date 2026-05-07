@@ -87,13 +87,13 @@ dependencies {
     // - testdata/ y database/ (en common) lo necesitan
     // - No depende de drivers específicos
     //
-    // Drivers JDBC permanecen en API-CORE porque:
+    // Drivers JDBC migrarán a database-core en TASK-A06:
     // - Son específicos por tipo de BD (Oracle, PostgreSQL, etc.)
     // - No todos los módulos los necesitan
-    // - api-core ya los tiene y hereda common
+    // - http-core y database-core heredan common
     //
-    // Otras dependencias en api-core:
-    // - Unirest (HTTP client avanzado)
+    // Otras dependencias en http-core:
+    // - Unirest (HTTP client avanzado, deprecado — se elimina en TASK-J01)
     // - JSON Schema Validator (solo para API REST)
     // - HTTP Components (específico API)
     // ========================================================================

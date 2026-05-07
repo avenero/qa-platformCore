@@ -12,7 +12,7 @@ java {
     }
 }
 
-// Configuración específica del módulo api-core (v1.1.0)
+// Configuración específica del módulo http-core (v2.1.0, renombrado desde api-core v1.1.0)
 // Dependencias específicas para testing de APIs REST/SOAP/GraphQL
 dependencies {
     // ===== DEPENDENCIA DEL FRAMEWORK COMMON =====
@@ -30,7 +30,7 @@ dependencies {
 
     // ===== BASE DE DATOS =====
     // NOTA: HikariCP y drivers JDBC ya están en COMMON
-    // api-core hereda todo desde common (no necesita duplicar)
+    // http-core hereda todo desde common (no necesita duplicar)
 
     // ===== VALIDACIONES API REST =====
     // JSON Schema validation
@@ -146,15 +146,15 @@ javadoc {
 // =================================================================================
 // METADATOS DE PUBLICACIÓN
 // La publicación y repositorios se configuran en el build.gradle raíz.
-// Aquí solo se personaliza el POM de `api-core`.
+// Aquí solo se personaliza el POM de `http-core`.
 // =================================================================================
 publishing {
     publications.named('mavenJava', MavenPublication) {
         // JavaDoc y Sources ya incluidos por withJavadocJar() y withSourcesJar()
         // NO agregar manualmente para evitar duplicados
         pom {
-            name = 'QA Framework - API Core'
-            description = 'Framework de automatización QA - Módulo API Core con Cucumber Steps para testing de APIs REST'
+            name = 'QA Framework - HTTP Core'
+            description = 'Framework de automatización QA - Módulo HTTP Core con Cucumber Steps para testing de APIs REST/GraphQL'
             url = 'https://github.com/avenero/qa-platformCore'
 
             licenses {
@@ -180,19 +180,19 @@ tasks.register('publishInfo') {
     doLast {
         println """
         ╔════════════════════════════════════════════════════════════╗
-        ║  INFORMACIÓN DE PUBLICACIÓN - api-core
+        ║  INFORMACIÓN DE PUBLICACIÓN - http-core
         ╠════════════════════════════════════════════════════════════╣
         ║  Group ID:    com.qa
-        ║  Artifact ID: api-core
+        ║  Artifact ID: http-core
         ║  Version:     ${project.version}
-        ║  
+        ║
         ║  Maven Coordinates:
-        ║  com.qa:api-core:${project.version}
+        ║  com.qa:http-core:${project.version}
         ║
         ║  Para usar en tu proyecto de automatización:
-        ║  
+        ║
         ║  dependencies {
-        ║      implementation 'com.qa:api-core:${project.version}'
+        ║      implementation 'com.qa:http-core:${project.version}'
         ║  }
         ║
         ║  NOTA: Este JAR incluye transitivamente el módulo 'common'

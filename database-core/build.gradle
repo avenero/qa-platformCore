@@ -1,0 +1,59 @@
+// =============================================================================
+// database-core — Módulo de testing de bases de datos (esqueleto TASK-A02)
+// Contenido real se agrega en TASK-A03 (migración common/database/) y
+// TASK-A04 (migración lógica DB de http-core).
+// =============================================================================
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    // Exponer `common` como API para que sea transitivamente visible a consumidores
+    api project(':common')
+
+    // Cucumber para BDD (versiones alineadas con el resto del framework)
+    api "io.cucumber:cucumber-java:${rootProject.ext.cucumberVersion}"
+    api "io.cucumber:cucumber-junit-platform-engine:${rootProject.ext.cucumberVersion}"
+
+    api 'org.assertj:assertj-core:3.27.7'
+
+    // HikariCP + drivers JDBC se agregan en TASK-A06 (no duplicar desde common aún)
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testImplementation 'org.mockito:mockito-core:5.8.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
+
+publishing {
+    publications.named('mavenJava', MavenPublication) {
+        pom {
+            name = 'QA Framework - Database Core'
+            description = 'Framework de automatización QA - Módulo Database Core para testing de bases de datos (esqueleto)'
+            url = 'https://github.com/avenero/qa-platformCore'
+
+            licenses {
+                license {
+                    name = 'Proprietary'
+                    url  = 'https://github.com/avenero/qa-platformCore'
+                }
+            }
+
+            developers {
+                developer {
+                    id = 'qa-team'
+                    name = 'QA Automation Team'
+                    email = 'qa-team@internal.com'
+                }
+            }
+        }
+    }
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.encoding = 'UTF-8'
+}
