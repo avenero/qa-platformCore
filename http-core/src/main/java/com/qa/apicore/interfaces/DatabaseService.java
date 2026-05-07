@@ -110,8 +110,8 @@ import javax.sql.DataSource;
  * @author Abel Venero
  * @version 1.0.0
  * @since 1.0.0
- * @see com.qa.common.database.interfaces.DatabaseConnector
- * @see com.qa.common.database.config.DatabaseConfig
+ * @see com.qa.databasecore.connector.DatabaseConnector
+ * @see com.qa.databasecore.config.DatabaseConfig
  */
 public interface DatabaseService extends AutoCloseable {
 

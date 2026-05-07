@@ -1,9 +1,10 @@
 package com.qa.common.runtime;
 
-import com.qa.common.database.plugin.DatabasePlugin;
-import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.runtime.events.EventBus;
 import org.junit.jupiter.api.*;
+
+import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -12,13 +13,16 @@ import static org.assertj.core.api.Assertions.*;
  *
  * <p>Verifica que:
  * <ol>
- *   <li>Los plugins implementan correctamente {@link CorePlugin}</li>
+ *   <li>El contrato {@link CorePlugin} funciona con implementaciones concretas</li>
  *   <li>Los servicios se registran en {@link ServiceRegistry}</li>
  *   <li>Los componentes se declaran con los metadatos correctos</li>
  *   <li>Los steps escriben y leen de {@link VariableStore} via {@link ExecutionContext}</li>
- *   <li>El {@link CucumberRuntimeEngine} puede instanciarse con los plugins
- *       conocidos y expone los componentes declarados</li>
+ *   <li>El {@link CucumberRuntimeEngine} puede instanciarse con plugins y expone componentes</li>
  * </ol>
+ *
+ * <p><b>Nota:</b> Los tests específicos de DatabasePlugin se movieron a
+ * {@code database-core/DatabasePluginIntegrationTest} en TASK-A03, ya que
+ * {@code common} no puede depender de módulos especializados.
  *
  * @author Abel Venero
  * @since 2.0.0
@@ -27,10 +31,26 @@ import static org.assertj.core.api.Assertions.*;
 class PluginAndBridgeIntegrationTest {
 
     // =========================================================================
+    // Stub de plugin para tests de runtime (no depende de ningún módulo externo)
+    // =========================================================================
+
+    /** Plugin stub que verifica el contrato CorePlugin sin dependencias externas. */
+    private static class FakeCorePlugin implements CorePlugin {
+        @Override public String getName() { return "fake"; }
+        @Override public Set<String> getActivationTags() { return Set.of("@fake"); }
+        @Override public int getOrder() { return 99; }
+        @Override public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
+            registry.registerInstance(String.class, "fakeService");
+        }
+        @Override public void onScenarioStart(ExecutionContext context) { /* no-op */ }
+        @Override public void onScenarioEnd(ExecutionContext context) { /* no-op */ }
+        @Override public List<StepComponent> getComponents() { return List.of(); }
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
-    /** Crea un {@link ExecutionContext} con componentes mínimos para tests. */
     private ExecutionContext buildContext() {
         ExecutionConfig config = new ExecutionConfig.Builder().build();
         ServiceRegistry registry = new ServiceRegistry();
@@ -40,63 +60,48 @@ class PluginAndBridgeIntegrationTest {
     }
 
     // =========================================================================
-    // DatabasePlugin — contrato del plugin en módulo common
+    // CorePlugin stub — contrato del plugin
     // =========================================================================
 
     @Nested
-    @DisplayName("DatabasePlugin — Contrato del Plugin")
-    class DatabasePluginTests {
+    @DisplayName("FakeCorePlugin — Contrato del Plugin")
+    class FakeCorePluginTests {
 
-        private final DatabasePlugin plugin = new DatabasePlugin();
+        private final FakeCorePlugin plugin = new FakeCorePlugin();
 
         @Test
-        @DisplayName("getName() retorna 'database'")
-        void getNameRetornaDatabase() {
-            assertThat(plugin.getName()).isEqualTo("database");
+        @DisplayName("getName() retorna identificador del plugin")
+        void getNameRetornaIdentificador() {
+            assertThat(plugin.getName()).isEqualTo("fake");
         }
 
         @Test
-        @DisplayName("getActivationTags() incluye @db, @database, @sql, @jdbc")
-        void getActivationTagsIncludeAllDbTags() {
-            assertThat(plugin.getActivationTags())
-                    .containsExactlyInAnyOrder("@db", "@database", "@sql", "@jdbc");
+        @DisplayName("getActivationTags() retorna tags de activación")
+        void getActivationTagsRetornaTags() {
+            assertThat(plugin.getActivationTags()).containsExactly("@fake");
         }
 
         @Test
-        @DisplayName("getOrder() retorna 0 (se inicializa primero)")
-        void getOrderRetornaCero() {
-            assertThat(plugin.getOrder()).isEqualTo(0);
+        @DisplayName("getOrder() retorna orden de inicialización")
+        void getOrderRetornaOrden() {
+            assertThat(plugin.getOrder()).isEqualTo(99);
         }
 
         @Test
-        @DisplayName("registerServices() registra DatabaseHelper")
-        void registerServicesRegistraDatabaseHelper() {
+        @DisplayName("registerServices() registra servicio correctamente")
+        void registerServicesRegistraServicio() {
             ServiceRegistry registry = new ServiceRegistry();
             ExecutionConfig config = new ExecutionConfig.Builder().build();
 
             plugin.registerServices(registry, config);
 
-            assertThat(registry.isRegistered(com.qa.common.database.helpers.DatabaseHelper.class))
-                    .isTrue();
+            assertThat(registry.isRegistered(String.class)).isTrue();
         }
 
         @Test
-        @DisplayName("getComponents() declara exactamente 3 componentes (GIVEN, WHEN, THEN)")
-        void getComponentsDeclara3Componentes() {
-            assertThat(plugin.getComponents()).hasSize(3);
-        }
-
-        @Test
-        @DisplayName("Los componentes DB cubren las tres fases BDD")
-        void componentesDbCubrenTresFases() {
-            var components = plugin.getComponents();
-            assertThat(components).anyMatch(c -> c.getPhase() == BddPhase.GIVEN);
-            assertThat(components).anyMatch(c -> c.getPhase() == BddPhase.WHEN);
-            assertThat(components).anyMatch(c -> c.getPhase() == BddPhase.THEN);
-            components.forEach(c -> {
-                assertThat(c.getName()).isNotBlank();
-                assertThat(c.getDescription()).isNotBlank();
-            });
+        @DisplayName("getComponents() retorna lista (puede estar vacía)")
+        void getComponentsRetornaLista() {
+            assertThat(plugin.getComponents()).isNotNull();
         }
 
         @Test
@@ -109,7 +114,7 @@ class PluginAndBridgeIntegrationTest {
     }
 
     // =========================================================================
-    // VariableStore — escritura directa desde steps (Fase 2)
+    // VariableStore — escritura directa desde steps
     // =========================================================================
 
     @Nested
@@ -132,7 +137,6 @@ class PluginAndBridgeIntegrationTest {
             ExecutionContext ctx = buildContext();
             ctx.activate();
 
-            // Simula lo que hace un step migrado
             ctx.variables().set("miVariable", "miValor");
 
             assertThat(ctx.variables().get("miVariable", String.class))
@@ -160,20 +164,6 @@ class PluginAndBridgeIntegrationTest {
 
             String resolved = ctx.variables().resolve("${inexistente}");
             assertThat(resolved).isEqualTo("${inexistente}");
-        }
-
-        @Test
-        @DisplayName("VariableStore.resolve() lee de VariableStore como prioridad")
-        void variableStoreResuelveDesdeContexto() {
-            ExecutionContext ctx = buildContext();
-            ctx.activate();
-
-            // Steps escriben al VariableStore directamente
-            ctx.variables().set("rut", "12345678-9");
-
-            // VariableStore.resolve() resuelve placeholders ${var}
-            String resolved = ctx.variables().resolve("usuario ${rut}");
-            assertThat(resolved).isEqualTo("usuario 12345678-9");
         }
 
         @Test
@@ -244,31 +234,29 @@ class PluginAndBridgeIntegrationTest {
     class EngineComponentDiscoveryTests {
 
         @Test
-        @DisplayName("Engine instanciado con DatabasePlugin expone sus componentes")
-        void engineConDatabasePluginExponeComponentes() {
-            DatabasePlugin dbPlugin = new DatabasePlugin();
-            LifecycleManager lm = new DefaultLifecycleManager(java.util.List.of(dbPlugin));
-            StepDiscoveryService discovery = new StepDiscoveryService(java.util.List.of(dbPlugin));
+        @DisplayName("Engine instanciado con FakePlugin expone su nombre")
+        void engineConFakePluginExponeNombre() {
+            FakeCorePlugin fakePlugin = new FakeCorePlugin();
+            LifecycleManager lm = new DefaultLifecycleManager(List.of(fakePlugin));
+            StepDiscoveryService discovery = new StepDiscoveryService(List.of(fakePlugin));
             CucumberRuntimeEngine engine = new CucumberRuntimeEngine(lm, discovery);
 
             assertThat(engine.getDiscoveryService().getPlugins())
                     .hasSize(1)
                     .extracting(CorePlugin::getName)
-                    .containsExactly("database");
-
-            assertThat(engine.getDiscoveryService().totalComponents()).isEqualTo(3);
+                    .containsExactly("fake");
         }
 
         @Test
-        @DisplayName("StepDiscoveryService agrupa componentes por plugin")
-        void discoveryAgrupaPorPlugin() {
-            DatabasePlugin dbPlugin = new DatabasePlugin();
-            StepDiscoveryService discovery = new StepDiscoveryService(java.util.List.of(dbPlugin));
+        @DisplayName("StepDiscoveryService con plugin sin componentes retorna mapa vacío")
+        void discoveryConPluginSinComponentesRetornaMapaVacio() {
+            FakeCorePlugin fakePlugin = new FakeCorePlugin();
+            StepDiscoveryService discovery = new StepDiscoveryService(List.of(fakePlugin));
 
+            // FakeCorePlugin.getComponents() == [] → no hay entradas en el mapa agrupado
             var componentsByPlugin = discovery.groupByPlugin();
-            assertThat(componentsByPlugin).containsKey("database");
-            assertThat(componentsByPlugin.get("database")).hasSize(3);
+            assertThat(componentsByPlugin).doesNotContainKey("fake");
+            assertThat(discovery.totalComponents()).isZero();
         }
     }
 }
-

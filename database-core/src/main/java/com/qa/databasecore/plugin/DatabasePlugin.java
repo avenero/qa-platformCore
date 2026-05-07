@@ -1,9 +1,9 @@
-package com.qa.common.database.plugin;
+package com.qa.databasecore.plugin;
 
-import com.qa.common.database.components.DatabaseExecutionComponent;
-import com.qa.common.database.components.DatabaseSetupComponent;
-import com.qa.common.database.components.DatabaseValidationComponent;
-import com.qa.common.database.helpers.DatabaseHelper;
+import com.qa.databasecore.components.DatabaseExecutionComponent;
+import com.qa.databasecore.components.DatabaseSetupComponent;
+import com.qa.databasecore.components.DatabaseValidationComponent;
+import com.qa.databasecore.helper.DatabaseHelper;
 import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;

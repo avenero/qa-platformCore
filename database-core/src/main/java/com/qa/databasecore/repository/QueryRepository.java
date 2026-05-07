@@ -1,6 +1,6 @@
-package com.qa.common.database.repository;
+package com.qa.databasecore.repository;
 
-import com.qa.common.database.interfaces.DatabaseConnector;
+import com.qa.databasecore.connector.DatabaseConnector;
 import com.qa.common.logging.TestLogger;
 
 import java.sql.Connection;

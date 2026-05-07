@@ -59,7 +59,7 @@ import com.qa.common.logging.TestLogger;
  * @since 2.0.0
  * @see DatabaseService
  * @see BaseDatabaseService
- * @see com.qa.common.database.interfaces.DatabaseConnector
+ * @see com.qa.databasecore.connector.DatabaseConnector
  */
 public final class DatabaseServiceFactory {
 

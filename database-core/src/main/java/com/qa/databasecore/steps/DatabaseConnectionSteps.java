@@ -1,8 +1,8 @@
-package com.qa.common.database.steps;
+package com.qa.databasecore.steps;
 
-import com.qa.common.database.factory.DbConnectorFactory;
-import com.qa.common.database.helpers.DatabaseHelper;
-import com.qa.common.database.interfaces.DatabaseConnector;
+import com.qa.databasecore.factory.DbConnectorFactory;
+import com.qa.databasecore.helper.DatabaseHelper;
+import com.qa.databasecore.connector.DatabaseConnector;
 import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;

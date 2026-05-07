@@ -1,2 +1,1 @@
-# DatabasePlugin se registra aquí en TASK-B05
-# com.qa.databasecore.plugin.DatabasePlugin
+com.qa.databasecore.plugin.DatabasePlugin

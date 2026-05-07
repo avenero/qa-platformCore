@@ -1,7 +1,6 @@
-package com.qa.common.database.connectors;
+package com.qa.databasecore.connector;
 
-import com.qa.common.database.config.DatabaseConfig;
-import com.qa.common.database.interfaces.DatabaseConnector;
+import com.qa.databasecore.config.DatabaseConfig;
 import com.qa.common.logging.TestLogger;
 import com.zaxxer.hikari.HikariDataSource;
 

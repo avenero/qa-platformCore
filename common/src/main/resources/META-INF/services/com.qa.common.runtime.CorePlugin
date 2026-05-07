@@ -1,2 +1,2 @@
-com.qa.common.database.plugin.DatabasePlugin
-
+# common no registra plugins concretos — los plugins viven en sus módulos especializados
+# (http-core, web-core, mobile-core, database-core registran via su propio META-INF/services)

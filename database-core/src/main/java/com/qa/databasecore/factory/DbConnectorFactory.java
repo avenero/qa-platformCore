@@ -1,11 +1,11 @@
-package com.qa.common.database.factory;
+package com.qa.databasecore.factory;
 
-import com.qa.common.database.config.DatabaseConfig;
-import com.qa.common.database.connectors.MySQLConnector;
-import com.qa.common.database.connectors.OracleConnector;
-import com.qa.common.database.connectors.PostgreSQLConnector;
-import com.qa.common.database.connectors.SQLServerConnector;
-import com.qa.common.database.interfaces.DatabaseConnector;
+import com.qa.databasecore.config.DatabaseConfig;
+import com.qa.databasecore.connector.MySQLConnector;
+import com.qa.databasecore.connector.OracleConnector;
+import com.qa.databasecore.connector.PostgreSQLConnector;
+import com.qa.databasecore.connector.SQLServerConnector;
+import com.qa.databasecore.connector.DatabaseConnector;
 import com.qa.common.logging.TestLogger;
 import com.zaxxer.hikari.HikariDataSource;
 

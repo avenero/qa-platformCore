@@ -1,6 +1,6 @@
-package com.qa.common.database.components;
+package com.qa.databasecore.components;
 
-import com.qa.common.database.steps.DatabaseConnectionSteps;
+import com.qa.databasecore.steps.DatabaseConnectionSteps;
 import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;

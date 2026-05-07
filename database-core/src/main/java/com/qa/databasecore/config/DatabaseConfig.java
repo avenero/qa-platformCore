@@ -1,4 +1,4 @@
-package com.qa.common.database.config;
+package com.qa.databasecore.config;
 
 import com.qa.common.logging.TestLogger;
 import com.zaxxer.hikari.HikariConfig;

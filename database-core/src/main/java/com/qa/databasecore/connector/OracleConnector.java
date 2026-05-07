@@ -1,4 +1,4 @@
-package com.qa.common.database.connectors;
+package com.qa.databasecore.connector;
 
 /**
  * Conector específico para Oracle Database.

@@ -55,7 +55,7 @@ import javax.sql.DataSource;
  * @author Abel Venero
  * @version 2.0.0
  * @since 2.0.0
- * @see com.qa.common.database.interfaces.DatabaseConnector
+ * @see com.qa.databasecore.connector.DatabaseConnector
  */
 public class BaseDatabaseConfiguration {
 

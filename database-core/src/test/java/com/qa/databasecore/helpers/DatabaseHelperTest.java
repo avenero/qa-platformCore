@@ -1,6 +1,6 @@
-package com.qa.common.database.helpers;
+package com.qa.databasecore.helper;
 
-import com.qa.common.database.interfaces.DatabaseConnector;
+import com.qa.databasecore.connector.DatabaseConnector;
 import com.qa.common.exception.FrameworkBusinessException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;

@@ -1,4 +1,4 @@
-package com.qa.common.database.interfaces;
+package com.qa.databasecore.connector;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

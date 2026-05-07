@@ -1,4 +1,4 @@
-package com.qa.common.database.config;
+package com.qa.databasecore.config;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
