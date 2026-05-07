@@ -1,4 +1,4 @@
-package com.qa.apicore.interfaces;
+package com.qa.databasecore.service;
 
 import java.sql.Connection;
 import java.sql.SQLException;

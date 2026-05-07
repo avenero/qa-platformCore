@@ -1,7 +1,8 @@
 // =============================================================================
-// database-core — Módulo de testing de bases de datos (esqueleto TASK-A02)
-// Contenido real se agrega en TASK-A03 (migración common/database/) y
-// TASK-A04 (migración lógica DB de http-core).
+// database-core — Módulo de testing de bases de datos
+// TASK-A02: esqueleto inicial
+// TASK-A03: migración common/database/ → databasecore (completado)
+// TASK-A04: migración lógica DB de http-core → databasecore (completado)
 // =============================================================================
 
 java {
@@ -32,7 +33,7 @@ publishing {
     publications.named('mavenJava', MavenPublication) {
         pom {
             name = 'QA Framework - Database Core'
-            description = 'Framework de automatización QA - Módulo Database Core para testing de bases de datos (esqueleto)'
+            description = 'Framework de automatización QA - Módulo Database Core para testing de bases de datos (HikariCP, JDBC, multi-BD)'
             url = 'https://github.com/avenero/qa-platformCore'
 
             licenses {

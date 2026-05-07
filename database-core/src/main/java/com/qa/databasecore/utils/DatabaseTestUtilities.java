@@ -1,7 +1,7 @@
-package com.qa.apicore.utils;
+package com.qa.databasecore.utils;
 
-import com.qa.apicore.implementations.BaseDatabaseService;
-import com.qa.apicore.interfaces.DatabaseService;
+import com.qa.databasecore.service.BaseDatabaseService;
+import com.qa.databasecore.service.DatabaseService;
 import com.qa.common.logging.TestLogger;
 import java.util.List;
 import java.util.Map;

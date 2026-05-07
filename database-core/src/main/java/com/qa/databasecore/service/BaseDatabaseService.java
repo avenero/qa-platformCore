@@ -1,6 +1,5 @@
-package com.qa.apicore.implementations;
+package com.qa.databasecore.service;
 
-import com.qa.apicore.interfaces.DatabaseService;
 import com.qa.common.logging.TestLogger;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;

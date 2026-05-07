@@ -1,7 +1,7 @@
-package com.qa.apicore.factories;
+package com.qa.databasecore.factory;
 
-import com.qa.apicore.implementations.BaseDatabaseService;
-import com.qa.apicore.interfaces.DatabaseService;
+import com.qa.databasecore.service.BaseDatabaseService;
+import com.qa.databasecore.service.DatabaseService;
 import com.qa.common.logging.TestLogger;
 
 /**

@@ -1,4 +1,4 @@
-package com.qa.apicore.implementations;
+package com.qa.databasecore.service;
 
 import com.qa.common.logging.TestLogger;
 import com.zaxxer.hikari.HikariConfig;
