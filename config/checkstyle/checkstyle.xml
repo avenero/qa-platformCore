@@ -156,6 +156,7 @@
         </module>
         <module name="NoWhitespaceBefore">
             <property name="tokens" value="COMMA, SEMI, POST_INC, POST_DEC, DOT"/>
+            <property name="allowLineBreaks" value="true"/>
         </module>
         <module name="GenericWhitespace"/>
 

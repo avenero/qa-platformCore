@@ -1,5 +1,6 @@
 package com.qa.common.runtime;
 
+import javax.net.ssl.SSLContext;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +50,10 @@ public final class ExecutionConfig {
     private final boolean parallelEnabled;
     private final int threadCount;
     private final Map<String, String> properties;
+    /** SSLContext pre-construido para peticiones HTTPS con CA personalizada o mTLS. null = usar JVM default. */
+    private final SSLContext sslContext;
+    /** true = ignorar validación de certificado (solo entornos no-producción). */
+    private final boolean trustAllSsl;
 
     /**
      * Constructor privado; usar {@link Builder#build()}.
@@ -62,6 +67,8 @@ public final class ExecutionConfig {
         this.parallelEnabled = builder.parallelEnabled;
         this.threadCount = builder.threadCount;
         this.properties = Collections.unmodifiableMap(new HashMap<>(builder.properties));
+        this.sslContext = builder.sslContext;
+        this.trustAllSsl = builder.trustAllSsl;
     }
 
     /**
@@ -139,6 +146,22 @@ public final class ExecutionConfig {
         return properties.getOrDefault(key, defaultValue);
     }
 
+    /**
+     * Retorna el {@link SSLContext} pre-construido para este entorno, o {@code null}
+     * si el entorno usa el truststore JVM por defecto (modo SYSTEM).
+     */
+    public SSLContext getSslContext() {
+        return sslContext;
+    }
+
+    /**
+     * Retorna {@code true} si la ejecución debe ignorar la validación de certificado TLS.
+     * Solo permitido en entornos no-producción.
+     */
+    public boolean isTrustAllSsl() {
+        return trustAllSsl;
+    }
+
     @Override
     public String toString() {
         return "ExecutionConfig{env='" + environment + "', browser='" + browser
@@ -156,6 +179,8 @@ public final class ExecutionConfig {
         private boolean parallelEnabled = false;
         private int threadCount = 1;
         private final Map<String, String> properties = new HashMap<>();
+        private SSLContext sslContext = null;
+        private boolean trustAllSsl = false;
 
         /**
          * Constructor por defecto con valores iniciales predefinidos.
@@ -244,6 +269,31 @@ public final class ExecutionConfig {
         public Builder properties(Map<String, String> props) {
             Objects.requireNonNull(props, "properties no puede ser null");
             this.properties.putAll(props);
+            return this;
+        }
+
+        /**
+         * Configura el SSLContext pre-construido para peticiones HTTPS.
+         * Usar cuando el entorno tiene CA personalizada (CUSTOM_CA) o mTLS.
+         * Si es {@code null}, se usará el truststore JVM por defecto.
+         *
+         * @param sslContext contexto SSL; null = JVM default
+         * @return este Builder para encadenamiento
+         */
+        public Builder sslContext(SSLContext sslContext) {
+            this.sslContext = sslContext;
+            return this;
+        }
+
+        /**
+         * Activa el modo "ignorar certificado" para entornos con certs self-signed.
+         * <strong>ADVERTENCIA:</strong> solo usar en entornos no-producción.
+         *
+         * @param trustAll true = ignorar validación TLS
+         * @return este Builder para encadenamiento
+         */
+        public Builder trustAllSsl(boolean trustAll) {
+            this.trustAllSsl = trustAll;
             return this;
         }
 

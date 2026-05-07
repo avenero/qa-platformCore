@@ -237,8 +237,12 @@ public class DataUtilities {
                 .flatMap(ctx -> ctx.variables().get(name, Object.class))
                 .map(Object::toString)
                 .orElse(null);
-            if (repl == null) repl = System.getProperty(name);
-            if (repl == null) repl = System.getenv(name);
+            if (repl == null) {
+                repl = System.getProperty(name);
+            }
+            if (repl == null) {
+                repl = System.getenv(name);
+            }
             if (repl == null) {
                 TestLogger.logWarning("DATA_UTILITIES",
                     "Variable ${" + name + "} no encontrada - conservando placeholder", null);

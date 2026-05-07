@@ -68,4 +68,15 @@ public interface HttpResponseAccessor {
     default Map<String, String> getLastRequestHeadersSnapshot() {
         return Collections.emptyMap();
     }
+
+    /**
+     * Body de la última respuesta HTTP, cacheado en el momento de recibir la respuesta.
+     * Más confiable que {@code getLastResponse().getBody()} en algunos contextos de ejecución.
+     *
+     * @return body de la última respuesta, o null si no aplica
+     */
+    default String getLastResponseBody() {
+        com.qa.common.http.model.HttpResponse r = getLastResponse();
+        return r != null ? r.getBody() : null;
+    }
 }

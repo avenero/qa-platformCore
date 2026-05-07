@@ -20,9 +20,13 @@ dependencies {
     api project(':common')
 
     // ===== HTTP CLIENT AVANZADO =====
-    // Unirest para peticiones HTTP/HTTPS con soporte SSL
-    api 'com.konghq:unirest-java:3.14.5'
+    // Apache HttpClient 5 — implementación activa desde v2.2.0
     api 'org.apache.httpcomponents.client5:httpclient5:5.6.1'
+
+    // Unirest — DEPRECATED desde v2.2.0, será eliminado en v2.3.0.
+    // Mantenido como 'implementation' (no transitivo) únicamente para BaseHttpClient @Deprecated.
+    // Eliminar esta dependencia junto con BaseHttpClient en v2.3.0.
+    implementation 'com.konghq:unirest-java:3.14.5'
 
     // ===== BASE DE DATOS =====
     // NOTA: HikariCP y drivers JDBC ya están en COMMON
@@ -43,8 +47,8 @@ dependencies {
     api 'org.hamcrest:hamcrest:2.2'
 
     // ===== CUCUMBER PARA BDD (versiones específicas para API testing) =====
-    api 'io.cucumber:cucumber-java:7.34.3'
-    api 'io.cucumber:cucumber-junit-platform-engine:7.34.3'
+    api "io.cucumber:cucumber-java:${rootProject.ext.cucumberVersion}"
+    api "io.cucumber:cucumber-junit-platform-engine:${rootProject.ext.cucumberVersion}"
     api 'org.junit.platform:junit-platform-suite:1.10.0'
 
     // ===== TESTING DEPENDENCIES =====
@@ -192,7 +196,8 @@ tasks.register('publishInfo') {
         ║  }
         ║
         ║  NOTA: Este JAR incluye transitivamente el módulo 'common'
-        ║        con todas sus dependencias (Unirest, Jackson, etc.)
+        ║        con todas sus dependencias (Jackson, etc.)
+        ║        Unirest ya NO es transitivo desde v2.2.0 (degradado a implementation).
         ╚════════════════════════════════════════════════════════════╝
         """.stripIndent()
     }

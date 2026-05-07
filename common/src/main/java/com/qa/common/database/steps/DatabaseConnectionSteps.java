@@ -376,8 +376,10 @@ public class DatabaseConnectionSteps {
      */
     @After
     public void cerrarConexiones() {
-        TestLogger.logInfo("DB_CONNECTION_STEPS",
-            "🧹 Cerrando conexiones de BD...", null);
+        if (DbConnectorFactory.hasActiveConnections()) {
+            TestLogger.logInfo("DB_CONNECTION_STEPS",
+                "🧹 Cerrando conexiones de BD...", null);
+        }
         DbConnectorFactory.disconnectAll();
     }
 }

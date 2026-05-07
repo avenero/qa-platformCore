@@ -1,1046 +1,410 @@
-# 📖 Guía de Configuración - CuAleon Core
+# Guía de Configuración — CuAleon / A·Spectra Core
 
-> **Framework**: CuAleon Core v2.0.x  
-> **Última actualización**: Diciembre 16, 2025  
-> **Autor**: Abel Venero
-
----
-
-## 📑 Índice
-
-1. [Introducción](#-introducción)
-2. [Configuración de Módulos](#-configuración-de-módulos)
-3. [Gestión de WebDrivers](#-gestión-de-webdrivers)
-4. [Gradle: Dependencias y Repositorios](#-gradle-dependencias-y-repositorios)
-5. [Integración con Artifactory](#-integración-con-artifactory)
-6. [Certificados SSL](#-certificados-ssl)
-7. [Publicación en Maven Local](#-publicación-en-maven-local)
-8. [Troubleshooting](#-troubleshooting)
-9. [Cambios Recientes](#-cambios-recientes)
+> **Framework**: qa-platformCore v2.x  
+> **Namespace**: `com.qa.*`  
+> **Actualizado**: 2026-05-06
 
 ---
 
-## 🎯 Introducción
+## Índice
 
-Este directorio contiene **toda la configuración necesaria** para trabajar con el Scotia QA Framework:
-
-- ✅ **Templates** de configuración para módulos
-- ✅ **Guías** de integración con Artifactory
-- ✅ **Instrucciones** para gestión de WebDrivers
-- ✅ **Configuración** de Gradle y dependencias
-- ✅ **Solución** de problemas comunes
+1. [Configuración de módulos](#1-configuración-de-módulos)
+2. [Web — Playwright](#2-web--playwright)
+3. [API](#3-api)
+4. [Mobile — Appium](#4-mobile--appium)
+5. [Reporting — Jira/Xray](#5-reporting--jiraxray)
+6. [Certificados SSL](#6-certificados-ssl)
+7. [Publicación local de JARs](#7-publicación-local-de-jars)
+8. [Troubleshooting](#8-troubleshooting)
 
 ---
 
-## 📦 Configuración de Módulos
+## 1. Configuración de módulos
 
-### 🔧 Archivos de Configuración
+Cada proyecto consumidor de Core necesita **2 archivos** de configuración:
 
-Cada módulo de prueba necesita **2 archivos**:
+### `config-app.properties`
 
-#### 1. `config-scotia.properties`
-
-**Ubicación**: `src/test/resources/config-scotia.properties`
-
-**Plantilla**: [`templates/config-scotia.properties.template`](templates/config-scotia.properties.template)
-
-**Configuraciones principales**:
+**Ubicación**: `src/test/resources/config-app.properties`
 
 ```properties
-# ============================================================
+# ===========================
 # AMBIENTE
-# ============================================================
+# ===========================
 test.env=qa
 
-# ============================================================
+# ===========================
 # WEB (si usas web-core)
-# ============================================================
+# ===========================
+browser.engine=playwright
+playwright.browser=chromium
+web.headless=true
+playwright.timeout.ms=30000
 web.base.url=https://qa.your-app.com
-web.browser=chrome
-web.headless=false
-web.timeout.implicit=10
-web.timeout.explicit=30
 
-# ============================================================
+# ===========================
 # API (si usas api-core)
-# ============================================================
+# ===========================
 api.base.url=https://api-qa.your-app.com/v1
 api.timeout=30
 
-# ============================================================
+# ===========================
 # MOBILE (si usas mobile-core)
-# ============================================================
+# ===========================
 mobile.platform=android
 mobile.device.name=emulator-5554
+appium.server.url=http://localhost:4723
 
-# ============================================================
-# WEBDRIVERS - Estrategia LOCAL
-# ============================================================
-driver.strategy=local
-driver.local.base.path=${DRIVER_LOCAL_PATH}
-driver.chrome.version=143.0.7499.41
-driver.firefox.version=0.34.0
-driver.edge.version=143.0.2357.81
-
-# ============================================================
-# WEBDRIVERS - Estrategia ARTIFACTORY (alternativa)
-# ============================================================
-# driver.strategy=artifactory
-# driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}
-# driver.artifactory.user=${ARTIFACTORY_USER}
-# driver.artifactory.token=${ARTIFACTORY_TOKEN}
-
-# ============================================================
-# BASE DE DATOS
-# ============================================================
-db.url=${DB_URL}
-db.username=${DB_USER}
-db.password=${DB_PASS}
-db.driver=oracle.jdbc.OracleDriver
-db.pool.size=10
-
-# ============================================================
-# REPORTING (Extent Reports + Jira/Xray)
-# ============================================================
+# ===========================
+# REPORTING
+# ===========================
 reporting.enabled=true
 reporting.output.dir=target/reports
-
-# Extent Reports
 extent.enabled=true
 extent.outputPath=build/reports/extent/
 extent.reportName=execution-report.html
-extent.theme=STANDARD                    # STANDARD o DARK
 
-# Jira/Xray Integration
+# Jira/Xray (opcional)
 jira.enabled=true
 jira.url=${JIRA_URL}
 jira.user=${JIRA_USER}
 jira.password=${JIRA_PASSWORD}
-
-# Test Execution Strategy
-jira.projectKey=QAAUY
-jira.testExecutionId=${TEST_EXECUTION_ID}  # ej: QAAUY-640 (pre-existente)
-jira.autoCreateExecution=false             # true = crear automáticamente
-
-# Control Granular
-jira.updateStatus=true                     # ¿Actualizar PASS/FAIL?
-jira.uploadReport=true                     # ¿Subir HTML?
-jira.includeEvidences=true                 # ¿Adjuntar screenshots?
-jira.maxAttachmentSizeMb=10
-jira.failOnError=false                     # Continuar si Jira falla
-jira.updateMode=BATCH                      # SINGLE o BATCH
-jira.testEnvironment=QA
-```
-
----
-
-### 📋 Jira/Xray: Estrategias de Test Execution
-
-El framework soporta **2 estrategias** para gestionar Test Executions:
-
-#### **Estrategia 1: Test Execution PRE-EXISTENTE** (Recomendada)
-
-```properties
+jira.projectKey=PROJ
+jira.testExecutionId=${TEST_EXECUTION_ID}
 jira.autoCreateExecution=false
-jira.testExecutionId=QAAUY-640  # Ya existe en Jira
-```
-
-**Flujo:**
-1. ✅ Creas manualmente un Test Execution en Jira (QAAUY-640)
-2. ✅ Asocias tests al execution (QAAUY-123, QAAUY-124...)
-3. ✅ Ejecutas tests → El framework actualiza status automáticamente
-
-**Ventajas:**
-- Control total sobre qué tests incluir
-- No requiere permisos de creación de issues
-- Ideal para sprints planificados
-
----
-
-#### **Estrategia 2: AUTO-CREAR Test Execution** (Automática)
-
-```properties
-jira.autoCreateExecution=true
-jira.projectKey=QAAUY
-jira.testEnvironment=QA
-# No necesitas testExecutionId
-```
-
-**Flujo:**
-1. ❌ **NO** proporcionas `testExecutionId`
-2. ✅ El framework **crea automáticamente** un Test Execution:
-   - Summary: "Automated Test Execution - 2025-12-19 15:30"
-   - Tests incluidos: Todos los del `cucumber.json`
-3. ✅ Execution ID se loguea para futuras referencias
-
-**Ventajas:**
-- Totalmente automático (ideal para CI/CD)
-- No requiere preparación manual
-
-**Desventajas:**
-- Requiere permisos de creación de issues
-- Crea un nuevo execution cada ejecución
-
----
-
-### 🏷️ Tags de Cucumber para Jira
-
-**Ejemplo de feature:**
-```gherkin
-@QAAUY-123 @smoke @web
-Scenario: Login exitoso
-  Given usuario ingresa credenciales válidas
-  When hace clic en Login
-  Then debería ver el dashboard
-```
-
-**Funcionamiento:**
-- El framework busca tags con pattern: `@([A-Z]{2,10}-\\d+)`
-- En este caso: `@QAAUY-123` → Este es el **Test ID en Jira**
-- ❌ Sin tag válido = No se reporta a Jira
-
----
-
-### 📊 Modos de Actualización Jira
-
-#### **BATCH Mode** (Recomendado)
-```properties
+jira.updateStatus=true
+jira.uploadReport=true
+jira.includeEvidences=true
+jira.failOnError=false
 jira.updateMode=BATCH
-```
-- Envía todos los tests en **un solo request**
-- Más rápido
-- Si falla, afecta todos los tests
-
-#### **SINGLE Mode**
-```properties
-jira.updateMode=SINGLE
-```
-- Envía cada test en un **request separado**
-- Más lento
-- Tolerante a fallos (un test no afecta otros)
-
----
-
-### 🔧 Configuración por Caso de Uso
-
-#### **Desarrollo Local (Solo HTML)**
-```properties
-jira.updateStatus=false
-jira.uploadReport=false
-extent.enabled=true
+jira.testEnvironment=QA
 ```
 
-#### **CI/CD con Execution Pre-creado**
-```properties
-jira.updateStatus=true
-jira.uploadReport=true
-jira.autoCreateExecution=false
-jira.testExecutionId=${TEST_EXECUTION_ID}  # Variable de Jenkins
-```
+### `.env.local`
 
-#### **CI/CD Totalmente Automático**
-```properties
-jira.updateStatus=true
-jira.uploadReport=true
-jira.autoCreateExecution=true
-jira.projectKey=QAAUY
-jira.testEnvironment=${ENV}  # Variable de Jenkins
-```
-
-**📚 Más información**: Ver `/common/src/main/java/com/scotia/qa/common/reporting/README.md`
-```
-
----
-
-#### 2. `.env.local`
-
-**Ubicación**: `<raíz-módulo>/.env.local`
-
-**Plantilla**: [`templates/.env.local.template`](templates/.env.local.template)
-
-**Variables sensibles**:
+**Ubicación**: `<raíz-módulo>/.env.local`  
+**Agregar a `.gitignore`**
 
 ```bash
-# ====================================================================
-# AMBIENTE
-# ====================================================================
+# Ambiente
 TEST_ENV=qa
 
-# ====================================================================
-# WEB
-# ====================================================================
+# Web
 WEB_BASE_URL=https://qa.your-app.com
 
-# ====================================================================
 # API
-# ====================================================================
 API_BASE_URL=https://api-qa.your-app.com/v1
 API_TOKEN=your_token_here
 
-# ====================================================================
-# WEBDRIVERS - ESTRATEGIA LOCAL
-# ====================================================================
-# macOS/Linux:
-DRIVER_LOCAL_PATH=/Users/tu_usuario/drivers
-
-# Windows:
-# DRIVER_LOCAL_PATH=C:/drivers
-
-# ====================================================================
-# WEBDRIVERS - ESTRATEGIA ARTIFACTORY
-# ====================================================================
-ARTIFACTORY_BASE_URL=https://artifactory.corp.com/qa-drivers
-ARTIFACTORY_USER=qa-automation-reader
-ARTIFACTORY_TOKEN=your_artifactory_token
-
-# ====================================================================
-# BASE DE DATOS
-# ====================================================================
-DB_URL=jdbc:oracle:thin:@//qa-db:1521/Banking
+# DB (si aplica)
+DB_URL=jdbc:postgresql://localhost:5432/qa
 DB_USER=qa_user
 DB_PASS=qa_password
 
-# ====================================================================
-# JIRA/XRAY
-# ====================================================================
+# Jira
 JIRA_URL=https://jira.your-company.com
 JIRA_USER=automation_user
 JIRA_PASSWORD=automation_password
 ```
 
----
+### Pasos de setup
 
-### 📝 Pasos para Configurar un Módulo
+```bash
+# 1. Copiar templates (si existen en config/templates/)
+cp config/templates/config-app.properties.template \
+   src/test/resources/config-app.properties
 
-1. **Copiar templates**:
-   ```bash
-   # Desde el framework
-   cp config/templates/config-scotia.properties.template \
-      /path/to/tu-modulo/src/test/resources/config-scotia.properties
-   
-   cp config/templates/.env.local.template \
-      /path/to/tu-modulo/.env.local
-   ```
+cp config/templates/.env.local.template .env.local
 
-2. **Editar valores**:
-   - `config-scotia.properties`: URLs, timeouts, configuraciones generales
-   - `.env.local`: Credenciales, tokens, datos sensibles
+# 2. Cargar variables de entorno (macOS/Linux)
+source .env.local
 
-3. **Cargar variables de entorno**:
-   ```bash
-   # macOS/Linux
-   source .env.local
-   
-   # Windows PowerShell
-   .\scripts\setup-env.ps1
-   ```
-
-4. **Verificar configuración**:
-   ```bash
-   ./gradlew test --dry-run
-   ```
+# 3. Verificar
+./gradlew test --dry-run
+```
 
 ---
 
-## 🚗 Gestión de WebDrivers
+## 2. Web — Playwright
 
-### 📌 Dos Estrategias Soportadas
+El módulo `web-core` es **Playwright-only**. No hay dependencias de Selenium ni WebDriverManager.
 
-El framework soporta **2 estrategias** para gestionar WebDrivers:
+### Browsers soportados
 
-#### **Estrategia 1: LOCAL** ⭐ (Recomendada para desarrollo)
+| Alias en config | Browser real |
+|----------------|--------------|
+| `chromium` / `chrome` | Chromium |
+| `firefox` | Firefox |
+| `webkit` / `safari` | WebKit |
 
-**Ventajas**:
-- ✅ Control total de versiones
-- ✅ Funciona offline
-- ✅ No depende de red corporativa
+### Configuración por entorno
 
-**Configuración**:
+**Desarrollo local (headless=false para debug visual):**
+```properties
+browser.engine=playwright
+playwright.browser=chromium
+web.headless=false
+playwright.timeout.ms=30000
+```
+
+**CI/CD (headless=true):**
+```properties
+browser.engine=playwright
+playwright.browser=chromium
+web.headless=true
+playwright.timeout.ms=30000
+playwright.headless.compatibility=true
+```
+
+### Instalación de browsers en CI
+
+Los binarios de Playwright se instalan automáticamente. En Docker/CI agregar al pipeline:
+
+```bash
+# Gradle
+./gradlew playwrightInstall
+
+# O usar imagen Docker con Playwright pre-instalado:
+# FROM mcr.microsoft.com/playwright/java:v1.50.0-jammy
+```
+
+### Activación del plugin web
+
+Agregar el tag correspondiente al escenario Cucumber:
+
+```gherkin
+@web          # activa WebPlugin
+@ui           # alias
+@playwright   # alias
+@browser      # alias
+```
+
+### Ejecución local
+
+```bash
+./gradlew :web-core:test \
+  -Dbrowser.engine=playwright \
+  -Dplaywright.browser=chromium \
+  -Dweb.headless=true
+```
+
+---
+
+## 3. API
+
+El módulo `api-core` gestiona requests HTTP a APIs REST.
+
+### Configuración mínima
 
 ```properties
-# config-scotia.properties
-driver.strategy=local
-driver.local.base.path=${DRIVER_LOCAL_PATH}
-driver.chrome.version=143.0.7499.41
+api.base.url=https://api.your-app.com/v1
+api.timeout=30
+api.ssl.verify=true
 ```
+
+### Activación del plugin API
+
+```gherkin
+@api   # activa ApiPlugin
+```
+
+### Ejecución local
 
 ```bash
-# .env.local
-DRIVER_LOCAL_PATH=/Users/tu_usuario/drivers  # macOS/Linux
-# DRIVER_LOCAL_PATH=C:/drivers  # Windows
-```
-
-**Estructura de directorios**:
-
-```
-/Users/tu_usuario/drivers/   (o C:/drivers/ en Windows)
-├── chromedriver/
-│   └── 143.0.7499.41/
-│       └── chromedriver       (.exe en Windows)
-├── geckodriver/
-│   └── 0.34.0/
-│       └── geckodriver
-└── msedgedriver/
-    └── 143.0.2357.81/
-        └── msedgedriver
+./gradlew :api-core:test \
+  -Dapi.base.url=https://api.your-app.com \
+  -Dtest.env=qa
 ```
 
 ---
 
-#### 🧠 ¿Por qué esta estructura? Path Base + Versión
+## 4. Mobile — Appium
 
-El framework usa **3 niveles** de jerarquía:
+El módulo `mobile-core` usa Appium con W3C Actions API (Appium 8+).
 
-```
-{BASE_PATH} / {DRIVER_NAME} / {VERSION} / {EXECUTABLE}
-     ↓             ↓              ↓            ↓
-C:/drivers / chromedriver / 143.0.7499.41 / chromedriver.exe
-```
-
-**Razones del diseño**:
-
-| **Ventaja** | **Descripción** |
-|-------------|-----------------|
-| ✅ **Múltiples versiones simultáneas** | Proyectos diferentes pueden usar versiones distintas sin conflicto |
-| ✅ **Reutilización entre módulos** | Una sola variable `DRIVER_LOCAL_PATH` compartida por todos los proyectos |
-| ✅ **Switch fácil de versión** | Solo cambias `driver.chrome.version` en config, no el path completo |
-| ✅ **Mantenimiento centralizado** | Drivers en una sola ubicación, fácil de actualizar |
-| ✅ **Ahorro de espacio** | No duplicar drivers por proyecto |
-| ✅ **CI/CD friendly** | Misma estructura en todas las máquinas |
-
-**Ejemplo real**: 3 proyectos en tu máquina:
-
-```
-qa-module-banking/     → Chrome 143.0.7499.41
-qa-module-autos/       → Chrome 143.0.7499.41
-qa-module-ecommerce/   → Chrome 142.0.7444.176 (versión anterior)
-
-# Todos comparten:
-DRIVER_LOCAL_PATH=C:/drivers
-
-# Cada uno define su versión en config-scotia.properties:
-# banking:  driver.chrome.version=143.0.7499.41
-# autos:    driver.chrome.version=143.0.7499.41
-# ecommerce: driver.chrome.version=142.0.7444.176
-```
-
----
-
-#### 🔄 Estrategias de búsqueda soportadas
-
-El framework es **flexible** y busca en **3 estructuras diferentes** (en orden):
-
-**1. Estructura versionada** (RECOMENDADA):
-```
-C:/drivers/chromedriver/143.0.7499.41/chromedriver.exe
-```
-
-**2. Carpeta del driver** (sin versión):
-```
-C:/drivers/chromedriver/chromedriver.exe
-```
-
-**3. Estructura plana** (directa):
-```
-C:/drivers/chromedriver.exe
-```
-
-**¿Cuál usar?**
-- **Opción 1**: Si tienes múltiples proyectos o versiones
-- **Opción 2**: Si solo usas 1 versión y la actualizas in-place
-- **Opción 3**: Setup rápido para pruebas simples
-
----
-
-#### 🎯 Alternativa: Path directo al ejecutable
-
-Si prefieres definir la ruta completa sin usar la estructura recomendada:
-
-```bash
-# Ejecutar con System Property
-./gradlew test -Dwebdriver.chrome.driver=C:/mi-carpeta/chromedriver.exe
-
-# Windows PowerShell
-.\gradlew.bat test -Dwebdriver.chrome.driver=C:/mi-carpeta/chromedriver.exe
-```
-
-El framework **detecta automáticamente** el System Property y **lo prioriza** sobre la búsqueda en path base.
-
-**⚠️ Nota**: Esta opción pierde las ventajas de reutilización y mantenimiento centralizado.
-
-**Descargas oficiales**:
-- **ChromeDriver**: https://googlechromelabs.github.io/chrome-for-testing/
-- **GeckoDriver (Firefox)**: https://github.com/mozilla/geckodriver/releases
-- **EdgeDriver**: https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/
-
----
-
-#### **Estrategia 2: ARTIFACTORY** (Para CI/CD)
-
-**Ventajas**:
-- ✅ Centralizado
-- ✅ Controlado por Infra
-- ✅ Caché automático
-
-**Configuración**:
+### Configuración mínima
 
 ```properties
-# config-scotia.properties
-driver.strategy=artifactory
-driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}
-driver.artifactory.user=${ARTIFACTORY_USER}
-driver.artifactory.token=${ARTIFACTORY_TOKEN}
-driver.chrome.version=143.0.7499.41
+mobile.platform=android
+mobile.device.name=emulator-5554
+appium.server.url=http://localhost:4723
 ```
 
-```bash
-# .env.local
-ARTIFACTORY_BASE_URL=https://artifactory.corp.com/artifactory/qa-drivers
-ARTIFACTORY_USER=qa-automation-reader
-ARTIFACTORY_TOKEN=your_token_here
-```
-
-**Estructura esperada en Artifactory**:
-
-```
-qa-drivers/
-├── chromedriver/
-│   └── 143.0.7499.41/
-│       ├── mac64/chromedriver.zip
-│       ├── mac_arm64/chromedriver.zip
-│       ├── linux64/chromedriver.zip
-│       └── win32/chromedriver.zip
-├── geckodriver/
-│   └── 0.34.0/
-│       ├── mac64/geckodriver.zip
-│       └── ...
-└── msedgedriver/
-    └── 143.0.2357.81/
-        └── ...
-```
-
-**Caché local**: `~/.qa-drivers/` (o `%USERPROFILE%\.qa-drivers\` en Windows)
-
----
-
-### 🔧 Troubleshooting de Drivers
-
-#### ❌ Error: "chromedriver no encontrado"
-
-**Causa**: Path incorrecto o driver no existe.
-
-**Solución**:
-1. Verificar que `DRIVER_LOCAL_PATH` está configurado:
-   ```bash
-   echo $DRIVER_LOCAL_PATH  # macOS/Linux
-   echo %DRIVER_LOCAL_PATH%  # Windows CMD
-   echo $env:DRIVER_LOCAL_PATH  # Windows PowerShell
-   ```
-
-2. Verificar estructura de directorios:
-   ```bash
-   ls -la $DRIVER_LOCAL_PATH/chromedriver/143.0.7499.41/
-   # Debe mostrar el ejecutable
-   ```
-
-3. Verificar permisos de ejecución (macOS/Linux):
-   ```bash
-   chmod +x $DRIVER_LOCAL_PATH/chromedriver/143.0.7499.41/chromedriver
-   ```
-
----
-
-#### ❌ Error: "Estrategia 'fallback' no válida"
-
-**Causa**: Artefactos viejos del framework en `mavenLocal`.
-
-**Solución**:
-```bash
-# macOS/Linux
-rm -rf ~/.m2/repository/com/scotia/qa/
-
-# Windows PowerShell
-Remove-Item -Recurse -Force $env:USERPROFILE\.m2\repository\com\scotia\qa\
-
-# Actualizar dependencias
-./gradlew clean --refresh-dependencies
-```
-
----
-
-#### ❌ Error: "Version mismatch"
-
-**Causa**: Versión de Chrome instalada no coincide con chromedriver.
-
-**Solución**:
-1. Verificar versión de Chrome instalado:
-   ```bash
-   # macOS
-   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --version
-   
-   # Windows
-   reg query "HKEY_CURRENT_USER\Software\Google\Chrome\BLBeacon" /v version
-   ```
-
-2. Descargar chromedriver de la **misma versión mayor**:
-   - Chrome 143.x.x.x → chromedriver 143.x.x.x
-
----
-
-## 📦 Gradle: Dependencias y Repositorios
-
-### 🔑 Conceptos Clave
-
-| **Bloque** | **Propósito** | **Configuración** |
-|------------|---------------|-------------------|
-| `repositories` | **DESCARGAR** dependencias | mavenLocal → GitHub Packages (`qa-platformCore`) → mavenCentral |
-| `publishing.repositories` | **PUBLICAR** artefactos | GitHub Packages solo para releases |
-
----
-
-### 📥 Descargar Dependencias
-
-**En el consumidor (`qa-platformBE` o proyecto de pruebas)**:
-
-```groovy
-repositories {
-    mavenLocal()
-    maven {
-        url = uri("https://maven.pkg.github.com/avenero/qa-platformCore")
-        credentials {
-            username = System.getenv("GITHUB_ACTOR") ?: findProperty("gpr.user") ?: ""
-            password = System.getenv("GITHUB_TOKEN") ?: findProperty("gpr.token") ?: ""
-        }
-    }
-    mavenCentral()
-}
-```
-
-**Uso**:
-
-```bash
-# Desarrollo e integración local
-./gradlew build
-
-# Validar una versión local no liberada del Core
-./gradlew clean test -PcoreVersion=2.0.8-SNAPSHOT --refresh-dependencies
-```
-
----
-
-### 📤 Publicar Artefactos
-
-**Solo para `qa-platformCore`**:
-
-```bash
-cd /path/to/qa-platformCore
-./gradlew clean publishToMavenLocal
-```
-
-**Resultado**:
-```
-~/.m2/repository/com/qa/
-├── common/2.0.8-SNAPSHOT/
-│   ├── common-2.0.8-SNAPSHOT.jar
-│   ├── common-2.0.8-SNAPSHOT.pom
-│   ├── common-2.0.8-SNAPSHOT-sources.jar
-│   └── common-2.0.8-SNAPSHOT-javadoc.jar
-├── api-core/2.0.8-SNAPSHOT/
-├── web-core/2.0.8-SNAPSHOT/
-└── mobile-core/2.0.8-SNAPSHOT/
-```
-
-**⚠️ Nota**: Los consumidores **no** deben publicar artefactos del Core. Para desarrollo diario se usa `publishToMavenLocal`; GitHub Packages queda reservado para releases desde `master`.
-
----
-
-## 🏢 Integración con Artifactory
-
-### 📋 Para QA (Usar Artifactory)
-
-#### **Configuración**:
+### Plataformas soportadas
 
 ```properties
-# config-scotia.properties
-driver.strategy=artifactory
-driver.artifactory.base.url=${ARTIFACTORY_BASE_URL}
-driver.artifactory.user=${ARTIFACTORY_USER}
-driver.artifactory.token=${ARTIFACTORY_TOKEN}
-driver.chrome.version=143.0.7499.41
+# Android
+mobile.platform=android
+mobile.device.name=Pixel_4_API_30
+mobile.app.path=/path/to/app.apk
+
+# iOS
+mobile.platform=ios
+mobile.device.name=iPhone 14
+mobile.app.path=/path/to/app.ipa
+mobile.os.version=16.0
 ```
 
-```bash
-# .env.local
-ARTIFACTORY_BASE_URL=https://artifactory.cldevops.chl.bns/artifactory/qa-drivers
-ARTIFACTORY_USER=qa-automation-reader
-ARTIFACTORY_TOKEN=xxxxxxxxxxxxx
-```
+### Activación del plugin mobile
 
-#### **Flujo de ejecución**:
-
-1. **Primera vez**: Descarga desde Artifactory → Guarda en `~/.qa-drivers/`
-2. **Siguientes veces**: Usa caché local (instantáneo)
-
-#### **Limpiar caché**:
-
-```bash
-# macOS/Linux
-rm -rf ~/.qa-drivers/
-
-# Windows
-Remove-Item -Recurse -Force $env:USERPROFILE\.qa-drivers\
+```gherkin
+@mobile
+@android  # alias para Android
+@ios      # alias para iOS
 ```
 
 ---
 
-### 🛠️ Para Infra (Publicar en Artifactory)
+## 5. Reporting — Jira/Xray
 
-#### **Estructura requerida**:
+### Estrategia 1: Test Execution pre-existente (recomendada)
 
-```
-qa-drivers/
-├── chromedriver/{version}/{os}/chromedriver.zip
-├── geckodriver/{version}/{os}/geckodriver.zip
-└── msedgedriver/{version}/{os}/msedgedriver.zip
+```properties
+jira.autoCreateExecution=false
+jira.testExecutionId=PROJ-640   # Issue pre-creado en Jira
 ```
 
-**OS soportados**: `mac64`, `mac_arm64`, `linux64`, `win32`, `win64`
+### Estrategia 2: Auto-crear Test Execution
 
-#### **Script de descarga y preparación**:
-
-```bash
-#!/bin/bash
-# download-drivers.sh
-
-VERSION="143.0.7499.41"
-DRIVER="chromedriver"
-
-# Descargar de URLs oficiales
-wget https://storage.googleapis.com/chrome-for-testing-public/${VERSION}/mac-x64/${DRIVER}.zip \
-  -O ${DRIVER}-mac64.zip
-
-wget https://storage.googleapis.com/chrome-for-testing-public/${VERSION}/mac-arm64/${DRIVER}.zip \
-  -O ${DRIVER}-mac_arm64.zip
-
-wget https://storage.googleapis.com/chrome-for-testing-public/${VERSION}/win32/${DRIVER}.zip \
-  -O ${DRIVER}-win32.zip
-
-# Subir a Artifactory
-jfrog rt upload "${DRIVER}-mac64.zip" \
-  "qa-drivers/${DRIVER}/${VERSION}/mac64/${DRIVER}.zip"
-
-jfrog rt upload "${DRIVER}-mac_arm64.zip" \
-  "qa-drivers/${DRIVER}/${VERSION}/mac_arm64/${DRIVER}.zip"
-
-jfrog rt upload "${DRIVER}-win32.zip" \
-  "qa-drivers/${DRIVER}/${VERSION}/win32/${DRIVER}.zip"
+```properties
+jira.autoCreateExecution=true
+jira.projectKey=PROJ
+jira.testEnvironment=QA
 ```
 
-#### **Credenciales de solo-lectura para QA**:
+### Tags en Gherkin
 
-```bash
-# Usuario: qa-automation-reader
-# Permisos: Solo lectura en qa-drivers/
-# Token: Generar en Artifactory UI
+```gherkin
+@PROJ-123 @smoke @api
+Scenario: Login exitoso
+  ...
 ```
 
----
+El framework busca tags con patrón `@([A-Z]{2,10}-\d+)` → vincula con el Test en Jira.
 
-## 🔐 Certificados SSL
+### Modos de actualización
 
-### 📌 Problema
+- `jira.updateMode=BATCH` — un request por suite (más rápido, recomendado)
+- `jira.updateMode=SINGLE` — un request por test (más tolerante a fallos)
 
-Artifactory corporativo usa certificados SSL personalizados que pueden no ser confiables por Java.
+### Configuraciones por entorno
 
-**Error típico**:
-```
-PKIX path building failed: unable to find valid certification path to requested target
+```properties
+# Desarrollo local — solo HTML
+jira.updateStatus=false
+jira.uploadReport=false
+extent.enabled=true
+
+# CI/CD con execution pre-creado
+jira.updateStatus=true
+jira.uploadReport=true
+jira.autoCreateExecution=false
+jira.testExecutionId=${TEST_EXECUTION_ID}
+
+# CI/CD totalmente automático
+jira.updateStatus=true
+jira.autoCreateExecution=true
+jira.projectKey=PROJ
+jira.testEnvironment=${ENV}
 ```
 
 ---
 
-### ✅ Solución: Importar Certificado al JVM
+## 6. Certificados SSL
 
-#### **Paso 1: Obtener certificado**
+El framework usa `SSLContextFactory` (`com.qa.common.ssl.SSLContextFactory`) para cargar un truststore Java con certificados de servicios externos (Jira, APIs con TLS custom).
 
+**Ver guía completa:** [common/ssl/README.md](../common/ssl/README.md)
+
+**Resumen:**
 ```bash
-# Descargar certificado desde browser o servidor
-openssl s_client -connect artifactory.cldevops.chl.bns:443 -showcerts \
-  < /dev/null 2>/dev/null | openssl x509 -outform PEM > artifactory.crt
-```
+# Importar certificado al truststore
+cd qa-platformCore/common/ssl
+keytool -import -alias <nombre> -file /tmp/servicio.crt \
+  -keystore myTrustStore.jks -storepass changeit -noprompt
 
-#### **Paso 2: Importar a Java KeyStore**
-
-```bash
-# macOS/Linux
-sudo keytool -import -trustcacerts -alias artifactory \
-  -file artifactory.crt \
-  -keystore $JAVA_HOME/lib/security/cacerts \
-  -storepass changeit
-
-# Windows (como Administrador)
-keytool -import -trustcacerts -alias artifactory ^
-  -file artifactory.crt ^
-  -keystore "%JAVA_HOME%\lib\security\cacerts" ^
-  -storepass changeit
-```
-
-#### **Paso 3: Verificar**
-
-```bash
-keytool -list -keystore $JAVA_HOME/lib/security/cacerts -alias artifactory -storepass changeit
-```
-
----
-
-### 🔧 Alternativa: TrustStore Personalizado
-
-Si no tienes permisos de administrador:
-
-1. **Crear TrustStore propio**:
-   ```bash
-   keytool -import -trustcacerts -alias artifactory \
-     -file artifactory.crt \
-     -keystore ~/myTrustStore.jks \
-     -storepass changeit
-   ```
-
-2. **Configurar Gradle**:
-   ```bash
-   # En gradle.properties del módulo
-   org.gradle.jvmargs=-Djavax.net.ssl.trustStore=/path/to/myTrustStore.jks \
-                      -Djavax.net.ssl.trustStorePassword=changeit
-   ```
-
----
-
-## 📦 Publicación en Maven Local
-
-### 🔧 Para Desarrolladores del Framework
-
-#### **Flujo oficial de prueba local**:
-
-```bash
-cd /path/to/qa-platformCore
-./gradlew publishToMavenLocal
-```
-
-Luego, desde `qa-platformBE`:
-
-```bash
-./gradlew clean test -PcoreVersion=2.0.8-SNAPSHOT --refresh-dependencies
-```
-
-#### **Publicar capa específica**:
-
-```bash
+# Republicar common
+cd ..
 ./gradlew :common:publishToMavenLocal
-./gradlew :api-core:publishToMavenLocal
-./gradlew :web-core:publishToMavenLocal
-./gradlew :mobile-core:publishToMavenLocal
 ```
 
-#### **Verificar publicación**:
-
-```bash
-# macOS/Linux
-ls -la ~/.m2/repository/com/qa/common/2.0.8-SNAPSHOT/
-
-# Windows
-dir %USERPROFILE%\.m2\repository\com\qa\common\2.0.8-SNAPSHOT\
-```
-
-**Artefactos esperados**:
-- `common-2.0.8-SNAPSHOT.jar` (Código compilado)
-- `common-2.0.8-SNAPSHOT.pom` (Metadatos Maven)
-- `common-2.0.8-SNAPSHOT-sources.jar` (Código fuente)
-- `common-2.0.8-SNAPSHOT-javadoc.jar` (Documentación JavaDoc)
-
----
-
-### 🧹 Limpiar Maven Local
-
-Si tienes problemas con versiones viejas:
-
-```bash
-# macOS/Linux
-rm -rf ~/.m2/repository/com/qa/
-
-# Windows PowerShell
-Remove-Item -Recurse -Force $env:USERPROFILE\.m2\repository\com\qa\
-
-# Republicar
-cd /path/to/qa-platformCore
-./gradlew clean publishToMavenLocal
+Activar en `gradle.properties` del proyecto consumidor:
+```properties
+systemProp.javax.net.ssl.trustStore=common/ssl/myTrustStore.jks
+systemProp.javax.net.ssl.trustStorePassword=changeit
+systemProp.javax.net.ssl.trustStoreType=JKS
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## 7. Publicación local de JARs
 
-### 🔍 Problema 1: Config no encontrado
-
-**Error**:
-```
-WARN [ConfigurationUtilities] Archivo de configuración no encontrado: config-qa.properties
-```
-
-**Causa**: Nombre de archivo incorrecto o ubicación incorrecta.
-
-**Solución**:
-1. Verificar nombre: `config-scotia.properties` (recomendado) o `config-qa.properties`
-2. Verificar ubicación: `src/test/resources/config-scotia.properties`
-3. El framework busca en este orden:
-   - `config-{env}.properties` (ej: config-qa.properties)
-   - `config-scotia.properties`
-   - `config.properties`
-
----
-
-### 🔍 Problema 2: Variables de entorno no resueltas
-
-**Error**:
-```
-WARN [ConfigManager] ⚠️ Variable de entorno 'DB_URL' no encontrada
-```
-
-**Causa**: `.env.local` no cargado o variables mal configuradas.
-
-**Solución**:
+**Ver flujo completo:** [README.md → Flujo de versionado y publicación de JARs](../README.md#flujo-de-versionado-y-publicación-de-jars)
 
 ```bash
-# Cargar variables manualmente
-source .env.local  # macOS/Linux
-.\scripts\setup-env.ps1  # Windows
-
-# Verificar que se cargaron
-echo $DB_URL  # macOS/Linux
-echo $env:DB_URL  # Windows PowerShell
-
-# Ejecutar tests
-./gradlew test
-```
-
----
-
-### 🔍 Problema 3: Dependencias no resuelven
-
-**Error**:
-```
-Could not resolve com.qa:common:2.0.8-SNAPSHOT
-```
-
-**Causa**: Framework no publicado en mavenLocal o artefactos corruptos.
-
-**Solución**:
-
-```bash
-# 1. Limpiar y republicar framework
-cd /path/to/qa-platformCore
-rm -rf ~/.m2/repository/com/qa/
+# Publicar todos los módulos a ~/.m2
 ./gradlew clean publishToMavenLocal
 
-# 2. Actualizar dependencias en módulo
-cd /path/to/tu-modulo
-./gradlew clean --refresh-dependencies build
+# Consumir versión local desde qa-platformBE
+./gradlew clean test -PcoreVersion=2.0.8-SNAPSHOT --refresh-dependencies
 ```
 
----
-
-### 🔍 Problema 4: Tests fallan en Windows pero pasan en Mac
-
-**Causas comunes**:
-- ❌ Rutas con `\` en lugar de `/`
-- ❌ Variables de entorno no cargadas
-- ❌ Drivers no descargados o mal ubicados
-
-**Solución**:
-
-1. **Rutas**: Siempre usar `/` (Java las normaliza):
-   ```properties
-   # Correcto (funciona en ambos OS)
-   driver.local.base.path=C:/drivers
-   
-   # Incorrecto
-   driver.local.base.path=C:\drivers
-   ```
-
-2. **Variables**: Cargar con `setup-env.ps1`:
-   ```powershell
-   .\scripts\setup-env.ps1
-   ```
-
-3. **Drivers**: Verificar estructura:
-   ```
-   C:/drivers/chromedriver/143.0.7499.41/chromedriver.exe
-   ```
+Los JARs se publican en `~/.m2/repository/com/qa/`.
 
 ---
 
-## 📝 Cambios Recientes
+## 8. Troubleshooting
 
-### ✅ Diciembre 16, 2025
+### Browser no arranca en CI
 
-#### **Correcciones aplicadas**:
+```
+Error: Executable doesn't exist at .../chromium
+```
 
-1. **ConfigManager**: Búsqueda flexible de archivos `.properties`
-   - Ahora acepta `config-scotia.properties`, `config-qa.properties`, `config.properties`
-   - Eliminados warnings innecesarios
+Solución:
+```bash
+./gradlew playwrightInstall
+# O usar imagen: mcr.microsoft.com/playwright/java:v1.50.0-jammy
+```
 
-2. **WebDriverFactory**: Logs simplificados
-   - Reducido de 5-10 logs a 1 log conciso
-   - Mensajes de error de 200 líneas a 5 líneas
+Verificar también:
+- `web.headless=true` activo en CI
+- Permisos del contenedor (non-root puede requerir `--no-sandbox`)
 
-3. **Gradle**: Repositorios en cascada
-   - El flujo local oficial usa `mavenLocal()` primero
-   - El consumo remoto estable apunta a GitHub Packages de `qa-platformCore`
+### Step no encontrado en runtime
 
-4. **Eliminación**: Estrategia de scripts en META-INF
-   - Scripts ya NO se incluyen en JARs
-   - Scripts se copian manualmente a módulos
+```
+Step not found: "When hago click en el elemento..."
+```
 
-#### **Archivos modificados**:
-- `common/src/main/java/com/scotia/qa/common/config/ConfigManager.java`
-- `web-core/src/main/java/com/scotia/qa/webcore/driver/WebDriverFactory.java`
-- `common/build.gradle` (eliminada task `copyScriptsToResources`)
-- `build.gradle` (actualizado bloque `repositories`)
+Solución:
+- Verificar que el tag del escenario activa el plugin (`@web`, `@api`, `@mobile`)
+- Verificar que `web-core` / `api-core` está en dependencias del proyecto
+- El glue se deriva automáticamente por el plugin; no es necesario declararlo manualmente
 
----
+### SSL error al conectar con Jira
 
-### ✅ Diciembre 5, 2025
+```
+PKIX path building failed: unable to find valid certification path
+```
 
-#### **Nueva funcionalidad**: Integración con Artifactory
+Solución: ver [common/ssl/README.md](../common/ssl/README.md)
 
-- ✅ `ArtifactoryDriverManager.java` creado
-- ✅ Estrategia dual: LOCAL y ARTIFACTORY
-- ✅ Caché automático en `~/.qa-drivers/`
-- ✅ Documentación completa para Infra y QA
+### Gradle no resuelve `com.qa:*-core`
 
----
+```
+Could not resolve com.qa:api-core:2.0.x
+```
 
-## 📞 Soporte
+Opciones:
+1. Publicar localmente: `./gradlew publishToMavenLocal` (en qa-platformCore)
+2. Exportar `GITHUB_ACTOR` y `GITHUB_TOKEN` para resolver desde GitHub Packages
+3. En Docker: usar `syncCoreFromMavenLocal` primero (ver qa-platformBE README)
 
-### 📚 Documentación Adicional
+### Error de versión de Core
 
-- **Framework Guide**: `/documentacion/FRAMEWORK-GUIDE.md`
-- **Quick Start**: `/documentacion/QUICK-START.md`
-- **Scripts Guide**: `/scripts/SCRIPTS-GUIDE.md`
+```
+SPI mismatch: plugin requires core version 2.0.x
+```
 
-### 🛟 Contacto
-
-- **Equipo QA**: qa-team@scotia.com
-- **Infra/DevOps**: devops@scotia.com
-- **Framework Lead**: Abel Venero
-
----
-
-## 📄 Licencia
-
-© 2025 Scotiabank - Uso interno exclusivo
-
----
-
-**Preparado por**: Abel Venero  
-**Versión**: 2.0.x
-**Última actualización**: Diciembre 16, 2025
-
+Verificar que `coreVersion` en `gradle.properties` del proyecto consumidor coincide con la versión publicada.

@@ -1,6 +1,6 @@
 package com.qa.apicore.steps.config;
 
-import com.qa.apicore.implementations.BaseHttpClient;
+import com.qa.apicore.factories.HttpClientFactory;
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.apicore.interfaces.HttpRequestBuilder;
 import com.qa.common.logging.TestLogger;
@@ -24,7 +24,7 @@ public class ParameterSteps {
 
     private HttpRequestBuilder getHttpRequestBuilder() {
         return ExecutionContext.current().map(ctx -> (HttpRequestBuilder) ctx.service(HttpClient.class)).
-                orElseGet(BaseHttpClient::new);
+                orElseGet(HttpClientFactory::getInstance);
     }
 
     @Given("agrego el query param {string} con valor {string}")

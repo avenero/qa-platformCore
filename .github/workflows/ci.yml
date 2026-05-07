@@ -55,10 +55,15 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
+      # ── Playwright browsers (headless CI) ────────────────────────────────────
+      - name: Install Playwright browsers
+        working-directory: web-core
+        run: npx playwright install --with-deps chromium
+
       # ── Unit Tests + JaCoCo ───────────────────────────────────────────────────
       # --continue: no abortar si un módulo falla; reportar todos los resultados
       - name: Run unit tests and generate JaCoCo coverage
-        run: ./gradlew test jacocoTestReport --continue --no-daemon
+        run: ./gradlew test jacocoTestReport --continue --no-daemon -Dplaywright.headless.compatibility=true
         env:
           CI: true
 

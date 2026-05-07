@@ -386,6 +386,10 @@ public class DbConnectorFactory {
      * }
      * </pre>
      */
+    public static boolean hasActiveConnections() {
+        return !ACTIVE_CONNECTORS.isEmpty();
+    }
+
     public static void disconnectAll() {
         if (ACTIVE_CONNECTORS.isEmpty()) {
             return;

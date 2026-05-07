@@ -1,14 +1,13 @@
 package com.qa.webcore.steps.navigation;
 
 import com.qa.common.logging.TestLogger;
+import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.annotation.StepDef;
-import com.qa.webcore.driver.DriverManager;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
-import com.qa.webcore.utils.WaitUtils;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
-import org.openqa.selenium.WebDriver;
 
 /**
  * Steps de navegación: ir a URL, historial, refresh, flujos complejos.
@@ -25,6 +24,8 @@ import org.openqa.selenium.WebDriver;
  */
 public class NavigationSteps {
 
+    private static final int PAGE_LOAD_TIMEOUT_MS = 30_000;
+
     private final WebHelper helper = new WebHelper();
     private Scenario scenario;
 
@@ -40,9 +41,8 @@ public class NavigationSteps {
              displayName = "Navegar a URL")
     @Given("actualizo URL en el navegador {string}")
     public void actualizoUrlEnElNavegador(String url) {
-        WebDriver driver = DriverManager.getDriver();
-        driver.navigate().to(url);
-        WaitUtils.waitForPageReady();
+        engine().navigateTo(url);
+        engine().waitForLoadState("load", PAGE_LOAD_TIMEOUT_MS);
         TestLogger.logInfo("NAV_STEPS", "URL actualizada: " + url, null);
     }
 
@@ -53,7 +53,8 @@ public class NavigationSteps {
              displayName = "Recargar página")
     @When("recargo pagina")
     public void recargoPagina() {
-        helper.refreshPage();
+        engine().refresh();
+        engine().waitForLoadState("load", PAGE_LOAD_TIMEOUT_MS);
     }
 
     /**
@@ -63,8 +64,8 @@ public class NavigationSteps {
              displayName = "Navegar hacia atrás")
     @When("navego hacia atrás")
     public void navegoHaciaAtras() {
-        DriverManager.getDriver().navigate().back();
-        WaitUtils.waitForPageReady();
+        engine().back();
+        engine().waitForLoadState("load", PAGE_LOAD_TIMEOUT_MS);
         TestLogger.logInfo("NAV_STEPS", "Navegado hacia atrás", null);
     }
 
@@ -75,8 +76,8 @@ public class NavigationSteps {
              displayName = "Navegar hacia adelante")
     @When("navego hacia adelante")
     public void navegoHaciaAdelante() {
-        DriverManager.getDriver().navigate().forward();
-        WaitUtils.waitForPageReady();
+        engine().evaluate("window.history.forward()");
+        engine().waitForLoadState("load", PAGE_LOAD_TIMEOUT_MS);
         TestLogger.logInfo("NAV_STEPS", "Navegado hacia adelante", null);
     }
 
@@ -98,9 +99,8 @@ public class NavigationSteps {
     public void completoElFlujoNavegandoConCamposYPresionando(
             String url, String c1, String c2, String c3,
             String t1, String t2, String t3, String boton) {
-        WebDriver driver = DriverManager.getDriver();
-        driver.navigate().to(url);
-        WaitUtils.waitForPageReady();
+        engine().navigateTo(url);
+        engine().waitForLoadState("load", PAGE_LOAD_TIMEOUT_MS);
         helper.setTextWithWait(t1, c1);
         if (c2 != null && !c2.trim().isEmpty()) {
             helper.setTextWithWait(t2, c2);
@@ -110,5 +110,9 @@ public class NavigationSteps {
         }
         helper.clicButton(boton);
         helper.captureScreen(scenario);
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

@@ -216,8 +216,9 @@ public class ApiPlugin implements CorePlugin {
     }
 
     /**
-     * Aplica timeouts y reintentos declarados en {@link ExecutionConfig} (inyectados por el BE).
+     * Aplica timeouts, reintentos y SSL declarados en {@link ExecutionConfig} (inyectados por el BE).
      * Claves: {@code http.connect.timeout.ms}, {@code http.read.timeout.ms}, {@code http.max.retries}.
+     * SSL: {@link ExecutionConfig#getSslContext()} y {@link ExecutionConfig#isTrustAllSsl()}.
      */
     private static void applyHttpPolicyFromExecutionConfig(ExecutionContext context, HttpClient client) {
         ExecutionConfig cfg = context.config();
@@ -234,6 +235,10 @@ public class ApiPlugin implements CorePlugin {
             } catch (NumberFormatException ignored) {
                 // mantener política por defecto del cliente
             }
+        }
+        // SSL: aplicar solo si hay configuración no-default
+        if (cfg.isTrustAllSsl() || cfg.getSslContext() != null) {
+            client.configureSsl(cfg.getSslContext(), cfg.isTrustAllSsl());
         }
     }
 

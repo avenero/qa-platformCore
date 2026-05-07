@@ -8,7 +8,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -45,10 +48,17 @@ class WebConfigKeysTest {
             assertThat(WebConfigKeys.BROWSER).isEqualTo("web.browser");
         }
 
+        @SuppressWarnings("deprecation") // HEADLESS queda como alias de compatibilidad.
         @Test
         @DisplayName("HEADLESS tiene el valor 'web.headless'")
         void testHeadless() {
             assertThat(WebConfigKeys.HEADLESS).isEqualTo("web.headless");
+        }
+
+        @Test
+        @DisplayName("BROWSER_HEADLESS tiene el valor 'web.headless'")
+        void testBrowserHeadless() {
+            assertThat(WebConfigKeys.BROWSER_HEADLESS).isEqualTo("web.headless");
         }
 
         @Test
@@ -129,6 +139,30 @@ class WebConfigKeysTest {
             assertThat(WebConfigKeys.IMPLICIT_WAIT_SEC).isEqualTo("web.implicit.wait.sec");
         }
 
+        @Test
+        @DisplayName("BROWSER_ENGINE tiene el valor 'browser.engine'")
+        void testBrowserEngine() {
+            assertThat(WebConfigKeys.BROWSER_ENGINE).isEqualTo("browser.engine");
+        }
+
+        @Test
+        @DisplayName("PLAYWRIGHT_BROWSER tiene el valor 'playwright.browser'")
+        void testPlaywrightBrowser() {
+            assertThat(WebConfigKeys.PLAYWRIGHT_BROWSER).isEqualTo("playwright.browser");
+        }
+
+        @Test
+        @DisplayName("PW_TIMEOUT_MS tiene el valor 'playwright.timeout.ms'")
+        void testPlaywrightTimeout() {
+            assertThat(WebConfigKeys.PW_TIMEOUT_MS).isEqualTo("playwright.timeout.ms");
+        }
+
+        @Test
+        @DisplayName("PW_SCREENSHOT_DIR tiene el valor 'playwright.screenshots.dir'")
+        void testPlaywrightScreenshotDir() {
+            assertThat(WebConfigKeys.PW_SCREENSHOT_DIR).isEqualTo("playwright.screenshots.dir");
+        }
+
         @SuppressWarnings("deprecation") // HOST_LEGACY: deprecated desde 2.2.0 — test verifica la constante existe con el valor correcto
         @Test
         @DisplayName("HOST_LEGACY tiene el valor 'host'")
@@ -178,23 +212,30 @@ class WebConfigKeysTest {
         }
 
         @Test
-        @DisplayName("No hay claves duplicadas entre constantes")
+        @DisplayName("No hay claves duplicadas entre constantes (excepto aliases explícitos)")
         void testSinValoresDuplicados() throws Exception {
             Field[] campos = WebConfigKeys.class.getDeclaredFields();
 
-            List<String> valores = Arrays.stream(campos)
+            Map<String, List<String>> nombresPorValor = Arrays.stream(campos)
                     .filter(f -> Modifier.isStatic(f.getModifiers()) && f.getType() == String.class)
-                    .map(f -> {
+                    .collect(Collectors.groupingBy(f -> {
                         try { return (String) f.get(null); }
                         catch (IllegalAccessException e) { return null; }
-                    })
-                    .toList();
+                    }, Collectors.mapping(Field::getName, Collectors.toList())));
 
-            // Número de valores únicos igual al total → no hay duplicados
-            long distintos = valores.stream().distinct().count();
-            assertThat(distintos)
-                    .as("Hay claves con el mismo valor (duplicados): %s", valores)
-                    .isEqualTo(valores.size());
+            Set<String> valoresAliasPermitidos = Set.of("web.headless");
+
+            for (Map.Entry<String, List<String>> entry : nombresPorValor.entrySet()) {
+                String valor = entry.getKey();
+                List<String> nombres = entry.getValue();
+                if (nombres.size() <= 1) {
+                    continue;
+                }
+
+                assertThat(valoresAliasPermitidos)
+                        .as("Valor duplicado no permitido: '%s' en constantes %s", valor, nombres)
+                        .contains(valor);
+            }
         }
 
         @Test

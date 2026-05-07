@@ -1,6 +1,8 @@
 package com.qa.webcore.steps.interaction;
 
+import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.annotation.StepDef;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
@@ -20,7 +22,7 @@ public class ClickSteps {
 
     @When("presiono el boton {string}")
     public void presionoElBoton(String locator) {
-        helper.clicButton(locator);
+        engine().click(locator);
         helper.captureScreen(scenario);
     }
 
@@ -51,7 +53,7 @@ public class ClickSteps {
 
     @When("situo el cursor del mouse sobre el elemento {string}")
     public void situoElCursorDelMouseSobreElElemento(String locator) {
-        helper.moveToElement(locator);
+        engine().hover(locator);
     }
 
     @StepDef(value = "web.click.legacy-cerrar-banner",
@@ -83,7 +85,7 @@ public class ClickSteps {
      */
     @When("hago doble clic en el elemento {string}")
     public void hagoDobleClicEnElElemento(String locator) {
-        helper.doubleClick(locator);
+        engine().doubleClick(locator);
     }
 
     @And("verifico si existe el elemento {string} con host {string} y hago clic")
@@ -100,7 +102,7 @@ public class ClickSteps {
 
     @Then("verifico si existe el elemento {string} y hago clic")
     public void verificoSiExisteElElementoYHagoClic(String locator) {
-        if (helper.waitForVisibleElement(locator)) {
+        if (engine().isPresent(locator)) {
             presionoElBoton(locator);
         }
     }
@@ -108,5 +110,9 @@ public class ClickSteps {
     @Then("verifico si existe el texto {string} y hago clic")
     public void verificoSiExisteElTextoYHagoClic(String texto) {
         helper.checkTextAndClic(texto);
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

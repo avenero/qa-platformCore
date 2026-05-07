@@ -98,6 +98,7 @@ public final class HttpStepDetail {
      * @param responseBodySizeBytes    tamaño original del body de respuesta en bytes (puede ser null)
      * @param durationMs               duración de la petición en milisegundos (puede ser null)
      */
+    //CHECKSTYLE:OFF ParameterNumber
     public HttpStepDetail(
             int v,
             String requestId,
@@ -111,6 +112,7 @@ public final class HttpStepDetail {
             Integer requestBodySizeBytes,
             Integer responseBodySizeBytes,
             Long durationMs) {
+    //CHECKSTYLE:ON ParameterNumber
         this.v = v;
         this.requestId = requestId;
         this.method = method;

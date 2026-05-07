@@ -1,6 +1,8 @@
 package com.qa.webcore.steps.validation;
 
+import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.annotation.StepDef;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
@@ -26,21 +28,21 @@ public class ElementValidationSteps {
              deprecated = true, replacedBy = "web.element-validation#elElementoDebeSerVisible")
     @Then("verifico si existe el elemento {string}")
     public void verificoSiExisteElElemento(String locator) {
-        Assertions.assertThat(helper.waitForVisibleElement(locator)).
+        Assertions.assertThat(engine().isPresent(locator)).
             as("Elemento " + locator + " no encontrado").isTrue();
         helper.captureScreen(scenario);
     }
 
     @Then("verifico que el texto en {string} sea {string}")
     public void verificoQueElTextoEnSea(String locator, String expectedText) {
-        Assertions.assertThat(helper.getTextOf(locator)).
+        Assertions.assertThat(engine().find(locator).getText()).
             as("Texto no coincide").isEqualTo(helper.resolveVariables(expectedText));
         helper.captureScreen(scenario);
     }
 
     @Then("verifico que no exista el elemento {string}")
     public void verificoQueNoExistaElElemento(String locator) {
-        Assertions.assertThat(helper.isPresent(locator)).as("Elemento " + locator + " encontrado!").isFalse();
+        Assertions.assertThat(engine().isPresent(locator)).as("Elemento " + locator + " encontrado!").isFalse();
         helper.captureScreen(scenario);
     }
 
@@ -54,14 +56,15 @@ public class ElementValidationSteps {
 
     @Then("verifico que el elemento {string} este deshabilitado")
     public void verificoQueElElementoEsteDeshabilitado(String locator) {
-        Assertions.assertThat(helper.isDisabled(locator)).as("El elemento " + locator + " esta habilitado!").isTrue();
+        Assertions.assertThat(engine().find(locator).isEnabled()).
+            as("El elemento " + locator + " esta habilitado!").isFalse();
         helper.captureScreen(scenario);
     }
 
     @Then("verifico que el elemento {string} este habilitado")
     public void verificoQueElElementoEstehabilitado(String locator) {
-        Assertions.assertThat(helper.isDisabled(locator)).
-            as("El elemento " + locator + " esta deshabilitado!").isFalse();
+        Assertions.assertThat(engine().find(locator).isEnabled()).
+            as("El elemento " + locator + " esta deshabilitado!").isTrue();
         helper.captureScreen(scenario);
     }
 
@@ -75,8 +78,8 @@ public class ElementValidationSteps {
 
     @Then("verifico si existe el elemento {string} y valido que el texto sea {string}")
     public void verificoSiExisteElElementoYValidoQueElTextoSea(String locator, String expectedText) {
-        if (helper.waitForVisibleElement(locator)) {
-            Assertions.assertThat(helper.getTextOf(locator)).
+        if (engine().isPresent(locator)) {
+            Assertions.assertThat(engine().find(locator).getText()).
                 as("Texto no coincide").isEqualTo(helper.resolveVariables(expectedText));
         } else {
             Assertions.fail("Elemento " + locator + " no aparecio o no es visible");
@@ -85,9 +88,9 @@ public class ElementValidationSteps {
 
     @Then("verifico si existe el elemento {string} y valido que el texto contenga {string}")
     public void verificoSiExisteElElementoYValidoQueElTextoContenga(String locator, String expectedSubtext) {
-        if (helper.waitForVisibleElement(locator)) {
-            Assertions.assertThat(helper.getTextOfContainsText(locator, helper.resolveVariables(expectedSubtext))).
-                as("Elemento no contiene: " + expectedSubtext).isTrue();
+        if (engine().isPresent(locator)) {
+            Assertions.assertThat(engine().find(locator).getText()).
+                contains(helper.resolveVariables(expectedSubtext));
         } else {
             Assertions.fail("Elemento " + locator + " no aparecio");
         }
@@ -95,20 +98,21 @@ public class ElementValidationSteps {
 
     @Then("verifico que el texto en {string} contenga el texto de la variable temporal {string}")
     public void verificoTextoEnContengaElTextoVariableTemporal(String locator, String variableName) {
-        Assertions.assertThat(helper.getTextOfContainsVariable(locator, variableName)).
-            as("No contiene variable: " + variableName).isTrue();
+        Assertions.assertThat(engine().find(locator).getText()).
+            as("No contiene variable: " + variableName).contains(helper.getTextVariableTemp(variableName));
     }
 
     @Then("verifico que el texto en {string} sea igual al de la variable temporal {string}")
     public void verificoQueElTextoEnSeaIgualAlDeLaVariableTemporal(String locator, String variableName) {
-        Assertions.assertThat(helper.getTextOf(locator)).
+        Assertions.assertThat(engine().find(locator).getText()).
             as("Error, valores no iguales").isEqualTo(helper.getTextVariableTemp(variableName));
     }
 
     @Then("verifico que el texto en {string} contenga el texto {string}")
     public void verificoTextoEnContengaElTexto(String locator, String expectedSubtext) {
-        Assertions.assertThat(helper.getTextOfContainsText(locator, helper.resolveVariables(expectedSubtext))).
-            as("No contiene: " + expectedSubtext).isTrue();
+        Assertions.assertThat(engine().find(locator).getText()).
+            as("Elemento no contiene: " + expectedSubtext).
+            contains(helper.resolveVariables(expectedSubtext));
     }
 
     @Then(STEP_VERIFY_TEXT_DOUBLE_SHADOW)
@@ -245,12 +249,16 @@ public class ElementValidationSteps {
 
     @Then("el elemento {string} debe ser visible")
     public void elElementoDebeSerVisible(String locator) {
-        helper.validateElementIsVisible(locator);
+        Assertions.assertThat(engine().isPresent(locator))
+            .as("Elemento %s no visible", locator)
+            .isTrue();
     }
 
     @Then("el elemento {string} no debe ser visible")
     public void elElementoNoDebeSerVisible(String locator) {
-        helper.validateElementIsNotVisible(locator);
+        Assertions.assertThat(engine().isPresent(locator))
+            .as("Elemento %s visible cuando no debería", locator)
+            .isFalse();
     }
 
     @Then("el campo {string} no debe estar vacio")
@@ -352,5 +360,9 @@ public class ElementValidationSteps {
     @Then("verifico que el checkbox {string} no este seleccionado")
     public void verificoCheckboxNoSeleccionado(String locator) {
         helper.validateCheckboxSelected(locator, false);
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

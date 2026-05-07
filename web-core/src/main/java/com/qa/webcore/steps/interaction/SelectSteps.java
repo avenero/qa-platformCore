@@ -1,5 +1,7 @@
 package com.qa.webcore.steps.interaction;
 
+import com.qa.common.runtime.ExecutionContext;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
@@ -21,19 +23,19 @@ public class SelectSteps {
 
     @When("selecciono el valor {string} en el combobox {string}")
     public void seleccionoElTextoEnElCombobox(String valor, String locator) {
-        helper.selectOptionComboBox(locator, valor);
+        engine().selectOption(locator, valor);
         helper.captureScreen(scenario);
     }
 
     @When("selecciono el valor de la variable {string} en el combobox {string}")
     public void seleccionoElTextoDeVariableEnElCombobox(String variableName, String locator) {
-        helper.selectOptionComboBox(locator, helper.getTextVariableTemp(variableName));
+        engine().selectOption(locator, helper.getTextVariableTemp(variableName));
         helper.captureScreen(scenario);
     }
 
     @And("selecciono la opcion con el valor {string} en el combobox {string}")
     public void seleccionoLaOpcionConElValorEnElCombobox(String valor, String locator) {
-        helper.selectOptionComboBoxByValue(locator, valor);
+        engine().selectOption(locator, valor);
         helper.captureScreen(scenario);
     }
 
@@ -49,8 +51,8 @@ public class SelectSteps {
 
     @Then("verifico si existe el combobox {string} y selecciono el valor {string}")
     public void verificoSiExisteElElementoYSeleccionoOpcion(String locator, String valor) {
-        if (helper.waitForVisibleElement(locator)) {
-            helper.selectOptionComboBox(locator, valor);
+        if (engine().isPresent(locator)) {
+            engine().selectOption(locator, valor);
         }
     }
 
@@ -85,5 +87,9 @@ public class SelectSteps {
     @Then("el campo {string} debe permitir seleccion unica")
     public void elCampoDebePermitirSeleccionUnica(String locator) {
         helper.validateSingleSelection(locator);
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

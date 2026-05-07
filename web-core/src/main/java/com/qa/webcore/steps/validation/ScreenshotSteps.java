@@ -1,5 +1,7 @@
 package com.qa.webcore.steps.validation;
 
+import com.qa.common.runtime.ExecutionContext;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.When;
@@ -18,7 +20,10 @@ public class ScreenshotSteps {
 
     @When("capturo una imagen de la pantalla")
     public void capturoUnaImagenDeLaPantalla() {
-        helper.captureScreen(scenario);
+        byte[] screenshot = engine().screenshot();
+        if (scenario != null) {
+            scenario.attach(screenshot, "image/png", "screenshot");
+        }
     }
 
     @When("adjunto a jira el archivo de texto llamado {string}")
@@ -34,5 +39,9 @@ public class ScreenshotSteps {
     @When("genero archivo de texto llamado {string} con las variables temporales")
     public void generoArchivoDeTextoConLasVariablesTemporales(String fileName) {
         helper.generateFileTxt(fileName);
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

@@ -1,5 +1,6 @@
 package com.qa.webcore.plugin;
 
+import com.qa.common.config.ConfigManager;
 import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
@@ -21,42 +22,38 @@ import com.qa.webcore.components.bdd.TableValidationComponent;
 import com.qa.webcore.components.bdd.WaitComponent;
 import com.qa.webcore.components.bdd.WebEnvironmentComponent;
 import com.qa.webcore.components.bdd.WindowComponent;
-import com.qa.webcore.driver.DriverManager;
-import com.qa.webcore.driver.WebDriverFactory;
+import com.qa.webcore.driver.engine.BrowserEngine;
+import com.qa.webcore.driver.engine.playwright.PlaywrightBrowserEngine;
+import com.qa.webcore.driver.playwright.PlaywrightManager;
+import com.qa.webcore.config.WebConfigKeys;
 import com.qa.webcore.utils.WebHelper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 /**
  * Plugin de Web para el runtime de ejecución BDD.
  *
- * <p>Registra los servicios Selenium ({@link WebHelper}) y declara los
+ * <p>Registra servicios Web y declara los
  * 16 componentes de steps Web organizados por responsabilidad.
  *
- * <h2>Ciclo de vida del WebDriver</h2>
- * <p>El driver es <b>lazy</b>: no se crea en {@link #onScenarioStart}, sino en el
- * {@code @Before} hook de Cucumber ({@link com.qa.webcore.steps.WebHooksSteps}),
- * que también lo registra en el {@link ServiceRegistry} del contexto.
- *
- * <p>En {@link #onScenarioEnd} este plugin recupera el driver del {@code ServiceRegistry}
- * vía {@link WebDriverFactory#closeDriver(ExecutionContext)} y lo cierra. De esta forma
- * el cierre del driver es responsabilidad del ciclo de vida SPI del plugin, no solo del
- * hook {@code @After} de Cucumber.
+ * <h2>Ciclo de vida Playwright</h2>
+ * <p>El ciclo de vida del navegador se centraliza en este plugin.
  *
  * <pre>
  * Cucumber Runtime
- *   ├─ @Before (WebHooksSteps)  → crea driver, registra en ServiceRegistry + DriverManager
+ *   ├─ @Before (WebHooksSteps)
  *   ├─ [steps del escenario]
- *   ├─ @After  (WebHooksSteps)  → screenshot si fallo, limpia cookies
+ *   ├─ @After  (WebHooksSteps)
  *   └─ TestCaseFinished
  *         └─► ScenarioLifecycleBridge
  *               └─► WebPlugin.onScenarioEnd()
- *                     └─► WebDriverFactory.closeDriver(ctx)  ← cierre autoritativo
- *                     └─► DriverManager.quitDriverSafely()   ← limpieza ThreadLocal
+ *                     └─► PlaywrightManager.endScenario()
  * </pre>
  *
  * @author Abel Venero
@@ -65,6 +62,9 @@ import java.util.Set;
 public class WebPlugin implements CorePlugin {
 
     private static final Logger LOG = LoggerFactory.getLogger(WebPlugin.class);
+    private static volatile PlaywrightScenarioInitializer playwrightScenarioInitializer =
+            WebPlugin::initializePlaywrightScenarioDefault;
+    private static volatile ScenarioTerminator scenarioTerminator = WebPlugin::terminateScenarioDefault;
 
     // =========================================================================
     // Metadatos del plugin
@@ -77,7 +77,7 @@ public class WebPlugin implements CorePlugin {
 
     @Override
     public Set<String> getActivationTags() {
-        return Set.of("@web", "@ui", "@browser", "@selenium");
+        return Set.of("@web", "@ui", "@browser", "@playwright");
     }
 
     @Override
@@ -100,35 +100,67 @@ public class WebPlugin implements CorePlugin {
     // Ciclo de vida por escenario
     // =========================================================================
 
-    /**
-     * Callback al inicio de cada escenario.
-     *
-     * <p>El driver es <b>lazy</b>: se crea en el {@code @Before} hook de Cucumber
-     * ({@link com.qa.webcore.steps.WebHooksSteps#beforeScenario}), no aquí.
-     * Este método solo emite un log de trazabilidad.
-     */
     @Override
     public void onScenarioStart(ExecutionContext context) {
-        LOG.debug("[WebPlugin] onScenarioStart — driver lazy, se creará en @Before de Cucumber");
+        String browserName = context.config().getProperty(WebConfigKeys.PLAYWRIGHT_BROWSER, "chromium");
+        boolean headless = resolveHeadless(context, true);
+        LOG.info("[WebPlugin] onScenarioStart — inicializando Playwright (browser={}, headless={})",
+                browserName, headless);
+        playwrightScenarioInitializer.initialize(context, browserName, headless);
     }
 
-    /**
-     * Callback al final de cada escenario.
-     *
-     * <p>Recupera el {@link WebDriver} del {@link ServiceRegistry} del contexto
-     * y lo cierra vía {@link WebDriverFactory#closeDriver(ExecutionContext)}.
-     * Adicionalmente limpia el {@link DriverManager} ThreadLocal como safety-net.
-     *
-     * <p>Es idempotente: si el driver ya fue cerrado (o nunca se registró), no lanza excepción.
-     */
     @Override
     public void onScenarioEnd(ExecutionContext context) {
-        LOG.debug("[WebPlugin] onScenarioEnd — cerrando WebDriver si existe en ServiceRegistry");
-        // Cierre autoritativo vía ServiceRegistry (registrado por WebHooksSteps.beforeScenario)
-        WebDriverFactory.closeDriver(context);
-        // Safety-net: limpia el ThreadLocal de DriverManager para evitar leaks entre escenarios
-        DriverManager.quitDriverSafely();
+        LOG.debug("[WebPlugin] onScenarioEnd — finalizando Playwright");
+        scenarioTerminator.terminate(context);
         LOG.debug("[WebPlugin] onScenarioEnd — completado");
+    }
+
+    private static void initializePlaywrightScenarioDefault(
+            ExecutionContext context,
+            String browserName,
+            boolean headless
+    ) {
+        PlaywrightManager.initSuite(browserName, headless);
+        PlaywrightManager.startScenario();
+        context.registry().registerInstance(BrowserEngine.class,
+                new PlaywrightBrowserEngine(PlaywrightManager.getPage()));
+    }
+
+    private static void terminateScenarioDefault(ExecutionContext context) {
+        PlaywrightManager.endScenario();
+    }
+
+    private static boolean resolveHeadless(ExecutionContext context, boolean defaultValue) {
+        String defaultAsString = Boolean.toString(defaultValue);
+        String fromContext = context.config().getProperty(WebConfigKeys.BROWSER_HEADLESS, defaultAsString);
+        if (fromContext != null && !fromContext.isBlank()) {
+            return Boolean.parseBoolean(fromContext);
+        }
+        return ConfigManager.getInstance().getBoolean(WebConfigKeys.BROWSER_HEADLESS, defaultValue);
+    }
+
+    static void setPlaywrightScenarioInitializerForTesting(PlaywrightScenarioInitializer initializer) {
+        playwrightScenarioInitializer = initializer;
+    }
+
+    static void setScenarioTerminatorForTesting(ScenarioTerminator terminator) {
+        scenarioTerminator = terminator;
+    }
+
+    static void resetLifecycleHooksForTesting() {
+        playwrightScenarioInitializer = WebPlugin::initializePlaywrightScenarioDefault;
+        scenarioTerminator = WebPlugin::terminateScenarioDefault;
+    }
+
+    @FunctionalInterface
+    interface PlaywrightScenarioInitializer {
+        void initialize(ExecutionContext context, String browserName, boolean headless);
+    }
+
+    @FunctionalInterface
+    interface ScenarioTerminator {
+        void terminate(ExecutionContext context);
     }
 
     // =========================================================================
@@ -169,5 +201,13 @@ public class WebPlugin implements CorePlugin {
                 new TableValidationComponent(),
                 new ScreenshotComponent()
         );
+    }
+
+    @Override
+    public List<String> getGluePackages() {
+        List<String> glue = new ArrayList<>(CorePlugin.super.getGluePackages());
+        glue.add("com.qa.webcore.steps");
+        glue = glue.stream().distinct().sorted().toList();
+        return Collections.unmodifiableList(glue);
     }
 }

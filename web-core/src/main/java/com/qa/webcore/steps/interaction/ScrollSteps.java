@@ -1,5 +1,7 @@
 package com.qa.webcore.steps.interaction;
 
+import com.qa.common.runtime.ExecutionContext;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.When;
@@ -17,13 +19,25 @@ public class ScrollSteps {
 
     @When("hago scroll hasta el elemento {string}")
     public void irAlElemento(String locator) {
-        helper.scroll(locator);
+        engine().scrollIntoView(locator);
         helper.captureScreen(scenario);
     }
 
     @When("hago scroll hacia {string}")
     public void scrollDirection(String direction) {
-        helper.scrollByDirection(direction);
+        String normalized = direction == null ? "" : direction.trim().toLowerCase();
+        switch (normalized) {
+            case "arriba", "up", "top" ->
+                    engine().evaluate("window.scrollTo({ top: 0, behavior: 'smooth' });");
+            case "abajo", "down", "bottom" ->
+                    engine().evaluate("window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });");
+            default ->
+                    throw new IllegalArgumentException("Dirección de scroll no soportada: " + direction);
+        }
         helper.captureScreen(scenario);
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

@@ -34,6 +34,14 @@ public class ApiHelper {
     /** Max characters to display for field values in log messages. */
     private static final int LOG_VALUE_MAX_LENGTH = 50;
 
+    /**
+     * Base URL property keys in priority order — kept in sync with
+     * {@code ApiPlugin.BASE_URL_KEYS} for safety-net resolution when the plugin
+     * lifecycle didn't run (e.g. scenario with no {@code @api} tag).
+     */
+    private static final java.util.List<String> BASE_URL_KEYS = java.util.List.of(
+        "base.url", "api.base.url", "api.baseurl", "api.baseurl.qa");
+
     /** Milliseconds per second, used for converting seconds to milliseconds in polling waits. */
     private static final long MILLIS_PER_SECOND = 1000L;
 
@@ -168,9 +176,7 @@ public class ApiHelper {
                         filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(propertyKey));
 
                 if (endpointValue == null || endpointValue.trim().isEmpty()) {
-                    throw new RuntimeException(String.format(
-                        "Propiedad '%s' no encontrada o está vacía en config-{env}.properties. " +
-                        "Verifica que la propiedad exista en config-qa.properties", propertyKey));
+                    endpointValue = resolveHostPathFallback(propertyKey);
                 }
             }
 
@@ -184,6 +190,47 @@ public class ApiHelper {
             throw new RuntimeException(String.format(
                 "Error configurando endpoint desde propiedad '%s': %s", propertyKey, e.getMessage()), e);
         }
+    }
+
+    private String resolveHostPathFallback(String propertyKey) {
+        if (propertyKey.contains("/") && !propertyKey.contains("://")) {
+            String existingHost = httpClient.getHost();
+            if (existingHost == null || existingHost.isBlank()) {
+                existingHost = ExecutionContext.current()
+                    .flatMap(ctx -> BASE_URL_KEYS.stream()
+                        .map(k -> ctx.config().getProperty(k))
+                        .filter(java.util.Optional::isPresent)
+                        .map(java.util.Optional::get)
+                        .filter(v -> !v.isBlank())
+                        .findFirst())
+                    .orElse(null);
+                if (existingHost != null && !existingHost.isBlank()) {
+                    httpClient.setHost(existingHost);
+                    TestLogger.logInfo("API_HELPER_CONFIG",
+                        "[BASE-URL] Host tomado de ExecutionConfig (bootstrap no ejecutado): "
+                            + existingHost, null);
+                }
+            }
+            if (existingHost != null && !existingHost.isBlank()) {
+                String base = existingHost.endsWith("/")
+                    ? existingHost.substring(0, existingHost.length() - 1)
+                    : existingHost;
+                String path = propertyKey.startsWith("/") ? propertyKey : "/" + propertyKey;
+                String resolved = base + path;
+                TestLogger.logInfo("API_HELPER_CONFIG",
+                    String.format("ℹ️ Propiedad '%s' no encontrada — usando como path sobre host base: %s",
+                        propertyKey, resolved), null);
+                return resolved;
+            }
+            throw new RuntimeException(String.format(
+                "Propiedad '%s' no encontrada y no hay host base configurado. " +
+                "Verifica que el ambiente tenga una 'Base URL' configurada, o usa " +
+                "el step 'uso la URL base del ambiente seleccionado' antes de este step.",
+                propertyKey));
+        }
+        throw new RuntimeException(String.format(
+            "Propiedad '%s' no encontrada o está vacía en config-{env}.properties. " +
+            "Verifica que la propiedad exista en config-qa.properties", propertyKey));
     }
 
     /**

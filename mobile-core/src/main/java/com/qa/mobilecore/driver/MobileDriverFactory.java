@@ -357,8 +357,10 @@ public class MobileDriverFactory {
             options.setAppActivity(cfg.getAppActivity());
         }
 
-        options.setCapability("autoLaunch", cfg.isAutoLaunch());
-        options.setCapability("noReset", cfg.isNoReset());
+        // Capabilities con prefijo `appium:` explícito (requerido por Appium 2.x W3C).
+        // No usar setCapability("autoLaunch", ...) sin prefijo — Appium 2.x puede rechazarlas.
+        options.setCapability("appium:autoLaunch", cfg.isAutoLaunch());
+        options.setCapability("appium:noReset",    cfg.isNoReset());
 
         TestLogger.logInfo("MOBILE_FACTORY",
             "Creando AndroidDriver (UiAutomator2) en: " + serverUrl, null);
@@ -390,8 +392,9 @@ public class MobileDriverFactory {
             options.setBundleId(cfg.getBundleId());
         }
 
-        options.setCapability("autoLaunch", cfg.isAutoLaunch());
-        options.setCapability("noReset", cfg.isNoReset());
+        // Capabilities con prefijo `appium:` explícito (requerido por Appium 2.x W3C).
+        options.setCapability("appium:autoLaunch", cfg.isAutoLaunch());
+        options.setCapability("appium:noReset",    cfg.isNoReset());
 
         TestLogger.logInfo("MOBILE_FACTORY",
             "Creando IOSDriver (XCUITest) en: " + serverUrl, null);

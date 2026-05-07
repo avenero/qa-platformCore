@@ -1,27 +1,35 @@
-# 🔐 SSL Truststore
+# SSL Truststore — qa-platformCore
 
-Este directorio contiene el truststore Java con certificados SSL corporativos para acceder a Artifactory.
-
----
-
-## 📦 Contenido
-
-- **`myTrustStore.jks`** - Java Keystore con certificados SSL corporativos (commitear al repo)
+Este directorio contiene el truststore Java con certificados SSL para acceso a servicios externos (Jira, APIs internas con TLS custom).
 
 ---
 
-## 🎯 Propósito
+## Contenido
 
-Permite que Gradle descargue dependencias desde Artifactory corporativo sin errores SSL:
+- **`myTrustStore.jks`** — Java Keystore con certificados SSL (commitear al repo)
+
+---
+
+## Propósito
+
+Permite que el framework y Gradle accedan a servicios externos sin errores SSL:
 ```
 PKIX path building failed: unable to find valid certification path to requested target
 ```
 
+El truststore es cargado automáticamente por `SSLContextFactory` (`com.qa.common.ssl.SSLContextFactory`) al inicializar el framework.
+
 ---
 
-## 🚀 Uso
+## Uso automático
 
-### El truststore se usa automáticamente si está configurado en `gradle.properties`:
+El truststore se activa si existe en el path del módulo. `SSLContextFactory` lo busca en:
+
+1. `../common/ssl/myTrustStore.jks` (desde módulo)
+2. `common/ssl/myTrustStore.jks` (desde raíz)
+3. `ssl/myTrustStore.jks` (desde common)
+
+Para forzar uso vía Gradle, agregar en `gradle.properties`:
 
 ```properties
 systemProp.javax.net.ssl.trustStore=common/ssl/myTrustStore.jks
@@ -31,68 +39,105 @@ systemProp.javax.net.ssl.trustStoreType=JKS
 
 ---
 
-## 🔧 Crear/Actualizar el Truststore
+## Agregar un certificado externo (ej: Jira corporativo)
 
-Ver guía completa: **[../config/README.md](../config/README.md#-certificados-ssl)**
-
-### Resumen rápido:
+### Paso 1 — Obtener el certificado
 
 ```bash
-# 1. Copiar truststore default de Java
+openssl s_client -connect <host>:443 -showcerts </dev/null 2>/dev/null | \
+  openssl x509 -outform PEM > /tmp/servicio.crt
+
+cat /tmp/servicio.crt   # Debe mostrar -----BEGIN CERTIFICATE----- ... -----END CERTIFICATE-----
+```
+
+### Paso 2 — Importar al truststore
+
+```bash
+cd qa-platformCore/common/ssl
+
+keytool -import \
+  -alias <nombre-alias> \
+  -file /tmp/servicio.crt \
+  -keystore myTrustStore.jks \
+  -storepass changeit \
+  -noprompt
+
+# Verificar
+keytool -list -keystore myTrustStore.jks -storepass changeit
+```
+
+### Paso 3 — Republicar el módulo common
+
+```bash
+cd qa-platformCore
+./gradlew :common:clean :common:build :common:publishToMavenLocal
+```
+
+### Paso 4 — Verificar en el proyecto consumidor
+
+Ejecutar los tests que usan el servicio con TLS. En los logs debe aparecer:
+```
+SSLContext creado con truststore: myTrustStore.jks
+SSL configurado con truststore personalizado del framework
+```
+
+---
+
+## Crear el truststore desde cero (si no existe)
+
+```bash
+# Copiar desde cacerts del JDK
 cp $JAVA_HOME/lib/security/cacerts myTrustStore.jks
 
-# 2. Importar certificado corporativo
-keytool -import \
-  -alias artifactory-bns \
-  -file anthos.chl.bns.crt \
+# O crear vacío (con entrada dummy temporal)
+keytool -genkeypair \
+  -alias dummy \
+  -keyalg RSA \
   -keystore myTrustStore.jks \
+  -storepass changeit \
+  -dname "CN=localhost" \
+  -validity 365
+
+# Eliminar entrada dummy
+keytool -delete -alias dummy -keystore myTrustStore.jks -storepass changeit
+```
+
+---
+
+## Verificar certificados
+
+```bash
+# Listar todos
+keytool -list -keystore myTrustStore.jks -storepass changeit
+
+# Buscar uno específico
+keytool -list -keystore myTrustStore.jks -storepass changeit | grep <alias>
+```
+
+---
+
+## Alternativa global (JDK)
+
+Si se prefiere instalar en el JDK del sistema en lugar del truststore del framework:
+
+```bash
+CACERTS_PATH=$JAVA_HOME/lib/security/cacerts
+sudo keytool -import \
+  -alias <nombre-alias> \
+  -file /tmp/servicio.crt \
+  -keystore $CACERTS_PATH \
   -storepass changeit \
   -noprompt
 ```
 
----
-
-## ✅ Ventajas de Tener el Truststore en el Proyecto
-
-- ✅ **Cross-platform**: Funciona en Windows, macOS, Linux automáticamente
-- ✅ **Portable**: Se distribuye con el proyecto (Git)
-- ✅ **No requiere permisos admin**: No modifica Java del sistema
-- ✅ **CI/CD friendly**: Jenkins/GitLab lo usa sin configuración extra
-- ✅ **Una sola vez**: No hay que repetir en cada máquina del equipo
+Ventaja: aplica a todos los proyectos Java.
+Desventaja: requiere permisos admin, se pierde al cambiar de JDK.
 
 ---
 
-## 🔍 Verificar Certificados
+## Notas
 
-```bash
-# Listar todos los certificados
-keytool -list \
-  -keystore myTrustStore.jks \
-  -storepass changeit
-
-# Buscar certificado específico
-keytool -list \
-  -keystore myTrustStore.jks \
-  -storepass changeit \
-  | grep artifactory-bns
-```
-
----
-
-## ⚠️ Importante
-
-- ✅ **SÍ commitear** `myTrustStore.jks` al repositorio (es seguro, no contiene secrets)
-- ❌ **NO commitear** `*.crt` (certificados en formato texto, solo para referencia)
-
----
-
-## 📚 Más Información
-
-- **Guía completa de certificados SSL**: [../config/README.md](../config/README.md#-certificados-ssl)
-- **Troubleshooting SSL**: Ver sección "Troubleshooting" en la guía completa
-
----
-
-**Última actualización**: Diciembre 5, 2025  
-**Password del truststore**: `changeit` (default de Java)
-
+- `myTrustStore.jks` **SÍ debe commitearse** al repo (no contiene secrets, solo certificados públicos)
+- `*.crt` (certificados en texto) **NO commitear** — son artefactos temporales de importación
+- Password del truststore: `changeit` (default Java)
+- Namespace del framework: `com.qa.*` — código en `qa-platformCore/common/src/main/java/com/qa/`

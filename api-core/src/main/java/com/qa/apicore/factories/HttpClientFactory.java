@@ -1,181 +1,172 @@
 package com.qa.apicore.factories;
 
+import com.qa.apicore.implementations.ApacheHttpClientImpl;
 import com.qa.apicore.implementations.BaseHttpClient;
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.common.logging.TestLogger;
 
 /**
- * Factory para crear instancias de HttpClient del QA Automation Framework.
+ * Factory para crear instancias de {@link HttpClient}.
  *
- * <p>Esta factory proporciona métodos estáticos para crear instancias de HttpClient de manera
- * estandarizada y extensible. Soporta tanto la implementación base como implementaciones
- * específicas por framework (API, Web, Mobile).
- *
- * <p><b>Características principales:</b>
- *
+ * <h2>Implementación por defecto — v2.2.0</h2>
+ * <p>La implementación por defecto es {@link ApacheHttpClientImpl} (Apache HttpClient 5).
+ * La selección puede sobreescribirse con la propiedad de sistema o de config
+ * {@code http.client}:
  * <ul>
- *   <li>Creación estandarizada de clientes HTTP
- *   <li>Soporte para extensiones específicas por framework
- *   <li>Logging integrado para troubleshooting
- *   <li>Patrón Factory para facilitar testing y mocking
- *   <li>Thread-safe para uso concurrente
+ *   <li>{@code apache} (default) — {@link ApacheHttpClientImpl}</li>
+ *   <li>{@code unirest} (deprecated) — {@link BaseHttpClient}</li>
  * </ul>
  *
- * <p><b>Uso típico:</b>
- *
+ * <h2>Uso típico</h2>
  * <pre>
- * // Obtener implementación base
  * HttpClient client = HttpClientFactory.getInstance();
  * client.setHost("https://api.example.com");
- *
- * // Obtener implementación específica por framework
- * HttpClient apiClient = HttpClientFactory.getInstance("api");
- * HttpClient webClient = HttpClientFactory.getInstance("web");
- * HttpClient mobileClient = HttpClientFactory.getInstance("mobile");
- * </pre>
- *
- * <p><b>Extensión en frameworks específicos:</b>
- *
- * <pre>
- * // Los frameworks específicos pueden registrar sus implementaciones
- * // llamando a este factory desde sus propias factories
- * public class ApiHttpClientFactory {
- *     public static HttpClient getApiClient() {
- *         HttpClient client = HttpClientFactory.getInstance();
- *         // Configurar específicamente para APIs
- *         client.addHeader("Accept", "application/json");
- *         return client;
- *     }
- * }
+ * HttpResponse r = client.get("/users");
  * </pre>
  *
  * @author Abel Venero
- * @version 1.0.0
+ * @version 2.2.0
  * @since 2.0.0
  * @see HttpClient
- * @see BaseHttpClient
+ * @see ApacheHttpClientImpl
  */
 public final class HttpClientFactory {
 
+  /** Propiedad de config/sistema para seleccionar implementación (default: {@code apache}). */
+  public static final String CLIENT_IMPL_KEY     = "http.client";
+  public static final String IMPL_APACHE         = "apache";
+  /** @deprecated Unirest está deprecado; usa {@code apache}. */
+  @Deprecated(since = "2.2.0", forRemoval = true)
+  public static final String IMPL_UNIREST        = "unirest";
+
   private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(HttpClientFactory.class);
 
-  // Constructor privado para factory
   private HttpClientFactory() {
     throw new UnsupportedOperationException("HttpClientFactory es una clase factory");
   }
 
+  // =========================================================================
+  // Métodos principales
+  // =========================================================================
+
   /**
-   * Crea una nueva instancia de HttpClient usando la implementación base. Esta es la forma más
-   * común y recomendada de obtener un HttpClient.
+   * Crea una nueva instancia de {@link HttpClient} usando la implementación configurada
+   * en la propiedad {@code http.client} (default: {@code apache}).
    *
    * @return nueva instancia de HttpClient
    */
   public static HttpClient getInstance() {
-    LOG.debug("Creando nueva instancia de BaseHttpClient");
-    return new BaseHttpClient();
+    String impl = resolveImpl();
+    return createForImpl(impl);
   }
 
   /**
-   * Crea una instancia de HttpClient específica para un framework.
-   *
-   * <p><b>Nota:</b> Actualmente retorna BaseHttpClient para todos los tipos. Los frameworks
-   * específicos (api-core, web-core, mobile-core) pueden extender esta funcionalidad creando sus
-   * propias implementaciones.
+   * Crea una instancia de {@link HttpClient} específica para un framework.
+   * Todos los tipos de framework usan la misma implementación seleccionada por {@code http.client}.
    *
    * @param frameworkType tipo de framework ("api", "web", "mobile", o cualquier otro)
-   * @return instancia de HttpClient (actualmente siempre BaseHttpClient)
+   * @return nueva instancia de HttpClient
    */
   public static HttpClient getInstance(String frameworkType) {
-    if (frameworkType == null || frameworkType.trim().isEmpty()) {
-      LOG.warn("Framework type es null o vacío, usando implementación base");
+    if (frameworkType == null || frameworkType.isBlank()) {
+      LOG.warn("frameworkType es null o vacío, usando implementación por defecto");
       return getInstance();
     }
-
-    String normalizedType = frameworkType.toLowerCase().trim();
-    LOG.debug("Creando HttpClient para framework: {}", normalizedType);
-
-    // Por ahora retornamos la implementación base para todos los tipos
-    // Los frameworks específicos pueden extender esto creando sus propias implementaciones
-    switch (normalizedType) {
-      case "api":
-        LOG.debug("Retornando BaseHttpClient para framework API");
-        return getInstance();
-      case "web":
-        LOG.debug("Retornando BaseHttpClient para framework Web");
-        return getInstance();
-      case "mobile":
-        LOG.debug("Retornando BaseHttpClient para framework Mobile");
-        return getInstance();
-      default:
-        LOG.debug("Framework type '{}' no reconocido, usando implementación base", frameworkType);
-        return getInstance();
-    }
+    LOG.debug("Creando HttpClient para framework: {}", frameworkType.toLowerCase().trim());
+    return getInstance();
   }
 
   /**
-   * Crea una instancia de HttpClient preconfigurada con un host específico. Método de conveniencia
-   * para casos de uso comunes.
+   * Crea una instancia de {@link HttpClient} preconfigurada con host.
    *
-   * @param host la URL base del host (ej: "https://api.example.com")
-   * @return nueva instancia de HttpClient configurada con el host
+   * @param host URL base (ej: {@code https://api.example.com})
+   * @return instancia configurada
    * @throws IllegalArgumentException si host es null o vacío
    */
   public static HttpClient getInstanceWithHost(String host) {
-    if (host == null || host.trim().isEmpty()) {
+    if (host == null || host.isBlank()) {
       throw new IllegalArgumentException("Host no puede ser null o vacío");
     }
-
     HttpClient client = getInstance();
     client.setHost(host.trim());
-
-    LOG.debug("HttpClient creado y configurado con host: {}", host);
+    LOG.debug("HttpClient configurado con host: {}", host);
     return client;
   }
 
   /**
-   * Crea una instancia de HttpClient preconfigurada para JSON. Configura automáticamente los
-   * headers necesarios para trabajar con JSON.
+   * Crea una instancia de {@link HttpClient} preconfigurada para JSON.
    *
-   * @return nueva instancia de HttpClient configurada para JSON
+   * @return instancia configurada para JSON
    */
   public static HttpClient getJsonInstance() {
     HttpClient client = getInstance();
     client.configureForJson();
-
-    LOG.debug("HttpClient creado y configurado para JSON");
+    LOG.debug("HttpClient configurado para JSON");
     return client;
   }
 
   /**
-   * Crea una instancia de HttpClient preconfigurada para JSON con host específico. Combina la
-   * configuración de JSON y host en un solo método.
+   * Crea una instancia de {@link HttpClient} preconfigurada para JSON con host.
    *
-   * @param host la URL base del host
-   * @return nueva instancia de HttpClient configurada para JSON con el host
+   * @param host URL base
+   * @return instancia configurada para JSON con el host
    * @throws IllegalArgumentException si host es null o vacío
    */
   public static HttpClient getJsonInstanceWithHost(String host) {
-    if (host == null || host.trim().isEmpty()) {
+    if (host == null || host.isBlank()) {
       throw new IllegalArgumentException("Host no puede ser null o vacío");
     }
-
     HttpClient client = getInstance();
     client.setHost(host.trim());
     client.configureForJson();
-
-    LOG.debug("HttpClient creado y configurado para JSON con host: {}", host);
+    LOG.debug("HttpClient configurado para JSON con host: {}", host);
     return client;
   }
 
-  /**
-   * Obtiene información de debug sobre las capacidades del factory. Útil para troubleshooting y
-   * verificación de configuración.
-   *
-   * @return string con información del factory
-   */
+  /** @return información de debug del factory */
   public static String getFactoryInfo() {
+    String impl = resolveImpl();
     return String.format(
-        "HttpClientFactory v1.0.0 - Implementación base: %s - Frameworks soportados: api, web, mobile",
-        BaseHttpClient.class.getSimpleName());
+        "HttpClientFactory v2.2.0 — implementación activa: %s (configurable vía '%s'). " +
+        "Opciones: apache (default), unirest (deprecated).",
+        impl, CLIENT_IMPL_KEY);
+  }
+
+  // =========================================================================
+  // Privados
+  // =========================================================================
+
+  /**
+   * Resuelve la implementación a usar: primero system property, luego config property.
+   * Default: {@code apache}.
+   */
+  private static String resolveImpl() {
+    String impl = System.getProperty(CLIENT_IMPL_KEY);
+    if (impl == null || impl.isBlank()) {
+      // Fallback a config gestionada por ConfigManager si está disponible en contexto
+      try {
+        impl = com.qa.common.config.ConfigManager.getInstance().get(CLIENT_IMPL_KEY, IMPL_APACHE);
+      } catch (Exception e) {
+        impl = IMPL_APACHE;
+      }
+    }
+    return impl.trim().toLowerCase();
+  }
+
+  private static HttpClient createForImpl(String impl) {
+    return switch (impl) {
+      case IMPL_UNIREST -> {
+        LOG.warn("Usando BaseHttpClient (Unirest) que está @Deprecated(forRemoval=true). " +
+                 "Migra a la implementación Apache: -D{}={}", CLIENT_IMPL_KEY, IMPL_APACHE);
+        yield new BaseHttpClient();
+      }
+      default -> {
+        if (!IMPL_APACHE.equals(impl)) {
+          LOG.warn("Implementación '{}' no reconocida, usando Apache HttpClient 5 por defecto", impl);
+        }
+        LOG.debug("Creando ApacheHttpClientImpl");
+        yield new ApacheHttpClientImpl();
+      }
+    };
   }
 }

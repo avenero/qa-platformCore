@@ -179,30 +179,6 @@ public class DeviceConfigSteps {
     }
 
     // =========================================================================
-    // Step legacy (backward compat)
-    // =========================================================================
-
-    /**
-     * @deprecated Usar los steps individuales:
-     *   {@link #configuroDispositivoMovilComo(String)},
-     *   {@link #configuroPlatformVersion(String)},
-     *   {@link #seleccionoDispositivoConId(String)}.
-     */
-    @StepDef(value = "mobile.device.config.legacy-combined",
-             deprecated = true, replacedBy = "mobile.device.config.platform",
-             displayName = "Configurar dispositivo combinado (DEPRECATED)")
-    @Deprecated(since = "2.1.0", forRemoval = true)
-    @Given("configuro el dispositivo {string} con plataforma {string} y version {string}")
-    public void configuroDispositivo(String deviceName, String platform, String version) {
-        String rPlatform = ctx().variables().resolve(platform);
-        String rVersion  = ctx().variables().resolve(version);
-        mobile().setPlatform(rPlatform);
-        mobile().setPlatformVersion(rVersion);
-        TestLogger.logInfo("DEVICE_CFG",
-            "Dispositivo: " + deviceName + " | " + rPlatform + " " + rVersion, null);
-    }
-
-    // =========================================================================
     // Helpers privados
     // =========================================================================
 

@@ -31,11 +31,8 @@
     <logger name="org.slf4j" level="WARN" additivity="false"/>
     <logger name="ch.qos.logback" level="WARN" additivity="false"/>
 
-    <!-- Selenium WebDriver -->
-    <logger name="org.openqa.selenium" level="ERROR"/>
-    <logger name="org.openqa.selenium.remote" level="ERROR"/>
-    <logger name="io.github.bonigarcia.wdm" level="ERROR"/>
-    <logger name="io.github.bonigarcia" level="ERROR"/>
+    <!-- Playwright -->
+    <logger name="com.microsoft.playwright" level="WARN"/>
 
     <!-- REST Assured -->
     <logger name="io.restassured" level="WARN"/>

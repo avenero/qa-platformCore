@@ -1,5 +1,5 @@
-// Configuración específica del módulo web-core (v1.1.0)
-// Especializado en automatización de pruebas Web UI con Selenium
+// Configuración específica del módulo web-core (v2.1.0)
+// Especializado en automatización de pruebas Web UI con Playwright
 
 java {
     toolchain {
@@ -13,19 +13,13 @@ dependencies {
     // Esto mantiene la separación de responsabilidades
     api project(':common')
 
-    // ===== SELENIUM & WEBDRIVER =====
-    // Suite completa de Selenium para diferentes navegadores
-    api 'org.seleniumhq.selenium:selenium-java:4.27.0'
-
-    // NOTA: WebDriverManager ya NO usa bonigarcia (eliminado)
-    // Ahora usa com.qa.common.driver.WebDriverManager del framework
-    // que gestiona drivers desde path local configurado.
-    // Ver: common/src/main/java/com/qa/common/driver/WebDriverManager.java
+    // ===== PLAYWRIGHT =====
+    implementation 'com.microsoft.playwright:playwright:1.50.0'
 
     // ===== CUCUMBER PARA BDD =====
     // Cucumber para escribir tests en Gherkin
-    api 'io.cucumber:cucumber-java:7.18.0'
-    api 'io.cucumber:cucumber-junit-platform-engine:7.18.0'
+    api "io.cucumber:cucumber-java:${rootProject.ext.cucumberVersion}"
+    api "io.cucumber:cucumber-junit-platform-engine:${rootProject.ext.cucumberVersion}"
 
     // ===== WAITS & UTILITIES =====
     // Awaitility para waits elegantes y fluent assertions
@@ -34,10 +28,6 @@ dependencies {
     // ===== ASSERTIONS =====
     // AssertJ para assertions fluent
     api 'org.assertj:assertj-core:3.24.2'
-
-    // ===== SCREENSHOT & REPORTING =====
-    // AShot para screenshots avanzados (full page, element, etc.)
-    api 'ru.yandex.qatools.ashot:ashot:1.5.4'
 
     // ===== TESTING FRAMEWORKS =====
     // JUnit 5 para tests unitarios de web-core

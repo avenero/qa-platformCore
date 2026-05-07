@@ -37,10 +37,13 @@ import java.util.concurrent.TimeUnit;
  */
 public final class AppiumServerManager {
 
-    private static final int HEALTH_CHECK_TIMEOUT_MS = 3_000;
-    private static final int STARTUP_POLL_INTERVAL_MS = 1_000;
-    private static final int DEFAULT_APPIUM_PORT = 4723;
-    private static final long MILLIS_PER_SECOND = 1000L;
+    private static final int  HEALTH_CHECK_TIMEOUT_MS  = 3_000;
+    /** Intervalo base para el backoff exponencial en la espera de startup (ms). */
+    private static final long POLL_BASE_INTERVAL_MS    = 500L;
+    /** Máximo intervalo de poll individual (cap del backoff exponencial). */
+    private static final long POLL_MAX_INTERVAL_MS     = 10_000L;
+    private static final int  DEFAULT_APPIUM_PORT      = 4723;
+    private static final long MILLIS_PER_SECOND        = 1000L;
 
     private AppiumServerManager() {}
 
@@ -169,28 +172,57 @@ public final class AppiumServerManager {
         }
     }
 
+    /**
+     * Espera a que Appium esté listo usando <b>exponential backoff</b>.
+     *
+     * <p>Estrategia: el intervalo entre intentos empieza en {@value #POLL_BASE_INTERVAL_MS} ms
+     * y se duplica en cada intento fallido, con un techo de {@value #POLL_MAX_INTERVAL_MS} ms.
+     * Esto evita saturar el puerto en los primeros milisegundos de arranque y sigue
+     * siendo responsivo cuando Appium arranca rápido.
+     *
+     * <pre>
+     * Intento 1 → espera  500ms
+     * Intento 2 → espera 1000ms
+     * Intento 3 → espera 2000ms
+     * Intento 4 → espera 4000ms
+     * Intento 5 → espera 8000ms
+     * Intento 6+ → espera 10000ms (cap)
+     * </pre>
+     */
     private static void waitForAppium(String serverUrl, int timeoutSec) {
         long deadline = System.currentTimeMillis() + (timeoutSec * MILLIS_PER_SECOND);
         TestLogger.logInfo("APPIUM_SERVER",
-            "Esperando que Appium este listo (timeout: " + timeoutSec + "s)...", null);
+            "Esperando que Appium este listo (timeout: " + timeoutSec + "s, backoff exponencial)...", null);
 
+        int attempt = 0;
         while (System.currentTimeMillis() < deadline) {
             if (isResponding(serverUrl)) {
                 TestLogger.logInfo("APPIUM_SERVER",
-                    "Appium listo en: " + serverUrl, null);
+                    "Appium listo en: " + serverUrl + " (intento " + (attempt + 1) + ")", null);
                 return;
             }
-            try {
-                Thread.sleep(STARTUP_POLL_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+            // Backoff exponencial con cap: base * 2^attempt, máximo POLL_MAX_INTERVAL_MS
+            long waitMs = Math.min(POLL_BASE_INTERVAL_MS * (1L << attempt), POLL_MAX_INTERVAL_MS);
+            // No superar el tiempo restante hasta el deadline
+            long remaining = deadline - System.currentTimeMillis();
+            waitMs = Math.min(waitMs, Math.max(remaining, 0));
+
+            if (waitMs > 0) {
+                TestLogger.logInfo("APPIUM_SERVER",
+                    "Appium no responde. Reintento " + (attempt + 1) + " en " + waitMs + "ms...", null);
+                try {
+                    Thread.sleep(waitMs);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
+            attempt++;
         }
 
         throw new IllegalStateException(
-            "Appium no estuvo listo en " + timeoutSec + "s. " +
-            "Verifica la instalacion o aumenta mobile.appium.startup.timeout.sec");
+            "Appium no estuvo listo en " + timeoutSec + "s después de " + attempt + " intentos. " +
+            "Verifica la instalación o aumenta mobile.appium.startup.timeout.sec");
     }
 
     private static int extractPort(String serverUrl) {

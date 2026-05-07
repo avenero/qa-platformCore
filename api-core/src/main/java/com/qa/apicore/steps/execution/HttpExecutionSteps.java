@@ -1,6 +1,6 @@
 package com.qa.apicore.steps.execution;
 
-import com.qa.apicore.implementations.BaseHttpClient;
+import com.qa.apicore.factories.HttpClientFactory;
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.apicore.utils.ApiHelper;
 import com.qa.common.exception.FrameworkTechnicalException;
@@ -32,7 +32,9 @@ public class HttpExecutionSteps {
     // ─── Obtención de servicios desde el ServiceRegistry ───────────
 
     private HttpClient getHttpClient() {
-        return ExecutionContext.current().map(ctx -> ctx.service(HttpClient.class)).orElseGet(BaseHttpClient::new);
+        return ExecutionContext.current()
+                .map(ctx -> ctx.service(HttpClient.class))
+                .orElseGet(HttpClientFactory::getInstance);
     }
 
     private ApiHelper getApiHelper() {

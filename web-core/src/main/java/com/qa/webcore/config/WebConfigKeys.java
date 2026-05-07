@@ -13,14 +13,13 @@ package com.qa.webcore.config;
  *
  * <p><b>Ejemplo de uso en config-app.properties:</b>
  * <pre>
- * web.browser=chrome
+ * web.browser=chromium
  * web.headless=false
+ * browser.engine=playwright
+ * playwright.browser=chromium
  * web.base.url=https://app.example.com
- * web.grid.enabled=false
- * web.grid.url=http://selenium-grid:4444/wd/hub
  * web.page.load.timeout.sec=30
  * web.explicit.wait.sec=10
- * driver.strategy=auto
  * </pre>
  *
  * <p><b>Indicaciones para el Backend (BE):</b>
@@ -47,10 +46,10 @@ public final class WebConfigKeys {
     // =========================================================================
 
     /**
-     * Tipo de navegador a usar.
-     * Valores válidos: {@code chrome}, {@code firefox}, {@code edge}, {@code safari}
+     * Tipo de navegador Playwright a usar.
+     * Valores válidos: {@code chromium}, {@code firefox}, {@code webkit}
      * (case-insensitive).
-     * <br>Default: {@code chrome}.
+     * <br>Default: {@code chromium}.
      */
     public static final String BROWSER = "web.browser";
 
@@ -59,7 +58,43 @@ public final class WebConfigKeys {
      * Valores: {@code true} | {@code false}.
      * <br>Default: {@code false}.
      */
-    public static final String HEADLESS = "web.headless";
+    public static final String BROWSER_HEADLESS = "web.headless";
+
+    /**
+     * Alias de compatibilidad para {@link #BROWSER_HEADLESS}.
+     *
+     * @deprecated Usar {@link #BROWSER_HEADLESS} en código nuevo.
+     */
+    @Deprecated(since = "2.3.0", forRemoval = false)
+    public static final String HEADLESS = BROWSER_HEADLESS;
+
+    // =========================================================================
+    // Motor de automatización
+    // =========================================================================
+
+    /**
+     * Motor de browser a usar.
+     * Valor soportado en web-core v2.1.0+: {@code playwright}.
+     */
+    public static final String BROWSER_ENGINE = "browser.engine";
+
+    /**
+     * Browser de Playwright cuando {@link #BROWSER_ENGINE} = {@code playwright}.
+     * Valores: {@code chromium} | {@code firefox} | {@code webkit}.
+     * <br>Default: {@code chromium}.
+     */
+    public static final String PLAYWRIGHT_BROWSER = "playwright.browser";
+
+    /**
+     * Timeout por defecto para operaciones Playwright (milisegundos).
+     * <br>Default sugerido: {@code 30000}.
+     */
+    public static final String PW_TIMEOUT_MS = "playwright.timeout.ms";
+
+    /**
+     * Directorio base de capturas Playwright.
+     */
+    public static final String PW_SCREENSHOT_DIR = "playwright.screenshots.dir";
 
     /**
      * URL base de la aplicación bajo prueba.
@@ -75,35 +110,25 @@ public final class WebConfigKeys {
     public static final String PROXY_URL = "web.proxy.url";
 
     // =========================================================================
-    // Selenium Grid
+    // Legacy de infraestructura
     // =========================================================================
 
     /**
-     * Activa la ejecución remota en Selenium Grid.
-     * Valores: {@code true} | {@code false}.
-     * <br>Default: {@code false} (ejecución local).
-     * <br>Requiere que {@link #GRID_URL} esté configurada cuando es {@code true}.
+     * Clave legacy preservada por compatibilidad con configuraciones históricas.
      */
     public static final String GRID_ENABLED = "web.grid.enabled";
 
     /**
-     * URL del hub de Selenium Grid.
-     * <br>Ejemplo: {@code http://selenium-grid:4444/wd/hub}.
-     * Compatible con Selenium Grid 3, Grid 4 y cloud providers (BrowserStack, Sauce Labs).
+     * Clave legacy preservada por compatibilidad con configuraciones históricas.
      */
     public static final String GRID_URL = "web.grid.url";
 
     // =========================================================================
-    // Driver
+    // Legacy de driver
     // =========================================================================
 
     /**
-     * Estrategia de resolución del WebDriver binario.
-     * Valores: {@code auto} | {@code local} | {@code artifactory}.
-     * <br>Default: {@code auto}.
-     *
-     * <p>Esta clave no lleva prefijo {@code web.*} por compatibilidad histórica
-     * y porque aplica a infraestructura de driver en general.
+     * Clave legacy preservada por compatibilidad histórica.
      */
     public static final String DRIVER_STRATEGY = "driver.strategy";
 
@@ -118,7 +143,7 @@ public final class WebConfigKeys {
     public static final String PAGE_LOAD_TIMEOUT_SEC = "web.page.load.timeout.sec";
 
     /**
-     * Timeout de explicit wait en segundos (para {@code WebDriverWait} y {@code WaitUtils}).
+     * Timeout de explicit wait en segundos.
      * <br>Default: {@code 10}.
      */
     public static final String EXPLICIT_WAIT_SEC = "web.explicit.wait.sec";

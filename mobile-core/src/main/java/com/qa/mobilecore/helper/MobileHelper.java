@@ -259,13 +259,41 @@ public class MobileHelper {
     // =========================================================================
 
     public void switchToNative() {
-        ((SupportsContextSwitching) driver()).context("NATIVE_APP");
-        TestLogger.logInfo("MOBILE_HELPER", "Contexto cambiado a NATIVE_APP", null);
+        switchToContextSafe("NATIVE_APP");
     }
 
     public void switchToWebView(String webViewId) {
-        ((SupportsContextSwitching) driver()).context(webViewId);
-        TestLogger.logInfo("MOBILE_HELPER", "Contexto cambiado a: " + webViewId, null);
+        if (webViewId == null || webViewId.isBlank()) {
+            throw new IllegalArgumentException("webViewId no puede ser null o vacío");
+        }
+        switchToContextSafe(webViewId);
+    }
+
+    /**
+     * Cambia al contexto indicado validando primero que esté disponible en la app.
+     *
+     * <p>Previene {@code NoSuchContextException} con mensaje críptico de Appium.
+     * Si el contexto no existe, lanza {@link IllegalStateException} con los contextos
+     * disponibles listados para facilitar el diagnóstico.
+     *
+     * @param contextName nombre exacto del contexto destino (ej: {@code NATIVE_APP},
+     *                    {@code WEBVIEW_com.myapp})
+     * @throws IllegalStateException si el contexto no existe en la app en este momento
+     */
+    public void switchToContextSafe(String contextName) {
+        Set<String> available = getContexts();
+        boolean exists = available.stream()
+            .anyMatch(c -> c.equalsIgnoreCase(contextName));
+
+        if (!exists) {
+            throw new IllegalStateException(
+                "Contexto '" + contextName + "' no está disponible en la app. " +
+                "Contextos disponibles (" + available.size() + "): " + available + ". " +
+                "Verifica que la WebView esté cargada antes de hacer el switch.");
+        }
+
+        ((SupportsContextSwitching) driver()).context(contextName);
+        TestLogger.logInfo("MOBILE_HELPER", "Contexto cambiado a: " + contextName, null);
     }
 
     public Set<String> getContexts() {

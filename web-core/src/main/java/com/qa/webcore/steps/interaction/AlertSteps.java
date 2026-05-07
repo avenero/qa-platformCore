@@ -1,5 +1,7 @@
 package com.qa.webcore.steps.interaction;
 
+import com.qa.common.runtime.ExecutionContext;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Then;
@@ -18,16 +20,20 @@ public class AlertSteps {
     @Then("verifico si existe la alerta y selecciono aceptar")
     public void verificoSiExisteAlertaYSeleccionoAceptar() {
         helper.captureScreen(scenario);
-        helper.acceptAlert();
+        engine().acceptAlert();
     }
 
     @Then("acepto la alerta")
     public void aceptoLaAlerta() {
-        helper.acceptAlert();
+        engine().acceptAlert();
     }
 
     @Then("rechazo la alerta")
     public void rechazoLaAlerta() {
-        helper.dismissAlert();
+        engine().dismissAlert();
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

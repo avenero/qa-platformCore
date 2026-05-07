@@ -1,12 +1,15 @@
 package com.qa.webcore.steps.wait;
 
 import com.qa.common.logging.TestLogger;
+import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.annotation.StepDef;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
-import com.qa.webcore.utils.WaitUtils;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.When;
+
+import java.time.Duration;
 
 /**
  * Steps de espera explicita e implicita.
@@ -28,29 +31,34 @@ public class WaitSteps {
 
     /** Multiplicador de milisegundos por segundo. */
     private static final long MILLIS_PER_SECOND = 1000L;
+    private static final long ENABLED_POLL_INTERVAL_MS = 100L;
+
+    private static final int WAIT_TIMEOUT_MS = (int)(WAIT_STEPS_TIMEOUT * MILLIS_PER_SECOND);
+    private static final int PAGE_LOAD_TIMEOUT_MS = (int)(PAGE_LOAD_TIMEOUT * MILLIS_PER_SECOND);
+    private static final int TEXT_VISIBLE_TIMEOUT_MS = (int)(TEXT_VISIBLE_TIMEOUT * MILLIS_PER_SECOND);
 
     private final WebHelper helper = new WebHelper();
     private Scenario scenario;
 
     @When("espero hasta que elemento {string} este visible")
     public void esperarHastaQueElementoEsteVisible(String locator) {
-        helper.waitForVisibleElement(locator, WAIT_STEPS_TIMEOUT);
+        engine().waitForVisible(locator, WAIT_TIMEOUT_MS);
     }
 
     @When("espero hasta que elemento {string} este habilitado")
     public void esperarHastaQueElementoEsteHabilitado(String locator) {
-        helper.waitAndValidateEnabled(locator, WAIT_STEPS_TIMEOUT);
+        waitUntilEnabled(locator, WAIT_STEPS_TIMEOUT);
     }
 
     @When("espero hasta que elemento {string} no este visible")
     public void esperarHastaQueElementoNoEsteVisible(String locator) {
-        helper.waitFromElementNoVisible(locator);
+        engine().waitForHidden(locator, WAIT_TIMEOUT_MS);
         helper.captureScreen(scenario);
     }
 
     @When("espero {string} segundos")
     public void esperarUnTiempo(String segundos) {
-        WaitUtils.waitMilliseconds(Integer.parseInt(segundos) * MILLIS_PER_SECOND);
+        sleepQuietly(Integer.parseInt(segundos) * MILLIS_PER_SECOND);
         helper.captureScreen(scenario);
         TestLogger.logWarning("WAIT_STEPS", "Wait fijo: " + segundos + "s", null);
     }
@@ -58,7 +66,7 @@ public class WaitSteps {
     @When("espero hasta que la seccion termine de cargar")
     public void esperoHastaQueLaSeccionTermineDeCargar() {
         helper.captureScreen(scenario);
-        helper.waitForPageLoad(PAGE_LOAD_TIMEOUT);
+        engine().waitForLoadState("load", PAGE_LOAD_TIMEOUT_MS);
     }
 
     @StepDef(value = "web.wait.legacy-esperar-home",
@@ -79,7 +87,7 @@ public class WaitSteps {
      */
     @When("espero hasta que el elemento {string} desaparezca")
     public void esperarHastaQueElElementoDesaparezca(String locator) {
-        helper.waitFromElementNoVisible(locator);
+        engine().waitForHidden(locator, WAIT_TIMEOUT_MS);
     }
 
     /**
@@ -87,7 +95,7 @@ public class WaitSteps {
      */
     @When("espero hasta que el texto {string} sea visible en la página")
     public void esperarHastaQueElTextoSeaVisible(String text) {
-        helper.waitForTextVisible(text, TEXT_VISIBLE_TIMEOUT);
+        engine().waitForText("body", text, TEXT_VISIBLE_TIMEOUT_MS);
     }
 
     /**
@@ -95,7 +103,37 @@ public class WaitSteps {
      */
     @When("espero {int} segundos")
     public void esperarSegundosInt(int segundos) {
-        WaitUtils.waitMilliseconds(segundos * MILLIS_PER_SECOND);
+        sleepQuietly(segundos * MILLIS_PER_SECOND);
         TestLogger.logWarning("WAIT_STEPS", "Wait fijo: " + segundos + "s", null);
+    }
+
+    private void waitUntilEnabled(String locator, int timeoutSeconds) {
+        long timeoutMillis = timeoutSeconds * MILLIS_PER_SECOND;
+        long deadlineNanos = System.nanoTime() + Duration.ofMillis(timeoutMillis).toNanos();
+        while (System.nanoTime() <= deadlineNanos) {
+            try {
+                if (engine().find(locator).isEnabled()) {
+                    return;
+                }
+            } catch (RuntimeException ignored) {
+                // El elemento puede no estar listo aún; seguimos esperando.
+            }
+            sleepQuietly(ENABLED_POLL_INTERVAL_MS);
+        }
+        throw new IllegalStateException(
+                "Timeout esperando que el elemento '" + locator + "' esté habilitado");
+    }
+
+    private void sleepQuietly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupción durante espera explícita", e);
+        }
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

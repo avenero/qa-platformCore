@@ -11,7 +11,11 @@ import java.util.List;
  * @author Abel Venero
  * @version 1.0.0
  * @since 1.0.0
+ * @deprecated since 2.0.0 — use {@link com.qa.common.reporting.core.bridge.ExecutionData} with
+ *             {@link com.qa.common.reporting.core.port.ReportGeneratorPort} instead.
+ *             This class will be removed in a future version.
  */
+@Deprecated(since = "2.0.0", forRemoval = true)
 public class TestExecutionResult {
 
     // Identificación

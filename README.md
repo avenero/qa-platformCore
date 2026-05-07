@@ -1,10 +1,10 @@
 # CuAleon Test Engineering Platform — Core
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Gradle](https://img.shields.io/badge/Gradle-8.14-blue.svg)](https://gradle.org/)
-[![Selenium](https://img.shields.io/badge/Selenium-4.27.0-green.svg)](https://www.selenium.dev/)
-[![Cucumber](https://img.shields.io/badge/Cucumber-7.18.0-brightgreen.svg)](https://cucumber.io/)
-[![Version](https://img.shields.io/badge/version-2.0.8--SNAPSHOT-blue.svg)](https://github.com/avenero/qa-platformCore)
+[Java](https://openjdk.java.net/)
+[Gradle](https://gradle.org/)
+[Selenium](https://www.selenium.dev/)
+[Cucumber](https://cucumber.io/)
+[Version](https://github.com/avenero/qa-platformCore)
 
 > Motor de ejecución BDD del ecosistema **CuAleon Test Engineering Platform** — framework modular de automatización para API REST, Web UI, Mobile y Base de Datos, construido sobre Cucumber en español y consumido por el Backend a través de una API de ejecución uniforme.
 
@@ -34,6 +34,7 @@
 Imagina que necesitas verificar que un sistema funciona correctamente — que cuando alguien inicia sesión, el sistema realmente lo deja entrar; que cuando se hace una compra, el dinero se descuenta bien; que la app móvil muestra los datos correctos. Eso es lo que hace este framework: **automatizar todas esas verificaciones** para que no tengan que hacerse a mano cada vez que el sistema cambia.
 
 El framework está organizado como un **kit de herramientas por capas**:
+
 - Una capa base con todas las piezas comunes (motor de ejecución, logging, config, HTTP, BD)
 - Capas especializadas para cada tipo de prueba (API REST, Web UI, Mobile, Base de Datos)
 
@@ -66,12 +67,14 @@ Eso es suficiente para ejecutar una prueba real sobre un sistema real. No se nec
 
 ## 👥 ¿Para quién es?
 
-| Perfil | ¿Qué obtiene del framework? |
-|--------|-----------------------------|
-| **QA Engineer** | Steps listos para escribir pruebas en español sin código Java |
-| **Desarrollador** | Base sólida para agregar nuevos tipos de steps o capacidades |
-| **Tech Lead / Arquitecto** | Arquitectura limpia basada en SOLID y patrones reconocidos |
+
+| Perfil                      | ¿Qué obtiene del framework?                                            |
+| --------------------------- | ---------------------------------------------------------------------- |
+| **QA Engineer**             | Steps listos para escribir pruebas en español sin código Java          |
+| **Desarrollador**           | Base sólida para agregar nuevos tipos de steps o capacidades           |
+| **Tech Lead / Arquitecto**  | Arquitectura limpia basada en SOLID y patrones reconocidos             |
 | **Gerente / Product Owner** | Pruebas legibles que documentan el comportamiento esperado del sistema |
+
 
 ---
 
@@ -128,13 +131,15 @@ Eso es suficiente para ejecutar una prueba real sobre un sistema real. No se nec
 
 El framework sigue principios SOLID y patrones reconocidos de la industria:
 
-| Principio | Cómo se aplica |
-|-----------|----------------|
-| **Responsabilidad Única** | Cada clase hace una sola cosa (ej: `StatusCodeSteps` solo valida códigos HTTP) |
-| **Abierto/Cerrado** | Se agregan capacidades via Plugin sin tocar el motor de ejecución |
-| **Inversión de Dependencias** | Los steps dependen de interfaces (`HttpClient`), no de implementaciones (`BaseHttpClient`) |
-| **DRY** (no repetir) | El código común va en `common`; las capas lo reutilizan sin copiarlo |
-| **Convención sobre configuración** | Los plugins se auto-registran via SPI; no hay XML ni configuración manual |
+
+| Principio                          | Cómo se aplica                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Responsabilidad Única**          | Cada clase hace una sola cosa (ej: `StatusCodeSteps` solo valida códigos HTTP)             |
+| **Abierto/Cerrado**                | Se agregan capacidades via Plugin sin tocar el motor de ejecución                          |
+| **Inversión de Dependencias**      | Los steps dependen de interfaces (`HttpClient`), no de implementaciones (`BaseHttpClient`) |
+| **DRY** (no repetir)               | El código común va en `common`; las capas lo reutilizan sin copiarlo                       |
+| **Convención sobre configuración** | Los plugins se auto-registran via SPI; no hay XML ni configuración manual                  |
+
 
 ---
 
@@ -179,16 +184,18 @@ CucumberRuntimeEngine activa ApiPlugin
 
 ### Los componentes del motor (paquete `common/runtime/`)
 
-| Clase | Función en palabras simples |
-|-------|----------------------------|
-| `CucumberRuntimeEngine` | El director: orquesta la ejecución de escenarios |
-| `ExecutionContext` | El "tablero de control" de un escenario: guarda todo lo que pasa durante su ejecución |
-| `ServiceRegistry` | El "casillero de servicios": guarda y entrega los objetos que los steps necesitan |
-| `VariableStore` | El "cuaderno de notas": almacena variables que se pasan entre steps |
-| `CorePlugin` | La "interfaz del músico": todo plugin que quiera participar debe implementarla |
-| `StepComponent` | La "ficha técnica" de un grupo de steps: nombre, fase BDD, descripción |
-| `DefaultLifecycleManager` | Gestiona el ciclo de vida de los plugins en orden correcto |
-| `StepDiscoveryService` | Descubre automáticamente qué steps existen en las capas activas |
+
+| Clase                     | Función en palabras simples                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| `CucumberRuntimeEngine`   | El director: orquesta la ejecución de escenarios                                      |
+| `ExecutionContext`        | El "tablero de control" de un escenario: guarda todo lo que pasa durante su ejecución |
+| `ServiceRegistry`         | El "casillero de servicios": guarda y entrega los objetos que los steps necesitan     |
+| `VariableStore`           | El "cuaderno de notas": almacena variables que se pasan entre steps                   |
+| `CorePlugin`              | La "interfaz del músico": todo plugin que quiera participar debe implementarla        |
+| `StepComponent`           | La "ficha técnica" de un grupo de steps: nombre, fase BDD, descripción                |
+| `DefaultLifecycleManager` | Gestiona el ciclo de vida de los plugins en orden correcto                            |
+| `StepDiscoveryService`    | Descubre automáticamente qué steps existen en las capas activas                       |
+
 
 ---
 
@@ -231,7 +238,7 @@ dependencies {
 
 ### 3. Crear una prueba de API (ejemplo completo)
 
-**`src/test/resources/features/api/login.feature`:**
+`**src/test/resources/features/api/login.feature`:**
 
 ```gherkin
 # language: es
@@ -310,6 +317,7 @@ Feature: Interfaz de login web
 **¿Qué es?** La caja de herramientas que todas las demás capas usan. No hace pruebas por sí sola.
 
 **Lo más importante que tiene:**
+
 - El **motor de ejecución** (runtime/): el sistema de plugins que hace todo funcionar
 - El **HTTP base**: modelo de petición/respuesta HTTP compartido
 - El **sistema de logging**: para registrar todo lo que pasa durante las pruebas
@@ -328,6 +336,7 @@ Feature: Interfaz de login web
 **¿Qué es?** Todo lo necesario para probar servicios web REST. Si tu sistema expone una API HTTP, esta capa la prueba.
 
 **Lo más importante que tiene:**
+
 - **~92 steps en español** organizados en 13 clases
 - **ApiPlugin**: se activa con `@api`, `@rest`, `@http`, `@service`
 - **12 grupos de steps**: URL, Autenticación, Headers, Cookies, Parámetros, Body, Ejecución, Status Code, Body de Respuesta, Headers de Respuesta, Performance, Seguridad
@@ -336,6 +345,7 @@ Feature: Interfaz de login web
 **Versión:** gestionada desde `gradle.properties`
 
 **Ejemplo rápido:**
+
 ```gherkin
 @api
 Scenario: Verificar endpoint de salud
@@ -354,6 +364,7 @@ Scenario: Verificar endpoint de salud
 **¿Qué es?** Todo lo necesario para controlar un navegador web y verificar que la interfaz funciona correctamente usando Selenium WebDriver.
 
 **Lo más importante que tiene:**
+
 - **~80 steps en español** organizados en 16 grupos
 - **WebPlugin**: se activa con `@web`, `@ui`, `@browser`, `@selenium`
 - **16 componentes**: BrowserConfig, Navegación, Frames, Ventanas, Click, Input, Select, Scroll, DragDrop, Alert, Waits, ElementValidation, PageValidation, TableValidation, Screenshot, WebEnvironment
@@ -362,6 +373,7 @@ Scenario: Verificar endpoint de salud
 **Versión:** gestionada desde `gradle.properties`
 
 **Ejemplo rápido:**
+
 ```gherkin
 @web
 Scenario: El menú principal tiene los ítems correctos
@@ -380,6 +392,7 @@ Scenario: El menú principal tiene los ítems correctos
 **¿Qué es?** Todo lo necesario para controlar aplicaciones móviles en Android e iOS usando Appium 8+.
 
 **Lo más importante que tiene:**
+
 - **~80 steps en español** organizados en 10 componentes BDD
 - **MobilePlugin**: se activa con `@mobile`, `@android`, `@ios`, `@appium`
 - **Auto-descubrimiento de dispositivos**: `DeviceDiscoveryService` detecta emuladores (ADB) y simuladores (simctl) para presentarlos en el FE
@@ -392,6 +405,7 @@ Scenario: El menú principal tiene los ítems correctos
 **Versión:** gestionada desde `gradle.properties`
 
 **Ejemplo rápido:**
+
 ```gherkin
 @android
 Scenario: La app muestra la pantalla de login al iniciarse
@@ -409,49 +423,57 @@ Scenario: La app muestra la pantalla de login al iniciarse
 
 ## 🔧 Matriz de Tecnologías
 
-| Tecnología | Versión | Propósito | Capa |
-|------------|---------|-----------|------|
-| **Java** | 21 LTS | Lenguaje de desarrollo | Todas |
-| **Gradle** | 8.14 | Sistema de build | Todas |
-| **Cucumber** | 7.18.0 | Motor BDD (Gherkin → Java) | Todas |
-| **JUnit Platform** | 1.10.0 | Runner de tests | Todas |
-| **Unirest** | 3.14.5 | HTTP Client (peticiones REST) | api-core |
-| **Jackson** | 2.15.x | Serialización/deserialización JSON | common, api-core, mobile-core |
-| **JsonPath** | 2.9.0 | Navegar documentos JSON (`$.campo`) | common, api-core |
-| **JSON Schema Validator** | 1.0.87 | Validar estructura de JSON | api-core |
-| **Logback / SLF4J** | 1.5.25 / 2.0.9 | Sistema de logging | Todas |
-| **AssertJ** | 3.27.7 | Aserciones fluidas (fáciles de leer) | Todas |
-| **Selenium WebDriver** | 4.27.0 | Automatizar navegadores | web-core |
-| **Appium Java Client** | 8.6.0 | Automatizar apps móviles (W3C API) | mobile-core |
-| **HikariCP** | 5.0.1 | Pool de conexiones a BD | common |
-| **SpotBugs** | 4.8.6 | Detección estática de bugs | Build |
-| **Checkstyle** | 10.21.0 | Análisis de estilo de código | Build |
-| **JaCoCo** | 0.8.12 | Cobertura de código | Build |
-| **ExtentReports** | 5.1.1 | Reportes HTML de ejecución | common, mobile-core |
+
+| Tecnología                | Versión        | Propósito                            | Capa                          |
+| ------------------------- | -------------- | ------------------------------------ | ----------------------------- |
+| **Java**                  | 21 LTS         | Lenguaje de desarrollo               | Todas                         |
+| **Gradle**                | 8.14           | Sistema de build                     | Todas                         |
+| **Cucumber**              | 7.18.0         | Motor BDD (Gherkin → Java)           | Todas                         |
+| **JUnit Platform**        | 1.10.0         | Runner de tests                      | Todas                         |
+| **Unirest**               | 3.14.5         | HTTP Client (peticiones REST)        | api-core                      |
+| **Jackson**               | 2.15.x         | Serialización/deserialización JSON   | common, api-core, mobile-core |
+| **JsonPath**              | 2.9.0          | Navegar documentos JSON (`$.campo`)  | common, api-core              |
+| **JSON Schema Validator** | 1.0.87         | Validar estructura de JSON           | api-core                      |
+| **Logback / SLF4J**       | 1.5.25 / 2.0.9 | Sistema de logging                   | Todas                         |
+| **AssertJ**               | 3.27.7         | Aserciones fluidas (fáciles de leer) | Todas                         |
+| **Selenium WebDriver**    | 4.27.0         | Automatizar navegadores              | web-core                      |
+| **Appium Java Client**    | 8.6.0          | Automatizar apps móviles (W3C API)   | mobile-core                   |
+| **HikariCP**              | 5.0.1          | Pool de conexiones a BD              | common                        |
+| **SpotBugs**              | 4.8.6          | Detección estática de bugs           | Build                         |
+| **Checkstyle**            | 10.21.0        | Análisis de estilo de código         | Build                         |
+| **JaCoCo**                | 0.8.12         | Cobertura de código                  | Build                         |
+| **ExtentReports**         | 5.1.1          | Reportes HTML de ejecución           | common, mobile-core           |
+
 
 ### Navegadores soportados (web-core)
 
-| Navegador | Soporte | Modo headless |
-|-----------|---------|---------------|
-| Chrome | ✅ Completo | ✅ Sí |
-| Firefox | ✅ Completo | ✅ Sí |
-| Edge | ✅ Completo | ✅ Sí |
+
+| Navegador | Soporte    | Modo headless |
+| --------- | ---------- | ------------- |
+| Chrome    | ✅ Completo | ✅ Sí          |
+| Firefox   | ✅ Completo | ✅ Sí          |
+| Edge      | ✅ Completo | ✅ Sí          |
+
 
 ### Plataformas móviles soportadas (mobile-core)
 
-| Plataforma | Versión mínima | Framework | Soporte |
-|------------|----------------|-----------|---------|
-| Android | 8.0 (API 26) | UiAutomator2 | ✅ Estable |
-| iOS | 14.0 | XCUITest | ✅ Estable (requiere macOS) |
+
+| Plataforma | Versión mínima | Framework    | Soporte                    |
+| ---------- | -------------- | ------------ | -------------------------- |
+| Android    | 8.0 (API 26)   | UiAutomator2 | ✅ Estable                  |
+| iOS        | 14.0           | XCUITest     | ✅ Estable (requiere macOS) |
+
 
 ### Bases de datos soportadas (common)
 
-| BD | Driver | Versión |
-|----|--------|---------|
-| MySQL | `mysql-connector-j` | 8.4.0 |
-| PostgreSQL | `postgresql` | 42.7.7 |
-| SQL Server | `mssql-jdbc` | 12.8.2.jre11 |
-| Oracle | `ojdbc11` | 23.2.0.0 |
+
+| BD         | Driver              | Versión      |
+| ---------- | ------------------- | ------------ |
+| MySQL      | `mysql-connector-j` | 8.4.0        |
+| PostgreSQL | `postgresql`        | 42.7.7       |
+| SQL Server | `mssql-jdbc`        | 12.8.2.jre11 |
+| Oracle     | `ojdbc11`           | 23.2.0.0     |
+
 
 ---
 
@@ -459,13 +481,15 @@ Scenario: La app muestra la pantalla de login al iniciarse
 
 El Backend de CuAleon integra este Core como librería Java. Estas son las **5 clases públicas** que el Backend consume directamente, todas en `com.qa.common.runtime`:
 
-| Clase | Rol | Descripción |
-|-------|-----|-------------|
+
+| Clase                   | Rol             | Descripción                                                                                                                             |
+| ----------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `CucumberRuntimeEngine` | **Entry point** | `execute(ExecutionRequest)` o `execute(ExecutionRequest, List<ConcurrentEventListener>)` con listeners extras para step/scenario events |
-| `ExecutionRequest` | **Input** | Feature paths, glue paths (auto via SPI), `ExecutionConfig` (browser, base.url, mobile, etc.) |
-| `ExecutionResult` | **Output** | Estado final, métricas, escenarios pasados/fallados, duración |
-| `ExecutionConfig` | **Config** | Configuración inmutable por ejecución: browser, base.url, web.headless, mobile.platform, etc. |
-| `StepDiscoveryService` | **Catálogo** | Lista todos los `StepComponent` y `StepDefinitionInfo` disponibles por plugin |
+| `ExecutionRequest`      | **Input**       | Feature paths, glue paths (auto via SPI), `ExecutionConfig` (browser, base.url, mobile, etc.)                                           |
+| `ExecutionResult`       | **Output**      | Estado final, métricas, escenarios pasados/fallados, duración                                                                           |
+| `ExecutionConfig`       | **Config**      | Configuración inmutable por ejecución: browser, base.url, web.headless, mobile.platform, etc.                                           |
+| `StepDiscoveryService`  | **Catálogo**    | Lista todos los `StepComponent` y `StepDefinitionInfo` disponibles por plugin                                                           |
+
 
 ### Flujo de integración
 
@@ -506,7 +530,7 @@ El flujo oficial separa validación continua y publicación release:
 - `ci.yml`: corre en PRs hacia `develop`/`master` y en pushes a `develop`/`master`. Ejecuta tests, cobertura y análisis estático, pero no publica artefactos.
 - `publish.yml`: corre solo desde `master`, tags de release o ejecución manual. Revalida y publica únicamente versiones sin sufijo `-SNAPSHOT`.
 
-La política completa de ramas, promoción y versionado vive en [`CORE_JAR_FLOW.md`](./CORE_JAR_FLOW.md).
+La política completa de ramas, promoción y versionado vive en `[CORE_JAR_FLOW.md](./CORE_JAR_FLOW.md)`.
 
 ### Flujo general
 
@@ -518,19 +542,23 @@ feature/* -> publishToMavenLocal -> BE local validation
 
 ### Herramientas de calidad incluidas (sin dependencias externas)
 
-| Herramienta | Qué analiza | Reporte generado |
-|-------------|-------------|-----------------|
-| **JaCoCo** | Cobertura de código (líneas, ramas, métodos) | XML + HTML navegable |
-| **Checkstyle** | Estilo de código (línea máx. 120, imports, javadoc) | XML por módulo |
-| **SpotBugs** | Bugs potenciales y vulnerabilidades (solo HIGH) | XML por módulo |
+
+| Herramienta    | Qué analiza                                         | Reporte generado     |
+| -------------- | --------------------------------------------------- | -------------------- |
+| **JaCoCo**     | Cobertura de código (líneas, ramas, métodos)        | XML + HTML navegable |
+| **Checkstyle** | Estilo de código (línea máx. 120, imports, javadoc) | XML por módulo       |
+| **SpotBugs**   | Bugs potenciales y vulnerabilidades (solo HIGH)     | XML por módulo       |
+
 
 > **Nota:** El análisis de calidad es completamente self-contained — no requiere cuentas en servicios externos. Todos los reportes quedan disponibles como artefactos descargables en cada ejecución del pipeline.
 
 ### Secretos requeridos
 
-| Secret | Fuente | Para qué |
-|--------|--------|----------|
+
+| Secret         | Fuente                                       | Para qué                    |
+| -------------- | -------------------------------------------- | --------------------------- |
 | `GITHUB_TOKEN` | Inyectado automáticamente por GitHub Actions | Publicar en GitHub Packages |
+
 
 ---
 
@@ -544,12 +572,14 @@ https://maven.pkg.github.com/avenero/qa-platformCore
 
 ### Módulos publicados
 
-| Módulo | Coordenadas Maven | Publicado |
-|--------|------------------|-----------|
-| common | `com.qa:common:<release-version>` | ✅ Sí |
-| api-core | `com.qa:api-core:<release-version>` | ✅ Sí |
-| web-core | `com.qa:web-core:<release-version>` | ✅ Sí |
-| mobile-core | `com.qa:mobile-core:<release-version>` | ✅ Sí |
+
+| Módulo      | Coordenadas Maven                      | Publicado |
+| ----------- | -------------------------------------- | --------- |
+| common      | `com.qa:common:<release-version>`      | ✅ Sí      |
+| api-core    | `com.qa:api-core:<release-version>`    | ✅ Sí      |
+| web-core    | `com.qa:web-core:<release-version>`    | ✅ Sí      |
+| mobile-core | `com.qa:mobile-core:<release-version>` | ✅ Sí      |
+
 
 ### Consumir desde tu proyecto
 
@@ -584,7 +614,7 @@ dependencies {
 ```
 
 > `publishToMavenLocal` es el camino oficial para validar cambios entre repos antes de promover una release.
-> La guía operativa completa está en [`CORE_JAR_FLOW.md`](./CORE_JAR_FLOW.md).
+> La guía operativa completa está en `[CORE_JAR_FLOW.md](./CORE_JAR_FLOW.md)`.
 
 ---
 
@@ -593,38 +623,44 @@ dependencies {
 **Versión de desarrollo:** 2.0.8-SNAPSHOT
 **Última actualización:** Abril 2026
 
-| Capa | Versión | Estado | Componentes | Build |
-|------|---------|--------|-------------|-------|
-| **common** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
-| **api-core** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 12 componentes (~92 steps) | ✅ Verde |
-| **web-core** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 16 componentes (~80 steps) | ✅ Verde |
-| **mobile-core** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 10 componentes (~80 steps) | ✅ Verde |
+
+| Capa            | Versión                  | Estado   | Componentes                              | Build   |
+| --------------- | ------------------------ | -------- | ---------------------------------------- | ------- |
+| **common**      | 2.0.8-SNAPSHOT (develop) | ✅ Activo | Runtime + DB (3 componentes) + Reporting | ✅ Verde |
+| **api-core**    | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 12 componentes (~92 steps)               | ✅ Verde |
+| **web-core**    | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 16 componentes (~80 steps)               | ✅ Verde |
+| **mobile-core** | 2.0.8-SNAPSHOT (develop) | ✅ Activo | 10 componentes (~80 steps)               | ✅ Verde |
+
 
 ### ¿Qué cambió de v1.x a v2.0?
 
 La versión 2.0 fue un rediseño arquitectónico completo. Los cambios más importantes:
 
-| Antes (v1.x) | Ahora (v2.0) |
-|--------------|--------------|
-| `ApiSteps.java` con 478 líneas mezclando todo | 13 clases de steps con responsabilidad única |
-| Una clase `WebSteps.java` con todo | 16 clases de steps por función |
-| Dependencia de Scotia/Scotiabank en paquetes | Paquetes genéricos `com.qa.*` |
-| Sin motor de ejecución propio | `CucumberRuntimeEngine` con sistema de plugins |
-| Servicios creados manualmente en cada step | `ServiceRegistry` con lazy initialization |
-| Sin `VariableStore` central | `ExecutionContext.variables()` para todas las capas |
-| Grupo `com.scotia.qa` | Grupo `com.qa` (independiente) |
+
+| Antes (v1.x)                                  | Ahora (v2.0)                                        |
+| --------------------------------------------- | --------------------------------------------------- |
+| `ApiSteps.java` con 478 líneas mezclando todo | 13 clases de steps con responsabilidad única        |
+| Una clase `WebSteps.java` con todo            | 16 clases de steps por función                      |
+| Dependencia de Scotia/Scotiabank en paquetes  | Paquetes genéricos `com.qa.`*                       |
+| Sin motor de ejecución propio                 | `CucumberRuntimeEngine` con sistema de plugins      |
+| Servicios creados manualmente en cada step    | `ServiceRegistry` con lazy initialization           |
+| Sin `VariableStore` central                   | `ExecutionContext.variables()` para todas las capas |
+| Grupo `com.scotia.qa`                         | Grupo `com.qa` (independiente)                      |
+
 
 ### ¿Qué cambió en la estrategia de releases?
 
-| Área | Cambio |
-|------|--------|
-| **Repositorio** | Renombrado de `qa-framework-core` a `qa-platformCore` |
-| **GitHub Packages URL** | Actualizada a `maven.pkg.github.com/avenero/qa-platformCore` |
-| **api-core** | Ahora se publica correctamente en GitHub Packages |
-| **Gradle 9.0** | Eliminadas todas las APIs deprecated (`tasks.withType`, `tasks.matching`, acceso eager a tareas) |
-| **CI/CD** | Removido SonarCloud (análisis de calidad ahora completamente self-contained con JaCoCo + Checkstyle + SpotBugs) |
-| **mobile-core** | Consolidado bloque `dependencies {}` duplicado |
-| **build.gradle** | `rootProject.name` actualizado a `qa-platformCore` |
+
+| Área                    | Cambio                                                                                                          |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Repositorio**         | Renombrado de `qa-framework-core` a `qa-platformCore`                                                           |
+| **GitHub Packages URL** | Actualizada a `maven.pkg.github.com/avenero/qa-platformCore`                                                    |
+| **api-core**            | Ahora se publica correctamente en GitHub Packages                                                               |
+| **Gradle 9.0**          | Eliminadas todas las APIs deprecated (`tasks.withType`, `tasks.matching`, acceso eager a tareas)                |
+| **CI/CD**               | Removido SonarCloud (análisis de calidad ahora completamente self-contained con JaCoCo + Checkstyle + SpotBugs) |
+| **mobile-core**         | Consolidado bloque `dependencies {}` duplicado                                                                  |
+| **build.gradle**        | `rootProject.name` actualizado a `qa-platformCore`                                                              |
+
 
 ---
 
@@ -875,7 +911,6 @@ Diferencias clave vs API:
    }
 ```
 
-
 ###FLUJO: Step de Mobile (Appium)
 
 ```
@@ -970,35 +1005,32 @@ DB_PASSWORD=mi-password
 ### Proceso para contribuir
 
 1. Crea un branch desde `develop`:
-   ```bash
+  ```bash
    git checkout -b feature/nueva-funcionalidad
-   ```
-
+  ```
 2. Aplica los cambios siguiendo las convenciones del proyecto
-
 3. Verifica que todo compila y los tests pasan:
-   ```bash
+  ```bash
    ./gradlew clean build
-   ```
-
+  ```
 4. Valida integración local si el cambio afecta artefactos publicados:
-   ```bash
+  ```bash
    ./gradlew clean publishToMavenLocal
-   ```
-
+  ```
 5. Crea un Pull Request hacia `develop`
-
 6. Promueve a `master` solo cuando la versión esté lista para release sin sufijo `-SNAPSHOT`
 
 ### Convenciones de código
 
-| Elemento | Idioma | Ejemplo |
-|----------|--------|---------|
-| Nombres de clases y métodos | Inglés | `validateResponseStatus()` |
-| Javadoc y comentarios | Español | `/** Valida el código de respuesta HTTP */` |
-| Steps de Cucumber | Español | `Then valido que el codigo sea {int}` |
-| Mensajes de log | Español | `"✅ Endpoint configurado"` |
-| Mensajes de error | Español | `"Status esperado: 200, obtenido: 404"` |
+
+| Elemento                    | Idioma  | Ejemplo                                     |
+| --------------------------- | ------- | ------------------------------------------- |
+| Nombres de clases y métodos | Inglés  | `validateResponseStatus()`                  |
+| Javadoc y comentarios       | Español | `/** Valida el código de respuesta HTTP */` |
+| Steps de Cucumber           | Español | `Then valido que el codigo sea {int}`       |
+| Mensajes de log             | Español | `"✅ Endpoint configurado"`                  |
+| Mensajes de error           | Español | `"Status esperado: 200, obtenido: 404"`     |
+
 
 ### Conventional Commits
 
@@ -1036,7 +1068,7 @@ open common/build/reports/spotbugs/main.html
 
 ## 🏷️ Convención de IDs de Step
 
-El **`stepId`** es el identificador estable que conecta los componentes del Core con el Backend y el Frontend. Es el contrato que permite al Backend resolver un componente por nombre, persistir escenarios y ejecuciones, y al Frontend construir la paleta visual del Scenario Builder.
+El `**stepId**` es el identificador estable que conecta los componentes del Core con el Backend y el Frontend. Es el contrato que permite al Backend resolver un componente por nombre, persistir escenarios y ejecuciones, y al Frontend construir la paleta visual del Scenario Builder.
 
 ### Formato
 
@@ -1044,75 +1076,85 @@ El **`stepId`** es el identificador estable que conecta los componentes del Core
 {capa}.{dominio}[.{subdominio}]
 ```
 
-| Capa | Prefijo | Módulo |
-|------|---------|--------|
-| API REST | `api.` | `api-core` |
-| Web UI | `web.` | `web-core` |
-| Mobile | `mobile.` | `mobile-core` |
-| Base de Datos | `db.` | `common/database` |
+
+| Capa          | Prefijo   | Módulo            |
+| ------------- | --------- | ----------------- |
+| API REST      | `api.`    | `api-core`        |
+| Web UI        | `web.`    | `web-core`        |
+| Mobile        | `mobile.` | `mobile-core`     |
+| Base de Datos | `db.`     | `common/database` |
+
 
 ### Tabla de todos los IDs del framework (v2.1.0)
 
 **api-core (12):**
 
-| `stepId` | Fase | Propósito |
-|----------|------|-----------|
-| `api.url` | GIVEN | URL base y ambiente |
-| `api.authentication` | GIVEN | Auth: Bearer, Basic, API Key, OAuth |
-| `api.headers` | GIVEN | Cabeceras HTTP |
-| `api.cookies` | GIVEN | Cookies |
-| `api.parameters` | GIVEN | Query y path params |
-| `api.body` | GIVEN | Cuerpo de la petición |
-| `api.execution` | WHEN | Ejecutar petición HTTP |
-| `api.status` | THEN | Validar código de estado |
-| `api.response.body` | THEN | Validar cuerpo de respuesta |
-| `api.response.headers` | THEN | Validar cabeceras de respuesta |
-| `api.performance` | THEN | Validar tiempos de respuesta |
-| `api.security` | THEN | Validaciones de seguridad |
+
+| `stepId`               | Fase  | Propósito                           |
+| ---------------------- | ----- | ----------------------------------- |
+| `api.url`              | GIVEN | URL base y ambiente                 |
+| `api.authentication`   | GIVEN | Auth: Bearer, Basic, API Key, OAuth |
+| `api.headers`          | GIVEN | Cabeceras HTTP                      |
+| `api.cookies`          | GIVEN | Cookies                             |
+| `api.parameters`       | GIVEN | Query y path params                 |
+| `api.body`             | GIVEN | Cuerpo de la petición               |
+| `api.execution`        | WHEN  | Ejecutar petición HTTP              |
+| `api.status`           | THEN  | Validar código de estado            |
+| `api.response.body`    | THEN  | Validar cuerpo de respuesta         |
+| `api.response.headers` | THEN  | Validar cabeceras de respuesta      |
+| `api.performance`      | THEN  | Validar tiempos de respuesta        |
+| `api.security`         | THEN  | Validaciones de seguridad           |
+
 
 **web-core (16):**
 
-| `stepId` | Fase | Propósito |
-|----------|------|-----------|
-| `web.browser.config` | GIVEN | Configurar navegador |
-| `web.environment` | GIVEN | Variables de ambiente |
-| `web.navigation` | GIVEN/WHEN | Navegar URLs |
-| `web.click` | WHEN | Clic sobre elementos |
-| `web.input` | WHEN | Escribir en campos |
-| `web.select` | WHEN | Seleccionar en dropdowns |
-| `web.scroll` | WHEN | Scroll en página |
-| `web.dragdrop` | WHEN | Arrastrar y soltar |
-| `web.frame` | WHEN | Cambiar a iframes |
-| `web.window` | WHEN | Gestión de tabs/ventanas |
-| `web.alert` | WHEN | Alertas del navegador |
-| `web.wait` | WHEN | Esperas explícitas |
-| `web.screenshot` | THEN | Captura de pantalla |
-| `web.validation.element` | THEN | Validar elementos |
-| `web.validation.page` | THEN | Validar página |
-| `web.validation.table` | THEN | Validar tablas HTML |
+
+| `stepId`                 | Fase       | Propósito                |
+| ------------------------ | ---------- | ------------------------ |
+| `web.browser.config`     | GIVEN      | Configurar navegador     |
+| `web.environment`        | GIVEN      | Variables de ambiente    |
+| `web.navigation`         | GIVEN/WHEN | Navegar URLs             |
+| `web.click`              | WHEN       | Clic sobre elementos     |
+| `web.input`              | WHEN       | Escribir en campos       |
+| `web.select`             | WHEN       | Seleccionar en dropdowns |
+| `web.scroll`             | WHEN       | Scroll en página         |
+| `web.dragdrop`           | WHEN       | Arrastrar y soltar       |
+| `web.frame`              | WHEN       | Cambiar a iframes        |
+| `web.window`             | WHEN       | Gestión de tabs/ventanas |
+| `web.alert`              | WHEN       | Alertas del navegador    |
+| `web.wait`               | WHEN       | Esperas explícitas       |
+| `web.screenshot`         | THEN       | Captura de pantalla      |
+| `web.validation.element` | THEN       | Validar elementos        |
+| `web.validation.page`    | THEN       | Validar página           |
+| `web.validation.table`   | THEN       | Validar tablas HTML      |
+
 
 **mobile-core (10):**
 
-| `stepId` | Fase | Propósito |
-|----------|------|-----------|
-| `mobile.device.config` | GIVEN | Configurar dispositivo |
-| `mobile.app.management` | GIVEN/WHEN | Gestionar ciclo de vida de la app |
-| `mobile.permissions` | GIVEN | Permisos del SO |
-| `mobile.sensor` | GIVEN/WHEN | GPS, red, modo avión |
-| `mobile.gesture` | WHEN | Gestos táctiles |
-| `mobile.element` | WHEN/THEN | Interactuar con elementos nativos |
-| `mobile.context` | WHEN/THEN | Cambiar contexto nativo/WebView |
-| `mobile.notification` | WHEN/THEN | Notificaciones push |
-| `mobile.validation` | THEN | Validar elementos mobile |
-| `mobile.validation.app-state` | THEN | Validar estado de la app |
+
+| `stepId`                      | Fase       | Propósito                         |
+| ----------------------------- | ---------- | --------------------------------- |
+| `mobile.device.config`        | GIVEN      | Configurar dispositivo            |
+| `mobile.app.management`       | GIVEN/WHEN | Gestionar ciclo de vida de la app |
+| `mobile.permissions`          | GIVEN      | Permisos del SO                   |
+| `mobile.sensor`               | GIVEN/WHEN | GPS, red, modo avión              |
+| `mobile.gesture`              | WHEN       | Gestos táctiles                   |
+| `mobile.element`              | WHEN/THEN  | Interactuar con elementos nativos |
+| `mobile.context`              | WHEN/THEN  | Cambiar contexto nativo/WebView   |
+| `mobile.notification`         | WHEN/THEN  | Notificaciones push               |
+| `mobile.validation`           | THEN       | Validar elementos mobile          |
+| `mobile.validation.app-state` | THEN       | Validar estado de la app          |
+
 
 **common/database (3):**
 
-| `stepId` | Fase | Propósito |
-|----------|------|-----------|
-| `db.setup` | GIVEN | Conectar a la base de datos |
-| `db.execution` | WHEN | Ejecutar queries SQL |
-| `db.validation` | THEN | Validar resultados de queries |
+
+| `stepId`        | Fase  | Propósito                     |
+| --------------- | ----- | ----------------------------- |
+| `db.setup`      | GIVEN | Conectar a la base de datos   |
+| `db.execution`  | WHEN  | Ejecutar queries SQL          |
+| `db.validation` | THEN  | Validar resultados de queries |
+
 
 ### Regla de oro
 
@@ -1128,9 +1170,41 @@ Para el detalle completo ver [common/README.md — Convención de IDs de Step](.
 
 ---
 
+---
+
+## 📋 Tareas Pendientes — v2.1 y Roadmap
+
+Véase `/Pendientes.md` en la raíz del workspace para consolidación completa de todas las tareas pendientes a nivel de plataforma.
+
+### **Tareas Críticas (v2.1)**
+
+
+| ID             | Tarea                                                           | Esfuerzo     | Estado         | Blocker               |
+| -------------- | --------------------------------------------------------------- | ------------ | -------------- | --------------------- |
+| **M3**         | Refactor motor para soportar Event-Driven Architecture (RFC-M3) | 8-10 semanas | 🔲 No iniciado | Sí (blocking v1.1 BE) |
+| **CORE-SSL**   | HTTPS + certificados en ci.yml y publish.yml                    | 2-3 días     | 🔲 No iniciado | Sí (blocking CI/CD)   |
+| **CORE-M3GAP** | Multi-scenario generation (7 tipos de testing profiles)         | 3-4 semanas  | 🔲 No iniciado | No (post-M3 RFC)      |
+
+
+### **Deuda Técnica (v2.2-v2.3)**
+
+
+| Área              | Descripción                                         | Impacto        | Prioridad |
+| ----------------- | --------------------------------------------------- | -------------- | --------- |
+| **Plugin System** | Refactor CorePlugin SPI para soporte de hot-reload  | Mantibilidad   | 🟡 Media  |
+| **Step Registry** | Cacheo optimizado de StepComponent discovery        | Performance    | 🟡 Media  |
+| **Mobile Core**   | Deprecar TouchAction (Appium 8 usa W3C Actions API) | Compatibilidad | 🟠 Alta   |
+
+
+### **Para más detalles**
+
+👉 **Leer:** `/Pendientes.md`
+
+---
+
 ## 📞 Soporte
 
-- **GitHub Issues:** https://github.com/avenero/qa-platformCore/issues
+- **GitHub Issues:** [https://github.com/avenero/qa-platformCore/issues](https://github.com/avenero/qa-platformCore/issues)
 - **Autor principal:** Abel Venero
 - **Documentación detallada por capa:**
   - [common/README.md](./common/README.md)
@@ -1138,13 +1212,88 @@ Para el detalle completo ver [common/README.md — Convención de IDs de Step](.
   - [web-core/README.md](./web-core/README.md)
   - [mobile-core/README.md](./mobile-core/README.md)
   - [config/README.md](./config/README.md)
+- **Tareas Pendientes:** [/Pendientes.md](../Pendientes.md)
 
 ---
 
-<div align="center">
+## Flujo de versionado y publicación de JARs
+
+### Política de branches
+
+
+| Branch      | Responsabilidad                                                 |
+| ----------- | --------------------------------------------------------------- |
+| `feature/`* | Implementación aislada — nunca publica artefactos remotos       |
+| `develop`   | Integración de features validadas — corre CI pero no publica    |
+| `master`    | Branch estable — único que puede publicar artefactos de release |
+
+
+**Protección requerida en GitHub:**
+
+- Proteger `develop` y `master` (PRs obligatorios, checks CI requeridos, no push directo)
+- Al menos 1 reviewer para promoción a `develop`
+- Aprobación del release owner para promoción a `master`
+
+### Política de versiones
+
+- `qa-platformCore/gradle.properties` es la fuente de verdad de la versión
+- `develop`: versión con suffix de desarrollo (ej: `2.0.8-SNAPSHOT`)
+- `master`: versión de release sin suffix (ej: `2.0.8`)
+- Las versiones SNAPSHOT **nunca** se publican a GitHub Packages
+- Las versiones de release son inmutables una vez publicadas
+
+### Flujo local (desarrollo + integración BE)
+
+```bash
+# 1. En qa-platformCore — publicar a maven local
+./gradlew clean publishToMavenLocal
+# Publica en ~/.m2/repository/com/qa/
+
+# 2. En qa-platformBE — consumir la versión local para validar
+./gradlew clean test -PcoreVersion=2.0.8-SNAPSHOT --refresh-dependencies
+
+# 3. Verificar qué versión resolvió Gradle
+./gradlew printResolvedCoreModules
+```
+
+**Orden de resolución en qa-platformBE:**
+
+1. `mavenLocal()` — para desarrollo y validación local
+2. GitHub Packages para `qa-platformCore` — para releases estables
+3. `mavenCentral()` — para dependencias externas
+
+### Flujo Docker local (sin token GitHub Packages)
+
+```bash
+# En qa-platformCore: publicar a maven local
+./gradlew publishToMavenLocal
+
+# En qa-platformBE: copiar artefactos a lib/core-m2/
+./gradlew syncCoreFromMavenLocal
+
+# Build Docker (usa lib/core-m2/ si está poblado, GPR si tiene token)
+./gradlew clean bootJar -x test
+docker compose build backend
+docker compose up backend
+```
+
+`lib/core-m2/` es un mini repositorio Maven local dentro de qa-platformBE. Los artefactos (`lib/core-m2/com/`) están en `.gitignore`; solo se versiona la carpeta con `.gitkeep`.
+
+### CI y publicación automática
+
+- **CI workflow:** corre en PRs y pushes a `develop`/`master`. Ejecuta tests, coverage, Checkstyle, SpotBugs. **No publica**.
+- **Publish workflow:** disparado por push a `master`, release tags, o dispatch manual. Falla si la versión termina en `-SNAPSHOT`. Publica a GitHub Packages solo tras validación exitosa.
+
+### Checklist del equipo
+
+- Feature work comienza en `feature/`*
+- Integración via `develop`
+- Validación local cross-repo usa `publishToMavenLocal`
+- Solo release versions llegan a `master`
+- Solo `master` o release tags publican a GitHub Packages
+
+---
 
 **[⬆ Volver arriba](#cualeon-test-engineering-platform--core)**
 
 CuAleon Test Engineering Platform — construido por el QA Engineering Team
-
-</div>

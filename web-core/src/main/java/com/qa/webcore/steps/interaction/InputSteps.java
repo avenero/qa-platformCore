@@ -1,6 +1,8 @@
 package com.qa.webcore.steps.interaction;
 
+import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.runtime.annotation.StepDef;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Then;
@@ -36,7 +38,7 @@ public class InputSteps {
              displayName = "Ingresar texto en elemento")
     @When("ingreso el texto {string} en el elemento {string}")
     public void ingresoElTextoEnElElemento(String texto, String locator) {
-        helper.setTextWithWait(texto, locator);
+        engine().type(locator, texto);
         helper.captureScreen(scenario);
     }
 
@@ -47,7 +49,7 @@ public class InputSteps {
              displayName = "Ingresar texto desde variable temporal")
     @When("ingreso texto de la variable temporal {string} en elemento {string}")
     public void setTextoVariableTemporalEnElemento(String variableName, String locator) {
-        helper.setText(locator, helper.getTextVariableTemp(variableName));
+        engine().type(locator, helper.getTextVariableTemp(variableName));
     }
 
     /**
@@ -71,8 +73,8 @@ public class InputSteps {
              displayName = "Ingresar texto si elemento existe")
     @Then("verifico si existe el elemento {string} e ingreso el texto {string}")
     public void verificoSiExisteElElementoYIngresoTexto(String locator, String texto) {
-        if (helper.waitForVisibleElement(locator)) {
-            helper.setText(locator, texto);
+        if (engine().isPresent(locator)) {
+            engine().type(locator, texto);
         }
     }
 
@@ -83,7 +85,7 @@ public class InputSteps {
              displayName = "Limpiar campo de texto")
     @When("limpio el campo {string}")
     public void limpioElCampo(String locator) {
-        helper.clearField(locator);
+        engine().clear(locator);
     }
 
     /**
@@ -94,5 +96,9 @@ public class InputSteps {
     @When("subo el archivo {string} en el campo {string}")
     public void suboElArchivoEnElCampo(String filePath, String locator) {
         helper.uploadFile(locator, filePath);
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

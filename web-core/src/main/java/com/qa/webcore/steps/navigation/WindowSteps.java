@@ -1,6 +1,7 @@
 package com.qa.webcore.steps.navigation;
 
-import com.qa.webcore.driver.DriverManager;
+import com.qa.common.runtime.ExecutionContext;
+import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -23,13 +24,12 @@ public class WindowSteps {
 
     @When("cierro la ventana")
     public void cierroLaVentana() {
-        helper.closeWindow();
+        engine().closeCurrentWindow();
     }
 
     @When("cambio foco a la ventana nueva")
     public void cambiarPagina() {
-        String response = helper.changeWindowNew();
-        Assertions.assertThat(response).as("Error cambiando a la nueva ventana").isEqualTo("OK");
+        engine().switchToNewWindow();
     }
 
     @When("cambio de ventana")
@@ -44,8 +44,11 @@ public class WindowSteps {
 
     @Then("valido que se despliegue la nueva ventana {string}")
     public void validoQueSeDespliegueLaNuevaVentana(String expectedWindowName) {
-        Assertions.assertThat(helper.getWindowName()).
+        Assertions.assertThat(engine().getWindowTitle()).
             as("Error, los valores no son iguales").isEqualTo(expectedWindowName);
-        DriverManager.quitDriver();
+    }
+
+    private BrowserEngine engine() {
+        return ExecutionContext.requireCurrent().registry().require(BrowserEngine.class);
     }
 }

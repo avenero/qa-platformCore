@@ -22,6 +22,7 @@ public class ContextSwitchSteps {
 
     @When("cambio al contexto nativo")
     public void cambioAlContextoNativo() {
+        logContextsBeforeSwitch("NATIVE_APP");
         mobile().switchToNative();
         TestLogger.logInfo("CTX_SWITCH", "Contexto cambiado a NATIVE_APP", null);
     }
@@ -29,6 +30,7 @@ public class ContextSwitchSteps {
     @When("cambio al contexto WebView {string}")
     public void cambioAlContextoWebView(String webViewId) {
         String resolved = ctx().variables().resolve(webViewId);
+        logContextsBeforeSwitch(resolved);
         mobile().switchToWebView(resolved);
         TestLogger.logInfo("CTX_SWITCH", "Contexto cambiado a WebView: " + resolved, null);
     }
@@ -36,11 +38,9 @@ public class ContextSwitchSteps {
     @When("cambio el contexto a {string}")
     public void cambioElContextoA(String contextName) {
         String resolved = ctx().variables().resolve(contextName);
-        if ("NATIVE_APP".equalsIgnoreCase(resolved)) {
-            mobile().switchToNative();
-        } else {
-            mobile().switchToWebView(resolved);
-        }
+        logContextsBeforeSwitch(resolved);
+        // Delega a switchToContextSafe que valida disponibilidad antes del switch
+        mobile().switchToContextSafe(resolved);
         TestLogger.logInfo("CTX_SWITCH", "Contexto: " + resolved, null);
     }
 
@@ -78,5 +78,21 @@ public class ContextSwitchSteps {
 
     private MobileHelper mobile() {
         return ctx().service(MobileHelper.class);
+    }
+
+    /**
+     * Loguea los contextos disponibles antes de cada switch para facilitar el diagnóstico.
+     * Si el contexto objetivo no está disponible, {@link MobileHelper#switchToContextSafe}
+     * lanzará una excepción clara con la lista completa.
+     */
+    private void logContextsBeforeSwitch(String targetContext) {
+        try {
+            java.util.Set<String> available = mobile().getContexts();
+            TestLogger.logInfo("CTX_SWITCH",
+                "Contextos disponibles: " + available + " | Objetivo: " + targetContext, null);
+        } catch (Exception e) {
+            TestLogger.logWarning("CTX_SWITCH",
+                "No se pudo obtener contextos disponibles: " + e.getMessage(), null);
+        }
     }
 }

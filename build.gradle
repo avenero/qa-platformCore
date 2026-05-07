@@ -11,6 +11,10 @@ plugins {
 group = findProperty("coreGroup") ?: "com.qa"
 version = findProperty("coreVersion") ?: "0.0.0-SNAPSHOT"
 
+ext {
+    cucumberVersion = "7.34.3"
+}
+
 // =============================================================================
 // CONFIGURACIÓN COMÚN A TODOS LOS SUBMÓDULOS
 // =============================================================================

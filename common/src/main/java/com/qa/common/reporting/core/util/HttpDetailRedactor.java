@@ -50,6 +50,9 @@ public final class HttpDetailRedactor {
     /** Longitud máxima del resumen de body (request o response) en el snapshot. */
     public static final int SUMMARY_MAX_CHARS = 500;
 
+    /** Longitud máxima de valores de headers (antes de truncar). */
+    private static final int MAX_HEADER_VALUE_LENGTH = 512;
+
     private HttpDetailRedactor() {
     }
 
@@ -88,6 +91,7 @@ public final class HttpDetailRedactor {
      * @param responseHeaders headers de la respuesta (valores sensibles se redactan)
      * @return snapshot HTTP redactado e inmutable
      */
+    //CHECKSTYLE:OFF ParameterNumber
     public static HttpStepDetail build(
             String method,
             String fullUrl,
@@ -98,6 +102,7 @@ public final class HttpDetailRedactor {
             Long durationMs,
             Map<String, String> requestHeaders,
             Map<String, String> responseHeaders) {
+    //CHECKSTYLE:ON ParameterNumber
 
         Integer reqBytes = requestBody == null || requestBody.isEmpty()
                 ? null
@@ -135,7 +140,7 @@ public final class HttpDetailRedactor {
             if (TextUtilities.isSensitiveHttpHeaderName(k)) {
                 out.put(k, "REDACTED");
             } else if (v != null) {
-                out.put(k, TextUtilities.truncateContent(v, 512));
+                out.put(k, TextUtilities.truncateContent(v, MAX_HEADER_VALUE_LENGTH));
             } else {
                 out.put(k, "");
             }

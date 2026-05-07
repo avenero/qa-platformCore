@@ -1123,3 +1123,116 @@ discovery.resolveStep("api.authentication")
 > **Documentación relacionada:**
 > - [common/README.md](../common/README.md) — Motor de ejecución y contrato con el Backend
 > - [README.md](../README.md) — Visión general de la plataforma CuAleon
+
+---
+
+## Quick Reference — Steps más usados
+
+> Cheat sheet para uso diario. Para documentación completa de los 92 steps, ver las secciones anteriores de este README.
+
+### Configuración
+
+```gherkin
+Given el host "https://api.example.com" mas el contexto "/api/v1/users"
+Given establezco el base URL como "https://api.qa.example.com"
+Given establezco el contexto "/api/v1/orders"
+```
+
+### Headers
+
+```gherkin
+And agrego el header "Content-Type" con valor "application/json"
+And agrego el header "Authorization" con valor "Bearer {authToken}"
+And agrego el header "X-API-Key" con valor "api-key-12345"
+```
+
+### Body
+
+```gherkin
+And agrego el request
+  """
+  { "username": "john.doe", "email": "john@example.com" }
+  """
+
+And cargo el request desde el archivo "templates/create-user.json"
+```
+
+### Ejecución
+
+```gherkin
+When ejecuto la consulta con el metodo "GET"
+When ejecuto la consulta con el metodo "POST"
+When ejecuto la consulta con el metodo "PUT"
+When ejecuto la consulta con el metodo "PATCH"
+When ejecuto la consulta con el metodo "DELETE"
+When ejecuto la consulta con el metodo "POST" sin redireccion
+```
+
+### Validaciones
+
+```gherkin
+Then valido que el codigo de respuesta del servicio sea 200
+Then valido que el response contenga el campo "data.user.email"
+Then valido que el campo "status" del response sea "active"
+Then valido que el campo "email" del response contenga "@example.com"
+Then valido que el campo "active" sea de tipo "boolean"
+Then valido que el response cumpla con el schema "user-schema.json"
+Then valido que el header "Content-Type" sea "application/json"
+```
+
+### Extraer datos
+
+```gherkin
+And obtengo el campo "token" del objeto "data" y lo guardo como "authToken"
+And obtengo el campo "items[0].id" y lo guardo como "firstItemId"
+And agrego el header "Authorization" con valor "Bearer {authToken}"
+```
+
+### Patrón completo — Login + GET autenticado
+
+```gherkin
+Given el host "https://api.example.com" mas el contexto "/auth/login"
+And agrego el header "Content-Type" con valor "application/json"
+And agrego el request
+  """
+  { "username": "john.doe", "password": "SecurePass123!" }
+  """
+When ejecuto la consulta con el metodo "POST"
+Then valido que el codigo de respuesta del servicio sea 200
+And valido que el response contenga el campo "token"
+And obtengo el campo "token" del objeto "data" y lo guardo como "authToken"
+
+Given el host "https://api.example.com" mas el contexto "/users/123"
+And agrego el header "Authorization" con valor "Bearer {authToken}"
+When ejecuto la consulta con el metodo "GET"
+Then valido que el codigo de respuesta del servicio sea 200
+```
+
+### Anti-patrones a evitar
+
+```gherkin
+# ❌ MAL — extraer sin validar status code primero
+When ejecuto la consulta con el metodo "POST"
+And obtengo el campo "token" del response...
+
+# ✅ BIEN
+When ejecuto la consulta con el metodo "POST"
+Then valido que el codigo de respuesta del servicio sea 200
+And valido que el response contenga el campo "token"
+And obtengo el campo "token" del response...
+```
+
+### Status Codes de referencia
+
+| Código | Significado |
+|--------|-------------|
+| 200 | OK — GET, PUT exitoso |
+| 201 | Created — POST exitoso |
+| 204 | No Content — DELETE exitoso |
+| 400 | Bad Request — validación falló |
+| 401 | Unauthorized — sin autenticación |
+| 403 | Forbidden — sin permisos |
+| 404 | Not Found — recurso no existe |
+| 409 | Conflict — recurso duplicado |
+| 422 | Unprocessable — validación semántica |
+| 500 | Server Error — error del servidor |

@@ -3,7 +3,6 @@ package com.qa.webcore.steps.config;
 import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.webcore.config.WebConfigKeys;
-import com.qa.webcore.driver.WebDriverFactory.BrowserType;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.en.Given;
 
@@ -20,7 +19,7 @@ public class BrowserConfigSteps {
     @Given("configuro el driver del navegador {string} en modo headless {string}")
     public void configurarDriverDelNavegador(String browserName, String headlessStr)
             throws FrameworkBusinessException {
-        BrowserType browser = helper.parseBrowserType(browserName);
+        String browser = helper.normalizeBrowserName(browserName);
         boolean headless = helper.parseBoolean(headlessStr);
         ExecutionContext.requireCurrent().variables().set(WebConfigKeys.BROWSER_RUNTIME_VAR, browser);
         ExecutionContext.requireCurrent().variables().set(WebConfigKeys.HEADLESS_RUNTIME_VAR, headless);

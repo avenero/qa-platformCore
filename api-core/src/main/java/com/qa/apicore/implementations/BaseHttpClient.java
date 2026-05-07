@@ -170,11 +170,17 @@ import kong.unirest.UnirestException;
  * @author Abel Venero
  * @version 2.0.0
  * @since 1.0.0
+ * @deprecated Desde v2.2.0 — usar {@link ApacheHttpClientImpl} (Apache HttpClient 5).
+ *             Esta clase será eliminada en v2.3.0.
+ *             Para migrar: establece {@code http.client=apache} en tu configuración
+ *             o déjalo sin configurar (Apache es ahora el default).
+ * @see ApacheHttpClientImpl
  * @see HttpClient
  * @see HttpMethod
  * @see HttpResponse
  * @see FrameworkTechnicalException
  */
+@Deprecated(since = "2.2.0", forRemoval = true)
 public class BaseHttpClient implements HttpClient {
 
   private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(BaseHttpClient.class);
@@ -247,6 +253,8 @@ public class BaseHttpClient implements HttpClient {
 
   // Información de la última petición para debugging
   private kong.unirest.HttpResponse<String> lastResponse;
+  /** Body de la última respuesta — cacheado inmediatamente al recibir la respuesta. */
+  private String lastResponseBodyCache;
   private String lastRequestUrl;
   private String lastRequestMethod;
   private long lastRequestDuration;
@@ -733,6 +741,8 @@ public class BaseHttpClient implements HttpClient {
       logRequest(method, fullUrl);
 
       lastResponse = performRequest(method, fullUrl);
+      // Cachear el body inmediatamente — Unirest puede invalidarlo en algunos contextos
+      this.lastResponseBodyCache = lastResponse != null ? lastResponse.getBody() : null;
 
       this.lastRequestDuration = (System.nanoTime() - startTime) / NANOS_PER_MS;
       logResponse();
@@ -826,7 +836,7 @@ public class BaseHttpClient implements HttpClient {
   }
 
   public String getLastResponseBody() {
-    return lastResponse != null ? lastResponse.getBody() : null;
+    return lastResponseBodyCache;
   }
 
   public int getLastResponseStatus() {

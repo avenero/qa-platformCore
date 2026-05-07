@@ -2,6 +2,7 @@ package com.qa.common.runtime;
 
 import org.junit.jupiter.api.*;
 
+import javax.net.ssl.SSLContext;
 import java.util.Map;
 import java.util.Optional;
 
@@ -271,6 +272,67 @@ class ExecutionConfigTest {
                     .build();
             String str = config.toString();
             assertThat(str).contains("dev").contains("chrome").contains("ExecutionConfig");
+        }
+    }
+
+    @Nested
+    @DisplayName("SSL configuration")
+    class SslTests {
+
+        @Test
+        @DisplayName("Default config tiene sslContext null y trustAllSsl false")
+        void defaultConfig_sslContext_isNull_trustAllSsl_isFalse() {
+            ExecutionConfig config = new ExecutionConfig.Builder().build();
+            assertThat(config.getSslContext()).isNull();
+            assertThat(config.isTrustAllSsl()).isFalse();
+        }
+
+        @Test
+        @DisplayName("trustAllSsl se configura correctamente via builder")
+        void trustAllSsl_seConfiguraCorrectamente() {
+            ExecutionConfig config = new ExecutionConfig.Builder()
+                .trustAllSsl(true)
+                .build();
+            assertThat(config.isTrustAllSsl()).isTrue();
+        }
+
+        @Test
+        @DisplayName("sslContext se configura y recupera via builder")
+        void sslContext_seConfiguraYRecupera() throws Exception {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, null, null);
+
+            ExecutionConfig config = new ExecutionConfig.Builder()
+                .sslContext(sslContext)
+                .build();
+
+            assertThat(config.getSslContext()).isSameAs(sslContext);
+        }
+
+        @Test
+        @DisplayName("sslContext null + trustAllSsl false es el estado SYSTEM (JVM default)")
+        void nullSslContext_falseTrustAll_isSystemMode() {
+            ExecutionConfig config = new ExecutionConfig.Builder()
+                .sslContext(null)
+                .trustAllSsl(false)
+                .build();
+            assertThat(config.getSslContext()).isNull();
+            assertThat(config.isTrustAllSsl()).isFalse();
+        }
+
+        @Test
+        @DisplayName("trustAllSsl no afecta sslContext — son independientes")
+        void trustAllSsl_doesNotAffect_sslContext() throws Exception {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, null, null);
+
+            ExecutionConfig config = new ExecutionConfig.Builder()
+                .sslContext(sslContext)
+                .trustAllSsl(true)
+                .build();
+
+            assertThat(config.getSslContext()).isSameAs(sslContext);
+            assertThat(config.isTrustAllSsl()).isTrue();
         }
     }
 }

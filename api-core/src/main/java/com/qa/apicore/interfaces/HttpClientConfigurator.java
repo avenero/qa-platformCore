@@ -1,5 +1,7 @@
 package com.qa.apicore.interfaces;
 
+import javax.net.ssl.SSLContext;
+
 /**
  * Contrato para configurar aspectos tecnicos del cliente HTTP:
  * timeouts, politica de retry y limpieza de estado.
@@ -100,4 +102,18 @@ public interface HttpClientConfigurator {
      * @return Estado del cliente como string
      */
     String getDebugInfo();
+
+    /**
+     * Configura el contexto SSL para peticiones HTTPS.
+     * Llamado por {@code ApiPlugin} en cada escenario cuando el entorno tiene SSL configurado.
+     *
+     * <p>Implementación por defecto: no-op (mantiene el comportamiento JVM por defecto).
+     * Implementaciones concretas deben sobreescribir este método para aplicar el contexto SSL.
+     *
+     * @param sslContext   contexto pre-construido; null = usar JVM default
+     * @param trustAll     true = ignorar validación de certificado (solo non-prod)
+     */
+    default void configureSsl(SSLContext sslContext, boolean trustAll) {
+        // no-op — permite extensión sin romper implementaciones existentes
+    }
 }

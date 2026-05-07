@@ -27,7 +27,12 @@ import java.util.Base64;
  * @author Abel Venero
  * @version 1.0.0
  * @since 1.0.0
+ * @deprecated since 2.0.0 — use {@link com.qa.common.reporting.core.service.ExtentReportGeneratorImpl}
+ *             with {@link com.qa.common.reporting.core.port.ReportGeneratorPort} and bridge models
+ *             from {@code com.qa.common.reporting.core.bridge} instead.
+ *             This class will be removed in a future version.
  */
+@Deprecated(since = "2.0.0", forRemoval = false)
 public class ExtentReportGenerator {
 
     private final ExtentConfig config;
