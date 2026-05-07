@@ -1,6 +1,6 @@
 package com.qa.apicore.interfaces;
 
-import com.qa.common.http.model.HttpResponse;
+import com.qa.apicore.model.HttpResponse;
 
 import java.util.Collections;
 import java.util.Map;
@@ -76,7 +76,7 @@ public interface HttpResponseAccessor {
      * @return body de la última respuesta, o null si no aplica
      */
     default String getLastResponseBody() {
-        com.qa.common.http.model.HttpResponse r = getLastResponse();
+        com.qa.apicore.model.HttpResponse r = getLastResponse();
         return r != null ? r.getBody() : null;
     }
 }

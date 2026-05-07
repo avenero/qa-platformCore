@@ -1,4 +1,4 @@
-package com.qa.common.http.enums;
+package com.qa.apicore.model;
 
 /**
  * Enumeración de métodos HTTP estándar soportados por el QA Automation Framework.

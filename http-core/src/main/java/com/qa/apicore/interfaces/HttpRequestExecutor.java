@@ -1,8 +1,8 @@
 package com.qa.apicore.interfaces;
 
-import com.qa.common.http.enums.HttpMethod;
+import com.qa.apicore.model.HttpMethod;
 import com.qa.common.exception.FrameworkTechnicalException;
-import com.qa.common.http.model.HttpResponse;
+import com.qa.apicore.model.HttpResponse;
 
 /**
  * Contrato para ejecutar peticiones HTTP (ISP).

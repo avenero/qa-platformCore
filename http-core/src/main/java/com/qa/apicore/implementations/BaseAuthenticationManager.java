@@ -2,10 +2,10 @@ package com.qa.apicore.implementations;
 
 import com.qa.apicore.interfaces.AuthenticationService;
 import com.qa.apicore.interfaces.HttpClient;
-import com.qa.common.http.enums.HttpMethod;
+import com.qa.apicore.model.HttpMethod;
 import com.qa.common.exception.FrameworkBusinessException;
 import com.qa.common.exception.FrameworkTechnicalException;
-import com.qa.common.http.model.HttpResponse;
+import com.qa.apicore.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionContext;
 import com.qa.common.utils.JsonUtilities;

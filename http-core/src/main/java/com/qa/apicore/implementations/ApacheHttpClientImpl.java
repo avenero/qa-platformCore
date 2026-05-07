@@ -2,8 +2,8 @@ package com.qa.apicore.implementations;
 
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.common.exception.FrameworkTechnicalException;
-import com.qa.common.http.enums.HttpMethod;
-import com.qa.common.http.model.HttpResponse;
+import com.qa.apicore.model.HttpMethod;
+import com.qa.apicore.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;

@@ -1,9 +1,9 @@
 package com.qa.apicore.implementations;
 
 import com.qa.apicore.interfaces.HttpClient;
-import com.qa.common.http.enums.HttpMethod;
+import com.qa.apicore.model.HttpMethod;
 import com.qa.common.exception.FrameworkTechnicalException;
-import com.qa.common.http.model.HttpResponse;
+import com.qa.apicore.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.utils.TextUtilities;
 import java.nio.charset.StandardCharsets;

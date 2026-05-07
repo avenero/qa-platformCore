@@ -7,7 +7,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import com.qa.common.exception.FrameworkBusinessException;
-import com.qa.common.http.model.HttpResponse;
+import com.qa.apicore.model.HttpResponse;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.utils.JsonUtilities;
 import java.io.IOException;

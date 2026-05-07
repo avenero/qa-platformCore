@@ -2,9 +2,9 @@ package com.qa.apicore.utils;
 
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.apicore.utils.ApiHelper;
-import com.qa.common.http.enums.HttpMethod;
+import com.qa.apicore.model.HttpMethod;
 import com.qa.common.exception.FrameworkBusinessException;
-import com.qa.common.http.model.HttpResponse;
+import com.qa.apicore.model.HttpResponse;
 import com.qa.common.runtime.ExecutionContext;
 import org.junit.jupiter.api.*;
 

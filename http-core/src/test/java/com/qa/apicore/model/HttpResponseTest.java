@@ -1,4 +1,4 @@
-package com.qa.common.http.model;
+package com.qa.apicore.model;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;

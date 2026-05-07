@@ -1,4 +1,4 @@
-package com.qa.common.http.model;
+package com.qa.apicore.model;
 
 import java.util.HashMap;
 import java.util.Map;
