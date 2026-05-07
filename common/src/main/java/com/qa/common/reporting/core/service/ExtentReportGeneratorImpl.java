@@ -8,7 +8,7 @@ import com.aventstack.extentreports.reporter.configuration.Theme;
 import com.qa.common.reporting.core.bridge.AttachmentData;
 import com.qa.common.reporting.core.bridge.EnvironmentDetails;
 import com.qa.common.reporting.core.bridge.ExecutionData;
-import com.qa.common.reporting.core.bridge.HttpDetailData;
+import com.qa.common.reporting.core.bridge.HttpStepSummary;
 import com.qa.common.reporting.core.bridge.ScenarioData;
 import com.qa.common.reporting.core.bridge.StepData;
 import com.qa.common.reporting.core.config.ExtentConfig;
@@ -257,7 +257,7 @@ public class ExtentReportGeneratorImpl implements ReportGeneratorPort {
         }
     }
 
-    private void logHttpDetail(ExtentTest test, HttpDetailData http, TestStatus stepStatus) {
+    private void logHttpDetail(ExtentTest test, HttpStepSummary http, TestStatus stepStatus) {
         String statusColor = http.httpStatus() >= 400 ? "#f44336" : "#4CAF50";
         StringBuilder sb = new StringBuilder();
         sb.append("<details style='font-size:13px;margin-top:4px'>")

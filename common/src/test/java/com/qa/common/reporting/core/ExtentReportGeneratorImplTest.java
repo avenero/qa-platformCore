@@ -3,7 +3,7 @@ package com.qa.common.reporting.core;
 import com.qa.common.reporting.core.bridge.AttachmentData;
 import com.qa.common.reporting.core.bridge.EnvironmentDetails;
 import com.qa.common.reporting.core.bridge.ExecutionData;
-import com.qa.common.reporting.core.bridge.HttpDetailData;
+import com.qa.common.reporting.core.bridge.HttpStepSummary;
 import com.qa.common.reporting.core.bridge.ScenarioData;
 import com.qa.common.reporting.core.bridge.StepData;
 import com.qa.common.reporting.core.config.ExtentConfig;
@@ -80,9 +80,7 @@ class ExtentReportGeneratorImplTest {
 
     @Test
     void generateHtml_httpDetailPresent_httpInfoEmbedded() throws ReportGenerationException {
-        HttpDetailData http = new HttpDetailData(
-                "GET", "/api/users", 200, "req-1",
-                null, "{\"count\":5}", null, 80, 30L, null, null);
+        HttpStepSummary http = stubHttp("GET", "/api/users", 200, 30L);
         StepData step = new StepData("When", "I fetch users", TestStatus.PASS, 50, null, null, http);
         ScenarioData scenario = buildScenario("API test", TestStatus.PASS, List.of(step));
         ExecutionData execution = buildExecution(List.of(scenario));
@@ -259,5 +257,23 @@ class ExtentReportGeneratorImplTest {
                 status == TestStatus.FAIL ? "Error" : null,
                 null, null,
                 List.of(), List.of(), false, null, screenshots);
+    }
+
+    // ---- test helper — minimal HttpStepSummary without importing http-core ----
+
+    private HttpStepSummary stubHttp(String method, String urlPath, int httpStatus, Long durationMs) {
+        return new HttpStepSummary() {
+            @Override public String method()                { return method; }
+            @Override public String urlPath()               { return urlPath; }
+            @Override public int httpStatus()               { return httpStatus; }
+            @Override public String requestId()             { return null; }
+            @Override public String requestSummary()        { return null; }
+            @Override public String responseSummary()       { return "{\"count\":5}"; }
+            @Override public Integer requestBodySizeBytes() { return null; }
+            @Override public Integer responseBodySizeBytes(){ return 80; }
+            @Override public Long durationMs()              { return durationMs; }
+            @Override public Map<String, String> requestHeaders()  { return null; }
+            @Override public Map<String, String> responseHeaders() { return null; }
+        };
     }
 }

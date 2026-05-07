@@ -3,7 +3,7 @@ package com.qa.common.reporting.core;
 import com.qa.common.reporting.core.bridge.AttachmentData;
 import com.qa.common.reporting.core.bridge.EnvironmentDetails;
 import com.qa.common.reporting.core.bridge.ExecutionData;
-import com.qa.common.reporting.core.bridge.HttpDetailData;
+import com.qa.common.reporting.core.bridge.HttpStepSummary;
 import com.qa.common.reporting.core.bridge.ScenarioData;
 import com.qa.common.reporting.core.bridge.StepData;
 import com.qa.common.reporting.core.model.TestStatus;
@@ -52,10 +52,7 @@ class BridgeModelsTest {
 
     @Test
     void stepData_withHttpDetail_httpDetailIsAccessible() {
-        HttpDetailData http = new HttpDetailData(
-                "POST", "/api/login", 200, "req-123",
-                "{\"user\":\"test\"}", "{\"token\":\"abc\"}",
-                20, 40, 75L, null, null);
+        HttpStepSummary http = stubHttp("POST", "/api/login", 200, 75L);
 
         StepData step = new StepData("When", "I login", TestStatus.PASS, 100, null, null, http);
 
@@ -63,6 +60,24 @@ class BridgeModelsTest {
         assertThat(step.httpDetail().method()).isEqualTo("POST");
         assertThat(step.httpDetail().httpStatus()).isEqualTo(200);
         assertThat(step.httpDetail().durationMs()).isEqualTo(75L);
+    }
+
+    // ---- test helper — minimal HttpStepSummary without importing http-core ----
+
+    private HttpStepSummary stubHttp(String method, String urlPath, int httpStatus, Long durationMs) {
+        return new HttpStepSummary() {
+            @Override public String method()               { return method; }
+            @Override public String urlPath()              { return urlPath; }
+            @Override public int httpStatus()              { return httpStatus; }
+            @Override public String requestId()            { return null; }
+            @Override public String requestSummary()       { return null; }
+            @Override public String responseSummary()      { return null; }
+            @Override public Integer requestBodySizeBytes(){ return null; }
+            @Override public Integer responseBodySizeBytes(){ return null; }
+            @Override public Long durationMs()             { return durationMs; }
+            @Override public Map<String, String> requestHeaders()  { return null; }
+            @Override public Map<String, String> responseHeaders() { return null; }
+        };
     }
 
     @Test

@@ -1,6 +1,6 @@
-package com.qa.common.reporting.core.util;
+package com.qa.apicore.reporting.util;
 
-import com.qa.common.reporting.core.model.HttpStepDetail;
+import com.qa.apicore.reporting.model.HttpStepDetail;
 import com.qa.common.utils.TextUtilities;
 
 import java.net.URI;
@@ -14,7 +14,7 @@ import java.util.Map;
  *
  * <p>Actúa como pipeline de sanitización HTTP antes de que los detalles de una
  * petición/respuesta sean persistidos, emitidos por WebSocket o incluidos en reportes.
- * Garantiza que ningún credential, token ni dato PCI-DSS escape al sistema de reporting.
+ * Garantiza que ningún credential, token ni dato sensible escape al sistema de reporting.
  *
  * <h3>Operaciones de redacción aplicadas</h3>
  * <ul>
@@ -26,22 +26,7 @@ import java.util.Map;
  *       {@value #SUMMARY_MAX_CHARS} caracteres.</li>
  * </ul>
  *
- * <h3>Relación con el sistema de logging y el FE</h3>
- * <pre>
- * TestLogger / LoggingInitializer  → logging estructurado en tiempo real
- *                                    (consola, archivos .log)
- *                  ↕ capas distintas, se complementan
- * HttpDetailRedactor               → construye HttpStepDetail para reporting
- * HttpStepDetail                   → DTO persistido en DB, emitido por WS al FE,
- *                                    incluido en reportes HTML y adjuntos externos
- * </pre>
- *
- * <p>Un módulo de pruebas que importe el framework obtiene ambos beneficios
- * automáticamente: logging en tiempo real via {@code TestLogger} y captura de
- * snapshots HTTP para reporting via este pipeline.
- *
- * @author QA Automation Framework Team
- * @since 1.0.0
+ * @since 1.0.0 (movido a http-core en 2.2.0)
  * @see HttpStepDetail
  * @see TextUtilities#isSensitiveHttpHeaderName(String)
  */
@@ -59,12 +44,6 @@ public final class HttpDetailRedactor {
     /**
      * Construye un {@link HttpStepDetail} mínimo (sin requestId, headers ni tamaños).
      *
-     * @param method       método HTTP
-     * @param fullUrl      URL completa (se extrae solo el path)
-     * @param httpStatus   código de estado HTTP
-     * @param requestBody  cuerpo de la petición (se redacta y trunca)
-     * @param responseBody cuerpo de la respuesta (se redacta y trunca)
-     * @return snapshot redactado
      * @deprecated Usar {@link #build(String, String, int, String, String, String, Long, Map, Map)}.
      */
     @Deprecated
