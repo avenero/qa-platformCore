@@ -191,6 +191,53 @@ public class DevicePool {
     }
 
     /**
+     * Intenta adquirir un dispositivo específico de forma no-bloqueante.
+     *
+     * <p>Variante de {@link #acquire(String)} que no lanza excepción sino que retorna
+     * {@link Optional#empty()} si el dispositivo está ocupado o no existe. El parámetro
+     * {@code timeout} se documenta para simetría con {@link com.qa.common.pool.CapabilityRegistry}
+     * pero esta implementación no bloquea: o el dispositivo está libre ahora o retorna vacío.
+     *
+     * @param deviceId  ID del dispositivo a adquirir; no null
+     * @param timeout   no usado en esta implementación (sin bloqueo); no null por contrato
+     * @return descriptor del dispositivo si fue adquirido, o vacío si no está disponible
+     */
+    public Optional<DeviceDescriptor> tryAcquire(String deviceId, java.time.Duration timeout) {
+        java.util.Objects.requireNonNull(deviceId, "deviceId no puede ser null");
+        java.util.Objects.requireNonNull(timeout,  "timeout no puede ser null");
+        try {
+            return Optional.of(acquireById(deviceId));
+        } catch (IllegalStateException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Indica si un dispositivo está actualmente en uso (estado BUSY).
+     *
+     * @param deviceId ID del dispositivo
+     * @return {@code true} si el dispositivo existe y está en estado BUSY
+     */
+    public boolean isInUse(String deviceId) {
+        AtomicReference<DeviceStatus> ref = statusMap.get(deviceId);
+        return ref != null && ref.get() == DeviceStatus.BUSY;
+    }
+
+    /**
+     * Segundos estimados hasta que el dispositivo quede libre.
+     *
+     * <p>Esta implementación retorna {@code null} porque el pool no rastrea el instante
+     * de adquisición. Una implementación futura puede registrar {@code Instant.now()}
+     * en {@link #acquireById} y calcular el delta aquí.
+     *
+     * @param deviceId ID del dispositivo
+     * @return siempre {@code null} en esta versión
+     */
+    public Long estimatedFreeSeconds(String deviceId) {
+        return null; // no se rastrea el tiempo de adquisición aún
+    }
+
+    /**
      * @return true si el pool tiene al menos un dispositivo registrado
      */
     public boolean hasDevices() {

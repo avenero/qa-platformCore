@@ -19,6 +19,7 @@ import com.qa.mobilecore.components.NativeElementComponent;
 import com.qa.mobilecore.components.NotificationComponent;
 import com.qa.mobilecore.components.SensorComponent;
 import com.qa.mobilecore.config.MobileConfigKeys;
+import com.qa.mobilecore.driver.AppiumCapabilityRegistry;
 import com.qa.mobilecore.driver.MobileDriverFactory;
 import com.qa.mobilecore.driver.MobileDriverManager;
 import com.qa.mobilecore.helper.MobileHelper;
@@ -114,7 +115,11 @@ public class MobilePlugin implements CorePlugin {
             return new MobileHelper(factory);
         });
 
-        LOG.info("[MobilePlugin] Servicios registrados: MobileDriverFactory (lazy) + MobileHelper (lazy)");
+        // 3. CapabilityRegistry: expone el DevicePool al backend para listar/reservar dispositivos
+        registry.registerLazy(AppiumCapabilityRegistry.class,
+                () -> new AppiumCapabilityRegistry(DevicePool.getInstance()));
+
+        LOG.info("[MobilePlugin] Servicios registrados: MobileDriverFactory (lazy) + MobileHelper (lazy) + AppiumCapabilityRegistry (lazy)");
     }
 
     /**
