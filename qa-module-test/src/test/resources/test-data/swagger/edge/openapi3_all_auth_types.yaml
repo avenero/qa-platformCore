@@ -1,0 +1,218 @@
+openapi: "3.0.3"
+info:
+  title: "All Authentication Types API"
+  version: "1.0.0"
+  description: >
+    Spec that exercises all supported security scheme types simultaneously.
+    Tests that the parser can handle apiKey (header/query/cookie), HTTP basic/bearer/digest,
+    OAuth2 (implicit/password/client_credentials/authorization_code) and OpenID Connect.
+    Expected: all schemes parsed, each endpoint linked to its security requirement.
+
+servers:
+  - url: https://auth-stress.example.com/v1
+
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    apiKeyQuery:
+      type: apiKey
+      in: query
+      name: api_key
+    apiKeyCookie:
+      type: apiKey
+      in: cookie
+      name: session_token
+    httpBasic:
+      type: http
+      scheme: basic
+    httpBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    httpDigest:
+      type: http
+      scheme: digest
+    oauth2Flows:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://auth.example.com/oauth/authorize
+          scopes:
+            read: Read access
+            write: Write access
+        password:
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes:
+            read: Read access
+            write: Write access
+        clientCredentials:
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes:
+            admin: Administrative access
+        authorizationCode:
+          authorizationUrl: https://auth.example.com/oauth/authorize
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes:
+            read: Read access
+            write: Write access
+    openIdConnect:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.example.com/.well-known/openid-configuration
+
+paths:
+  /public:
+    get:
+      operationId: publicEndpoint
+      summary: No authentication required
+      security: []
+      responses:
+        "200":
+          description: Public response
+
+  /apikey-header:
+    get:
+      operationId: withApiKeyHeader
+      summary: Secured via API key in header
+      security:
+        - apiKeyHeader: []
+      responses:
+        "200":
+          description: Success
+        "401":
+          description: Missing or invalid API key
+
+  /apikey-query:
+    get:
+      operationId: withApiKeyQuery
+      summary: Secured via API key in query param
+      security:
+        - apiKeyQuery: []
+      responses:
+        "200":
+          description: Success
+
+  /apikey-cookie:
+    get:
+      operationId: withApiKeyCookie
+      summary: Secured via cookie-based API key
+      security:
+        - apiKeyCookie: []
+      responses:
+        "200":
+          description: Success
+
+  /basic-auth:
+    get:
+      operationId: withBasicAuth
+      summary: Secured via HTTP Basic authentication
+      security:
+        - httpBasic: []
+      responses:
+        "200":
+          description: Success
+        "401":
+          description: Unauthorized
+
+  /bearer:
+    get:
+      operationId: withBearer
+      summary: Secured via Bearer (JWT) token
+      security:
+        - httpBearer: []
+      responses:
+        "200":
+          description: Success
+        "401":
+          description: Token expired or invalid
+
+  /digest:
+    get:
+      operationId: withDigest
+      summary: Secured via HTTP Digest
+      security:
+        - httpDigest: []
+      responses:
+        "200":
+          description: Success
+
+  /oauth2-read:
+    get:
+      operationId: withOAuth2Read
+      summary: OAuth2 read scope
+      security:
+        - oauth2Flows:
+            - read
+      responses:
+        "200":
+          description: Success
+        "403":
+          description: Insufficient scope
+
+  /oauth2-admin:
+    post:
+      operationId: withOAuth2Admin
+      summary: OAuth2 admin scope (client credentials)
+      security:
+        - oauth2Flows:
+            - admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+      responses:
+        "200":
+          description: Success
+
+  /oidc:
+    get:
+      operationId: withOpenIdConnect
+      summary: Secured via OpenID Connect
+      security:
+        - openIdConnect:
+            - openid
+            - profile
+            - email
+      responses:
+        "200":
+          description: Success
+
+  /multi-scheme:
+    get:
+      operationId: withMultipleSchemes
+      summary: Accepts API key OR Bearer token (OR logic)
+      security:
+        - apiKeyHeader: []
+        - httpBearer: []
+      responses:
+        "200":
+          description: Success
+
+  /strict-multi:
+    post:
+      operationId: strictMultipleSchemes
+      summary: Requires BOTH Bearer AND specific scope (AND logic within one item)
+      security:
+        - httpBearer: []
+          oauth2Flows:
+            - write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Success
+        "401":
+          description: Bearer token missing
+        "403":
+          description: Write scope not granted

@@ -1,0 +1,174 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Banking Legacy API",
+    "version": "1.8.0",
+    "description": "Core banking REST API using Swagger 2.0 (OAS2) format. Tests that the parser handles the legacy format correctly alongside OAS3."
+  },
+  "host": "api.bank.legacy.example.com",
+  "basePath": "/api/v1",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "basicAuth": {
+      "type": "basic"
+    },
+    "apiKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-API-Key"
+    }
+  },
+  "paths": {
+    "/accounts": {
+      "get": {
+        "tags": ["Accounts"],
+        "operationId": "listAccounts",
+        "summary": "List all accounts for authenticated user",
+        "security": [{ "basicAuth": [] }],
+        "parameters": [
+          { "name": "type", "in": "query", "type": "string", "enum": ["checking", "savings", "credit"] }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account list",
+            "schema": { "type": "array", "items": { "$ref": "#/definitions/Account" } }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/accounts/{accountId}": {
+      "get": {
+        "tags": ["Accounts"],
+        "operationId": "getAccount",
+        "summary": "Get account by ID",
+        "security": [{ "basicAuth": [] }],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string" }
+        ],
+        "responses": {
+          "200": { "description": "Account detail", "schema": { "$ref": "#/definitions/Account" } },
+          "404": { "description": "Account not found" }
+        }
+      }
+    },
+    "/accounts/{accountId}/transactions": {
+      "get": {
+        "tags": ["Transactions"],
+        "operationId": "getTransactions",
+        "summary": "Get account transaction history",
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "type": "string" },
+          { "name": "from", "in": "query", "type": "string", "format": "date" },
+          { "name": "to", "in": "query", "type": "string", "format": "date" },
+          { "name": "limit", "in": "query", "type": "integer", "default": 50 }
+        ],
+        "responses": {
+          "200": { "description": "Transaction list", "schema": { "type": "array", "items": { "$ref": "#/definitions/Transaction" } } }
+        }
+      }
+    },
+    "/transfers": {
+      "post": {
+        "tags": ["Transfers"],
+        "operationId": "createTransfer",
+        "summary": "Create a funds transfer",
+        "security": [{ "basicAuth": [] }],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/TransferRequest" }
+          }
+        ],
+        "responses": {
+          "201": { "description": "Transfer initiated" },
+          "400": { "description": "Insufficient funds" },
+          "422": { "description": "Invalid account number" }
+        }
+      }
+    },
+    "/loans/apply": {
+      "post": {
+        "tags": ["Loans"],
+        "operationId": "applyLoan",
+        "summary": "Submit a loan application",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/LoanApplication" }
+          }
+        ],
+        "responses": {
+          "202": { "description": "Application received" },
+          "400": { "description": "Invalid application data" }
+        }
+      }
+    },
+    "/loans/{loanId}": {
+      "get": {
+        "tags": ["Loans"],
+        "operationId": "getLoan",
+        "summary": "Get loan status",
+        "parameters": [
+          { "name": "loanId", "in": "path", "required": true, "type": "string" }
+        ],
+        "responses": {
+          "200": { "description": "Loan details" },
+          "404": { "description": "Loan not found" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Account": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "string" },
+        "type": { "type": "string", "enum": ["checking", "savings", "credit"] },
+        "balance": { "type": "number" },
+        "currency": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "frozen", "closed"] }
+      }
+    },
+    "Transaction": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["debit", "credit"] },
+        "description": { "type": "string" },
+        "balance": { "type": "number" }
+      }
+    },
+    "TransferRequest": {
+      "type": "object",
+      "required": ["fromAccount", "toAccount", "amount"],
+      "properties": {
+        "fromAccount": { "type": "string" },
+        "toAccount": { "type": "string" },
+        "amount": { "type": "number", "minimum": 0.01 },
+        "currency": { "type": "string", "default": "USD" },
+        "memo": { "type": "string" }
+      }
+    },
+    "LoanApplication": {
+      "type": "object",
+      "required": ["amount", "term", "purpose"],
+      "properties": {
+        "amount": { "type": "number" },
+        "term": { "type": "integer" },
+        "purpose": { "type": "string" },
+        "monthlyIncome": { "type": "number" },
+        "employmentStatus": { "type": "string" }
+      }
+    }
+  }
+}

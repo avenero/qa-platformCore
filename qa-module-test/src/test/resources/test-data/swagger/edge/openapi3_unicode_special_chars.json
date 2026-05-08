@@ -1,0 +1,127 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Unicode & Special Characters API — Ñoño Ångström ελληνικά 日本語 한국어",
+    "version": "1.0.0",
+    "description": "Tests parser robustness with Unicode in titles, descriptions, paths, enum values and examples. Includes emoji, RTL text (Arabic/Hebrew), CJK, Cyrillic and special URL-encoded characters."
+  },
+  "paths": {
+    "/búsqueda": {
+      "get": {
+        "operationId": "busqueda",
+        "summary": "Búsqueda con acentuación española (áéíóúüñ¿¡)",
+        "parameters": [
+          {
+            "name": "término",
+            "in": "query",
+            "description": "Término de búsqueda en español",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Resultados encontrados" } }
+      }
+    },
+    "/users/{nombre}/perfil": {
+      "get": {
+        "operationId": "getUserPerfil",
+        "summary": "Perfil de usuario — supports names with Unicode",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "José_Ñoño"
+          }
+        ],
+        "responses": { "200": { "description": "Perfil del usuario" } }
+      }
+    },
+    "/greet": {
+      "post": {
+        "operationId": "greetMultiLang",
+        "summary": "Multilingual greeting endpoint",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "language": {
+                    "type": "string",
+                    "enum": ["español", "日本語", "한국어", "العربية", "ελληνικά", "русский", "עברית"]
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Nombre/名前/이름/الاسم/Имя — Unicode name field",
+                    "example": "田中太郎"
+                  }
+                }
+              },
+              "examples": {
+                "japanese": {
+                  "summary": "Japanese greeting",
+                  "value": { "language": "日本語", "name": "田中太郎" }
+                },
+                "arabic": {
+                  "summary": "Arabic greeting (RTL)",
+                  "value": { "language": "العربية", "name": "محمد عبدالله" }
+                },
+                "emoji": {
+                  "summary": "Emoji in name field",
+                  "value": { "language": "español", "name": "María 🌟 García" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "¡Bienvenido! / Welkom / Добро пожаловать",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "こんにちは、田中太郎さん！" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/special-chars": {
+      "get": {
+        "operationId": "specialCharsTest",
+        "summary": "Test endpoint: characters that could break JSON/YAML parsing",
+        "description": "Tests: quotes (\", '), backslash (\\), null byte \\u0000 (should be rejected), newlines in values, tab characters, curly braces in descriptions {like: this}, angle brackets <html>, ampersand &, pipe |, colon : in descriptions",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Query with special chars: <script>alert(1)</script> should be sanitized",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\\s]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Characters processed safely — no injection" },
+          "400": { "description": "Pattern validation failed" }
+        }
+      }
+    },
+    "/cyrillic/данные": {
+      "get": {
+        "operationId": "cyrillicPath",
+        "summary": "Path with Cyrillic characters (percent-encoded in HTTP)",
+        "description": "Путь содержит кириллицу. Tests that the parser URL-encodes the path correctly when generating scenarios.",
+        "responses": { "200": { "description": "Данные успешно получены" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Autenticación de usuario",
+  "description": "Como usuario registrado quiero iniciar sesión con mis credenciales para acceder a mi cuenta personal",
+  "acceptanceCriteria": [
+    "Dado que el usuario está en la página de login cuando ingresa credenciales válidas entonces debe redirigirse al dashboard",
+    "Dado que el usuario está en la página de login cuando ingresa una contraseña incorrecta entonces debe ver el mensaje 'Credenciales inválidas'",
+    "Dado que el usuario está en la página de login cuando deja el campo email vacío entonces debe ver el mensaje 'El email es requerido'",
+    "Dado que el usuario tiene sesión activa cuando cierra el navegador y vuelve entonces debe permanecer autenticado por 8 horas",
+    "Dado que el usuario ingresa credenciales incorrectas 5 veces consecutivas cuando intenta una sexta vez entonces la cuenta debe bloquearse por 15 minutos"
+  ]
+}

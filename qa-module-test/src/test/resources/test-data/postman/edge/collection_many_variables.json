@@ -1,0 +1,129 @@
+{
+  "info": {
+    "name": "Variable-Heavy Collection — 30+ Variables",
+    "description": "Collection that uses over 30 collection-level and request-level variables. Tests that all {{variable}} placeholders are correctly extracted and surfaced in the import result as 'requiredVariables'. Includes nested variables, default values and environment-specific vars.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.example.com" },
+    { "key": "apiVersion", "value": "v3" },
+    { "key": "tenantId", "value": "tenant-001" },
+    { "key": "adminUser", "value": "admin@example.com" },
+    { "key": "adminPass", "value": "{{ADMIN_PASSWORD}}" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "resourceId", "value": "" },
+    { "key": "pageSize", "value": "20" },
+    { "key": "timeout", "value": "5000" }
+  ],
+  "item": [
+    {
+      "name": "Auth — uses 5 vars",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-Tenant-Id", "value": "{{tenantId}}" },
+          { "key": "X-Client-Version", "value": "{{clientVersion}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{apiVersion}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiVersion}}", "auth", "login"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{adminUser}}\",\n  \"password\": \"{{adminPass}}\",\n  \"mfaCode\": \"{{mfaToken}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Project — uses 8 vars",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "X-Tenant-Id", "value": "{{tenantId}}" },
+          { "key": "X-Correlation-Id", "value": "{{correlationId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{apiVersion}}/projects",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiVersion}}", "projects"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{projectName}}\",\n  \"ownerId\": \"{{userId}}\",\n  \"environment\": \"{{targetEnvironment}}\",\n  \"region\": \"{{awsRegion}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Upload File — uses form-data vars",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{apiVersion}}/projects/{{projectId}}/files",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiVersion}}", "projects", "{{projectId}}", "files"]
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": "{{localFilePath}}" },
+            { "key": "description", "value": "{{fileDescription}}", "type": "text" },
+            { "key": "tags", "value": "{{fileTags}}", "type": "text" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GraphQL Query — variable in body",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/graphql",
+          "host": ["{{baseUrl}}"],
+          "path": ["graphql"]
+        },
+        "body": {
+          "mode": "graphql",
+          "graphql": {
+            "query": "query GetUser($id: ID!) { user(id: $id) { name email } }",
+            "variables": "{\n  \"id\": \"{{userId}}\"\n}"
+          }
+        }
+      }
+    },
+    {
+      "name": "Paginated List — query param vars",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{apiVersion}}/resources?page={{currentPage}}&limit={{pageSize}}&sortBy={{sortField}}&order={{sortOrder}}&filter={{filterExpression}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["{{apiVersion}}", "resources"],
+          "query": [
+            { "key": "page", "value": "{{currentPage}}" },
+            { "key": "limit", "value": "{{pageSize}}" },
+            { "key": "sortBy", "value": "{{sortField}}" },
+            { "key": "order", "value": "{{sortOrder}}" },
+            { "key": "filter", "value": "{{filterExpression}}" }
+          ]
+        }
+      }
+    }
+  ]
+}

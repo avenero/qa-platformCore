@@ -6,10 +6,11 @@ package com.qa.common.driver;
  * <p>Es un descriptor inmutable con tres campos esenciales que el FE puede presentar
  * al usuario en un selector de plataforma/dispositivo.
  *
- * <p><b>Nota de diseño (TASK-C03):</b> Este record es un placeholder que será expandido
- * con metadatos adicionales (icono, versiones soportadas, restricciones de entorno, etc.)
- * cuando se implemente {@code TASK-C03 — CapabilityRegistry + descriptors}. La firma
- * actual ({@code id, name, description}) no cambiará — solo se agregarán campos opcionales.
+ * <h2>Diferencia con {@code com.qa.common.pool.CapabilityDescriptor}</h2>
+ * <p>Este record es la declaración <em>estática</em> de lo que un plugin soporta.
+ * Para el descriptor de runtime con estado de disponibilidad (libre, en uso, ETA)
+ * utilizado por {@link com.qa.common.pool.CapabilityRegistry}, ver
+ * {@code com.qa.common.pool.CapabilityDescriptor}.
  *
  * <h2>Ejemplos por plugin</h2>
  * <pre>
