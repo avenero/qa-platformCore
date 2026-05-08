@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +27,14 @@ public class NativeElementComponent implements StepComponent {
     @Override public String getIcon()                  { return "widgets"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return NativeElementSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "native", "element", "interact", "accessibility-id",
+            "xpath", "class-name", "id", "ui-element", "nativo"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +29,14 @@ public class DeviceConfigComponent implements StepComponent {
     @Override public String getIcon()                  { return "phone_android"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return DeviceConfigSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "device", "dispositivo", "config", "orientation", "portrait",
+            "landscape", "rotation", "language", "locale", "udid"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

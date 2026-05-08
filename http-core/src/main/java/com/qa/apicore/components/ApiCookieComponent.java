@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +50,14 @@ public class ApiCookieComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return CookieSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "cookie", "cookies", "galleta", "session", "set-cookie",
+            "http-only", "secure-cookie", "jar", "domain", "path"
+        );
     }
 
     @Override

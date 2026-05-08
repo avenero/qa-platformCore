@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,6 +58,14 @@ public class SelectComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return SelectSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "select", "dropdown", "option", "opcion", "combo",
+            "choose", "elegir", "listbox", "desplegable"
+        );
     }
 
     @Override

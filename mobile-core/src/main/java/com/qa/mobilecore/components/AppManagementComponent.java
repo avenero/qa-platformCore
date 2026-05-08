@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +27,14 @@ public class AppManagementComponent implements StepComponent {
     @Override public String getIcon()                  { return "apps"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return AppManagementSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "app", "application", "install", "launch", "start",
+            "stop", "activate", "deactivate", "bundle-id", "app-management"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

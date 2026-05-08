@@ -1,6 +1,0 @@
-The system should allow users to login using their email and password.
-If the credentials are correct, access is granted.
-Otherwise an error message is shown.
-The system must be fast and secure.
-Users should not be locked out for no reason.
-Also forgot password should work somehow.

@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,6 +58,14 @@ public class PageValidationComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return PageValidationSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "page", "titulo", "title", "url", "current-url",
+            "validar-pagina", "assert-url", "source", "pagina-cargada"
+        );
     }
 
     @Override

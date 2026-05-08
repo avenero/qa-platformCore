@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +27,14 @@ public class MobileElementValidationComponent implements StepComponent {
     @Override public String getIcon()                  { return "check_circle"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return MobileElementValidationSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "element", "elemento", "visible", "enabled", "displayed",
+            "assert", "check", "validar", "mobile-element", "accessibility"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

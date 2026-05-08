@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +27,14 @@ public class GestureComponent implements StepComponent {
     @Override public String getIcon()                  { return "gesture"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return GestureSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "gesture", "tap", "long-press", "swipe", "pinch",
+            "zoom", "flick", "double-tap", "scroll", "touch"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

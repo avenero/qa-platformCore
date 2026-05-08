@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +50,14 @@ public class ApiStatusCodeComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return StatusCodeSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "status", "code", "codigo", "statut", "http-code",
+            "response-code", "200", "201", "400", "401", "403", "404", "500"
+        );
     }
 
     @Override

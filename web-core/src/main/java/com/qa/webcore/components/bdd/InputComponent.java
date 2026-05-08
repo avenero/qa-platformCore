@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,6 +58,14 @@ public class InputComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return InputSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "input", "text", "write", "type", "fill",
+            "completar", "digitar", "field", "campo", "textbox", "textarea", "clear"
+        );
     }
 
     @Override

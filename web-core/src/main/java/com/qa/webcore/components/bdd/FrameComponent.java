@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,6 +58,14 @@ public class FrameComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return FrameSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "frame", "iframe", "context", "switch-to", "shadow-dom",
+            "nested-frame", "cambiar-contexto", "embebido"
+        );
     }
 
     @Override

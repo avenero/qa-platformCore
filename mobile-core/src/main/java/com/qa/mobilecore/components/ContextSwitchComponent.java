@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +27,14 @@ public class ContextSwitchComponent implements StepComponent {
     @Override public String getIcon()                  { return "swap_horiz"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return ContextSwitchSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "context", "webview", "native", "switch", "cambiar",
+            "webkit", "hybrid", "contexto-nativo", "context-switch"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

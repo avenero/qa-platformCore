@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+
 /**
  * Contrato para un componente cohesivo de steps BDD.
  *
@@ -54,6 +55,31 @@ public interface StepComponent {
      * @return clase de steps, puede ser null si aún no está implementado
      */
     Class<?> getStepDefinitionClass();
+
+    /**
+     * Palabras clave de dominio para enriquecer el semantic matching del BE.
+     *
+     * <p>Permite al {@code ScenarioSuggestionEngine} encontrar este componente cuando el QA
+     * escribe sinónimos, abreviaturas o jerga técnica que no aparecen literalmente en
+     * {@link #getName()}, {@link #getDescription()} o {@link #getId()}.
+     *
+     * <p>Recomendaciones:
+     * <ul>
+     *   <li>5–15 keywords por componente (más es ruido).</li>
+     *   <li>Incluir sinónimos en español, inglés y francés cuando aplique.</li>
+     *   <li>Términos técnicos del dominio (bearer, jwt, jsonpath, xpath, swipe).</li>
+     *   <li>Acciones canónicas (validar, verificar, comprobar, assert, check).</li>
+     * </ul>
+     *
+     * <p>Implementación por defecto retorna lista vacía — totalmente opcional. Los componentes
+     * que no sobrescriban este método siguen funcionando con keywords vacíos (backward-compatible).
+     *
+     * @return lista inmutable de keywords en minúsculas; nunca null
+     * @since 2.1.0
+     */
+    default List<String> getKeywords() {
+        return List.of();
+    }
 
     /**
      * Descripcion del proposito del componente.

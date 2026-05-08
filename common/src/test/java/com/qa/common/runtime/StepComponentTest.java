@@ -309,6 +309,81 @@ class StepComponentTest {
         }
     }
 
+    // =========================================================================
+    // Keywords — getKeywords()  (TASK-C06, since 2.1.0)
+    // =========================================================================
+
+    /**
+     * Componente que declara keywords propios para semantic matching.
+     */
+    static class KeywordStepComponent implements StepComponent {
+        @Override public String getName()                  { return "Keyword Component"; }
+        @Override public BddPhase getPhase()               { return BddPhase.GIVEN; }
+        @Override public Class<?> getStepDefinitionClass() { return KeywordStepComponent.class; }
+
+        @Override
+        public List<String> getKeywords() {
+            return List.of("auth", "token", "bearer", "jwt");
+        }
+    }
+
+    @Nested
+    @DisplayName("Keywords — getKeywords()")
+    class KeywordsTests {
+
+        @Test
+        @DisplayName("Default retorna lista vacia cuando no se sobrescribe")
+        void defaultRetornaListaVacia() {
+            StepComponent c = new DummyStepComponent("Test", BddPhase.WHEN);
+            assertThat(c.getKeywords()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Default no retorna null")
+        void defaultNoRetornaNull() {
+            StepComponent c = new DummyStepComponent("Test", BddPhase.THEN);
+            assertThat(c.getKeywords()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Lista default es inmutable (List.of)")
+        void defaultListaEsInmutable() {
+            StepComponent c = new DummyStepComponent("Test", BddPhase.GIVEN);
+            List<String> kw = c.getKeywords();
+            org.junit.jupiter.api.Assertions.assertThrows(
+                UnsupportedOperationException.class,
+                () -> kw.add("new-keyword")
+            );
+        }
+
+        @Test
+        @DisplayName("Componente con override retorna sus keywords")
+        void conOverrideRetornaKeywords() {
+            StepComponent c = new KeywordStepComponent();
+            assertThat(c.getKeywords())
+                .hasSize(4)
+                .containsExactly("auth", "token", "bearer", "jwt");
+        }
+
+        @Test
+        @DisplayName("Keywords del override son inmutables")
+        void overrideKeywordsInmutables() {
+            StepComponent c = new KeywordStepComponent();
+            List<String> kw = c.getKeywords();
+            org.junit.jupiter.api.Assertions.assertThrows(
+                UnsupportedOperationException.class,
+                () -> kw.add("hack")
+            );
+        }
+
+        @Test
+        @DisplayName("getKeywords es independiente de isDeprecated")
+        void keywordsIndependientesDeDeprecacion() {
+            StepComponent deprecated = new DeprecatedWithReplacementComponent();
+            assertThat(deprecated.getKeywords()).isNotNull();
+        }
+    }
+
     @Nested
     @DisplayName("Metadata i18n — getDescriptionByLocale()")
     class DescriptionByLocaleTests {

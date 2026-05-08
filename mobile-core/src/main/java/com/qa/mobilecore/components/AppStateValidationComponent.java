@@ -5,6 +5,7 @@ import com.qa.common.runtime.StepComponent;
 import com.qa.mobilecore.steps.validation.AppStateValidationSteps;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -50,6 +51,14 @@ public class AppStateValidationComponent implements StepComponent {
 
     @Override
     public Class<?> getStepDefinitionClass() { return AppStateValidationSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "state", "estado", "foreground", "background", "running",
+            "terminated", "app-state", "lifecycle", "sesion-activa"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

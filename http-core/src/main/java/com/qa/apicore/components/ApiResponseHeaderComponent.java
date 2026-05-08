@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +47,15 @@ public class ApiResponseHeaderComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return ResponseHeaderSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "response-header", "cabecera-respuesta", "content-type",
+            "location", "etag", "cache-control", "x-header",
+            "header-validation", "validar-cabecera"
+        );
     }
 
     @Override

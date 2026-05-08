@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,6 +58,14 @@ public class ScreenshotComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return ScreenshotSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "screenshot", "captura", "foto", "imagen", "evidencia",
+            "capture", "pantalla", "take-screenshot", "capture-screen"
+        );
     }
 
     @Override

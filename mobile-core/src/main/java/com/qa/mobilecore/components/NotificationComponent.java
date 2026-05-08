@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +27,14 @@ public class NotificationComponent implements StepComponent {
     @Override public String getIcon()                  { return "notifications"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return NotificationSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "notification", "notificacion", "push", "alert", "banner",
+            "dismiss", "clear", "system-notification", "notif"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

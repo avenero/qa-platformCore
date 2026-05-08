@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -53,6 +54,14 @@ public class BrowserConfigComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return BrowserConfigSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "browser", "navegador", "config", "headless", "chrome",
+            "firefox", "viewport", "window-size", "capability", "browser-config"
+        );
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,6 +58,14 @@ public class WebEnvironmentComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return WebEnvironmentSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "environment", "entorno", "config", "variable", "env-var",
+            "web-config", "ambiente", "setting"
+        );
     }
 
     @Override

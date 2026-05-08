@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +50,14 @@ public class ApiExecutionComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return HttpExecutionSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "request", "peticion", "requete", "send", "enviar", "invoke",
+            "get", "post", "put", "delete", "patch", "http", "rest", "call"
+        );
     }
 
     @Override

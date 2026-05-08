@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +47,14 @@ public class ApiUrlComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return UrlConfigSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "url", "endpoint", "base-url", "ambiente", "environment",
+            "entorno", "protocol", "https", "host", "route", "path"
+        );
     }
 
     @Override

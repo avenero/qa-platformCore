@@ -1,5 +1,6 @@
 package com.qa.common.runtime;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -50,14 +51,16 @@ public record StepInfo(
         Map<String, String> displayNameByLocale,
         Map<String, String> descriptionByLocale,
         boolean deprecated,
-        String replacementStepId
+        String replacementStepId,
+        List<String> keywords
 ) {
 
     /**
-     * Compact constructor: valida campos requeridos e impone inmutabilidad en los mapas.
+     * Compact constructor: valida campos requeridos e impone inmutabilidad en los mapas y listas.
      *
      * <p>{@code replacementStepId} es nullable: solo tiene valor cuando
      * {@link #deprecated()} es {@code true} y se declaró un sucesor conocido.
+     * <p>{@code keywords} puede estar vacío; nunca null.
      */
     public StepInfo {
         Objects.requireNonNull(id, "id no puede ser null");
@@ -66,8 +69,10 @@ public record StepInfo(
         Objects.requireNonNull(phase, "phase no puede ser null");
         Objects.requireNonNull(displayNameByLocale, "displayNameByLocale no puede ser null");
         Objects.requireNonNull(descriptionByLocale, "descriptionByLocale no puede ser null");
+        Objects.requireNonNull(keywords, "keywords no puede ser null");
         displayNameByLocale = Map.copyOf(displayNameByLocale);
         descriptionByLocale = Map.copyOf(descriptionByLocale);
+        keywords = List.copyOf(keywords);
         // replacementStepId: nullable — null cuando no hay reemplazo declarado
     }
 

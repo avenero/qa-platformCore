@@ -1,8 +1,0 @@
-{
-  "openapi": "3.0.3",
-  "info": {
-    "title": "API With Empty Paths",
-    "version": "1.0.0"
-  },
-  "paths": {}
-}

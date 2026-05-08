@@ -254,7 +254,8 @@ public final class StepDiscoveryService {
                             c.getDisplayNameByLocale(),
                             c.getDescriptionByLocale(),
                             c.isDeprecated(),
-                            c.getReplacementStepId()
+                            c.getReplacementStepId(),
+                            c.getKeywords()
                     );
                 }).collect(Collectors.toUnmodifiableList());
     }

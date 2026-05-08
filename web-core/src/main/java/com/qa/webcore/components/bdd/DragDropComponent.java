@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -72,6 +73,14 @@ public class DragDropComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return DragDropSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "drag", "drop", "arrastar", "soltar", "move",
+            "mover", "reorder", "dnd", "drag-and-drop", "glisser-deposer"
+        );
     }
 
     @Override

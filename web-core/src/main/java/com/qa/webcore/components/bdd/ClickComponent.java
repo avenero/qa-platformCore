@@ -60,6 +60,14 @@ public class ClickComponent implements StepComponent {
     }
 
     @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "click", "clic", "tap", "press", "pulsar",
+            "boton", "button", "link", "enlace", "interact"
+        );
+    }
+
+    @Override
     public Map<String, String> getDisplayNameByLocale() {
         return Map.of(
             "es", "Clicks e Interacciones",

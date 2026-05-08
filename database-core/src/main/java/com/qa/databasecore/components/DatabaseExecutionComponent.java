@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -58,6 +59,14 @@ public class DatabaseExecutionComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return DatabaseConnectionSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "sql", "query", "consulta", "execute", "ejecutar",
+            "insert", "update", "delete", "statement", "stored-proc"
+        );
     }
 
     @Override

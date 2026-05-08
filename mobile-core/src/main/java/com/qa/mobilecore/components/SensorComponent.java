@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +27,14 @@ public class SensorComponent implements StepComponent {
     @Override public String getIcon()                  { return "settings_remote"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return SensorSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "sensor", "gps", "location", "accelerometer", "gyroscope",
+            "coordinates", "latitude", "longitude", "simulate", "battery"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,6 +58,14 @@ public class WindowComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return WindowSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "window", "tab", "nueva-tab", "ventana", "popup",
+            "switch", "handle", "close", "new-window", "onglet"
+        );
     }
 
     @Override

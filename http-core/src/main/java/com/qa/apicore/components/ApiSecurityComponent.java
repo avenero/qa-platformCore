@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +50,15 @@ public class ApiSecurityComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return ResponseSecuritySteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "security", "seguridad", "securite", "cors", "xss",
+            "injection", "ssl", "tls", "hsts", "csp",
+            "x-frame-options", "vulnerability", "vulnerabilidad"
+        );
     }
 
     @Override

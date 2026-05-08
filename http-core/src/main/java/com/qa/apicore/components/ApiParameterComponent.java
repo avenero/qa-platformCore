@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +50,14 @@ public class ApiParameterComponent implements StepComponent {
     @Override
     public Class<?> getStepDefinitionClass() {
         return ParameterSteps.class;
+    }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "param", "parameter", "parametro", "query", "querystring",
+            "path-param", "path-variable", "url-param", "variable", "placeholder"
+        );
     }
 
     @Override

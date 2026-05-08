@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +27,14 @@ public class DevicePermissionComponent implements StepComponent {
     @Override public String getIcon()                  { return "security"; }
     @Override public int getDisplayOrder()             { return DISPLAY_ORDER; }
     @Override public Class<?> getStepDefinitionClass() { return DevicePermissionSteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "permission", "permiso", "camera", "location", "microphone",
+            "notification", "grant", "allow", "deny", "autorisation"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {

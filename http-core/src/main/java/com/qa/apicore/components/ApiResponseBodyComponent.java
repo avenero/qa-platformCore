@@ -5,6 +5,7 @@ import com.qa.common.runtime.BddPhase;
 import com.qa.common.runtime.StepComponent;
 import com.qa.common.runtime.annotation.StepId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,6 +37,15 @@ public class ApiResponseBodyComponent implements StepComponent {
     public int getDisplayOrder() { return DISPLAY_ORDER; }
     @Override
     public Class<?> getStepDefinitionClass() { return ResponseBodySteps.class; }
+
+    @Override
+    public List<String> getKeywords() {
+        return List.of(
+            "response", "respuesta", "reponse", "body", "cuerpo",
+            "json", "jsonpath", "xpath", "field", "campo",
+            "extract", "extraccion", "assert", "validar", "check"
+        );
+    }
 
     @Override
     public Map<String, String> getDisplayNameByLocale() {
