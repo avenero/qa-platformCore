@@ -6,9 +6,17 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitForSelectorState;
+import com.qa.common.driver.ElementLocator;
+import com.qa.common.driver.UiDriver;
+import com.qa.common.runtime.ExecutionConfig;
+import com.qa.webcore.config.WebConfigKeys;
 import com.qa.webcore.driver.engine.BrowserElement;
 import com.qa.webcore.driver.engine.BrowserEngine;
+import com.qa.webcore.driver.playwright.PlaywrightManager;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,8 +33,42 @@ public final class PlaywrightBrowserEngine implements BrowserEngine {
 
     private volatile Page currentPage;
 
+    /** Constructor para uso directo con una {@link Page} ya inicializada (inyección en tests). */
     public PlaywrightBrowserEngine(Page page) {
         this.currentPage = Objects.requireNonNull(page, "page no puede ser null");
+    }
+
+    /** Constructor de ciclo de vida — requiere llamar a {@link #open(ExecutionConfig)} antes de usar. */
+    public PlaywrightBrowserEngine() {
+        this.currentPage = null;
+    }
+
+    // =========================================================================
+    // UiDriver lifecycle
+    // =========================================================================
+
+    @Override
+    public void open(ExecutionConfig config) {
+        Objects.requireNonNull(config, "config no puede ser null");
+        if (currentPage != null) {
+            throw new IllegalStateException(
+                "PlaywrightBrowserEngine ya está inicializado. Ejecuta close() antes de abrir.");
+        }
+        String browser = config.getProperty(WebConfigKeys.BROWSER, "chromium");
+        boolean headless = Boolean.parseBoolean(
+            config.getProperty(WebConfigKeys.BROWSER_HEADLESS, "true"));
+        PlaywrightManager.initSuite(browser, headless);
+        PlaywrightManager.startScenario();
+        this.currentPage = PlaywrightManager.getPage();
+    }
+
+    @Override
+    public void close() {
+        try {
+            PlaywrightManager.endScenario();
+        } finally {
+            this.currentPage = null;
+        }
     }
 
     @Override
@@ -249,6 +291,60 @@ public final class PlaywrightBrowserEngine implements BrowserEngine {
         return currentPage != null;
     }
 
+    // =========================================================================
+    // UiDriver — ElementLocator overrides (directos a Playwright, sin puente string)
+    // =========================================================================
+
+    @Override
+    public void click(ElementLocator locator) {
+        currentPage().locator(toPlaywrightSelector(locator)).click();
+    }
+
+    @Override
+    public void type(ElementLocator locator, String text) {
+        currentPage().locator(toPlaywrightSelector(locator)).fill(text);
+    }
+
+    @Override
+    public void waitFor(ElementLocator locator, Duration timeout) {
+        Objects.requireNonNull(timeout, "timeout no puede ser null");
+        long ms = timeout.toMillis();
+        if (ms <= 0) {
+            throw new IllegalArgumentException("timeout debe ser positivo");
+        }
+        currentPage().waitForSelector(
+            toPlaywrightSelector(locator),
+            new Page.WaitForSelectorOptions()
+                .setState(WaitForSelectorState.VISIBLE)
+                .setTimeout((double) ms)
+        );
+    }
+
+    @Override
+    public void screenshot(Path destination) {
+        Objects.requireNonNull(destination, "destination no puede ser null");
+        byte[] bytes = screenshot();
+        try {
+            Path parent = destination.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.write(destination, bytes);
+        } catch (IOException ex) {
+            throw new RuntimeException("No se pudo guardar la captura en: " + destination, ex);
+        }
+    }
+
+    @Override
+    public String getCurrentLocation() {
+        return getCurrentUrl();
+    }
+
+    @Override
+    public UiDriver.DriverType getType() {
+        return UiDriver.DriverType.WEB;
+    }
+
     private PlaywrightBrowserElement wrap(Locator locator) {
         return new PlaywrightBrowserElement(locator);
     }
@@ -259,6 +355,23 @@ public final class PlaywrightBrowserEngine implements BrowserEngine {
             throw new IllegalStateException("No hay Page activa en PlaywrightBrowserEngine.");
         }
         return page;
+    }
+
+    private static String toPlaywrightSelector(ElementLocator locator) {
+        Objects.requireNonNull(locator, "locator no puede ser null");
+        return switch (locator.strategy()) {
+            case CSS              -> locator.value();
+            case XPATH            -> locator.value().startsWith("xpath=")
+                                     ? locator.value() : "xpath=" + locator.value();
+            case ID               -> "#" + locator.value();
+            case ACCESSIBILITY_ID -> "[data-testid='" + locator.value() + "']";
+            case TEXT             -> "text=" + locator.value();
+            case ROLE             -> "role=" + locator.value();
+            case NAME             -> "[name='" + locator.value() + "']";
+            case CLASS_NAME       -> "." + locator.value();
+            case RESOURCE_ID      -> throw new UnsupportedOperationException(
+                                     "RESOURCE_ID es exclusivo de mobile — no soportado en PlaywrightBrowserEngine");
+        };
     }
 
     private static String normalizeSelector(String selector) {

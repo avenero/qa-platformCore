@@ -1,5 +1,6 @@
 package com.qa.mobilecore.helper;
 
+import com.qa.common.driver.Gesture;
 import com.qa.common.logging.TestLogger;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
@@ -14,6 +15,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Helper para gestos táctiles usando la W3C Actions API de Appium 8+.
@@ -236,6 +238,34 @@ public final class GestureHelper {
     }
 
     // =========================================================================
+    // Gesture (interfaz sellada de common)
+    // =========================================================================
+
+    /**
+     * Ejecuta un {@link Gesture} sobre el driver usando los helpers W3C Actions de esta clase.
+     *
+     * <p>Punto de entrada unificado para {@link com.qa.mobilecore.driver.AppiumEngine#performGesture}.
+     *
+     * @param driver  driver Appium activo, no null
+     * @param gesture gesto a ejecutar (Swipe, Pinch, LongPress), no null
+     */
+    public static void execute(AppiumDriver driver, Gesture gesture) {
+        Objects.requireNonNull(driver,  "driver no puede ser null");
+        Objects.requireNonNull(gesture, "gesture no puede ser null");
+        switch (gesture) {
+            case Gesture.Swipe s    -> swipe(driver, s.direction().name().toLowerCase());
+            case Gesture.LongPress lp -> longPressAtCenter(driver, lp.duration().toMillis());
+            case Gesture.Pinch p    -> {
+                if (p.mode() == Gesture.Pinch.Mode.ZOOM_IN) {
+                    pinchOrZoomAtCenter(driver, false);  // ZOOM_IN = spread (fingers apart)
+                } else {
+                    pinchOrZoomAtCenter(driver, true);   // ZOOM_OUT = pinch (fingers together)
+                }
+            }
+        }
+    }
+
+    // =========================================================================
     // Privados
     // =========================================================================
 
@@ -299,5 +329,53 @@ public final class GestureHelper {
         Point loc = element.getLocation();
         Dimension sz = element.getSize();
         return new Point(loc.x + sz.width / 2, loc.y + sz.height / 2);
+    }
+
+    /**
+     * Long press en el centro de la pantalla durante la duración indicada.
+     *
+     * @param driver     driver Appium activo
+     * @param durationMs duración del press en milisegundos
+     */
+    private static void longPressAtCenter(AppiumDriver driver, long durationMs) {
+        Dimension size = driver.manage().window().getSize();
+        int cx = size.getWidth() / 2;
+        int cy = size.getHeight() / 2;
+        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+        Sequence seq = new Sequence(finger, 0)
+            .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), cx, cy))
+            .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
+            .addAction(finger.createPointerMove(Duration.ofMillis(durationMs), PointerInput.Origin.viewport(), cx, cy))
+            .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(List.of(seq));
+        TestLogger.logInfo("GESTURE", "Long press " + durationMs + "ms en centro de pantalla", null);
+    }
+
+    /**
+     * Gesto de pinch o zoom en el centro de la pantalla.
+     *
+     * @param driver   driver Appium activo
+     * @param isPinch  {@code true} → ZOOM_OUT (dedos se acercan al centro);
+     *                 {@code false} → ZOOM_IN (dedos se alejan del centro)
+     */
+    private static void pinchOrZoomAtCenter(AppiumDriver driver, boolean isPinch) {
+        Dimension size = driver.manage().window().getSize();
+        int cx     = size.getWidth() / 2;
+        int cy     = size.getHeight() / 2;
+        int offset = Math.min(size.getWidth(), size.getHeight()) / 4;
+
+        TouchPath f1;
+        TouchPath f2;
+        if (isPinch) {
+            // Pinch / ZOOM_OUT: dedos se mueven DESDE los bordes HACIA el centro
+            f1 = new TouchPath(cx - offset, cy, cx, cy);
+            f2 = new TouchPath(cx + offset, cy, cx, cy);
+        } else {
+            // Zoom / ZOOM_IN: dedos se mueven DESDE el centro HACIA los bordes
+            f1 = new TouchPath(cx, cy, cx - offset, cy);
+            f2 = new TouchPath(cx, cy, cx + offset, cy);
+        }
+        performMultiTouch(driver, f1, f2);
+        TestLogger.logInfo("GESTURE", (isPinch ? "Pinch" : "Zoom") + " en centro de pantalla", null);
     }
 }
