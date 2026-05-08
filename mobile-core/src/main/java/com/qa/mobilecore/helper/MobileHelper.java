@@ -573,6 +573,71 @@ public class MobileHelper {
     }
 
     // =========================================================================
+    // Nuevos métodos v3.2.0 — requeridos por MobileWhenSteps (TASK-D06)
+    // =========================================================================
+
+    /**
+     * Oculta el teclado virtual del dispositivo.
+     *
+     * <p>Es idempotente: si el teclado no está visible, absorbe la excepción y
+     * loguea un warning sin fallar el test.
+     */
+    public void hideKeyboard() {
+        try {
+            // mobile:hideKeyboard es el script W3C compatible con Appium 8+ (Android e iOS)
+            driver().executeScript("mobile:hideKeyboard");
+            TestLogger.logInfo("MOBILE_HELPER", "Teclado oculto", null);
+        } catch (Exception e) {
+            TestLogger.logWarning("MOBILE_HELPER",
+                "No se pudo ocultar el teclado (puede que no estuviera visible): "
+                + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * Cambia al primer contexto WEBVIEW disponible en la app híbrida.
+     *
+     * @throws IllegalStateException si no hay ningún contexto WEBVIEW disponible
+     */
+    public void switchToFirstWebView() {
+        Set<String> contexts = getContexts();
+        String webview = contexts.stream()
+            .filter(c -> c.toUpperCase().startsWith("WEBVIEW"))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException(
+                "No se encontró ningún contexto WEBVIEW. Contextos disponibles: " + contexts));
+        switchToContextSafe(webview);
+    }
+
+    /**
+     * Hace scroll hacia arriba hasta que el texto sea visible en pantalla.
+     *
+     * <p>En Android, UIScrollable encuentra el elemento en cualquier dirección.
+     * Para iOS y el caso genérico, realiza swipes repetidos hacia abajo
+     * (que desplazan el contenido hacia arriba).
+     *
+     * @param text texto a buscar
+     */
+    public void scrollUpToText(String text) {
+        try {
+            if (driver() instanceof io.appium.java_client.android.AndroidDriver) {
+                driver().findElement(io.appium.java_client.AppiumBy.androidUIAutomator(
+                    "new UiScrollable(new UiSelector().scrollable(true))" +
+                    ".scrollIntoView(new UiSelector().textContains(\"" + text + "\"))"));
+            } else {
+                for (int i = 0; i < 5; i++) {
+                    if (elementExists("text:" + text)) break;
+                    swipe("down");
+                }
+            }
+            TestLogger.logInfo("MOBILE_HELPER", "Scroll up hasta texto: " + text, null);
+        } catch (Exception e) {
+            TestLogger.logWarning("MOBILE_HELPER",
+                "No se pudo hacer scroll up hasta '" + text + "': " + e.getMessage(), null);
+        }
+    }
+
+    // =========================================================================
     // Resolución de dispositivo desde config (uso interno y desde steps GIVEN)
     // =========================================================================
 
