@@ -1,0 +1,16 @@
+{
+  "info": {
+    "name": "Unsupported Schema Version",
+    "description": "Collection with a made-up or future schema URL that the parser does not recognize.",
+    "schema": "https://schema.getpostman.com/json/collection/v3.0.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Some Request",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "https://api.example.com/test" }
+      }
+    }
+  ]
+}

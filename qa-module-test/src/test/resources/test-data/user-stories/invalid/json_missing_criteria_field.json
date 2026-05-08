@@ -1,0 +1,6 @@
+{
+  "title": "Gestión de Inventario",
+  "description": "Como jefe de almacén quiero gestionar el inventario en tiempo real para evitar quiebres de stock",
+  "priority": "HIGH",
+  "storyPoints": 5
+}

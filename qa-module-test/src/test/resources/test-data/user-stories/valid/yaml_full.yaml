@@ -1,0 +1,71 @@
+title: "Sistema de Notificaciones en Tiempo Real"
+description: >
+  Como usuario de la plataforma
+  quiero recibir notificaciones en tiempo real sobre eventos relevantes
+  para estar al tanto de cambios que afectan mi trabajo sin necesidad de
+  refrescar la página manualmente.
+
+priority: MEDIUM
+storyPoints: 8
+
+acceptanceCriteria:
+  - >
+    Dado que tengo la aplicación abierta en el navegador
+    cuando otro usuario me menciona en un comentario
+    entonces aparece una notificación en el ícono de campana dentro de los 2 segundos
+    y escucho un sonido de alerta si tengo el audio habilitado
+
+  - >
+    Dado que tengo notificaciones no leídas
+    cuando abro el panel de notificaciones
+    entonces veo la lista ordenada por fecha descendente
+    y cada notificación muestra tipo, mensaje, remitente y tiempo relativo (hace X minutos)
+
+  - >
+    Dado que hay 50 notificaciones no leídas
+    cuando abro el panel
+    entonces solo se muestran las últimas 20
+    y hay un botón "Ver todas" que navega a la página de notificaciones completa
+
+  - >
+    Dado que hago click en una notificación de tipo "tarea asignada"
+    cuando el panel está abierto
+    entonces la notificación cambia a estado "leída"
+    y soy redirigido directamente a la tarea referenciada
+
+  - >
+    Dado que selecciono "Marcar todas como leídas"
+    cuando hay notificaciones no leídas
+    entonces todas cambian a estado leído
+    y el contador del ícono campana vuelve a cero
+
+  - >
+    Dado que navego a Configuración > Notificaciones
+    cuando desactivo las notificaciones de "Comentarios en mis proyectos"
+    entonces dejo de recibir ese tipo específico de notificación
+    pero sigo recibiendo los otros tipos configurados
+
+  - >
+    Dado que el navegador no tiene permiso de notificaciones push
+    cuando ocurre un evento relevante con la app minimizada
+    entonces el sistema solicita permiso la primera vez
+    y si es concedido, muestra notificación de escritorio nativa del OS
+
+  - >
+    Dado que la conexión WebSocket se pierde
+    cuando el usuario recupera conectividad
+    entonces el cliente reconecta automáticamente en menos de 5 segundos
+    y recibe las notificaciones perdidas durante la desconexión en orden cronológico
+
+notificationTypes:
+  - TASK_ASSIGNED
+  - COMMENT_MENTION
+  - STATUS_CHANGE
+  - DEADLINE_REMINDER
+  - APPROVAL_REQUIRED
+  - SYSTEM_ALERT
+
+technicalNotes:
+  - "WebSocket con fallback a Server-Sent Events para navegadores que no soporten WS"
+  - "Cola de mensajes perdidos con ventana de 24 horas máximo"
+  - "Rate limiting: máximo 100 notificaciones por usuario por hora"

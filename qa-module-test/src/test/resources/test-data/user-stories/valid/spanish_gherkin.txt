@@ -1,0 +1,35 @@
+Como usuario final de la aplicación móvil
+Quiero poder escanear el código QR de un producto en tienda
+Para ver su disponibilidad en línea, precio y reseñas antes de comprarlo
+
+Criterios de Aceptación:
+
+Dado que estoy en la sección "Escanear" de la app
+Cuando apunto la cámara a un código QR de producto válido
+Entonces la app reconoce el código en menos de 2 segundos
+Y muestra la ficha del producto con nombre, precio, stock y rating
+
+Dado que escaneo un código QR que no pertenece a ningún producto
+Cuando la app consulta la base de datos
+Entonces muestra mensaje "Producto no encontrado en nuestro catálogo"
+Y ofrece opción para buscar manualmente
+
+Dado que el producto escaneado tiene stock en la tienda actual
+Cuando veo la ficha del producto
+Entonces aparece un badge verde "Disponible aquí"
+Y veo la ubicación exacta en el mapa de la tienda (pasillo y estante)
+
+Dado que el producto no tiene stock en la tienda actual pero sí en otras sucursales
+Cuando consulto disponibilidad
+Entonces veo la lista de sucursales más cercanas con stock
+Y puedo reservar el producto para retiro en 2 horas
+
+Dado que quiero comprar el producto escaneado de forma online
+Cuando presiono "Agregar al carrito online"
+Entonces el producto se agrega a mi carrito de la tienda web
+Y recibo notificación push con link directo al carrito
+
+Dado que no tengo conexión a internet
+Cuando escaneo un código QR
+Entonces la app muestra los datos en caché del último escaneo (si existe)
+O muestra mensaje "Sin conexión - los datos pueden no estar actualizados"

@@ -1,0 +1,9 @@
+Siendo un usuario de la plataforma
+Deseo poder recuperar mi contraseña
+Con el fin de retomar el acceso cuando la olvido
+
+Requisitos:
+- Teniendo un email registrado, al solicitar recuperación, se envía un enlace
+- Habiendo ingresado una contraseña nueva, la anterior queda inválida
+- Suponiendo que el enlace expiró, debe poder solicitarse uno nuevo
+- En el caso de que el email no exista, no se muestra error (seguridad)
