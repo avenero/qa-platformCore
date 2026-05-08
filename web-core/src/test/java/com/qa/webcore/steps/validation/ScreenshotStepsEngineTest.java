@@ -73,5 +73,7 @@ class ScreenshotStepsEngineTest {
         @Override public void acceptAlert() {}
         @Override public void dismissAlert() {}
         @Override public boolean isActive() { return true; }
+        @Override public void open(com.qa.common.runtime.ExecutionConfig config) {}
+        @Override public void close() {}
     }
 }

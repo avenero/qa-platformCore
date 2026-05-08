@@ -93,5 +93,7 @@ class AlertDragDropStepsEngineTest {
         @Override public void closeCurrentWindow() {}
         @Override public String getAlertText() { return ""; }
         @Override public boolean isActive() { return true; }
+        @Override public void open(com.qa.common.runtime.ExecutionConfig config) {}
+        @Override public void close() {}
     }
 }
