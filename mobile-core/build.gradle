@@ -75,17 +75,12 @@ dependencies {
     // AssertJ — fluent assertions para validaciones en steps
     api 'org.assertj:assertj-core:3.27.7'
 
-    // TestNG para mobile testing
-    api 'org.testng:testng:7.8.0'
-
     // JSON processing para configuraciones de dispositivos
-    api 'com.fasterxml.jackson.core:jackson-core:2.21.1'
-    api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
-
-    // ExtentReports for mobile test reporting
-    api 'com.aventstack:extentreports:5.1.1'
+    api "com.fasterxml.jackson.core:jackson-core:${rootProject.ext.jacksonVersion}"
+    api "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
 
     // Screenshot utilities for mobile
+    // Nota: extentreports:5.1.2 llega transitivamente desde :common — no duplicar aquí
     api 'commons-io:commons-io:2.14.0'
 
     // Device capabilities management

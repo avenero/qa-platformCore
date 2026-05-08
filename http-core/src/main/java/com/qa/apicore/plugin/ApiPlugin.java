@@ -20,6 +20,8 @@ import com.qa.apicore.implementations.BaseHttpClient;
 import com.qa.apicore.interfaces.AuthenticationService;
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.apicore.utils.ApiHelper;
+import com.qa.common.driver.CapabilityDescriptor;
+import com.qa.common.driver.CapabilityReport;
 import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
@@ -69,8 +71,22 @@ public class ApiPlugin implements CorePlugin {
     private static final ThreadLocal<BaseUrlTracker> TRACKER = new ThreadLocal<>();
 
     @Override
-    public String getName() {
-        return "api";
+    public String platformId() {
+        return "HTTP";
+    }
+
+    @Override
+    public String displayName() {
+        return "HTTP API Testing";
+    }
+
+    @Override
+    public CapabilityReport describeCapabilities() {
+        return CapabilityReport.available("HTTP", List.of(
+            new CapabilityDescriptor("rest",    "REST",    "HTTP/HTTPS endpoints with JSON/XML"),
+            new CapabilityDescriptor("graphql", "GraphQL", "GraphQL query and mutation testing"),
+            new CapabilityDescriptor("soap",    "SOAP",    "SOAP web services with XML payload")
+        ));
     }
 
     @Override

@@ -1,5 +1,8 @@
 package com.qa.common.runtime;
 
+import com.qa.common.driver.CapabilityDescriptor;
+import com.qa.common.driver.CapabilityReport;
+
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -14,16 +17,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * @author Abel Venero
  * @since 2.0.0
+ * @since 3.0.0 — cubre platformId, displayName, describeCapabilities, getHookOrder, onSuiteStart/End
  */
 @DisplayName("CorePlugin")
 class CorePluginTest {
 
     /**
-     * Plugin minimo para testing (solo metodos obligatorios).
+     * Plugin minimo para testing — implementa los tres métodos abstract obligatorios de v3.0.0.
      */
+    @SuppressWarnings("deprecation")
     static class MinimalPlugin implements CorePlugin {
+
         @Override
-        public String getName() { return "minimal-plugin"; }
+        public String platformId() { return "TEST"; }
+
+        @Override
+        public String displayName() { return "Test Plugin"; }
+
+        @Override
+        public CapabilityReport describeCapabilities() {
+            return CapabilityReport.available("TEST", List.of());
+        }
 
         @Override
         public Set<String> getActivationTags() { return Set.of("@minimal"); }
@@ -41,11 +55,23 @@ class CorePluginTest {
     }
 
     /**
-     * Plugin con metodos default sobrescritos.
+     * Plugin con metodos default sobrescritos, incluidos los de v3.0.0.
      */
+    @SuppressWarnings("deprecation")
     static class FullPlugin implements CorePlugin {
+
         @Override
-        public String getName() { return "full-plugin"; }
+        public String platformId() { return "HTTP"; }
+
+        @Override
+        public String displayName() { return "HTTP API Testing"; }
+
+        @Override
+        public CapabilityReport describeCapabilities() {
+            return CapabilityReport.available("HTTP", List.of(
+                new CapabilityDescriptor("rest", "REST", "HTTP/HTTPS endpoints")
+            ));
+        }
 
         @Override
         public Set<String> getActivationTags() { return Set.of("@api", "@rest"); }
@@ -62,11 +88,11 @@ class CorePluginTest {
         @Override
         public List<StepComponent> getComponents() {
             return List.of(
-                    new StepComponent() {
-                        @Override public String getName() { return "HTTP Request"; }
-                        @Override public BddPhase getPhase() { return BddPhase.WHEN; }
-                        @Override public Class<?> getStepDefinitionClass() { return FullPlugin.class; }
-                    }
+                new StepComponent() {
+                    @Override public String getName() { return "HTTP Request"; }
+                    @Override public BddPhase getPhase() { return BddPhase.WHEN; }
+                    @Override public Class<?> getStepDefinitionClass() { return FullPlugin.class; }
+                }
             );
         }
 
@@ -74,16 +100,91 @@ class CorePluginTest {
         public int getOrder() { return 50; }
     }
 
+    // =========================================================================
+    // Identidad (v3.0.0)
+    // =========================================================================
+
     @Nested
-    @DisplayName("Metodos obligatorios")
-    class MetodosObligatoriosTests {
+    @DisplayName("Identidad (v3.0.0)")
+    class IdentidadTests {
 
         @Test
-        @DisplayName("getName retorna nombre del plugin")
-        void getNameRetornaNombre() {
+        @DisplayName("platformId retorna identificador de plataforma en mayusculas")
+        void platformIdRetornaIdentificador() {
             CorePlugin plugin = new MinimalPlugin();
-            assertThat(plugin.getName()).isEqualTo("minimal-plugin");
+            assertThat(plugin.platformId()).isEqualTo("TEST");
         }
+
+        @Test
+        @DisplayName("displayName retorna nombre legible")
+        void displayNameRetornaNombreLegible() {
+            CorePlugin plugin = new MinimalPlugin();
+            assertThat(plugin.displayName()).isEqualTo("Test Plugin");
+        }
+
+        @Test
+        @SuppressWarnings("deprecation")
+        @DisplayName("getName (deprecated) delega a platformId en minusculas")
+        void getNombreDeprecadoDelegaAPlatformId() {
+            CorePlugin plugin = new MinimalPlugin();
+            // MinimalPlugin no sobreescribe getName() → usa el default
+            assertThat(plugin.getName()).isEqualTo("test");
+        }
+
+        @Test
+        @DisplayName("version retorna 2.1.0 por defecto")
+        void versionRetornaValorDefault() {
+            CorePlugin plugin = new MinimalPlugin();
+            assertThat(plugin.version()).isEqualTo("2.1.0");
+        }
+    }
+
+    // =========================================================================
+    // describeCapabilities (v3.0.0)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("describeCapabilities (v3.0.0)")
+    class DescribeCapabilitiesTests {
+
+        @Test
+        @DisplayName("Plugin minimal retorna informe available sin opciones")
+        void minimalRetornaAvailableSinOpciones() {
+            CapabilityReport report = new MinimalPlugin().describeCapabilities();
+            assertThat(report).isNotNull();
+            assertThat(report.available()).isTrue();
+            assertThat(report.platformId()).isEqualTo("TEST");
+            assertThat(report.options()).isEmpty();
+            assertThat(report.unavailableReason()).isNull();
+        }
+
+        @Test
+        @DisplayName("Plugin full retorna informe available con opciones")
+        void fullPluginRetornaAvailableConOpciones() {
+            CapabilityReport report = new FullPlugin().describeCapabilities();
+            assertThat(report.available()).isTrue();
+            assertThat(report.platformId()).isEqualTo("HTTP");
+            assertThat(report.options()).hasSize(1);
+            assertThat(report.options().get(0).id()).isEqualTo("rest");
+        }
+
+        @Test
+        @DisplayName("describeCapabilities es inmutable — la lista no puede ser mutada")
+        void reportOpcionesEsInmutable() {
+            CapabilityReport report = new FullPlugin().describeCapabilities();
+            assertThatThrownBy(() -> report.options().add(
+                new CapabilityDescriptor("hack", "Hack", "...")))
+                .isInstanceOf(UnsupportedOperationException.class);
+        }
+    }
+
+    // =========================================================================
+    // Metodos obligatorios existentes
+    // =========================================================================
+
+    @Nested
+    @DisplayName("Metodos obligatorios existentes")
+    class MetodosObligatoriosTests {
 
         @Test
         @DisplayName("getActivationTags retorna tags configurados")
@@ -106,8 +207,12 @@ class CorePluginTest {
         }
     }
 
+    // =========================================================================
+    // Metodos default existentes
+    // =========================================================================
+
     @Nested
-    @DisplayName("Metodos default")
+    @DisplayName("Metodos default existentes")
     class MetodosDefaultTests {
 
         @Test
@@ -123,7 +228,40 @@ class CorePluginTest {
             CorePlugin plugin = new MinimalPlugin();
             assertThat(plugin.getOrder()).isEqualTo(100);
         }
+
+        @Test
+        @DisplayName("getHookOrder delega a getOrder por defecto")
+        void getHookOrderDelegaAGetOrder() {
+            CorePlugin plugin = new MinimalPlugin();
+            assertThat(plugin.getHookOrder()).isEqualTo(plugin.getOrder());
+        }
+
+        @Test
+        @DisplayName("getHookOrder refleja getOrder sobrescrito")
+        void getHookOrderReflejaGetOrderSobrescrito() {
+            CorePlugin plugin = new FullPlugin(); // getOrder() = 50
+            assertThat(plugin.getHookOrder()).isEqualTo(50);
+        }
+
+        @Test
+        @DisplayName("onSuiteStart no lanza excepcion con config valida")
+        void onSuiteStartNoLanzaExcepcion() {
+            CorePlugin plugin = new MinimalPlugin();
+            ExecutionConfig config = new ExecutionConfig.Builder().build();
+            plugin.onSuiteStart(config); // debe ser no-op sin excepción
+        }
+
+        @Test
+        @DisplayName("onSuiteEnd no lanza excepcion")
+        void onSuiteEndNoLanzaExcepcion() {
+            CorePlugin plugin = new MinimalPlugin();
+            plugin.onSuiteEnd(); // debe ser no-op sin excepción
+        }
     }
+
+    // =========================================================================
+    // Metodos default sobrescritos
+    // =========================================================================
 
     @Nested
     @DisplayName("Metodos default sobrescritos")
@@ -155,7 +293,7 @@ class CorePluginTest {
     }
 
     // =========================================================================
-    // getGluePackages() — nuevo default method @since 2.2.0
+    // getGluePackages() — @since 2.2.0
     // =========================================================================
 
     @Nested
@@ -165,7 +303,7 @@ class CorePluginTest {
         @Test
         @DisplayName("Plugin sin componentes retorna lista vacia")
         void sinComponentesRetornaListaVacia() {
-            CorePlugin plugin = new MinimalPlugin(); // getComponents() = []
+            CorePlugin plugin = new MinimalPlugin();
             assertThat(plugin.getGluePackages()).isEmpty();
         }
 
@@ -173,19 +311,20 @@ class CorePluginTest {
         @DisplayName("Plugin con un componente retorna el paquete de su step class")
         void conUnComponenteRetornaPaquete() {
             CorePlugin plugin = new FullPlugin();
-            // FullPlugin.getComponents() tiene un componente con getStepDefinitionClass() = FullPlugin.class
-            // FullPlugin.class está en com.qa.common.runtime (paquete del test)
             List<String> glue = plugin.getGluePackages();
-
             assertThat(glue).isNotEmpty();
             assertThat(glue).contains(FullPlugin.class.getPackageName());
         }
 
         @Test
-        @DisplayName("Paquetes duplicados se deduplicn: dos componentes en el mismo paquete → un entry")
+        @DisplayName("Paquetes duplicados se deduplicaN: dos componentes en el mismo paquete → un entry")
         void paquetesDuplicadosSeDeduplicaN() {
             CorePlugin plugin = new CorePlugin() {
-                @Override public String getName() { return "dup-test"; }
+                @Override public String platformId() { return "DUP"; }
+                @Override public String displayName() { return "Dup Test"; }
+                @Override public CapabilityReport describeCapabilities() {
+                    return CapabilityReport.available("DUP", List.of());
+                }
                 @Override public Set<String> getActivationTags() { return Set.of("@dup"); }
                 @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
                 @Override public void onScenarioStart(ExecutionContext ctx) {}
@@ -193,7 +332,6 @@ class CorePluginTest {
 
                 @Override
                 public List<StepComponent> getComponents() {
-                    // Dos componentes en el MISMO paquete
                     StepComponent comp1 = new StepComponent() {
                         @Override public String getName() { return "c1"; }
                         @Override public BddPhase getPhase() { return BddPhase.GIVEN; }
@@ -209,7 +347,6 @@ class CorePluginTest {
             };
 
             List<String> glue = plugin.getGluePackages();
-
             assertThat(glue).hasSize(1);
             assertThat(glue).containsExactly(MinimalPlugin.class.getPackageName());
         }
@@ -218,7 +355,11 @@ class CorePluginTest {
         @DisplayName("Componente con getStepDefinitionClass() == null se omite")
         void componenteConNullStepClassSeOmite() {
             CorePlugin plugin = new CorePlugin() {
-                @Override public String getName() { return "null-test"; }
+                @Override public String platformId() { return "NULL"; }
+                @Override public String displayName() { return "Null Test"; }
+                @Override public CapabilityReport describeCapabilities() {
+                    return CapabilityReport.available("NULL", List.of());
+                }
                 @Override public Set<String> getActivationTags() { return Set.of("@null"); }
                 @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
                 @Override public void onScenarioStart(ExecutionContext ctx) {}
@@ -230,7 +371,7 @@ class CorePluginTest {
                         new StepComponent() {
                             @Override public String getName() { return "pendiente"; }
                             @Override public BddPhase getPhase() { return BddPhase.WHEN; }
-                            @Override public Class<?> getStepDefinitionClass() { return null; } // no impl aún
+                            @Override public Class<?> getStepDefinitionClass() { return null; }
                         }
                     );
                 }
@@ -244,7 +385,6 @@ class CorePluginTest {
         void resultadoEsInmutable() {
             CorePlugin plugin = new FullPlugin();
             List<String> glue = plugin.getGluePackages();
-
             assertThatThrownBy(() -> glue.add("com.qa.hacked"))
                 .isInstanceOf(UnsupportedOperationException.class);
         }
@@ -253,7 +393,11 @@ class CorePluginTest {
         @DisplayName("Resultado esta ordenado lexicograficamente")
         void resultadoEstaOrdenado() {
             CorePlugin plugin = new CorePlugin() {
-                @Override public String getName() { return "order-test"; }
+                @Override public String platformId() { return "ORDER"; }
+                @Override public String displayName() { return "Order Test"; }
+                @Override public CapabilityReport describeCapabilities() {
+                    return CapabilityReport.available("ORDER", List.of());
+                }
                 @Override public Set<String> getActivationTags() { return Set.of("@order"); }
                 @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
                 @Override public void onScenarioStart(ExecutionContext ctx) {}
@@ -261,7 +405,6 @@ class CorePluginTest {
 
                 @Override
                 public List<StepComponent> getComponents() {
-                    // Dos paquetes distintos
                     StepComponent compZ = new StepComponent() {
                         @Override public String getName() { return "z"; }
                         @Override public BddPhase getPhase() { return BddPhase.WHEN; }
@@ -272,7 +415,7 @@ class CorePluginTest {
                         @Override public BddPhase getPhase() { return BddPhase.GIVEN; }
                         @Override public Class<?> getStepDefinitionClass() { return java.awt.Color.class; }
                     };
-                    return List.of(compZ, compA); // z va primero en lista, pero 'a' debe ir primero alfabéticamente
+                    return List.of(compZ, compA);
                 }
             };
 
@@ -281,4 +424,3 @@ class CorePluginTest {
         }
     }
 }
-

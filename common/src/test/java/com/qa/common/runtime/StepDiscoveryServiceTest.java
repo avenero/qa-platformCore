@@ -55,7 +55,11 @@ class StepDiscoveryServiceTest {
     private static CorePlugin makePlugin(String pluginName, int order,
                                           Set<String> tags, List<StepComponent> components) {
         return new CorePlugin() {
-            @Override public String getName()                { return pluginName; }
+            @Override public String platformId()             { return pluginName.toUpperCase(); }
+            @Override public String displayName()            { return pluginName + " Plugin"; }
+            @Override public com.qa.common.driver.CapabilityReport describeCapabilities() {
+                return com.qa.common.driver.CapabilityReport.available(pluginName.toUpperCase(), List.of());
+            }
             @Override public Set<String> getActivationTags(){ return tags; }
             @Override public int getOrder()                  { return order; }
             @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}

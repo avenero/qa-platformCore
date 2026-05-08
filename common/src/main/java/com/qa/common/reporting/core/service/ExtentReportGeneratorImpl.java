@@ -8,7 +8,6 @@ import com.aventstack.extentreports.reporter.configuration.Theme;
 import com.qa.common.reporting.core.bridge.AttachmentData;
 import com.qa.common.reporting.core.bridge.EnvironmentDetails;
 import com.qa.common.reporting.core.bridge.ExecutionData;
-import com.qa.common.reporting.core.bridge.HttpStepSummary;
 import com.qa.common.reporting.core.bridge.ScenarioData;
 import com.qa.common.reporting.core.bridge.StepData;
 import com.qa.common.reporting.core.config.ExtentConfig;
@@ -244,8 +243,9 @@ public class ExtentReportGeneratorImpl implements ReportGeneratorPort {
             default -> test.info(html);
         }
 
-        if (step.httpDetail() != null) {
-            logHttpDetail(test, step.httpDetail(), step.status());
+        if (step.protocolDetail() != null) {
+            Status extStatus = step.status() == TestStatus.FAIL ? Status.FAIL : Status.INFO;
+            test.log(extStatus, step.protocolDetail().renderHtml());
         }
 
         if (step.status() == TestStatus.FAIL && step.errorMessage() != null) {
@@ -255,35 +255,6 @@ public class ExtentReportGeneratorImpl implements ReportGeneratorPort {
                     + "color:#d4d4d4;font-size:12px;overflow-x:auto'>"
                     + escapeHtml(step.errorMessage()) + "</pre></details>");
         }
-    }
-
-    private void logHttpDetail(ExtentTest test, HttpStepSummary http, TestStatus stepStatus) {
-        String statusColor = http.httpStatus() >= 400 ? "#f44336" : "#4CAF50";
-        StringBuilder sb = new StringBuilder();
-        sb.append("<details style='font-size:13px;margin-top:4px'>")
-          .append("<summary style='cursor:pointer'><span style='font-weight:500'>🌐 HTTP: ")
-          .append(escapeHtml(http.method())).append(" ").append(escapeHtml(http.urlPath()))
-          .append(" <span style='color:").append(statusColor).append("'>").append(http.httpStatus())
-          .append("</span></span>");
-        if (http.durationMs() != null) {
-            sb.append(" <span style='color:#aaa;font-size:12px'>(").append(http.durationMs()).append("ms)</span>");
-        }
-        sb.append("</summary><div style='margin-top:6px;font-size:12px'>");
-
-        if (http.requestSummary() != null) {
-            sb.append("<b>Request:</b> <code>").append(escapeHtml(http.requestSummary())).append("</code><br/>");
-        }
-        if (http.responseSummary() != null) {
-            sb.append("<b>Response:</b> <code>").append(escapeHtml(http.responseSummary())).append("</code>");
-        }
-        if (http.requestBodySizeBytes() != null || http.responseBodySizeBytes() != null) {
-            sb.append("<br/><span style='color:#aaa'>Req: ").append(http.requestBodySizeBytes())
-              .append("b | Resp: ").append(http.responseBodySizeBytes()).append("b</span>");
-        }
-        sb.append("</div></details>");
-
-        Status extStatus = stepStatus == TestStatus.FAIL ? Status.FAIL : Status.INFO;
-        test.log(extStatus, sb.toString());
     }
 
     private void addDuration(ExtentTest test, ScenarioData scenario) {

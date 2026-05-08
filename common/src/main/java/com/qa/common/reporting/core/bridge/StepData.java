@@ -4,9 +4,13 @@ import com.qa.common.reporting.core.model.TestStatus;
 
 /**
  * Immutable bridge record for a single test step (Given/When/Then/And/But).
- * {@code httpDetail} is null when the step has no HTTP interaction.
- * The concrete type is provided by the caller (e.g. {@code HttpDetailData} from {@code http-core});
- * {@code common} only knows the {@link HttpStepSummary} contract.
+ *
+ * <p>{@code protocolDetail} is null when the step has no protocol-level interaction to display.
+ * The concrete type is provided by the caller (e.g. {@code HttpDetailData} from {@code http-core},
+ * or a future {@code DbQueryDetail} from {@code database-core});
+ * {@code common} only knows the {@link StepDetail} contract.
+ *
+ * @since 2.3.0 (field renamed from {@code httpDetail} to {@code protocolDetail})
  */
 public record StepData(
         String keyword,
@@ -15,5 +19,5 @@ public record StepData(
         long durationMs,
         String errorMessage,
         String stackTrace,
-        HttpStepSummary httpDetail
+        StepDetail protocolDetail
 ) {}

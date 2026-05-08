@@ -48,8 +48,8 @@ public class StepResult {
     private String location;          // Clase.método que ejecuta el step
     private String[] arguments;       // Argumentos capturados del step
 
-    // Detalle HTTP (opcional — solo steps de capa API; tipo concreto provisto por http-core)
-    private com.qa.common.reporting.core.bridge.HttpStepSummary httpDetail;
+    // Detalle de protocolo (opcional — tipo concreto provisto por el módulo de protocolo correspondiente)
+    private com.qa.common.reporting.core.bridge.StepDetail protocolDetail;
 
     // =================================================================================
     // CONSTRUCTORES
@@ -216,12 +216,12 @@ public class StepResult {
         this.arguments = arguments;
     }
 
-    public com.qa.common.reporting.core.bridge.HttpStepSummary getHttpDetail() {
-        return httpDetail;
+    public com.qa.common.reporting.core.bridge.StepDetail getProtocolDetail() {
+        return protocolDetail;
     }
 
-    public void setHttpDetail(com.qa.common.reporting.core.bridge.HttpStepSummary httpDetail) {
-        this.httpDetail = httpDetail;
+    public void setProtocolDetail(com.qa.common.reporting.core.bridge.StepDetail protocolDetail) {
+        this.protocolDetail = protocolDetail;
     }
 
     @Override

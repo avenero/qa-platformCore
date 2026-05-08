@@ -2,6 +2,7 @@ package com.qa.apicore.reporting;
 
 import com.qa.apicore.reporting.model.HttpStepDetail;
 import com.qa.common.reporting.core.bridge.HttpStepSummary;
+import com.qa.common.reporting.core.bridge.StepDetail;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -9,9 +10,10 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests unitarios para {@link HttpStepDetail}: constructores, inmutabilidad, y contrato
- * {@link HttpStepSummary}.
+ * Tests unitarios para {@link HttpStepDetail}: constructores, inmutabilidad,
+ * contrato {@link HttpStepSummary} (deprecated) y contrato {@link StepDetail}.
  */
+@SuppressWarnings("deprecation")
 class HttpStepDetailTest {
 
     @Test
@@ -92,7 +94,84 @@ class HttpStepDetailTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
+    void fullConstructor_implementsStepDetail() {
+        HttpStepDetail detail = new HttpStepDetail(
+                1, "r1", "GET", "/api/items", 200,
+                "reqSummary", "resSummary",
+                null, null, 10, 20, 50L);
+
+        assertThat(detail).isInstanceOf(StepDetail.class);
+    }
+
+    @Test
+    void renderHtml_containsMethodUrlAndStatus() {
+        HttpStepDetail detail = new HttpStepDetail(
+                1, null, "POST", "/api/create", 201,
+                null, null, null, null, null, null, null);
+
+        String html = detail.renderHtml();
+
+        assertThat(html).contains("POST");
+        assertThat(html).contains("/api/create");
+        assertThat(html).contains("201");
+    }
+
+    @Test
+    void renderHtml_errorStatus_usesRedColor() {
+        HttpStepDetail detail = new HttpStepDetail(
+                1, null, "GET", "/api/items", 500,
+                null, null, null, null, null, null, null);
+
+        assertThat(detail.renderHtml()).contains("#f44336");
+    }
+
+    @Test
+    void renderHtml_withDuration_includesDurationMs() {
+        HttpStepDetail detail = new HttpStepDetail(
+                1, null, "GET", "/api/items", 200,
+                null, null, null, null, null, null, 42L);
+
+        assertThat(detail.renderHtml()).contains("42ms");
+    }
+
+    @Test
+    void renderHtml_withSummaries_includesBodies() {
+        HttpStepDetail detail = new HttpStepDetail(
+                1, null, "POST", "/api/create", 201,
+                "{\"name\":\"item\"}", "{\"id\":1}",
+                null, null, null, null, null);
+
+        String html = detail.renderHtml();
+
+        // Quotes in JSON are HTML-escaped to &quot; in the rendered output
+        assertThat(html).contains("name");
+        assertThat(html).contains("item");
+        assertThat(html).contains("id");
+    }
+
+    @Test
+    void renderHtml_xssInSummary_isEscaped() {
+        HttpStepDetail detail = new HttpStepDetail(
+                1, null, "GET", "/api", 200,
+                "<script>alert(1)</script>", null,
+                null, null, null, null, null);
+
+        String html = detail.renderHtml();
+
+        assertThat(html).doesNotContain("<script>");
+        assertThat(html).contains("&lt;script&gt;");
+    }
+
+    @Test
+    void renderText_matchesToString() {
+        HttpStepDetail detail = new HttpStepDetail(
+                1, null, "DELETE", "/api/item/42", 204,
+                null, null, null, null, null, null, null);
+
+        assertThat(detail.renderText()).isEqualTo(detail.toString());
+    }
+
+    @Test
     void compatibilityConstructor_5args_setsMinimalFields() {
         HttpStepDetail detail = new HttpStepDetail(
                 "PATCH", "/api/update", 200, "reqBody", "resBody");

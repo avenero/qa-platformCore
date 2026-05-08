@@ -5,25 +5,18 @@ import java.util.Map;
 /**
  * Contrato mínimo de un snapshot HTTP seguro para el pipeline de reporting de {@code common}.
  *
- * <p>Esta interfaz permite que {@link StepData}, {@link com.qa.common.reporting.core.model.StepResult}
- * y {@link com.qa.common.reporting.core.service.ExtentReportGeneratorImpl} operen sobre datos HTTP
- * sin acoplarse a los tipos concretos definidos en {@code http-core}
- * ({@code HttpDetailData}, {@code HttpStepDetail}, {@code HttpDetailRedactor}).
- *
- * <h3>Invariante de seguridad</h3>
- * Todos los datos expuestos por esta interfaz deben estar ya <b>redactados</b>: sin tokens,
- * credenciales ni datos PCI-DSS. La responsabilidad de aplicar la redacción recae en el constructor
- * del tipo concreto (p.ej., {@code HttpDetailRedactor} en {@code http-core}).
- *
- * <h3>Diseño</h3>
- * Los métodos usan nomenclatura de estilo record (sin prefijo {@code get}) para que los records de
- * {@code http-core} puedan implementar la interfaz simplemente declarando los componentes con los
- * nombres correctos.
+ * @deprecated since 2.3.0, forRemoval = true — usar {@link StepDetail} en su lugar.
+ *             {@code StepDetail} es el contrato genérico de auto-renderizado que permite
+ *             que {@code common} sea completamente agnóstico al protocolo HTTP.
+ *             <p>Migración: implementar {@link StepDetail#renderHtml()} y
+ *             {@link StepDetail#renderText()} en los tipos concretos de {@code http-core}.
+ *             El campo {@code StepData.httpDetail} fue renombrado a {@code StepData.protocolDetail}.
  *
  * @since 2.2.0
+ * @see StepDetail
  * @see StepData
- * @see com.qa.common.reporting.core.model.StepResult
  */
+@Deprecated(since = "2.3.0", forRemoval = true)
 public interface HttpStepSummary {
 
     /** Método HTTP en mayúsculas (GET, POST, PUT, …). Puede ser null si desconocido. */

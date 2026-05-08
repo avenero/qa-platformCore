@@ -4,6 +4,8 @@ import com.qa.databasecore.components.DatabaseExecutionComponent;
 import com.qa.databasecore.components.DatabaseSetupComponent;
 import com.qa.databasecore.components.DatabaseValidationComponent;
 import com.qa.databasecore.helper.DatabaseHelper;
+import com.qa.common.driver.CapabilityDescriptor;
+import com.qa.common.driver.CapabilityReport;
 import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
@@ -35,8 +37,23 @@ public class DatabasePlugin implements CorePlugin {
     private static final Logger LOG = LoggerFactory.getLogger(DatabasePlugin.class);
 
     @Override
-    public String getName() {
-        return "database";
+    public String platformId() {
+        return "DATABASE";
+    }
+
+    @Override
+    public String displayName() {
+        return "Database Testing";
+    }
+
+    @Override
+    public CapabilityReport describeCapabilities() {
+        return CapabilityReport.available("DATABASE", List.of(
+            new CapabilityDescriptor("mysql",      "MySQL",      "MySQL 8.x via JDBC"),
+            new CapabilityDescriptor("postgresql", "PostgreSQL", "PostgreSQL 14+ via JDBC"),
+            new CapabilityDescriptor("sqlserver",  "SQL Server", "Microsoft SQL Server 2019+ via JDBC"),
+            new CapabilityDescriptor("oracle",     "Oracle",     "Oracle Database 19c+ via JDBC")
+        ));
     }
 
     @Override

@@ -50,7 +50,11 @@ class CucumberRuntimeEngineGlueTest {
     /** Plugin stub con componentes en un paquete conocido. */
     static CorePlugin stubPlugin(String pluginName, List<StepComponent> components) {
         return new CorePlugin() {
-            @Override public String getName()                    { return pluginName; }
+            @Override public String platformId()                 { return pluginName.toUpperCase(); }
+            @Override public String displayName()                { return pluginName + " Plugin"; }
+            @Override public com.qa.common.driver.CapabilityReport describeCapabilities() {
+                return com.qa.common.driver.CapabilityReport.available(pluginName.toUpperCase(), List.of());
+            }
             @Override public Set<String> getActivationTags()    { return Set.of("@" + pluginName); }
             @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
             @Override public void onScenarioStart(ExecutionContext ctx) {}

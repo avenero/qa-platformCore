@@ -1,8 +1,12 @@
 package com.qa.common.runtime;
 
+import com.qa.common.driver.CapabilityReport;
 import com.qa.common.runtime.events.EventBus;
+import io.cucumber.plugin.ConcurrentEventListener;
 import org.junit.jupiter.api.*;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -36,7 +40,11 @@ class PluginAndBridgeIntegrationTest {
 
     /** Plugin stub que verifica el contrato CorePlugin sin dependencias externas. */
     private static class FakeCorePlugin implements CorePlugin {
-        @Override public String getName() { return "fake"; }
+        @Override public String platformId() { return "FAKE"; }
+        @Override public String displayName() { return "Fake Plugin"; }
+        @Override public CapabilityReport describeCapabilities() {
+            return CapabilityReport.available("FAKE", List.of());
+        }
         @Override public Set<String> getActivationTags() { return Set.of("@fake"); }
         @Override public int getOrder() { return 99; }
         @Override public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
@@ -70,7 +78,14 @@ class PluginAndBridgeIntegrationTest {
         private final FakeCorePlugin plugin = new FakeCorePlugin();
 
         @Test
-        @DisplayName("getName() retorna identificador del plugin")
+        @DisplayName("platformId() retorna identificador de plataforma")
+        void platformIdRetornaIdentificador() {
+            assertThat(plugin.platformId()).isEqualTo("FAKE");
+        }
+
+        @Test
+        @DisplayName("getName() (deprecated) retorna platformId en minusculas")
+        @SuppressWarnings("deprecation")
         void getNameRetornaIdentificador() {
             assertThat(plugin.getName()).isEqualTo("fake");
         }
@@ -243,8 +258,8 @@ class PluginAndBridgeIntegrationTest {
 
             assertThat(engine.getDiscoveryService().getPlugins())
                     .hasSize(1)
-                    .extracting(CorePlugin::getName)
-                    .containsExactly("fake");
+                    .extracting(CorePlugin::platformId)
+                    .containsExactly("FAKE");
         }
 
         @Test
@@ -257,6 +272,173 @@ class PluginAndBridgeIntegrationTest {
             var componentsByPlugin = discovery.groupByPlugin();
             assertThat(componentsByPlugin).doesNotContainKey("fake");
             assertThat(discovery.totalComponents()).isZero();
+        }
+    }
+
+    // =========================================================================
+    // listAllCapabilities() — puerto público BE→FE selector de plataforma
+    // =========================================================================
+
+    @Nested
+    @DisplayName("CucumberRuntimeEngine — listAllCapabilities()")
+    class ListAllCapabilitiesTests {
+
+        private CorePlugin stubWith(String platformId) {
+            return new CorePlugin() {
+                @Override public String platformId()   { return platformId; }
+                @Override public String displayName()  { return platformId + " Testing"; }
+                @Override public CapabilityReport describeCapabilities() {
+                    return CapabilityReport.available(platformId, List.of());
+                }
+                @Override public Set<String> getActivationTags() {
+                    return Set.of("@" + platformId.toLowerCase());
+                }
+                @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
+                @Override public void onScenarioStart(ExecutionContext ctx) {}
+                @Override public void onScenarioEnd(ExecutionContext ctx)   {}
+            };
+        }
+
+        @AfterEach
+        void tearDown() { ExecutionContext.deactivate(); }
+
+        @Test
+        @DisplayName("Con HTTP y WEB plugins retorna 2 CapabilityReports")
+        void dosPluginsRetornan2Reports() {
+            CorePlugin http = stubWith("HTTP");
+            CorePlugin web  = stubWith("WEB");
+            LifecycleManager lm = new DefaultLifecycleManager(List.of(http, web));
+            StepDiscoveryService ds = new StepDiscoveryService(List.of(http, web));
+            CucumberRuntimeEngine engine = new CucumberRuntimeEngine(lm, ds);
+
+            List<CapabilityReport> reports = engine.listAllCapabilities();
+
+            assertThat(reports).hasSize(2);
+            assertThat(reports).extracting(CapabilityReport::platformId)
+                    .containsExactlyInAnyOrder("HTTP", "WEB");
+        }
+
+        @Test
+        @DisplayName("Sin plugins retorna lista vacía")
+        void sinPluginsListaVacia() {
+            LifecycleManager lm = new DefaultLifecycleManager(List.of());
+            StepDiscoveryService ds = new StepDiscoveryService(List.of());
+            CucumberRuntimeEngine engine = new CucumberRuntimeEngine(lm, ds);
+
+            assertThat(engine.listAllCapabilities()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Cada report refleja el estado de disponibilidad declarado por el plugin")
+        void reportRefleja_available_flag() {
+            CorePlugin http = stubWith("HTTP");
+            LifecycleManager lm = new DefaultLifecycleManager(List.of(http));
+            StepDiscoveryService ds = new StepDiscoveryService(List.of(http));
+            CucumberRuntimeEngine engine = new CucumberRuntimeEngine(lm, ds);
+
+            List<CapabilityReport> reports = engine.listAllCapabilities();
+
+            assertThat(reports).hasSize(1);
+            assertThat(reports.get(0).available()).isTrue();
+        }
+    }
+
+    // =========================================================================
+    // Suite lifecycle hook order — onSuiteStart ascendente, onSuiteEnd descendente
+    // =========================================================================
+
+    @Nested
+    @DisplayName("CucumberRuntimeEngine — Suite lifecycle hook order")
+    class SuiteHookOrderTests {
+
+        private final List<String> callLog = new ArrayList<>();
+
+        private CorePlugin trackingPlugin(String name, int order) {
+            return new CorePlugin() {
+                @Override public String platformId()   { return name.toUpperCase(); }
+                @Override public String displayName()  { return name; }
+                @Override public CapabilityReport describeCapabilities() {
+                    return CapabilityReport.available(name.toUpperCase(), List.of());
+                }
+                @Override public Set<String> getActivationTags() { return Set.of("@" + name); }
+                @Override public int getOrder() { return order; }
+                @Override public void registerServices(ServiceRegistry r, ExecutionConfig c) {}
+                @Override public void onScenarioStart(ExecutionContext ctx) {}
+                @Override public void onScenarioEnd(ExecutionContext ctx)   {}
+                @Override public void onSuiteStart(ExecutionConfig c) { callLog.add("start:" + name); }
+                @Override public void onSuiteEnd()                    { callLog.add("end:" + name); }
+            };
+        }
+
+        /** Engine sin Cucumber real — sobreescribe runCucumber() como no-op. */
+        private CucumberRuntimeEngine noOpEngine(List<CorePlugin> plugins) {
+            List<CorePlugin> sorted = plugins.stream()
+                    .sorted(Comparator.comparingInt(CorePlugin::getHookOrder))
+                    .toList();
+            StepDiscoveryService discovery = new StepDiscoveryService(sorted);
+            LifecycleManager lm = new DefaultLifecycleManager(sorted);
+            return new CucumberRuntimeEngine(lm, discovery) {
+                @Override
+                protected byte runCucumber(ExecutionRequest req,
+                                           ExecutionContext ctx,
+                                           InMemoryResultCollector col,
+                                           List<ConcurrentEventListener> listeners) {
+                    return 0;
+                }
+            };
+        }
+
+        @AfterEach
+        void tearDown() {
+            ExecutionContext.deactivate();
+            callLog.clear();
+        }
+
+        @Test
+        @DisplayName("onSuiteStart invoca plugins en orden ascendente de hookOrder")
+        void suiteStartAscendente() {
+            CorePlugin api = trackingPlugin("api", 50);
+            CorePlugin db  = trackingPlugin("db",   0);
+            CucumberRuntimeEngine engine = noOpEngine(List.of(api, db));
+            ExecutionRequest req = ExecutionRequest.of(
+                    List.of("dummy.feature"), new ExecutionConfig.Builder().build());
+
+            engine.execute(req);
+
+            // DB (hookOrder=0) debe invocarse antes que API (hookOrder=50)
+            assertThat(callLog.indexOf("start:db")).isGreaterThanOrEqualTo(0);
+            assertThat(callLog.indexOf("start:api")).isGreaterThanOrEqualTo(0);
+            assertThat(callLog.indexOf("start:db")).isLessThan(callLog.indexOf("start:api"));
+        }
+
+        @Test
+        @DisplayName("onSuiteEnd invoca plugins en orden descendente de hookOrder (LIFO)")
+        void suiteEndDescendente() {
+            CorePlugin api = trackingPlugin("api", 50);
+            CorePlugin db  = trackingPlugin("db",   0);
+            CucumberRuntimeEngine engine = noOpEngine(List.of(api, db));
+            ExecutionRequest req = ExecutionRequest.of(
+                    List.of("dummy.feature"), new ExecutionConfig.Builder().build());
+
+            engine.execute(req);
+
+            // API (hookOrder=50) debe cerrarse antes que DB (hookOrder=0) → orden inverso
+            assertThat(callLog.indexOf("end:api")).isGreaterThanOrEqualTo(0);
+            assertThat(callLog.indexOf("end:db")).isGreaterThanOrEqualTo(0);
+            assertThat(callLog.indexOf("end:api")).isLessThan(callLog.indexOf("end:db"));
+        }
+
+        @Test
+        @DisplayName("Con un solo plugin, start y end se invocan exactamente una vez")
+        void unPluginStartEndUnaVez() {
+            CorePlugin api = trackingPlugin("api", 50);
+            CucumberRuntimeEngine engine = noOpEngine(List.of(api));
+            ExecutionRequest req = ExecutionRequest.of(
+                    List.of("dummy.feature"), new ExecutionConfig.Builder().build());
+
+            engine.execute(req);
+
+            assertThat(callLog).containsExactly("start:api", "end:api");
         }
     }
 }

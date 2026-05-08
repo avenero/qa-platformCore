@@ -21,7 +21,15 @@ dependencies {
 
     api 'org.assertj:assertj-core:3.27.7'
 
-    // HikariCP + drivers JDBC se agregan en TASK-A06 (no duplicar desde common aún)
+    // === DATABASE CONNECTION POOLING (TASK-A06 — movido desde common) ===
+    // HikariCP para gestión de pool de conexiones
+    api 'com.zaxxer:HikariCP:5.0.1'
+
+    // JDBC Drivers — solo módulos que dependen de database-core los obtienen
+    api 'com.mysql:mysql-connector-j:8.4.0'        // CVE-2023-22102 resuelto
+    api 'org.postgresql:postgresql:42.7.11'
+    api 'com.microsoft.sqlserver:mssql-jdbc:12.8.2.jre11'  // CVE-2025-59250 resuelto
+    api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.mockito:mockito-core:5.8.0'

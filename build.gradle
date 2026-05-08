@@ -13,6 +13,7 @@ version = findProperty("coreVersion") ?: "0.0.0-SNAPSHOT"
 
 ext {
     cucumberVersion = "7.34.3"
+    jacksonVersion  = "2.18.2"
 }
 
 // =============================================================================

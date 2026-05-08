@@ -25,11 +25,22 @@ class WebPluginTest {
     }
 
     @Test
-    @DisplayName("Metadata del plugin")
+    @DisplayName("Metadata del plugin — identidad v3.0.0")
     void metadataBasica() {
-        assertThat(plugin.getName()).isEqualTo("web");
+        assertThat(plugin.platformId()).isEqualTo("WEB");
+        assertThat(plugin.displayName()).isEqualTo("Web Browser Testing");
         assertThat(plugin.getOrder()).isEqualTo(100);
         assertThat(plugin.getActivationTags()).containsExactlyInAnyOrder("@web", "@ui", "@browser", "@playwright");
+    }
+
+    @Test
+    @DisplayName("describeCapabilities() retorna 3 browsers Playwright")
+    void describeCapabilitiesRetorna3Browsers() {
+        var report = plugin.describeCapabilities();
+        assertThat(report.available()).isTrue();
+        assertThat(report.platformId()).isEqualTo("WEB");
+        assertThat(report.options()).extracting("id")
+            .containsExactlyInAnyOrder("chromium", "firefox", "webkit");
     }
 
     @Test

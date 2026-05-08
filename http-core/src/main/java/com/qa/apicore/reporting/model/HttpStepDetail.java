@@ -1,6 +1,7 @@
 package com.qa.apicore.reporting.model;
 
 import com.qa.common.reporting.core.bridge.HttpStepSummary;
+import com.qa.common.reporting.core.bridge.StepDetail;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,10 +26,11 @@ import java.util.Objects;
  *   <li>{@code v=0} / constructor 5-args — compatibilidad con ejecuciones antiguas.</li>
  * </ul>
  *
- * @since 1.0.0 (movido a http-core en 2.2.0)
+ * @since 1.0.0 (movido a http-core en 2.2.0; implements StepDetail desde 2.3.0)
  * @see com.qa.apicore.reporting.util.HttpDetailRedactor
  */
-public final class HttpStepDetail implements HttpStepSummary {
+@SuppressWarnings("deprecation")
+public final class HttpStepDetail implements HttpStepSummary, StepDetail {
 
     private final int v;
     private final String requestId;
@@ -214,5 +216,52 @@ public final class HttpStepDetail implements HttpStepSummary {
     @Override
     public String toString() {
         return Objects.toString(method, "") + " " + Objects.toString(urlPath, "") + " → " + httpStatus;
+    }
+
+    // -------------------------------------------------------------------------
+    // StepDetail — auto-renderizado (lógica HTTP específica vive aquí, no en common)
+    // -------------------------------------------------------------------------
+
+    @Override
+    public String renderHtml() {
+        String statusColor = httpStatus >= 400 ? "#f44336" : "#4CAF50";
+        StringBuilder sb = new StringBuilder();
+        sb.append("<details style='font-size:13px;margin-top:4px'>")
+          .append("<summary style='cursor:pointer'><span style='font-weight:500'>🌐 HTTP: ")
+          .append(escapeHtml(method)).append(" ").append(escapeHtml(urlPath))
+          .append(" <span style='color:").append(statusColor).append("'>").append(httpStatus)
+          .append("</span></span>");
+        if (durationMs != null) {
+            sb.append(" <span style='color:#aaa;font-size:12px'>(").append(durationMs).append("ms)</span>");
+        }
+        sb.append("</summary><div style='margin-top:6px;font-size:12px'>");
+        if (redactedRequestSummary != null) {
+            sb.append("<b>Request:</b> <code>").append(escapeHtml(redactedRequestSummary)).append("</code><br/>");
+        }
+        if (redactedResponseSummary != null) {
+            sb.append("<b>Response:</b> <code>").append(escapeHtml(redactedResponseSummary)).append("</code>");
+        }
+        if (requestBodySizeBytes != null || responseBodySizeBytes != null) {
+            sb.append("<br/><span style='color:#aaa'>Req: ").append(requestBodySizeBytes)
+              .append("b | Resp: ").append(responseBodySizeBytes).append("b</span>");
+        }
+        sb.append("</div></details>");
+        return sb.toString();
+    }
+
+    @Override
+    public String renderText() {
+        return Objects.toString(method, "") + " " + Objects.toString(urlPath, "") + " → " + httpStatus;
+    }
+
+    private static String escapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;");
     }
 }

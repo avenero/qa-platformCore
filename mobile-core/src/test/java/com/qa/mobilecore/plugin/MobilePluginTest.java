@@ -54,7 +54,30 @@ class MobilePluginTest {
     class MetadatosTest {
 
         @Test
-        @DisplayName("getName() debe retornar 'mobile'")
+        @DisplayName("platformId() retorna 'MOBILE'")
+        void testPlatformId() {
+            assertThat(plugin.platformId()).isEqualTo("MOBILE");
+        }
+
+        @Test
+        @DisplayName("displayName() retorna nombre legible")
+        void testDisplayName() {
+            assertThat(plugin.displayName()).isEqualTo("Mobile App Testing");
+        }
+
+        @Test
+        @DisplayName("describeCapabilities() retorna android e ios disponibles")
+        void testDescribeCapabilities() {
+            var report = plugin.describeCapabilities();
+            assertThat(report.available()).isTrue();
+            assertThat(report.platformId()).isEqualTo("MOBILE");
+            assertThat(report.options()).extracting("id")
+                .containsExactlyInAnyOrder("android", "ios");
+        }
+
+        @Test
+        @SuppressWarnings("deprecation")
+        @DisplayName("getName() (deprecated) retorna 'mobile' — alias de platformId en minusculas")
         void testGetName() {
             assertThat(plugin.getName()).isEqualTo("mobile");
         }

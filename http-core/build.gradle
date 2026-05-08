@@ -29,8 +29,8 @@ dependencies {
     implementation 'com.konghq:unirest-java:3.14.5'
 
     // ===== BASE DE DATOS =====
-    // NOTA: HikariCP y drivers JDBC ya están en COMMON
-    // http-core hereda todo desde common (no necesita duplicar)
+    // NOTA: HikariCP y drivers JDBC viven en database-core (TASK-A06)
+    // http-core depende solo de :common — no carga drivers JDBC innecesariamente
 
     // ===== VALIDACIONES API REST =====
     // JSON Schema validation

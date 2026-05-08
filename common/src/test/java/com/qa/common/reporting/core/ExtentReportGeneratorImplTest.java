@@ -3,9 +3,9 @@ package com.qa.common.reporting.core;
 import com.qa.common.reporting.core.bridge.AttachmentData;
 import com.qa.common.reporting.core.bridge.EnvironmentDetails;
 import com.qa.common.reporting.core.bridge.ExecutionData;
-import com.qa.common.reporting.core.bridge.HttpStepSummary;
 import com.qa.common.reporting.core.bridge.ScenarioData;
 import com.qa.common.reporting.core.bridge.StepData;
+import com.qa.common.reporting.core.bridge.StepDetail;
 import com.qa.common.reporting.core.config.ExtentConfig;
 import com.qa.common.reporting.core.model.TestStatus;
 import com.qa.common.reporting.core.port.ReportFormat;
@@ -79,9 +79,9 @@ class ExtentReportGeneratorImplTest {
     }
 
     @Test
-    void generateHtml_httpDetailPresent_httpInfoEmbedded() throws ReportGenerationException {
-        HttpStepSummary http = stubHttp("GET", "/api/users", 200, 30L);
-        StepData step = new StepData("When", "I fetch users", TestStatus.PASS, 50, null, null, http);
+    void generateHtml_protocolDetailPresent_detailEmbedded() throws ReportGenerationException {
+        StepDetail detail = stubDetail("GET", "/api/users", 200, 30L);
+        StepData step = new StepData("When", "I fetch users", TestStatus.PASS, 50, null, null, detail);
         ScenarioData scenario = buildScenario("API test", TestStatus.PASS, List.of(step));
         ExecutionData execution = buildExecution(List.of(scenario));
 
@@ -259,21 +259,19 @@ class ExtentReportGeneratorImplTest {
                 List.of(), List.of(), false, null, screenshots);
     }
 
-    // ---- test helper — minimal HttpStepSummary without importing http-core ----
+    // ---- test helper — minimal StepDetail without importing http-core ----
 
-    private HttpStepSummary stubHttp(String method, String urlPath, int httpStatus, Long durationMs) {
-        return new HttpStepSummary() {
-            @Override public String method()                { return method; }
-            @Override public String urlPath()               { return urlPath; }
-            @Override public int httpStatus()               { return httpStatus; }
-            @Override public String requestId()             { return null; }
-            @Override public String requestSummary()        { return null; }
-            @Override public String responseSummary()       { return "{\"count\":5}"; }
-            @Override public Integer requestBodySizeBytes() { return null; }
-            @Override public Integer responseBodySizeBytes(){ return 80; }
-            @Override public Long durationMs()              { return durationMs; }
-            @Override public Map<String, String> requestHeaders()  { return null; }
-            @Override public Map<String, String> responseHeaders() { return null; }
+    private StepDetail stubDetail(String method, String urlPath, int httpStatus, Long durationMs) {
+        return new StepDetail() {
+            @Override
+            public String renderHtml() {
+                return "<span>🌐 HTTP: " + method + " " + urlPath + " → " + httpStatus
+                        + (durationMs != null ? " (" + durationMs + "ms)" : "") + "</span>";
+            }
+            @Override
+            public String renderText() {
+                return method + " " + urlPath + " → " + httpStatus;
+            }
         };
     }
 }

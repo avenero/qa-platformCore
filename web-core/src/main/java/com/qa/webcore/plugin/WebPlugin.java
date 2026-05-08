@@ -1,6 +1,8 @@
 package com.qa.webcore.plugin;
 
 import com.qa.common.config.ConfigManager;
+import com.qa.common.driver.CapabilityDescriptor;
+import com.qa.common.driver.CapabilityReport;
 import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
@@ -71,8 +73,22 @@ public class WebPlugin implements CorePlugin {
     // =========================================================================
 
     @Override
-    public String getName() {
-        return "web";
+    public String platformId() {
+        return "WEB";
+    }
+
+    @Override
+    public String displayName() {
+        return "Web Browser Testing";
+    }
+
+    @Override
+    public CapabilityReport describeCapabilities() {
+        return CapabilityReport.available("WEB", List.of(
+            new CapabilityDescriptor("chromium", "Chromium", "Chromium-based browser (default via Playwright)"),
+            new CapabilityDescriptor("firefox",  "Firefox",  "Mozilla Firefox (via Playwright)"),
+            new CapabilityDescriptor("webkit",   "WebKit",   "WebKit/Safari engine (via Playwright)")
+        ));
     }
 
     @Override

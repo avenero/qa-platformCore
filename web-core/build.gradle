@@ -40,7 +40,7 @@ dependencies {
     // - Usamos JUnit Platform (estándar del framework)
     // Si necesitas TestNG o ExtentReports, agrégalos según proyecto específico
     // ========================================================================
-    api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    api "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
 
     // Utilities
     api 'org.apache.commons:commons-lang3:3.13.0'

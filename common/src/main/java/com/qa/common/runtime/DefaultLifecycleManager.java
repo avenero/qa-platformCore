@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,11 +42,12 @@ public final class DefaultLifecycleManager implements LifecycleManager {
      */
     public DefaultLifecycleManager(List<CorePlugin> plugins) {
         Objects.requireNonNull(plugins, "plugins no puede ser null");
-        this.plugins = plugins.stream().sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder())).
-                collect(Collectors.toUnmodifiableList());
+        this.plugins = plugins.stream()
+                .sorted(Comparator.comparingInt(CorePlugin::getHookOrder))
+                .collect(Collectors.toUnmodifiableList());
         LOG.debug("DefaultLifecycleManager creado con {} plugins: {}",
                 this.plugins.size(),
-                this.plugins.stream().map(CorePlugin::getName).collect(Collectors.joining(", ")));
+                this.plugins.stream().map(CorePlugin::platformId).collect(Collectors.joining(", ")));
     }
 
     @Override
@@ -60,10 +62,10 @@ public final class DefaultLifecycleManager implements LifecycleManager {
         // Registrar servicios de todos los plugins activos
         List<CorePlugin> activePlugins = resolveActivePlugins(config.getTags());
         LOG.info("Plugins activos para ejecucion: {}",
-                activePlugins.stream().map(CorePlugin::getName).collect(Collectors.joining(", ")));
+                activePlugins.stream().map(CorePlugin::platformId).collect(Collectors.joining(", ")));
 
         for (CorePlugin plugin : activePlugins) {
-            LOG.debug("Registrando servicios del plugin: {}", plugin.getName());
+            LOG.debug("Registrando servicios del plugin: {}", plugin.platformId());
             plugin.registerServices(registry, config);
         }
 
@@ -95,7 +97,7 @@ public final class DefaultLifecycleManager implements LifecycleManager {
             try {
                 plugin.onScenarioStart(context);
             } catch (Exception e) {
-                LOG.error("Error en onScenarioStart del plugin {}: {}", plugin.getName(), e.getMessage(), e);
+                LOG.error("Error en onScenarioStart del plugin [{}]: {}", plugin.platformId(), e.getMessage(), e);
             }
         }
 
@@ -125,7 +127,7 @@ public final class DefaultLifecycleManager implements LifecycleManager {
             try {
                 plugin.onScenarioEnd(context);
             } catch (Exception e) {
-                LOG.error("Error en onScenarioEnd del plugin {}: {}", plugin.getName(), e.getMessage(), e);
+                LOG.error("Error en onScenarioEnd del plugin [{}]: {}", plugin.platformId(), e.getMessage(), e);
             }
         }
 

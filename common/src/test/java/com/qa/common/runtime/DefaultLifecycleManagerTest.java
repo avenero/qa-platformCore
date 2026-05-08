@@ -35,7 +35,11 @@ class DefaultLifecycleManagerTest {
 
     private CorePlugin makePlugin(String name, int order, Set<String> tags) {
         return new CorePlugin() {
-            @Override public String getName()                { return name; }
+            @Override public String platformId()             { return name.toUpperCase(); }
+            @Override public String displayName()            { return name + " Plugin"; }
+            @Override public com.qa.common.driver.CapabilityReport describeCapabilities() {
+                return com.qa.common.driver.CapabilityReport.available(name.toUpperCase(), List.of());
+            }
             @Override public Set<String> getActivationTags(){ return tags; }
             @Override public int getOrder()                  { return order; }
             @Override public List<StepComponent> getComponents() { return List.of(); }
@@ -78,7 +82,7 @@ class DefaultLifecycleManagerTest {
         }
 
         @Test
-        @DisplayName("Los plugins se ordenan por getOrder() ascendente")
+        @DisplayName("Los plugins se ordenan por getHookOrder() ascendente")
         void testPluginsOrdenadosPorOrder() {
             CorePlugin api    = makePlugin("api",    50,  Set.of("@api"));
             CorePlugin db     = makePlugin("db",      0,  Set.of("@db"));
@@ -86,8 +90,8 @@ class DefaultLifecycleManagerTest {
 
             DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of(mobile, api, db));
 
-            List<String> nombres = mgr.getPlugins().stream().map(CorePlugin::getName).toList();
-            assertThat(nombres).containsExactly("db", "api", "mobile");
+            List<String> nombres = mgr.getPlugins().stream().map(CorePlugin::platformId).toList();
+            assertThat(nombres).containsExactly("DB", "API", "MOBILE");
         }
     }
 
@@ -174,7 +178,7 @@ class DefaultLifecycleManagerTest {
             DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of(api, web));
 
             List<CorePlugin> activos = mgr.resolveActivePlugins("@api and @smoke");
-            assertThat(activos).extracting(CorePlugin::getName).containsOnly("api");
+            assertThat(activos).extracting(CorePlugin::platformId).containsOnly("API");
         }
 
         @Test
@@ -185,8 +189,8 @@ class DefaultLifecycleManagerTest {
             DefaultLifecycleManager mgr = new DefaultLifecycleManager(List.of(api, web));
 
             List<CorePlugin> activos = mgr.resolveActivePlugins("@api and @web");
-            assertThat(activos).extracting(CorePlugin::getName)
-                    .containsExactlyInAnyOrder("api", "web");
+            assertThat(activos).extracting(CorePlugin::platformId)
+                    .containsExactlyInAnyOrder("API", "WEB");
         }
 
         @Test
@@ -283,7 +287,11 @@ class DefaultLifecycleManagerTest {
         @DisplayName("Plugin que lanza excepcion en onScenarioStart no aborta los siguientes")
         void testExcepcionEnPluginNoPropaga() {
             CorePlugin problematico = new CorePlugin() {
-                @Override public String getName()                { return "bad"; }
+                @Override public String platformId()             { return "BAD"; }
+                @Override public String displayName()            { return "Bad Plugin"; }
+                @Override public com.qa.common.driver.CapabilityReport describeCapabilities() {
+                    return com.qa.common.driver.CapabilityReport.available("BAD", List.of());
+                }
                 @Override public Set<String> getActivationTags(){ return Set.of("@bad"); }
                 @Override public int getOrder()                  { return 50; }
                 @Override public List<StepComponent> getComponents() { return List.of(); }

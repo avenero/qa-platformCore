@@ -43,7 +43,30 @@ class DatabasePluginIntegrationTest {
     class PluginContractTests {
 
         @Test
-        @DisplayName("getName() retorna 'database'")
+        @DisplayName("platformId() retorna 'DATABASE'")
+        void platformIdRetornaDatabase() {
+            assertThat(plugin.platformId()).isEqualTo("DATABASE");
+        }
+
+        @Test
+        @DisplayName("displayName() retorna nombre legible")
+        void displayNameRetornaNombre() {
+            assertThat(plugin.displayName()).isEqualTo("Database Testing");
+        }
+
+        @Test
+        @DisplayName("describeCapabilities() retorna 4 motores JDBC disponibles")
+        void describeCapabilitiesRetorna4Motores() {
+            var report = plugin.describeCapabilities();
+            assertThat(report.available()).isTrue();
+            assertThat(report.platformId()).isEqualTo("DATABASE");
+            assertThat(report.options()).extracting("id")
+                .containsExactlyInAnyOrder("mysql", "postgresql", "sqlserver", "oracle");
+        }
+
+        @Test
+        @SuppressWarnings("deprecation")
+        @DisplayName("getName() (deprecated) retorna 'database' — alias de platformId en minusculas")
         void getNameRetornaDatabase() {
             assertThat(plugin.getName()).isEqualTo("database");
         }
@@ -117,8 +140,8 @@ class DatabasePluginIntegrationTest {
 
             assertThat(engine.getDiscoveryService().getPlugins())
                     .hasSize(1)
-                    .extracting(CorePlugin::getName)
-                    .containsExactly("database");
+                    .extracting(CorePlugin::platformId)
+                    .containsExactly("DATABASE");
 
             assertThat(engine.getDiscoveryService().totalComponents()).isEqualTo(3);
         }

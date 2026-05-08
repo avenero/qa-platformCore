@@ -1,5 +1,7 @@
 package com.qa.common.runtime;
 
+import com.qa.common.driver.CapabilityReport;
+
 import io.cucumber.core.options.CommandlineOptionsParser;
 import io.cucumber.core.options.RuntimeOptions;
 import io.cucumber.core.options.RuntimeOptionsBuilder;
@@ -12,6 +14,8 @@ import io.cucumber.plugin.Plugin;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.ServiceLoader;
@@ -65,10 +69,12 @@ public class CucumberRuntimeEngine {
      * @return instancia lista para ejecutar
      */
     public static CucumberRuntimeEngine withServiceLoader() {
-        List<CorePlugin> plugins = StreamSupport.stream(ServiceLoader.load(CorePlugin.class).spliterator(), false).
-                sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder())).collect(Collectors.toList());
+        List<CorePlugin> plugins = StreamSupport.stream(ServiceLoader.load(CorePlugin.class).spliterator(), false)
+                .sorted(Comparator.comparingInt(CorePlugin::getHookOrder))
+                .collect(Collectors.toList());
         LOG.info("Plugins descubiertos via SPI: {}", plugins.size());
-        plugins.forEach(p -> LOG.info("  Plugin cargado: {} (order={})", p.getName(), p.getOrder()));
+        plugins.forEach(p -> LOG.info("  Plugin cargado: {} [{}] (hookOrder={})",
+                p.displayName(), p.platformId(), p.getHookOrder()));
 
         LifecycleManager lifecycleManager = new DefaultLifecycleManager(plugins);
         StepDiscoveryService discoveryService = new StepDiscoveryService(plugins);
@@ -127,6 +133,16 @@ public class CucumberRuntimeEngine {
         ExecutionContext context = lifecycleManager.initialize(request);
         InMemoryResultCollector collector = new InMemoryResultCollector();
 
+        // Suite start — ascending hookOrder (plugins already sorted in discoveryService)
+        List<CorePlugin> orderedPlugins = discoveryService.getPlugins();
+        orderedPlugins.forEach(p -> {
+            try {
+                p.onSuiteStart(request.getConfig());
+            } catch (Exception ex) {
+                LOG.warn("Error en onSuiteStart del plugin [{}]: {}", p.platformId(), ex.getMessage(), ex);
+            }
+        });
+
         try {
             byte exitStatus = runCucumber(request, context, collector, additionalListeners);
             LOG.info("Cucumber Runtime finalizado con exit status: {}", exitStatus);
@@ -148,6 +164,16 @@ public class CucumberRuntimeEngine {
             return new ExecutionResult.Builder().status(ExecutionResult.Status.ERROR).
                     errors(List.of("Error fatal: " + e.getMessage())).build();
         } finally {
+            // Suite end — descending hookOrder (LIFO: simetrico a suite start)
+            List<CorePlugin> reversed = new ArrayList<>(orderedPlugins);
+            Collections.reverse(reversed);
+            reversed.forEach(p -> {
+                try {
+                    p.onSuiteEnd();
+                } catch (Exception ex) {
+                    LOG.error("Error en onSuiteEnd del plugin [{}]: {}", p.platformId(), ex.getMessage(), ex);
+                }
+            });
             lifecycleManager.shutdown(context);
         }
     }
@@ -282,6 +308,27 @@ public class CucumberRuntimeEngine {
                     + "Verificar que los plugins tengan componentes con getStepDefinitionClass() no nulo.");
         }
         return derived;
+    }
+
+    // --- API pública para el Backend ---
+
+    /**
+     * Retorna el informe de capacidades de todos los plugins descubiertos.
+     *
+     * <p>Invocado por el Backend (via puerto público) para llenar el selector de plataforma
+     * en el Frontend antes de que el usuario diseñe o ejecute escenarios.
+     *
+     * <p>El orden de la lista refleja el {@link CorePlugin#getHookOrder()} ascendente;
+     * cada plugin decide si está disponible en el entorno actual mediante
+     * {@link CorePlugin#describeCapabilities()}.
+     *
+     * @return lista inmutable de {@link CapabilityReport}, uno por plugin descubierto
+     * @since 3.0.0
+     */
+    public List<CapabilityReport> listAllCapabilities() {
+        return discoveryService.getPlugins().stream()
+                .map(CorePlugin::describeCapabilities)
+                .collect(Collectors.toUnmodifiableList());
     }
 
     // --- Accessors ---

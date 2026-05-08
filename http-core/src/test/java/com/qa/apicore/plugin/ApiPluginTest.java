@@ -63,9 +63,32 @@ class ApiPluginTest {
     class MetadatosTests {
 
         @Test
-        @DisplayName("getName() retorna 'api'")
+        @DisplayName("platformId() retorna 'HTTP'")
+        void platformIdRetornaHttp() {
+            assertThat(plugin.platformId()).isEqualTo("HTTP");
+        }
+
+        @Test
+        @DisplayName("displayName() retorna nombre legible")
+        void displayNameRetornaNombre() {
+            assertThat(plugin.displayName()).isEqualTo("HTTP API Testing");
+        }
+
+        @Test
+        @DisplayName("describeCapabilities() retorna informe available con 3 opciones (REST/GraphQL/SOAP)")
+        void describeCapabilitiesRetornaInformeDisponible() {
+            var report = plugin.describeCapabilities();
+            assertThat(report.available()).isTrue();
+            assertThat(report.platformId()).isEqualTo("HTTP");
+            assertThat(report.options()).extracting("id")
+                .containsExactlyInAnyOrder("rest", "graphql", "soap");
+        }
+
+        @Test
+        @SuppressWarnings("deprecation")
+        @DisplayName("getName() (deprecated) retorna 'http' — alias de platformId en minusculas")
         void getNameRetornaApi() {
-            assertThat(plugin.getName()).isEqualTo("api");
+            assertThat(plugin.getName()).isEqualTo("http");
         }
 
         @Test

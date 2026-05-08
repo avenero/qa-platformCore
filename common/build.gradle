@@ -16,10 +16,10 @@ dependencies {
 
     // === CONFIGURACIÓN Y PROCESAMIENTO DE ARCHIVOS ===
     // JSON processing básico (para DataUtilities y ConfigurationProvider)
-    api 'com.fasterxml.jackson.core:jackson-core:2.21.1'
-    api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
-    api 'com.fasterxml.jackson.core:jackson-annotations:2.15.2'
-    api 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2'
+    api "com.fasterxml.jackson.core:jackson-core:${rootProject.ext.jacksonVersion}"
+    api "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
+    api "com.fasterxml.jackson.core:jackson-annotations:${rootProject.ext.jacksonVersion}"
+    api "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${rootProject.ext.jacksonVersion}"
 
     // JSON library básica (para DataUtilities)
     api 'org.json:json:20251224'
@@ -68,29 +68,14 @@ dependencies {
     // Resuelve WS-2019-0379 (Input Validation vulnerability)
     api 'commons-codec:commons-codec:1.22.0'
 
-    // === DATABASE CONNECTION POOLING & DRIVERS ===
-    // HikariCP para gestión genérica de conexiones
-    api 'com.zaxxer:HikariCP:5.0.1'
-
-    // JDBC Drivers (disponibles para todos los módulos)
-    // Nota: Cada proyecto puede usar el driver que necesite
-    api 'com.mysql:mysql-connector-j:8.4.0'  // Actualizado (reemplaza mysql-connector-java para resolver CVE-2023-22102)
-    api 'org.postgresql:postgresql:42.7.11'
-    api 'com.microsoft.sqlserver:mssql-jdbc:12.8.2.jre11'  // Actualizado para resolver CVE-2025-59250
-    api 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
-
     // ========================================================================
     // NOTAS DE ARQUITECTURA:
     //
-    // HikariCP está en COMMON porque:
-    // - Es infraestructura genérica de pooling
-    // - testdata/ y database/ (en common) lo necesitan
-    // - No depende de drivers específicos
-    //
-    // Drivers JDBC migrarán a database-core en TASK-A06:
-    // - Son específicos por tipo de BD (Oracle, PostgreSQL, etc.)
-    // - No todos los módulos los necesitan
-    // - http-core y database-core heredan common
+    // HikariCP y los drivers JDBC se declararon aquí temporalmente hasta TASK-A06.
+    // Desde TASK-A06 (2026-05-07) viven en database-core/build.gradle:
+    // - Son específicos del dominio DB — no todos los módulos los necesitan
+    // - Un proyecto que solo importa web-core o http-core no debe cargar ~30MB de drivers
+    // - http-core y web-core solo dependen de :common (sin DB)
     //
     // Otras dependencias en http-core:
     // - Unirest (HTTP client avanzado, deprecado — se elimina en TASK-J01)

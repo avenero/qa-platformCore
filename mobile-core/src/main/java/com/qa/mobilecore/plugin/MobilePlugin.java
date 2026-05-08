@@ -1,6 +1,8 @@
 package com.qa.mobilecore.plugin;
 
 import com.qa.common.config.ConfigManager;
+import com.qa.common.driver.CapabilityDescriptor;
+import com.qa.common.driver.CapabilityReport;
 import com.qa.common.runtime.CorePlugin;
 import com.qa.common.runtime.ExecutionConfig;
 import com.qa.common.runtime.ExecutionContext;
@@ -71,7 +73,18 @@ public class MobilePlugin implements CorePlugin {
     private static final int PLUGIN_ORDER = 150;
 
     @Override
-    public String getName() { return "mobile"; }
+    public String platformId() { return "MOBILE"; }
+
+    @Override
+    public String displayName() { return "Mobile App Testing"; }
+
+    @Override
+    public CapabilityReport describeCapabilities() {
+        return CapabilityReport.available("MOBILE", List.of(
+            new CapabilityDescriptor("android", "Android", "Android native app testing via Appium"),
+            new CapabilityDescriptor("ios",     "iOS",     "iOS native app testing via Appium")
+        ));
+    }
 
     @Override
     public Set<String> getActivationTags() {
