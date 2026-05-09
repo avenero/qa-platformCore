@@ -63,6 +63,68 @@ class ExecutionConfigTest {
             ExecutionConfig config = new ExecutionConfig.Builder().build();
             assertThat(config.getProperties()).isEmpty();
         }
+
+        @Test
+        @DisplayName("Config con defaults tiene httpEngine PLAYWRIGHT")
+        void configConDefaultsTieneHttpEnginePlaywright() {
+            String previous = System.getProperty(HttpEngine.SYSTEM_PROPERTY);
+            System.clearProperty(HttpEngine.SYSTEM_PROPERTY);
+            try {
+                ExecutionConfig config = new ExecutionConfig.Builder().build();
+                assertThat(config.getHttpEngine()).isEqualTo(HttpEngine.PLAYWRIGHT);
+            } finally {
+                if (previous != null) {
+                    System.setProperty(HttpEngine.SYSTEM_PROPERTY, previous);
+                } else {
+                    System.clearProperty(HttpEngine.SYSTEM_PROPERTY);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("System property execution.http.engine fuerza el default del Builder")
+        void systemPropertyFuerzaDefault() {
+            String previous = System.getProperty(HttpEngine.SYSTEM_PROPERTY);
+            System.setProperty(HttpEngine.SYSTEM_PROPERTY, "APACHE");
+            try {
+                ExecutionConfig config = new ExecutionConfig.Builder().build();
+                assertThat(config.getHttpEngine()).isEqualTo(HttpEngine.APACHE);
+            } finally {
+                if (previous != null) {
+                    System.setProperty(HttpEngine.SYSTEM_PROPERTY, previous);
+                } else {
+                    System.clearProperty(HttpEngine.SYSTEM_PROPERTY);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("Builder.httpEngine(APACHE) prevalece sobre system property")
+        void builderHttpEnginePrevaleceSobreSystemProperty() {
+            String previous = System.getProperty(HttpEngine.SYSTEM_PROPERTY);
+            System.setProperty(HttpEngine.SYSTEM_PROPERTY, "PLAYWRIGHT");
+            try {
+                ExecutionConfig config = new ExecutionConfig.Builder()
+                        .httpEngine(HttpEngine.APACHE)
+                        .build();
+                assertThat(config.getHttpEngine()).isEqualTo(HttpEngine.APACHE);
+            } finally {
+                if (previous != null) {
+                    System.setProperty(HttpEngine.SYSTEM_PROPERTY, previous);
+                } else {
+                    System.clearProperty(HttpEngine.SYSTEM_PROPERTY);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("Builder.httpEngine(null) no rompe — resuelve al default")
+        void builderHttpEngineNullResuelveDefault() {
+            ExecutionConfig config = new ExecutionConfig.Builder()
+                    .httpEngine(null)
+                    .build();
+            assertThat(config.getHttpEngine()).isNotNull();
+        }
     }
 
     @Nested

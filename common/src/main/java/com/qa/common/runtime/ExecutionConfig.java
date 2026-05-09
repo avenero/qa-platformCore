@@ -54,6 +54,8 @@ public final class ExecutionConfig {
     private final SSLContext sslContext;
     /** true = ignorar validación de certificado (solo entornos no-producción). */
     private final boolean trustAllSsl;
+    /** Motor HTTP seleccionado para el escenario. Resuelto vía {@link HttpEngine#resolveDefault()} si no se especifica. */
+    private final HttpEngine httpEngine;
 
     /**
      * Constructor privado; usar {@link Builder#build()}.
@@ -69,6 +71,7 @@ public final class ExecutionConfig {
         this.properties = Collections.unmodifiableMap(new HashMap<>(builder.properties));
         this.sslContext = builder.sslContext;
         this.trustAllSsl = builder.trustAllSsl;
+        this.httpEngine = builder.httpEngine != null ? builder.httpEngine : HttpEngine.resolveDefault();
     }
 
     /**
@@ -162,11 +165,27 @@ public final class ExecutionConfig {
         return trustAllSsl;
     }
 
+    /**
+     * Motor HTTP que el {@code HttpClientFactory} debe instanciar para este escenario.
+     *
+     * <p>Si no se establece explícitamente vía {@link Builder#httpEngine(HttpEngine)},
+     * el valor se resuelve en {@link Builder#build()} usando
+     * {@link HttpEngine#resolveDefault()} (system property {@code execution.http.engine},
+     * variable de entorno {@code EXECUTION_HTTP_ENGINE}, o {@link HttpEngine#PLAYWRIGHT}).
+     *
+     * @return motor HTTP, nunca {@code null}
+     * @since TASK-E03
+     */
+    public HttpEngine getHttpEngine() {
+        return httpEngine;
+    }
+
     @Override
     public String toString() {
         return "ExecutionConfig{env='" + environment + "', browser='" + browser
                 + "', tags='" + tags + "', parallel=" + parallelEnabled
-                + ", threads=" + threadCount + ", props=" + properties.size() + "}";
+                + ", threads=" + threadCount + ", props=" + properties.size()
+                + ", httpEngine=" + httpEngine + "}";
     }
 
     /**
@@ -181,6 +200,7 @@ public final class ExecutionConfig {
         private final Map<String, String> properties = new HashMap<>();
         private SSLContext sslContext = null;
         private boolean trustAllSsl = false;
+        private HttpEngine httpEngine = null;
 
         /**
          * Constructor por defecto con valores iniciales predefinidos.
@@ -294,6 +314,24 @@ public final class ExecutionConfig {
          */
         public Builder trustAllSsl(boolean trustAll) {
             this.trustAllSsl = trustAll;
+            return this;
+        }
+
+        /**
+         * Selecciona el motor HTTP. Si {@code httpEngine} es {@code null}, en
+         * {@link #build()} se resolverá vía {@link HttpEngine#resolveDefault()}.
+         *
+         * <p>Diseño FE→BE: el FE muestra un selector con los valores de
+         * {@link HttpEngine}; el BE recibe el valor (string), lo parsea con
+         * {@link HttpEngine#parseSilently(String)} y lo pasa por aquí. Valores
+         * inválidos del FE caen al default sin lanzar excepción.
+         *
+         * @param httpEngine motor HTTP, puede ser {@code null} para usar el default
+         * @return este Builder
+         * @since TASK-E03
+         */
+        public Builder httpEngine(HttpEngine httpEngine) {
+            this.httpEngine = httpEngine;
             return this;
         }
 

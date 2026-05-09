@@ -23,6 +23,13 @@ dependencies {
     // Apache HttpClient 5 — implementación activa desde v2.2.0
     api 'org.apache.httpcomponents.client5:httpclient5:5.6.1'
 
+    // Playwright — usado por PlaywrightHttpEngine (TASK-E02) como segundo motor HTTP.
+    // Se declara en http-core (NO se depende de web-core) para preservar la regla
+    // arquitectural: ningún módulo especializado conoce a otro módulo especializado.
+    // El wiring con PlaywrightManager (web-core) se realiza vía Supplier<APIRequestContext>
+    // en la capa consumidora (qa-platformBE / tests).
+    api 'com.microsoft.playwright:playwright:1.50.0'
+
     // Unirest — DEPRECATED desde v2.2.0, será eliminado en v2.3.0.
     // Mantenido como 'implementation' (no transitivo) únicamente para BaseHttpClient @Deprecated.
     // Eliminar esta dependencia junto con BaseHttpClient en v2.3.0.

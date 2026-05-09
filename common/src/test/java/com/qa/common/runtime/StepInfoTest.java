@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +52,8 @@ class StepInfoTest {
                 DISPLAY_NAMES,
                 DESCRIPTIONS,
                 false,
-                null
+                null,
+                List.of()
         );
     }
 
@@ -71,7 +73,8 @@ class StepInfoTest {
                 Map.of("es", "Request Body", "en", "Request Body"),
                 Map.of("es", "Cuerpo de la peticion", "en", "Request body"),
                 true,
-                "api.request.body"
+                "api.request.body",
+                List.of()
         );
     }
 
@@ -118,7 +121,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     null, "p", "api", "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), Map.of(), false, null
+                    Map.of(), Map.of(), false, null, List.of()
             )).withMessageContaining("id");
         }
 
@@ -128,7 +131,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", null, "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), Map.of(), false, null
+                    Map.of(), Map.of(), false, null, List.of()
             )).withMessageContaining("layer");
         }
 
@@ -138,7 +141,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", "api", null, "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), Map.of(), false, null
+                    Map.of(), Map.of(), false, null, List.of()
             )).withMessageContaining("componentId");
         }
 
@@ -148,7 +151,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", "api", "api.x", null,
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), Map.of(), false, null
+                    Map.of(), Map.of(), false, null, List.of()
             )).withMessageContaining("phase");
         }
 
@@ -158,7 +161,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", "api", "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    null, Map.of(), false, null
+                    null, Map.of(), false, null, List.of()
             )).withMessageContaining("displayNameByLocale");
         }
 
@@ -168,7 +171,7 @@ class StepInfoTest {
             assertThatNullPointerException().isThrownBy(() -> new StepInfo(
                     "api.x", "p", "api", "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", "desc",
-                    Map.of(), null, false, null
+                    Map.of(), null, false, null, List.of()
             )).withMessageContaining("descriptionByLocale");
         }
     }
@@ -205,7 +208,7 @@ class StepInfoTest {
             StepInfo sinReemplazo = new StepInfo(
                     "api.old", "Old", "api", "api.old", "GIVEN",
                     "cat", "icon", 10, "Old Step", "desc",
-                    Map.of(), Map.of(), true, null
+                    Map.of(), Map.of(), true, null, List.of()
             );
             assertThat(sinReemplazo.hasReplacement()).isFalse();
         }
@@ -216,7 +219,7 @@ class StepInfoTest {
             StepInfo conBlank = new StepInfo(
                     "api.old2", "Old2", "api", "api.old2", "GIVEN",
                     "cat", "icon", 10, "Old2", "desc",
-                    Map.of(), Map.of(), true, "   "
+                    Map.of(), Map.of(), true, "   ", List.of()
             );
             assertThat(conBlank.hasReplacement()).isFalse();
         }
@@ -233,7 +236,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "api.url", "p", "api", "api.url", "GIVEN",
                     "cat", "icon", 10, "URL", "desc",
-                    Map.of(), Map.of(), false, null
+                    Map.of(), Map.of(), false, null, List.of()
             );
             assertThat(info.deprecated()).isFalse();
             assertThat(info.replacementStepId()).isNull();
@@ -273,7 +276,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "x", "p", "api", "x", "GIVEN",
                     "cat", "icon", 1, "dn", "desc",
-                    mutableNames, Map.of(), false, null
+                    mutableNames, Map.of(), false, null, List.of()
             );
 
             mutableNames.put("es", "Nombre Modificado");
@@ -320,7 +323,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "api.execution", "p", "api", "api.execution", "WHEN",
                     "cat", "icon", 10, null, null,
-                    Map.of(), Map.of(), false, null
+                    Map.of(), Map.of(), false, null, List.of()
             );
             assertThat(info.getDisplayNameForLocale("en")).isEqualTo("api.execution");
         }
@@ -331,7 +334,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "api.url", "p", "api", "api.url", "GIVEN",
                     "cat", "icon", 10, "URL / Ambiente", "desc",
-                    Map.of(), Map.of(), false, null
+                    Map.of(), Map.of(), false, null, List.of()
             );
             assertThat(info.getDisplayNameForLocale("en")).isEqualTo("URL / Ambiente");
         }
@@ -383,7 +386,7 @@ class StepInfoTest {
             StepInfo info = new StepInfo(
                     "api.x", "p", "api", "api.x", "GIVEN",
                     "cat", "icon", 10, "dn", null,
-                    Map.of(), Map.of(), false, null
+                    Map.of(), Map.of(), false, null, List.of()
             );
             assertThat(info.getDescriptionForLocale("en")).isEmpty();
         }
@@ -429,7 +432,7 @@ class StepInfoTest {
                     "WHEN", "Ejecucion", "send", 70,
                     "Ejecucion HTTP", "Envio de peticiones REST",
                     DISPLAY_NAMES, DESCRIPTIONS,
-                    true, "api.execution.v2"
+                    true, "api.execution.v2", List.of()
             );
             assertThat(normal).isNotEqualTo(deprecated);
         }
