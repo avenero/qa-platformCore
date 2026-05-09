@@ -1,10 +1,13 @@
 package com.qa.webcore.driver.playwright;
 
+import com.microsoft.playwright.APIRequest;
+import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import com.qa.common.config.ConfigManager;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -25,12 +28,14 @@ public final class PlaywrightManager {
     private static final int VIEWPORT_HEIGHT = 1080;
     private static final ThreadLocal<BrowserContext> CONTEXT_HOLDER = new ThreadLocal<>();
     private static final ThreadLocal<Page> PAGE_HOLDER = new ThreadLocal<>();
+    private static final ThreadLocal<APIRequestContext> SCENARIO_API_CTX = new ThreadLocal<>();
 
     private static volatile Playwright playwright;
     private static volatile Browser browser;
     private static volatile String suiteBrowserName;
     private static volatile boolean suiteHeadless;
     private static volatile SuiteInitializer suiteInitializer = new DefaultSuiteInitializer();
+    private static volatile APIRequestContext suiteApiCtxStandalone;
 
     private PlaywrightManager() {
         throw new UnsupportedOperationException("Clase utilitaria - no instanciable");
@@ -92,18 +97,100 @@ public final class PlaywrightManager {
         } finally {
             PAGE_HOLDER.remove();
             CONTEXT_HOLDER.remove();
+            clearScenarioApiContext();
         }
     }
 
     public static void closeSuite() {
         synchronized (INIT_LOCK) {
             endScenario();
+            closeStandaloneApiContext();
             closeSilently(browser);
             closeSilently(playwright);
             browser = null;
             playwright = null;
             suiteBrowserName = null;
         }
+    }
+
+    /**
+     * Retorna el {@link APIRequestContext} activo para realizar peticiones HTTP desde Playwright.
+     *
+     * <ul>
+     *   <li>Si hay un escenario web activo en este hilo, se devuelve el {@code request()}
+     *       del {@link BrowserContext} actual; comparte cookies, storage y autenticación
+     *       con el {@link Page}, permitiendo flujos mixtos web ↔ HTTP.</li>
+     *   <li>Si no hay escenario activo, se devuelve un {@link APIRequestContext} standalone
+     *       cacheado a nivel de suite, ideal para escenarios sólo-HTTP. Su {@code baseURL}
+     *       se toma de la propiedad {@code base.url} (default {@code http://localhost}).</li>
+     * </ul>
+     */
+    public static APIRequestContext getApiContext() {
+        if (isScenarioActive()) {
+            APIRequestContext ctx = SCENARIO_API_CTX.get();
+            if (ctx == null) {
+                ctx = requireScenarioContext().request();
+                SCENARIO_API_CTX.set(ctx);
+            }
+            return ctx;
+        }
+        return getOrCreateStandaloneApiContext();
+    }
+
+    static void clearScenarioApiContext() {
+        SCENARIO_API_CTX.remove();
+    }
+
+    static void closeStandaloneApiContext() {
+        APIRequestContext ctx = suiteApiCtxStandalone;
+        if (ctx != null) {
+            try {
+                ctx.dispose();
+            } catch (RuntimeException ignored) {
+                // Limpieza defensiva — no propagamos errores en el cierre de suite.
+            }
+            suiteApiCtxStandalone = null;
+        }
+    }
+
+    private static APIRequestContext getOrCreateStandaloneApiContext() {
+        APIRequestContext existing = suiteApiCtxStandalone;
+        if (existing != null) {
+            return existing;
+        }
+        synchronized (INIT_LOCK) {
+            if (suiteApiCtxStandalone == null) {
+                Playwright pw = ensurePlaywright();
+                String baseUrl = ConfigManager.getInstance().get("base.url", "http://localhost");
+                suiteApiCtxStandalone = pw.request().newContext(
+                    new APIRequest.NewContextOptions().setBaseURL(baseUrl)
+                );
+            }
+            return suiteApiCtxStandalone;
+        }
+    }
+
+    private static Playwright ensurePlaywright() {
+        Playwright pw = playwright;
+        if (pw != null) {
+            return pw;
+        }
+        synchronized (INIT_LOCK) {
+            if (playwright == null) {
+                playwright = Playwright.create();
+            }
+            return playwright;
+        }
+    }
+
+    private static BrowserContext requireScenarioContext() {
+        BrowserContext ctx = CONTEXT_HOLDER.get();
+        if (ctx == null) {
+            throw new IllegalStateException(
+                "No hay BrowserContext activo en este hilo. Ejecuta startScenario() primero."
+            );
+        }
+        return ctx;
     }
 
     public static boolean isSuiteInitialized() {

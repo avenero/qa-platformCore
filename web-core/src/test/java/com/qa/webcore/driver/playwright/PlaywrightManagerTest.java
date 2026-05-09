@@ -1,5 +1,7 @@
 package com.qa.webcore.driver.playwright;
 
+import com.microsoft.playwright.APIRequest;
+import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
@@ -164,6 +166,115 @@ class PlaywrightManagerTest {
         verify(browser, times(1)).close();
         verify(playwright, times(1)).close();
         assertThat(PlaywrightManager.isSuiteInitialized()).isFalse();
+    }
+
+    @Test
+    @DisplayName("getApiContext con escenario activo retorna el request() del BrowserContext")
+    void getApiContextDuranteEscenarioCompartContextDelBrowser() {
+        Playwright playwright = mock(Playwright.class);
+        Browser browser = mock(Browser.class);
+        BrowserContext context = mock(BrowserContext.class);
+        Page page = mock(Page.class);
+        APIRequestContext sharedRequest = mock(APIRequestContext.class);
+
+        when(browser.newContext(any(Browser.NewContextOptions.class))).thenReturn(context);
+        when(context.newPage()).thenReturn(page);
+        when(context.request()).thenReturn(sharedRequest);
+
+        PlaywrightManager.setSuiteInitializerForTesting((browserName, headless) ->
+                new PlaywrightManager.SuiteResources(playwright, browser));
+        PlaywrightManager.initSuite("chromium", true);
+        PlaywrightManager.startScenario();
+
+        APIRequestContext first = PlaywrightManager.getApiContext();
+        APIRequestContext second = PlaywrightManager.getApiContext();
+
+        assertThat(first).isSameAs(sharedRequest);
+        assertThat(second).isSameAs(sharedRequest);
+        // Solo se invoca una vez; las llamadas posteriores leen el ThreadLocal.
+        verify(context, times(1)).request();
+
+        PlaywrightManager.endScenario();
+    }
+
+    @Test
+    @DisplayName("getApiContext sin escenario activo crea un context standalone cacheado")
+    void getApiContextSinEscenarioCreaStandaloneCacheado() {
+        Playwright playwright = mock(Playwright.class);
+        Browser browser = mock(Browser.class);
+        APIRequest apiRequestFactory = mock(APIRequest.class);
+        APIRequestContext standalone = mock(APIRequestContext.class);
+
+        when(playwright.request()).thenReturn(apiRequestFactory);
+        when(apiRequestFactory.newContext(any(APIRequest.NewContextOptions.class)))
+                .thenReturn(standalone);
+
+        PlaywrightManager.setSuiteInitializerForTesting((browserName, headless) ->
+                new PlaywrightManager.SuiteResources(playwright, browser));
+        PlaywrightManager.initSuite("chromium", true);
+
+        APIRequestContext first = PlaywrightManager.getApiContext();
+        APIRequestContext second = PlaywrightManager.getApiContext();
+
+        assertThat(first).isSameAs(standalone);
+        assertThat(second).isSameAs(standalone);
+        verify(apiRequestFactory, times(1)).newContext(any(APIRequest.NewContextOptions.class));
+    }
+
+    @Test
+    @DisplayName("closeSuite libera el APIRequestContext standalone")
+    void closeSuiteLiberaStandaloneApiContext() {
+        Playwright playwright = mock(Playwright.class);
+        Browser browser = mock(Browser.class);
+        APIRequest apiRequestFactory = mock(APIRequest.class);
+        APIRequestContext standalone = mock(APIRequestContext.class);
+
+        when(playwright.request()).thenReturn(apiRequestFactory);
+        when(apiRequestFactory.newContext(any(APIRequest.NewContextOptions.class)))
+                .thenReturn(standalone);
+
+        PlaywrightManager.setSuiteInitializerForTesting((browserName, headless) ->
+                new PlaywrightManager.SuiteResources(playwright, browser));
+        PlaywrightManager.initSuite("chromium", true);
+        PlaywrightManager.getApiContext();
+
+        PlaywrightManager.closeSuite();
+
+        verify(standalone, times(1)).dispose();
+    }
+
+    @Test
+    @DisplayName("endScenario limpia el ThreadLocal del APIRequestContext de escenario")
+    void endScenarioLimpiaScenarioApiContext() {
+        Playwright playwright = mock(Playwright.class);
+        Browser browser = mock(Browser.class);
+        BrowserContext context1 = mock(BrowserContext.class);
+        BrowserContext context2 = mock(BrowserContext.class);
+        Page page1 = mock(Page.class);
+        Page page2 = mock(Page.class);
+        APIRequestContext request1 = mock(APIRequestContext.class);
+        APIRequestContext request2 = mock(APIRequestContext.class);
+
+        when(browser.newContext(any(Browser.NewContextOptions.class)))
+                .thenReturn(context1, context2);
+        when(context1.newPage()).thenReturn(page1);
+        when(context2.newPage()).thenReturn(page2);
+        when(context1.request()).thenReturn(request1);
+        when(context2.request()).thenReturn(request2);
+
+        PlaywrightManager.setSuiteInitializerForTesting((browserName, headless) ->
+                new PlaywrightManager.SuiteResources(playwright, browser));
+        PlaywrightManager.initSuite("chromium", true);
+
+        PlaywrightManager.startScenario();
+        assertThat(PlaywrightManager.getApiContext()).isSameAs(request1);
+        PlaywrightManager.endScenario();
+
+        PlaywrightManager.startScenario();
+        // Tras endScenario el ThreadLocal se vacía: el segundo escenario debe resolver
+        // su propio APIRequestContext desde el nuevo BrowserContext.
+        assertThat(PlaywrightManager.getApiContext()).isSameAs(request2);
+        PlaywrightManager.endScenario();
     }
 
     @Test
