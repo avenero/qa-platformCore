@@ -81,6 +81,11 @@ subprojects {
     // =========================================================================
     dependencies {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        // TASK-H01: ArchUnit como guard de arquitectura. Cada módulo declara su
+        // ArchitectureTest en src/test/java/.../arch/. Reglas se irán añadiendo en
+        // TASK-H02 (módulos no se cruzan), TASK-H03 (common no importa especializados),
+        // TASK-H04 (BE solo importa common). Versión 1.4.0 — alineada con qa-platformBE.
+        testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
     }
 
     // =========================================================================

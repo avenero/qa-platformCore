@@ -311,7 +311,7 @@ public final class StepDiscoveryService {
      * <pre>
      *   StepDiscoveryService discovery = StepDiscoveryService.withServiceLoader();
      *   List&lt;String&gt; glue = discovery.resolveGluePaths();
-     *   // glue = ["com.qa.apicore.steps", "com.qa.webcore.steps", ...]
+     *   // glue = ["com.qa.httpcore.steps", "com.qa.webcore.steps", ...]
      * </pre>
      *
      * @return lista inmutable de paquetes Java, sin duplicados y ordenada; nunca null

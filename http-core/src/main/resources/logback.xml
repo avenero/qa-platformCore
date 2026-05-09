@@ -116,7 +116,7 @@
     <!-- LOGGERS ESPECÍFICOS DEL MÓDULO API                                    -->
     <!-- ====================================================================== -->
 
-    <logger name="com.qa.apicore" level="DEBUG" additivity="false">
+    <logger name="com.qa.httpcore" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
         <appender-ref ref="ERROR"/>
