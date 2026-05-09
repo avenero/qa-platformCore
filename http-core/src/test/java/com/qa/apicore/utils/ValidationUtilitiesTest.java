@@ -223,7 +223,7 @@ class ValidationUtilitiesTest {
         private static final String JSON_SIMPLE =
             "{\"user\":{\"name\":\"Abel\",\"age\":30,\"active\":true,\"tags\":[\"qa\",\"dev\"]}}";
         private static final String JSON_WITH_EMAIL =
-            "{\"email\":\"qa-architecture@scotiabank.com\"}";
+            "{\"email\":\"qa-architecture@example.com\"}";
 
         @Test
         @DisplayName("validateJsonPath lanza excepción cuando response es null")

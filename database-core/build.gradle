@@ -35,6 +35,8 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:5.8.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    // H2 in-memory DB for canonical step unit tests (TASK-D08)
+    testImplementation 'com.h2database:h2:2.2.224'
 }
 
 publishing {
