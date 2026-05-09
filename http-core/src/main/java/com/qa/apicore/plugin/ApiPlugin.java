@@ -16,7 +16,7 @@ import com.qa.apicore.execution.BaseUrlSource;
 import com.qa.apicore.execution.BaseUrlTracker;
 import com.qa.apicore.execution.ExecutionMeta;
 import com.qa.apicore.implementations.BaseAuthenticationManager;
-import com.qa.apicore.implementations.BaseHttpClient;
+import com.qa.apicore.factories.HttpClientFactory;
 import com.qa.apicore.interfaces.AuthenticationService;
 import com.qa.apicore.interfaces.HttpClient;
 import com.qa.apicore.utils.ApiHelper;
@@ -103,8 +103,10 @@ public class ApiPlugin implements CorePlugin {
     public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
         LOG.debug("[ApiPlugin] Registrando servicios HTTP...");
 
-        // HttpClient — inicialización lazy para no crear el cliente si el escenario no lo usa
-        registry.registerLazy(HttpClient.class, BaseHttpClient::new);
+        // HttpClient — inicialización lazy. Resuelve el motor (PLAYWRIGHT/APACHE) desde
+        // ExecutionConfig.getHttpEngine() vía HttpClientFactory.create(config) (TASK-E04).
+        // Antes de E04 esto creaba siempre BaseHttpClient (Unirest deprecated).
+        registry.registerLazy(HttpClient.class, () -> HttpClientFactory.create(config));
 
         // AuthenticationService — depende del HttpClient, resolución lazy en cadena
         registry.registerLazy(AuthenticationService.class, () -> {
