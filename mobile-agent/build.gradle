@@ -1,0 +1,81 @@
+// =============================================================================
+// mobile-agent — Spring Boot wrapper sobre InProcessTransport (TASK-I04)
+// =============================================================================
+// Empaqueta `mobile-core` + `common` como un servicio HTTP/SSE remoto. Lo
+// consume `HttpAgentTransport` (TASK-I03) cuando el BE necesita correr el
+// engine en una máquina externa con Android SDK / iOS Simulator instalado.
+//
+// Reglas inviolables (RFC-AGENT-01 §16):
+//   R-1: el BE de producción NUNCA instancia InProcessTransport directamente;
+//        siempre habla con este agente vía HttpAgentTransport.
+//   R-2: el wire protocol v1 no se rompe (campos opcionales o evento nuevo).
+//   R-5: tokens de auth NUNCA en logs (auth bearer llegará en TASK-I03).
+// =============================================================================
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.3.5'
+        classpath 'io.spring.gradle:dependency-management-plugin:1.1.6'
+    }
+}
+
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    // Core local — incluye Appium + StepReporter + InProcessTransport
+    implementation project(':mobile-core')
+    implementation project(':common')
+
+    // Spring MVC — usamos SseEmitter (NO WebFlux). Razones: stack único,
+    // sin Reactor en mente, suficiente para SSE unidireccional.
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // Jackson — alineado con root.ext.jacksonVersion (boms de Spring lo respetarán)
+    implementation "com.fasterxml.jackson.core:jackson-databind:${rootProject.ext.jacksonVersion}"
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'ch.qos.logback'
+    }
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.8.0'
+    testImplementation 'org.assertj:assertj-core:3.27.7'
+}
+
+// Spring Boot bootJar es el deliverable; el jar plain no nos interesa.
+tasks.named('bootJar') {
+    archiveBaseName.set('mobile-agent')
+    archiveVersion.set(project.version.toString())
+}
+
+tasks.named('jar') {
+    enabled = false
+}
+
+// Este módulo es una aplicación deployable, NO un artefacto reusable.
+// Desactivamos publishing para no contaminar Maven Local / GitHub Packages.
+tasks.withType(AbstractPublishToMaven).configureEach { enabled = false }
+tasks.matching { it.name.startsWith('publish') }.configureEach { enabled = false }
+tasks.matching { it.name == 'generatePomFileForMavenJavaPublication' }.configureEach { enabled = false }
+
+// SpotBugs/Checkstyle ya configurados a nivel root; mantenemos defaults.
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        showExceptions = true
+        exceptionFormat = 'short'
+    }
+}

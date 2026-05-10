@@ -57,21 +57,38 @@ public interface ExecutionTransport {
      * termine (o falle). Mientras tanto, el {@code reporter} recibe los
      * eventos de progreso (scenario start/finish, step pass/fail, etc.).
      *
-     * @param config   configuración de la ejecución, no null. Debe contener al
-     *                 menos {@code environment} y los campos relevantes para
-     *                 la capa (browser, mobile, httpEngine, etc.).
-     * @param reporter consumidor de eventos de progreso, no null. La instancia
-     *                 viaja al lugar donde corre el engine (en remoto, los
-     *                 eventos llegan via SSE y se traducen a llamadas a este
-     *                 reporter).
+     * <h3>Contrato del parámetro {@code featurePaths}</h3>
+     * <p>Cada elemento es una **ruta absoluta a un archivo {@code .feature}**
+     * accesible desde el proceso que ejecuta el engine.
+     * <ul>
+     *   <li>En modo in-process, son rutas del filesystem local del BE/test.</li>
+     *   <li>En modo remoto, el caller (BE → {@code HttpAgentTransport}) primero
+     *       sube los contenidos al agente vía {@code POST /v1/runs} (campo
+     *       {@code featureContents}); el agente los materializa en su propio
+     *       filesystem y construye las rutas locales antes de invocar al engine.
+     *       El BE NO envía rutas locales por la red.</li>
+     * </ul>
+     *
+     * @param config       configuración de la ejecución, no null. Debe contener
+     *                     al menos {@code environment} y los campos relevantes
+     *                     para la capa (browser, mobile, httpEngine, etc.).
+     * @param featurePaths rutas a archivos .feature; lista no null, puede ser
+     *                     vacía si el caller usa otra estrategia de discovery
+     *                     (raro; típicamente al menos una entrada).
+     * @param reporter     consumidor de eventos de progreso, no null. La
+     *                     instancia viaja al lugar donde corre el engine (en
+     *                     remoto los eventos llegan vía SSE y se traducen a
+     *                     llamadas a este reporter).
      * @return handle async con executionId único, future del resultado y
      *         hook de cancelación. Nunca null.
-     * @throws NullPointerException  si {@code config} o {@code reporter} son null.
+     * @throws NullPointerException  si cualquier argumento es null.
      * @throws IllegalStateException si el transport está en estado de drain o
      *                               no puede aceptar nuevos runs (sólo
      *                               implementaciones remotas).
      */
-    ExecutionHandle submit(ExecutionConfig config, StepReporter reporter);
+    ExecutionHandle submit(ExecutionConfig config,
+                           java.util.List<String> featurePaths,
+                           StepReporter reporter);
 
     /**
      * Describe las capabilities que este transport puede atender (devices,

@@ -1,0 +1,46 @@
+# =========================================================================
+# mobile-agent — configuración por defecto (TASK-I04)
+# Sobreescribir vía --server.port=8090 o variables de entorno SPRING_*
+# =========================================================================
+server:
+  port: 8090
+  shutdown: graceful
+
+spring:
+  application:
+    name: mobile-agent
+  threads:
+    virtual:
+      enabled: true     # Java 21 — virtual threads para los handlers HTTP
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+agent:
+  # Directorio raíz donde el agente materializa los .feature recibidos en
+  # el body del POST /v1/runs. Se limpia tras finalizar cada ejecución.
+  workspace: ${java.io.tmpdir}/mobile-agent
+  # Capacidad máxima del buffer SSE por ejecución (eventos en cola pendientes
+  # de envío al cliente HttpAgentTransport antes de bloquear al productor).
+  sse:
+    buffer-capacity: 1024
+  # TTL del registry de SseEmitters cuando el cliente nunca conecta a /events/{id}.
+  registry:
+    orphan-ttl-seconds: 300
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.qa.mobileagent: INFO
+    com.qa.common.transport: INFO
+    org.springframework.web: WARN
