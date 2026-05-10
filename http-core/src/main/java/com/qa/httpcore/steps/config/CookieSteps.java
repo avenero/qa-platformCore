@@ -1,6 +1,6 @@
 package com.qa.httpcore.steps.config;
 
-import com.qa.httpcore.implementations.BaseHttpClient;
+import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.interfaces.HttpRequestBuilder;
 import com.qa.common.logging.TestLogger;
@@ -23,7 +23,7 @@ public class CookieSteps {
 
     private HttpRequestBuilder getHttpRequestBuilder() {
         return ExecutionContext.current().map(ctx -> (HttpRequestBuilder) ctx.service(HttpClient.class)).
-                orElseGet(BaseHttpClient::new);
+                orElseGet(ApacheHttpClientImpl::new);
     }
 
     @Given("agrego cookie {string} con valor {string}")

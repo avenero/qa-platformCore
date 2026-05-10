@@ -1,7 +1,7 @@
 package com.qa.httpcore.steps.config;
 
 import com.qa.httpcore.implementations.BaseAuthenticationManager;
-import com.qa.httpcore.implementations.BaseHttpClient;
+import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.AuthenticationService;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.utils.ApiHelper;
@@ -30,7 +30,7 @@ public class AuthenticationSteps {
     // ─── Obtención de servicios desde el ServiceRegistry ───────────
 
     private HttpClient getHttpClient() {
-        return ExecutionContext.current().map(ctx -> ctx.service(HttpClient.class)).orElseGet(BaseHttpClient::new);
+        return ExecutionContext.current().map(ctx -> ctx.service(HttpClient.class)).orElseGet(ApacheHttpClientImpl::new);
     }
 
     private AuthenticationService getAuthentication() {

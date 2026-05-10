@@ -379,13 +379,14 @@ class ApacheHttpClientImplTest {
     }
 
     @Test
-    @DisplayName("HttpClientFactory con http.client=unirest retorna BaseHttpClient (deprecated)")
-    @SuppressWarnings("deprecation")
-    void factory_unirest_isBaseHttpClient() {
+    @DisplayName("HttpClientFactory con http.client=unirest cae a ApacheHttpClientImpl con warning (TASK-J01)")
+    void factory_unirest_fallsBackToApache() {
         System.setProperty(HttpClientFactory.CLIENT_IMPL_KEY, "unirest");
         try {
             HttpClient c = HttpClientFactory.getInstance();
-            assertThat(c).isInstanceOf(BaseHttpClient.class);
+            // BaseHttpClient eliminado en TASK-J01 — el alias legacy "unirest"
+            // ahora produce el cliente Apache para no romper configs viejas.
+            assertThat(c).isInstanceOf(ApacheHttpClientImpl.class);
         } finally {
             System.clearProperty(HttpClientFactory.CLIENT_IMPL_KEY);
         }

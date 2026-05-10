@@ -1,7 +1,7 @@
 package com.qa.httpcore.steps;
 
 import com.qa.httpcore.implementations.BaseAuthenticationManager;
-import com.qa.httpcore.implementations.BaseHttpClient;
+import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.AuthenticationService;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.utils.ApiHelper;
@@ -67,7 +67,7 @@ public class ApiScenarioHooks {
             // Standalone mode: crear y registrar los tres servicios API compartiendo
             // la MISMA instancia de HttpClient para que el estado (host, headers, body)
             // sea visible para todas las step classes del escenario.
-            HttpClient httpClient = new BaseHttpClient();
+            HttpClient httpClient = new ApacheHttpClientImpl();
             registry.registerInstance(HttpClient.class, httpClient);
             registry.registerInstance(AuthenticationService.class,
                     new BaseAuthenticationManager(httpClient));

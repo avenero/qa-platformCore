@@ -30,10 +30,9 @@ dependencies {
     // en la capa consumidora (qa-platformBE / tests).
     api 'com.microsoft.playwright:playwright:1.50.0'
 
-    // Unirest — DEPRECATED desde v2.2.0, será eliminado en v2.3.0.
-    // Mantenido como 'implementation' (no transitivo) únicamente para BaseHttpClient @Deprecated.
-    // Eliminar esta dependencia junto con BaseHttpClient en v2.3.0.
-    implementation 'com.konghq:unirest-java:3.14.5'
+    // TASK-J01 (2026-05-10): Unirest 3.14.5 eliminado del classpath junto con
+    // BaseHttpClient. Cualquier código que aún referencie kong.unirest.* debe
+    // migrar a ApacheHttpClientImpl o usar HttpClientFactory.create(config).
 
     // ===== BASE DE DATOS =====
     // NOTA: HikariCP y drivers JDBC viven en database-core (TASK-A06)

@@ -1,7 +1,10 @@
 package com.qa.httpcore.factories;
 
 import com.qa.httpcore.implementations.ApacheHttpClientImpl;
-import com.qa.httpcore.implementations.BaseHttpClient;
+// TASK-J01: BaseHttpClient (Unirest) eliminado. La opción legacy "unirest"
+// se mantiene en createForLegacyImpl() como fallback hacia Apache con
+// warning, para preservar back-compat de sistemas que aún setean
+// -Dhttp.client=unirest. Ver propuesta-desde-0-core.md §J01.
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.common.logging.TestLogger;
 import com.qa.common.runtime.ExecutionConfig;
@@ -258,13 +261,16 @@ public final class HttpClientFactory {
         return impl.trim().toLowerCase();
     }
 
-    @SuppressWarnings("removal")
     private static HttpClient createForLegacyImpl(String impl) {
         return switch (impl) {
             case IMPL_UNIREST -> {
-                LOG.warn("Usando BaseHttpClient (Unirest) que está @Deprecated(forRemoval=true). " +
-                        "Migra a HttpEngine.APACHE: -D{}={}", CLIENT_IMPL_KEY, IMPL_APACHE);
-                yield new BaseHttpClient();
+                // TASK-J01: BaseHttpClient (Unirest) eliminado del classpath.
+                // Mantener este caso como puente con warning para no romper
+                // configuraciones que aún sigan seteando -Dhttp.client=unirest.
+                LOG.warn("Implementación 'unirest' fue eliminada (TASK-J01). " +
+                        "Usando Apache HttpClient 5 como reemplazo. Limpia tu " +
+                        "configuración: -D{}={}", CLIENT_IMPL_KEY, IMPL_APACHE);
+                yield new ApacheHttpClientImpl();
             }
             default -> {
                 if (!IMPL_APACHE.equals(impl)) {

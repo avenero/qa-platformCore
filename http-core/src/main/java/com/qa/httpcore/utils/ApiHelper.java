@@ -1,6 +1,6 @@
 package com.qa.httpcore.utils;
 
-import com.qa.httpcore.implementations.BaseHttpClient;
+import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.common.config.ConfigManager;
 import com.qa.common.exception.FrameworkBusinessException;
@@ -61,7 +61,7 @@ public class ApiHelper {
      * @since 2.0.0
      */
     public ApiHelper() {
-        this(new BaseHttpClient());
+        this(new ApacheHttpClientImpl());
     }
 
     /**
@@ -89,7 +89,7 @@ public class ApiHelper {
                             // aquí y registramos AMBOS servicios para que los steps posteriores
                             // (HeaderSteps, HttpExecutionSteps, etc.) encuentren el mismo HttpClient.
                             HttpClient httpClient = ctx.registry().get(HttpClient.class).orElseGet(() -> {
-                                        HttpClient newClient = new BaseHttpClient();
+                                        HttpClient newClient = new ApacheHttpClientImpl();
                                         ctx.registry().registerInstance(HttpClient.class, newClient);
                                         return newClient;
                                     });

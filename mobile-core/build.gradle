@@ -20,9 +20,12 @@ dependencies {
     // Forzar versión segura de async-http-client para corregir CVE-2024-53990
     // Forzar versión segura de Netty (4.1.121.Final) para mitigar CVEs en io.netty:netty-codec-http
     // ✅ CVE-2024-29025 (MEDIUM): HttpPostRequestDecoder OOM — CORREGIDO en 4.1.121.Final
-    // ⚠️ CVE-2025-58056 (LOW): Request smuggling via chunk extensions — sin parche publicado aún
-    // ⚠️ CVE-2025-67735 (MEDIUM): CRLF injection in HttpRequestEncoder — sin parche publicado aún
-    // ⚠️ CVE-2026-33870 (HIGH): HTTP Request Smuggling via Chunked Extension Quoted-String — sin parche publicado aún
+    //
+    // CVEs ACEPTADOS sin parche upstream — fuente única de verdad:
+    //     docs/SECURITY_ACCEPTED_RISKS.md (TASK-J02, política de revisión cada 90 días)
+    // ⚠️ CVE-2025-58056 (LOW)    — Request smuggling via chunk extensions
+    // ⚠️ CVE-2025-67735 (MEDIUM) — CRLF injection in HttpRequestEncoder
+    // ⚠️ CVE-2026-33870 (HIGH)   — HTTP Request Smuggling via Chunked Extension Quoted-String
     // Versión 4.1.121.Final es la máxima mitigación disponible y la última estable compatible con Appium 8.6.0
     constraints {
         implementation('org.asynchttpclient:async-http-client:2.12.4') {
