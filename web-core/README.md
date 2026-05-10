@@ -1,203 +1,119 @@
-# web-core — Automatización Web Playwright-Only
+# web-core — Testing Web (Playwright + Selenium)
 
-> Módulo Core para pruebas UI Web del framework `qa-platformCore`.
-> Estado actual: **Playwright-only** (sin dependencias Selenium en código ni build).
+Módulo del `qa-platformCore` para automatización de UI Web. Default: **Playwright** (Chromium/Firefox/WebKit). Selenium WebDriver disponible como segundo motor para flujos legacy.
 
----
-
-## 1) Qué provee este módulo
-
-- Plugin runtime: `WebPlugin`
-- Motor abstracto: `BrowserEngine`
-- Implementación concreta: `PlaywrightBrowserEngine`
-- Ciclo de vida Playwright: `PlaywrightManager`
-- Steps BDD organizados por componentes (`config`, `navigation`, `interaction`, `wait`, `validation`)
-
-Este módulo no contiene locators de negocio. Los locators viven en los proyectos consumidores.
+> **Coordenada Maven:** `com.qa:web-core:<version>`
+> **Catálogo público de pasos:** [COMPONENTS.md](COMPONENTS.md) (auto-generado)
 
 ---
 
-## 2) Activación y glue
+## Tabla de contenidos
 
-- Tags de activación del plugin:
-  - `@web`
-  - `@ui`
-  - `@browser`
-  - `@playwright`
-- Glue derivado por plugin:
-  - paquetes de componentes
-  - más paquete raíz `com.qa.webcore.steps` para hooks/steps transversales
-
----
-
-## 3) Configuración relevante
-
-Propiedades principales:
-
-- `browser.engine=playwright`
-- `playwright.browser=chromium|firefox|webkit`
-- `web.headless=true|false`
-- `playwright.timeout.ms=<int>`
-- `playwright.screenshots.dir=<path>`
-- `web.base.url=<url>`
-
-Notas:
-
-- `BrowserConfigSteps` normaliza browsers:
-  - `chrome` y `chromium` -> `chromium`
-  - `safari` y `webkit` -> `webkit`
-- Defaults recomendados en CI:
-  - `browser.engine=playwright`
-  - `playwright.browser=chromium`
-  - `web.headless=true`
+1. [Propósito](#propósito)
+2. [Coordenada Maven](#coordenada-maven)
+3. [Dependencias clave](#dependencias-clave)
+4. [Capabilities reportadas](#capabilities-reportadas)
+5. [Cómo se usa standalone](#cómo-se-usa-standalone)
+6. [Configuración del browser](#configuración-del-browser)
+7. [Cómo se comunica con el exterior](#cómo-se-comunica-con-el-exterior)
+8. [Component Catalog](#component-catalog)
+9. [Reglas inviolables](#reglas-inviolables)
 
 ---
 
-## 4) Arquitectura resumida
+## Propósito
 
-```text
-ExecutionContext
-  -> WebPlugin.onScenarioStart()
-    -> PlaywrightManager.initSuite(...)
-    -> PlaywrightManager.startScenario()
-    -> register BrowserEngine (PlaywrightBrowserEngine)
+`web-core` aporta los components para diseñar escenarios de UI Web:
 
-Steps
-  -> BrowserEngine contract
-  -> WebHelper (utilidades transversales Playwright)
+- **Navegación:** apertura/cierre de browser, ir a URL, back/forward, refresh, gestión de pestañas/ventanas/iframes.
+- **Interacción:** click, input, hover, drag-drop, scroll, select, alert handling, screenshots.
+- **Esperas:** explícitas (esperar visible/clickable/text/url), implícitas configurables.
+- **Validación:** texto, atributos, visibilidad, estado de elemento, validación de tablas, validación de página completa.
+- **Configuración:** browser, headless, viewport, locale, geolocation, timezone, network throttling.
 
-ExecutionContext
-  -> WebPlugin.onScenarioEnd()
-    -> PlaywrightManager.endScenario()
+## Coordenada Maven
+
+```groovy
+dependencies {
+    api 'com.qa:web-core:2.0.0'
+}
 ```
 
----
+Trae `common` transitivamente.
 
-## 5) Ejecución local rápida
+## Dependencias clave
 
-Desde `qa-platformCore`:
+| Familia | Librería | Uso |
+|---|---|---|
+| Engine default | `com.microsoft.playwright:playwright:1.50.0` | `PlaywrightBrowserEngine` |
+| Engine legacy | `org.seleniumhq.selenium:selenium-java:4.13.0` | Selenium WebDriver |
+| Image diff | `ru.yandex.qatools.ashot` | Comparación de screenshots |
+
+> Las versiones de Playwright se alinean con `mobile-core` (Appium) — no actualizar Playwright sin verificar compat.
+
+## Capabilities reportadas
+
+`WebPlugin.describeCapabilities()` reporta `CapabilityReport.available("WEB", [...])` con descriptors de browsers configurables. Lo consume el FE para poblar el selector "Browser" del Scenario Builder.
+
+| Browser | Engine default |
+|---|---|
+| `chromium` | Playwright |
+| `firefox`  | Playwright |
+| `webkit`   | Playwright (Mac/Linux) |
+| `chrome`   | Selenium (legacy) |
+| `edge`     | Selenium (legacy) |
+
+## Cómo se usa standalone
+
+```gherkin
+Feature: Login UI standalone
+  Scenario: Login exitoso
+    Given abro el browser en "https://app.example.com/login"
+    When ingreso "user@example.com" en el campo "email"
+    And ingreso "{{password}}" en el campo "password"
+    And hago click en el botón "Iniciar sesión"
+    Then la URL contiene "/dashboard"
+    And el elemento "h1" tiene texto "Bienvenido"
+```
+
+Para correr localmente sin BE: ver el patrón en el README de [`http-core`](../http-core/README.md#cómo-se-usa-standalone).
+
+## Configuración del browser
+
+| Propiedad | Default | Notas |
+|---|---|---|
+| `web.browser` | `chromium` | Alineado con `WebConfigKeys` |
+| `web.headless` | `true` en CI / `false` local | Override por `ExecutionConfig.properties` |
+| `web.base.url` | (sin default) | URL base para steps relativos |
+| `web.grid.enabled` | `false` | Para Selenium Grid externo |
+| `web.grid.url` | — | Si grid activo |
+| `driver.strategy` | `playwright` | `playwright` / `selenium` |
+
+Las claves canónicas viven en `com.qa.webcore.config.WebConfigKeys` — usar las constantes, no literales.
+
+## Cómo se comunica con el exterior
+
+| Quién | Cómo |
+|---|---|
+| **BE** | `ExecutionConfig.browser` + propiedades `web.*`. NO importa `com.qa.webcore.*` (ArchUnit `H04 #1`). |
+| **FE** | populates el dropdown "Browser" con las capabilities reportadas por `WebPlugin`. |
+| **Engine Cucumber** | descubre `WebPlugin` vía SPI. |
+
+## Component Catalog
+
+[COMPONENTS.md](COMPONENTS.md) — auto-generado. Regenerar:
 
 ```bash
-./gradlew :web-core:test \
-  -Dbrowser.engine=playwright \
-  -Dplaywright.browser=chromium \
-  -Dweb.headless=true \
-  -Dplaywright.headless.compatibility=true
+./gradlew :web-core:test --tests "*WebComponentCatalogTest"
 ```
+
+## Reglas inviolables
+
+- **R-WEB-1:** todos los components declaran `@StepId("web.<dominio>")`. Cambios = breaking.
+- **R-WEB-2:** el módulo NO importa de `http-core`, `mobile-core` ni `database-core`.
+- **R-WEB-3:** screenshots y videos NUNCA contienen credenciales en URL — usar `*` redactado en logs.
+- **R-WEB-4:** las versiones de Playwright/Selenium se mantienen alineadas con la matriz de compat de Appium (mobile-core). No bumpear unilateralmente.
 
 ---
 
-## 6) Alcance y compatibilidad
-
-- `web-core` está migrado a Playwright.
-- `mobile-core` mantiene su stack independiente (incluye Selenium por compatibilidad Appium).
-- Existen constantes legacy en `WebConfigKeys` por compatibilidad histórica, pero la operación de `web-core` es Playwright-first.
-
----
-
-## 7) Convenciones
-
-- Contrato estable hacia afuera: steps/componentes.
-- Infraestructura interna (`driver`, `engine`, `plugin`, `utils`) puede evolucionar sin romper contratos externos.
-- Nuevas capacidades deben agregar tests de unidad y cobertura de regresión en `web-core`.
-
----
-
-## 8) Quick Reference — Steps más usados
-
-### Configuración mínima
-
-```properties
-browser.engine=playwright
-playwright.browser=chromium
-web.headless=true
-```
-
-```gherkin
-Given configuro el driver del navegador "chromium" en modo headless "true"
-```
-
-Alias soportados: `chrome` → `chromium`, `safari` → `webkit`
-
-### Navegación
-
-```gherkin
-Given actualizo URL en el navegador "https://example.com"
-When navego a la URL "https://example.com/login"
-And recargo la página
-And voy hacia atrás en el navegador
-And voy hacia adelante en el navegador
-```
-
-### Interacción
-
-```gherkin
-When hago click en el elemento "loginButton"
-And ingreso el texto "qa.user" en el elemento "username"
-And limpio el elemento "username"
-And hago doble click en el elemento "cardItem"
-And hago hover en el elemento "profileMenu"
-And selecciono el valor "UY" en el combobox "countrySelect"
-```
-
-### Esperas
-
-```gherkin
-And espero hasta que elemento "dashboard" este visible
-And espero hasta que elemento "loadingSpinner" no este visible
-And espero hasta que elemento "submitButton" este habilitado
-And espero hasta que el texto "Operación exitosa" sea visible en la página
-```
-
-Evitar esperas fijas salvo casos puntuales: `And espero 2 segundos`
-
-### Validaciones
-
-```gherkin
-Then verifico si existe el elemento "welcomeMessage"
-And verifico que el texto en "statusLabel" sea "Activo"
-And verifico que el texto en "statusLabel" contenga "Act"
-And verifico que el elemento "submitButton" este habilitado
-And verifico que el elemento "submitButton" este deshabilitado
-```
-
-### Variables temporales
-
-```gherkin
-When guardo texto del elemento "orderNumber" en variable temporal llamada "orderId"
-And guardo el valor del atributo "href" del elemento "detailLink" como "detailUrl"
-Then verifico que el texto en "orderNumberLabel" sea "{orderId}"
-```
-
-### Screenshots y evidencia
-
-```gherkin
-When capturo una imagen de la pantalla
-And adjunto a jira el archivo de texto llamado "evidencia"
-And genero archivo de texto llamado "variables-runtime" con las variables temporales
-```
-
----
-
-## 9) Categorías de Steps Disponibles
-
-| Categoría | Propósito |
-|-----------|-----------|
-| **Configuración** | browser/headless y contexto web |
-| **Navegación** | URL, back/forward, refresh, frames, ventanas |
-| **Interacción** | click, input, select, scroll, drag/drop, alertas |
-| **Esperas** | visible, oculto, habilitado, texto, load state |
-| **Validación** | elemento, página, tabla, screenshot/evidencia |
-| **Variables** | almacenamiento temporal y reutilización en steps |
-
-**Principios de diseño:**
-- Los steps trabajan sobre el contrato `BrowserEngine` (no exponen APIs de drivers legacy)
-- `WebHelper` centraliza utilidades transversales (resolución de variables, evidencia, validaciones)
-- Steps deben ser parametrizados, no hardcodeados por negocio
-- Nuevos steps requieren test unitario o de integración
-- Steps deprecated deben tener `replacedBy` explícito y plan de retiro
-
-### Troubleshooting rápido
-
-- Si falla el arranque del browser en CI: verificar instalación Playwright en pipeline, `web.headless=true`, permisos del contenedor
-- Si un step no se encuentra: verificar tag del escenario (`@web`/`@playwright`), módulo `web-core` cargado en runtime, glue derivado por plugin
+> **Para QAs/POs:** lista completa de "qué puedo hacer con Web" en [COMPONENTS.md](COMPONENTS.md).
