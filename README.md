@@ -143,10 +143,8 @@ Feature: API testing
 ./gradlew publishToMavenLocal
 
 # Regenerar todos los COMPONENTS.md (uno por módulo especializado)
-./gradlew :http-core:test --tests "*HttpComponentCatalogTest" \
-          :web-core:test --tests "*WebComponentCatalogTest" \
-          :mobile-core:test --tests "*MobileComponentCatalogTest" \
-          :database-core:test --tests "*DatabaseComponentCatalogTest"
+./gradlew generateComponentCatalog
+# (alias de los 4 :module:test --tests "*ComponentCatalogTest")
 ```
 
 **Versionado:** `<major>.<minor>.<patch>-SNAPSHOT` durante desarrollo. Releases tagueados en GitHub. Los snapshots van a Maven Local; los releases a GitHub Packages.
@@ -179,6 +177,7 @@ El BE consume vía `com.qa.common.transport.HttpAgentTransport` (TASK-I03 — JD
 |---|---|
 | [propuesta-desde-0-core.md](../propuesta-desde-0-core.md) | Plan maestro / roadmap / RFCs activos |
 | [docs/SECURITY_ACCEPTED_RISKS.md](../docs/SECURITY_ACCEPTED_RISKS.md) | Registro formal de CVEs aceptados |
+| [docs/MIGRATION_GUIDE_v2_to_v2.1.md](../docs/MIGRATION_GUIDE_v2_to_v2.1.md) | Guía de migración para consumidores externos (api-core → http-core, etc.) |
 | [common/README.md](common/README.md) | Shared kernel — SPI, runtime, reporting, SSL |
 | [`*/COMPONENTS.md`](#módulos) | Catálogo público de StepComponents por módulo |
 

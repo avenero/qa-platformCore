@@ -196,3 +196,34 @@ subprojects {
         }
     }
 }
+
+// =============================================================================
+// TASK-J03 — generateComponentCatalog
+// Aggregate task que regenera los `<module>/COMPONENTS.md` de los 4 módulos
+// especializados ejecutando el test JUnit `*ComponentCatalogTest` por módulo.
+// El test funciona como guard anti-drift en CI; este wrapper expone un alias
+// ergonómico para devs que quieren regenerar manualmente:
+//
+//   ./gradlew generateComponentCatalog
+//
+// El test es idempotente: reescribe el MD con el mismo contenido si los
+// `StepComponent` no cambiaron.
+// =============================================================================
+tasks.register('generateComponentCatalog') {
+    group       = 'documentation'
+    description = 'Regenera <module>/COMPONENTS.md para http-core, web-core, mobile-core y database-core (TASK-J03).'
+    dependsOn ':http-core:test',
+              ':web-core:test',
+              ':mobile-core:test',
+              ':database-core:test'
+    doLast {
+        ['http-core', 'web-core', 'mobile-core', 'database-core'].each { m ->
+            def f = file("${m}/COMPONENTS.md")
+            if (f.exists()) {
+                logger.lifecycle("  ✓ ${m}/COMPONENTS.md (${f.length()} bytes)")
+            } else {
+                logger.warn("  ⚠ ${m}/COMPONENTS.md no fue generado — revisar el ${m.replace('-core', 'core')}.catalog test")
+            }
+        }
+    }
+}
