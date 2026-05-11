@@ -1,6 +1,10 @@
 package com.qa.common.internal.runtime;
 
 
+
+
+import com.qa.common.api.Internal;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.spi.CorePlugin;
 import com.qa.common.api.runtime.ExecutionRequest;
 import com.qa.common.api.runtime.ExecutionResult;
@@ -47,6 +51,7 @@ import java.util.stream.StreamSupport;
  * @author Abel Venero
  * @since 2.0.0
  */
+@Internal(reason = "internal — usar api.transport.ExecutionTransport (InProcessTransport.withDefaults) para invocar el engine")
 public class CucumberRuntimeEngine {
 
     private static final Logger LOG = LoggerFactory.getLogger(CucumberRuntimeEngine.class);

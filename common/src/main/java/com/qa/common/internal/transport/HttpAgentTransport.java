@@ -1,5 +1,7 @@
 package com.qa.common.internal.transport;
 
+
+import com.qa.common.api.Internal;
 import com.qa.common.api.transport.ExecutionHandle;
 import com.qa.common.api.transport.ExecutionTransport;
 import com.qa.common.utils.security.SecurityUtilities;
@@ -76,6 +78,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Abel Venero
  * @since TASK-I03
  */
+@Internal(reason = "internal — usar api.transport.ExecutionTransport (HttpAgentTransport.builder(uri))")
 public class HttpAgentTransport implements ExecutionTransport {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpAgentTransport.class);

@@ -5,8 +5,8 @@ import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.AuthenticationService;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.internal.runtime.ExecutionContext;
-import com.qa.common.internal.runtime.ServiceRegistry;
+import com.qa.common.api.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ServiceRegistry;
 
 import io.cucumber.java.Before;
 

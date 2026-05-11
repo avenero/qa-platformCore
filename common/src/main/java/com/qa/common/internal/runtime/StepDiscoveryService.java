@@ -1,6 +1,8 @@
 package com.qa.common.internal.runtime;
 
 
+
+import com.qa.common.api.Internal;
 import com.qa.common.spi.CorePlugin;
 import com.qa.common.api.runtime.BddPhase;
 import com.qa.common.api.runtime.StepComponent;
@@ -73,6 +75,7 @@ import java.util.stream.StreamSupport;
  * @see StepMethodScanner
  * @see StepDefinitionInfo
  */
+@Internal(reason = "internal — usar api.stepcatalog.StepCatalogProvider para enumerar pasos")
 public final class StepDiscoveryService {
 
     private static final Logger LOG = LoggerFactory.getLogger(StepDiscoveryService.class);

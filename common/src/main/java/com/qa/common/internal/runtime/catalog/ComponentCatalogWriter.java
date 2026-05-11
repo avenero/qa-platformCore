@@ -1,5 +1,7 @@
 package com.qa.common.internal.runtime.catalog;
 
+
+import com.qa.common.api.Internal;
 import com.qa.common.spi.CorePlugin;
 import com.qa.common.utils.security.SecurityUtilities;
 
@@ -33,6 +35,7 @@ import java.util.Objects;
  *
  * @since TASK-J03
  */
+@Internal(reason = "internal — usado solo en test fixtures de catalog generation (TASK-J03)")
 public final class ComponentCatalogWriter {
 
     private ComponentCatalogWriter() { }

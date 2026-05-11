@@ -2,7 +2,7 @@ package com.qa.mobilecore.steps;
 
 import com.qa.common.internal.config.ConfigManager;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.mobilecore.driver.MobileDriverManager;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;

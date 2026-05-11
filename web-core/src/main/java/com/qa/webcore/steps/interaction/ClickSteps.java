@@ -1,6 +1,6 @@
 package com.qa.webcore.steps.interaction;
 
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.annotation.StepDef;
 import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;

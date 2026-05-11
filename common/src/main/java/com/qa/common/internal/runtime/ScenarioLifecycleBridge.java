@@ -1,5 +1,9 @@
 package com.qa.common.internal.runtime;
 
+
+
+import com.qa.common.api.Internal;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.LifecycleManager;
 import com.qa.common.api.runtime.ScenarioMetadata;
 import com.qa.common.utils.security.SecurityUtilities;
@@ -65,6 +69,7 @@ import java.util.stream.Collectors;
  * @see LifecycleManager
  * @see ScenarioMetadata
  */
+@Internal(reason = "internal — bridge interno Cucumber ↔ LifecycleManager")
 public final class ScenarioLifecycleBridge implements ConcurrentEventListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(ScenarioLifecycleBridge.class);

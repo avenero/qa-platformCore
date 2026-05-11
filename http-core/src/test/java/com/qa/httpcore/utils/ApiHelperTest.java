@@ -5,7 +5,7 @@ import com.qa.httpcore.utils.ApiHelper;
 import com.qa.httpcore.model.HttpMethod;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.httpcore.model.HttpResponse;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import org.junit.jupiter.api.*;
 
 import java.util.HashMap;

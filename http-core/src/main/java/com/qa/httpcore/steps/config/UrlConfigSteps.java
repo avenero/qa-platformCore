@@ -4,7 +4,7 @@ import com.qa.common.api.runtime.annotation.StepMetadata;
 import com.qa.httpcore.execution.BaseUrlSource;
 import com.qa.httpcore.plugin.ApiPlugin;
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.annotation.StepDef;
 import io.cucumber.java.en.Given;
 

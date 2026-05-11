@@ -1,4 +1,4 @@
-package com.qa.common.internal.logging;
+package com.qa.common.api.logging;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import org.slf4j.Logger;

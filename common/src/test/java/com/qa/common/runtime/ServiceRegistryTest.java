@@ -1,7 +1,7 @@
 package com.qa.common.runtime;
 
 
-import com.qa.common.internal.runtime.ServiceRegistry;
+import com.qa.common.api.runtime.ServiceRegistry;
 import org.junit.jupiter.api.*;
 
 import java.util.Optional;

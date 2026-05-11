@@ -2,7 +2,7 @@ package com.qa.webcore.utils;
 
 import com.qa.common.internal.config.ConfigManager;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.webcore.driver.engine.BrowserElement;
 import com.qa.webcore.driver.engine.BrowserEngine;
 import io.cucumber.java.Scenario;

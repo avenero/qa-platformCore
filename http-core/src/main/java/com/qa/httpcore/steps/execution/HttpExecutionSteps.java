@@ -6,7 +6,7 @@ import com.qa.httpcore.utils.ApiHelper;
 import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.model.HttpResponse;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.annotation.StepDef;
 import com.qa.common.utils.json.JsonUtilities;
 import io.cucumber.java.en.When;

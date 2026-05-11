@@ -1,4 +1,4 @@
-package com.qa.common.internal.runtime;
+package com.qa.common.api.runtime;
 
 import com.qa.common.api.runtime.ExecutionConfig;
 import com.qa.common.api.runtime.VariableStore;
@@ -49,7 +49,7 @@ public final class ExecutionContext {
      * Código del mismo paquete ({@code DefaultLifecycleManager}, tests unitarios)
      * puede usar este constructor directamente.
      */
-    ExecutionContext(ExecutionConfig config, ServiceRegistry registry,
+    public ExecutionContext(ExecutionConfig config, ServiceRegistry registry,
                     VariableStore variables, EventBus eventBus) {
         this.config = Objects.requireNonNull(config, "config no puede ser null");
         this.registry = Objects.requireNonNull(registry, "registry no puede ser null");

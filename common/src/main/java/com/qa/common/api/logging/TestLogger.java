@@ -1,6 +1,6 @@
 package com.qa.common.api.logging;
 
-import com.qa.common.internal.logging.LoggingInitializer;
+import com.qa.common.api.logging.LoggingInitializer;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import org.slf4j.Logger;

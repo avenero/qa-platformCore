@@ -7,7 +7,7 @@ import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.model.HttpResponse;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.utils.json.JsonUtilities;
 import com.qa.common.utils.text.TextUtilities;
 import java.nio.charset.StandardCharsets;

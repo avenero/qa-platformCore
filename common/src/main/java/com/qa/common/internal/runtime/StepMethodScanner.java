@@ -1,5 +1,7 @@
 package com.qa.common.internal.runtime;
 
+
+import com.qa.common.api.Internal;
 import com.qa.common.api.runtime.BddPhase;
 import com.qa.common.api.runtime.ParamInfo;
 import com.qa.common.api.runtime.StepDefinitionInfo;
@@ -83,6 +85,7 @@ import java.util.stream.Collectors;
  * @see StepDiscoveryService#discoverAllStepDefs()
  * @see com.qa.common.api.runtime.annotation.StepDef
  */
+@Internal(reason = "internal — scanner reflectivo del engine")
 public final class StepMethodScanner {
 
     private static final Logger LOG = LoggerFactory.getLogger(StepMethodScanner.class);

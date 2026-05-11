@@ -57,4 +57,31 @@ class ArchitectureTest {
                     .and().resideInAPackage("com.qa.mobileagent..")
                     .should().resideInAPackage("..api.dto..")
                     .because("Wire-protocol records viven juntos para evolución controlada");
+
+    /**
+     * TASK-K02 — mobile-agent es Core-internal (wraps el InProcessTransport del Core
+     * y lo expone via HTTP/SSE). Por diseño accede a `common.internal.transport.*`
+     * (R-MA-1 ya documenta el patrón). El whitelist captura los FQNs aprobados.
+     */
+    private static final java.util.Set<String> K02_INTERNAL_WHITELIST = java.util.Set.of(
+            "com.qa.common.internal.transport.InProcessTransport"
+    );
+
+    @ArchTest
+    static final com.tngtech.archunit.lang.ArchRule R_K02_mobileagent_internal_whitelist =
+            noClasses().that().resideInAPackage("com.qa.mobileagent..")
+                    .should().dependOnClassesThat(
+                            new com.tngtech.archunit.base.DescribedPredicate<com.tngtech.archunit.core.domain.JavaClass>(
+                                    "com.qa.common.internal.* (no whitelisted TASK-K02)") {
+                                @Override
+                                public boolean test(com.tngtech.archunit.core.domain.JavaClass jc) {
+                                    String n = jc.getFullName();
+                    if (!n.startsWith("com.qa.common.internal.")) return false;
+                    int d = n.indexOf("$");
+                    String tl = d > 0 ? n.substring(0, d) : n;
+                    return !K02_INTERNAL_WHITELIST.contains(tl);
+                                }
+                            })
+                    .because("mobile-agent solo accede a common.internal.transport.InProcessTransport "
+                            + "(R-MA-1 + TASK-K02 whitelist). Cualquier otro acceso a internal es violación.");
 }

@@ -1,6 +1,6 @@
 package com.qa.common.utils;
 
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.VariableStore;
 import org.junit.jupiter.api.*;
 

@@ -2,7 +2,7 @@ package com.qa.common.utils.text;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 
 import java.util.Locale;
 import java.util.Set;

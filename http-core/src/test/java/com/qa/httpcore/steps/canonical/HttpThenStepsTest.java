@@ -5,7 +5,7 @@ import com.qa.httpcore.model.HttpMethod;
 import com.qa.httpcore.model.HttpResponse;
 import com.qa.httpcore.utils.ApiHelper;
 import com.qa.common.api.exception.FrameworkBusinessException;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

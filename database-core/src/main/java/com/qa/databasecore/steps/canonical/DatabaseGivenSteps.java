@@ -4,7 +4,7 @@ import com.qa.databasecore.connector.DatabaseConnector;
 import com.qa.databasecore.factory.DbConnectorFactory;
 import com.qa.databasecore.helper.DatabaseHelper;
 import com.qa.common.api.exception.FrameworkBusinessException;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Given;
 

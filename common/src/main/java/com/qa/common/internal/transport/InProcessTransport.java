@@ -1,6 +1,8 @@
 package com.qa.common.internal.transport;
 
 
+
+import com.qa.common.api.Internal;
 import com.qa.common.api.transport.ExecutionHandle;
 import com.qa.common.api.transport.ExecutionTransport;
 import com.qa.common.api.driver.CapabilityReport;
@@ -69,6 +71,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @see ExecutionTransport
  * @see CucumberRuntimeEngine
  */
+@Internal(reason = "internal — usar api.transport.ExecutionTransport (InProcessTransport.withDefaults / withEngine)")
 public class InProcessTransport implements ExecutionTransport {
 
     private static final Logger LOG = LoggerFactory.getLogger(InProcessTransport.class);

@@ -21,7 +21,7 @@ import java.time.Duration;
  *
  * <p>Combina el patrón factory (creación de sesiones Appium) con la gestión del ciclo
  * de vida: una instancia de esta clase vive un escenario BDD y se registra en el
- * {@link com.qa.common.internal.runtime.ServiceRegistry} por {@link com.qa.mobilecore.plugin.MobilePlugin}.
+ * {@link com.qa.common.api.runtime.ServiceRegistry} por {@link com.qa.mobilecore.plugin.MobilePlugin}.
  *
  * <h2>Ciclo de vida</h2>
  * <pre>
@@ -78,7 +78,7 @@ public class MobileDriverFactory {
 
     /**
      * Crea una nueva instancia que lee configuración de {@link ConfigManager}.
-     * Invocado por el supplier lazy de {@link com.qa.common.internal.runtime.ServiceRegistry}.
+     * Invocado por el supplier lazy de {@link com.qa.common.api.runtime.ServiceRegistry}.
      */
     public MobileDriverFactory() {
         this.config = ConfigManager.getInstance();

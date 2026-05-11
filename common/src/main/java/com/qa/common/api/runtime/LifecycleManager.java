@@ -1,7 +1,7 @@
 package com.qa.common.api.runtime;
 
 
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.utils.security.SecurityUtilities;
 
 /**

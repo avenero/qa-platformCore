@@ -1,9 +1,13 @@
 package com.qa.webcore.arch;
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+
+import java.util.Set;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.GeneralCodingRules.NO_CLASSES_SHOULD_ACCESS_STANDARD_STREAMS;
@@ -38,4 +42,26 @@ public class ArchitectureTest {
                     "com.qa.mobilecore..",
                     "com.qa.databasecore..")
             .as("web-core no debe importar http-core, mobile-core ni database-core");
+
+    /** TASK-K02 — whitelist de internals legítimos. */
+    private static final Set<String> K02_INTERNAL_WHITELIST = Set.of(
+            // TASK-K03 reemplazará con TypedConfig (api/config/)
+            "com.qa.common.internal.config.ConfigManager"
+    );
+
+    @ArchTest
+    static final ArchRule webcore_does_not_import_common_internal_except_whitelist = noClasses()
+            .that().resideInAPackage("com.qa.webcore..")
+            .should().dependOnClassesThat(new DescribedPredicate<JavaClass>(
+                    "com.qa.common.internal.* (no whitelisted TASK-K02)") {
+                @Override public boolean test(JavaClass jc) {
+                    String n = jc.getFullName();
+                    if (!n.startsWith("com.qa.common.internal.")) return false;
+                    int d = n.indexOf("$");
+                    String tl = d > 0 ? n.substring(0, d) : n;
+                    return !K02_INTERNAL_WHITELIST.contains(tl);
+                }
+            })
+            .as("web-core no debe importar com.qa.common.internal.* (R-K02-2). "
+                + "Excepciones aprobadas en whitelist con plan de salida.");
 }

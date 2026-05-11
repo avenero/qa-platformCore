@@ -1,4 +1,6 @@
 package com.qa.common.internal.ssl;
+
+import com.qa.common.api.Internal;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import javax.net.ssl.SSLContext;
@@ -32,6 +34,7 @@ import java.security.cert.X509Certificate;
  *
  * @since 2.1.0
  */
+@Internal(reason = "internal — TASK-K05/K06 introducirá api/ssl/SslContextPort si externalizamos")
 public final class SSLContextFactory {
 
     private static final String TLS = "TLS";

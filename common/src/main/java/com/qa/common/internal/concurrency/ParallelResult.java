@@ -1,5 +1,7 @@
 package com.qa.common.internal.concurrency;
 
+
+import com.qa.common.api.Internal;
 import com.qa.common.utils.security.SecurityUtilities;
 
 /**
@@ -11,6 +13,7 @@ import com.qa.common.utils.security.SecurityUtilities;
  * @param error     excepción capturada (null si success o timed-out)
  * @since 2.1.0
  */
+@Internal(reason = "internal — usar api/runtime para inspeccionar resultados de ejecución")
 public record ParallelResult(boolean success, boolean timedOut, Object value, Throwable error) {
 
     public static ParallelResult success(Object value) {

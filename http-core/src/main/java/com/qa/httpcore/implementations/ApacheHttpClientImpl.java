@@ -63,7 +63,7 @@ import com.qa.common.internal.ssl.SSLContextFactory;
  * (headers, body, cookies, etc.) es mutable y pertenece a un único escenario BDD.
  * Para ejecuciones paralelas, cada hilo debe usar su propia instancia
  * (gestionada por {@link com.qa.httpcore.factories.HttpClientFactory} y el
- * {@link com.qa.common.internal.runtime.ServiceRegistry}).
+ * {@link com.qa.common.api.runtime.ServiceRegistry}).
  *
  * @author Abel Venero
  * @version 2.2.0

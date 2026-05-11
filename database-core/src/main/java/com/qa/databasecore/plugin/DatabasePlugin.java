@@ -9,8 +9,8 @@ import com.qa.databasecore.helper.DatabaseHelper;
 import com.qa.common.api.driver.CapabilityDescriptor;
 import com.qa.common.api.driver.CapabilityReport;
 import com.qa.common.api.runtime.ExecutionConfig;
-import com.qa.common.internal.runtime.ExecutionContext;
-import com.qa.common.internal.runtime.ServiceRegistry;
+import com.qa.common.api.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ServiceRegistry;
 import com.qa.common.api.runtime.StepComponent;
 
 import org.slf4j.Logger;

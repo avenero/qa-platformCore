@@ -1,5 +1,7 @@
 package com.qa.common.internal.runtime;
 
+
+import com.qa.common.api.Internal;
 import com.qa.common.api.runtime.ExecutionResult;
 import com.qa.common.utils.security.SecurityUtilities;
 
@@ -42,6 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @see CucumberRuntimeEngine
  * @see ExecutionResult
  */
+@Internal(reason = "internal — recolector interno del engine")
 public final class InMemoryResultCollector implements ConcurrentEventListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(InMemoryResultCollector.class);

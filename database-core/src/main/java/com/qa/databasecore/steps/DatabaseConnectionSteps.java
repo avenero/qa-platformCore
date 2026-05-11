@@ -5,7 +5,7 @@ import com.qa.databasecore.helper.DatabaseHelper;
 import com.qa.databasecore.connector.DatabaseConnector;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;

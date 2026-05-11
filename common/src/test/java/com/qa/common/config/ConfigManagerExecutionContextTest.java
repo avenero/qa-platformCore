@@ -3,7 +3,7 @@ package com.qa.common.config;
 
 import com.qa.common.internal.config.ConfigManager;
 import com.qa.common.api.runtime.ExecutionConfig;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

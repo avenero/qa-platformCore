@@ -3,8 +3,8 @@ package com.qa.common.internal.runtime;
 
 import com.qa.common.api.runtime.ExecutionConfig;
 import com.qa.common.api.runtime.VariableStore;
-import com.qa.common.internal.runtime.ExecutionContext;
-import com.qa.common.internal.runtime.ServiceRegistry;
+import com.qa.common.api.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ServiceRegistry;
 import com.qa.common.api.runtime.events.EventBus;
 import com.qa.common.api.runtime.events.ExecutionEvent;
 import org.junit.jupiter.api.*;

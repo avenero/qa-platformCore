@@ -1,8 +1,10 @@
 package com.qa.common.internal.config;
+
+import com.qa.common.api.Internal;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.internal.config.ConfigurationUtilities;
 
 import java.util.Optional;
@@ -70,6 +72,7 @@ import java.util.regex.Pattern;
  * @see ExecutionContext
  * @see com.qa.common.api.runtime.ExecutionConfig
  */
+@Internal(reason = "internal — TASK-K03 introducirá api/config/TypedConfig como reemplazo")
 public class ConfigManager {
 
     private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(ConfigManager.class);

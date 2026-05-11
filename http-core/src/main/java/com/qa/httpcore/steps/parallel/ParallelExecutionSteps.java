@@ -3,7 +3,7 @@ package com.qa.httpcore.steps.parallel;
 import com.qa.httpcore.factories.HttpClientFactory;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.internal.concurrency.ParallelResult;
 import com.qa.common.internal.concurrency.ParallelStepExecutor;
 import io.cucumber.java.en.Given;

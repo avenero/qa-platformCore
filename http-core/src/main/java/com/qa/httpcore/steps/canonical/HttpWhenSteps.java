@@ -5,7 +5,7 @@ import com.qa.httpcore.model.HttpMethod;
 import com.qa.httpcore.utils.ApiHelper;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.common.api.exception.FrameworkTechnicalException;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.annotation.StepDef;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.When;

@@ -1,6 +1,11 @@
 package com.qa.common.internal.runtime;
 
 
+
+
+import com.qa.common.api.Internal;
+import com.qa.common.api.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ServiceRegistry;
 import com.qa.common.spi.CorePlugin;
 import com.qa.common.api.runtime.ExecutionConfig;
 import com.qa.common.api.runtime.ExecutionRequest;
@@ -39,6 +44,7 @@ import java.util.stream.Collectors;
  * @author Abel Venero
  * @since 2.0.0
  */
+@Internal(reason = "internal — usar api.runtime.LifecycleManager (contrato) inyectado por SPI")
 public final class DefaultLifecycleManager implements LifecycleManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultLifecycleManager.class);

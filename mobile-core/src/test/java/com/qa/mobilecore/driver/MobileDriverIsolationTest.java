@@ -1,6 +1,6 @@
 package com.qa.mobilecore.driver;
 
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import io.appium.java_client.AppiumDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Tests de concurrencia para el aislamiento del {@link AppiumDriver} vía
- * {@link MobileDriverFactory} y {@link com.qa.common.internal.runtime.ServiceRegistry}.
+ * {@link MobileDriverFactory} y {@link com.qa.common.api.runtime.ServiceRegistry}.
  *
  * <p>Valida que dos ejecuciones BDD móviles corriendo en paralelo utilizan instancias
  * de {@link AppiumDriver} completamente distintas: cada {@link MobileDriverFactory} vive

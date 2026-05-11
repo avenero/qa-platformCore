@@ -2,8 +2,8 @@ package com.qa.mobilecore.plugin;
 
 import com.qa.common.api.runtime.BddPhase;
 import com.qa.common.api.runtime.ExecutionConfig;
-import com.qa.common.internal.runtime.ExecutionContext;
-import com.qa.common.internal.runtime.ServiceRegistry;
+import com.qa.common.api.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ServiceRegistry;
 import com.qa.common.api.runtime.StepComponent;
 import com.qa.mobilecore.driver.MobileDriverFactory;
 import com.qa.mobilecore.driver.MobileDriverManager;

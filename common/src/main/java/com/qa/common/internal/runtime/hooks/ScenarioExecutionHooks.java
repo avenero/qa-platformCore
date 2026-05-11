@@ -1,8 +1,10 @@
 package com.qa.common.internal.runtime.hooks;
+
+import com.qa.common.api.Internal;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
@@ -25,6 +27,7 @@ import io.cucumber.java.Scenario;
  * @author Abel Venero
  * @since 2.0.0
  */
+@Internal(reason = "internal — hooks Cucumber del engine")
 public class ScenarioExecutionHooks {
 
     /** Bandera interna para saber si este hook creó el contexto (y debe limpiarlo). */

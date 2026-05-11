@@ -4,7 +4,7 @@ import com.qa.databasecore.connector.DatabaseConnector;
 import com.qa.databasecore.context.QueryResultContext;
 import com.qa.databasecore.factory.DbConnectorFactory;
 import com.qa.common.api.exception.FrameworkBusinessException;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import io.cucumber.java.After;
 import io.cucumber.java.en.Then;
 import org.assertj.core.api.Assertions;

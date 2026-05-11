@@ -1,4 +1,6 @@
 package com.qa.common.internal.config;
+
+import com.qa.common.api.Internal;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -94,6 +96,7 @@ import java.util.Properties;
  * @version 1.0.0
  * @since 1.0.0
  */
+@Internal(reason = "internal — TASK-K03 introducirá api/config como reemplazo tipado")
 public final class ConfigurationUtilities {
 
     private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(ConfigurationUtilities.class);

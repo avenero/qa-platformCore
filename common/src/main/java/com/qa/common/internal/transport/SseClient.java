@@ -1,4 +1,6 @@
 package com.qa.common.internal.transport;
+
+import com.qa.common.api.Internal;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import org.slf4j.Logger;
@@ -36,6 +38,7 @@ import java.util.stream.Stream;
  *
  * @since TASK-I03
  */
+@Internal(reason = "internal — utilidad del HttpAgentTransport, no usar directamente")
 public final class SseClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(SseClient.class);

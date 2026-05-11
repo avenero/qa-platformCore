@@ -1,7 +1,7 @@
 package com.qa.mobilecore.steps.validation;
 
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.mobilecore.helper.MobileHelper;
 import io.cucumber.java.en.Then;
 import org.assertj.core.api.Assertions;

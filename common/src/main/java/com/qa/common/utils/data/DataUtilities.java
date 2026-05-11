@@ -5,7 +5,7 @@ import com.qa.common.utils.text.TextUtilities;
 import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.ExecutionContext;
 
 import java.util.Map;
 import java.util.regex.Matcher;
