@@ -3,7 +3,7 @@ package com.qa.httpcore.factories;
 import com.qa.httpcore.implementations.BaseAuthenticationManager;
 import com.qa.httpcore.interfaces.AuthenticationService;
 import com.qa.httpcore.interfaces.HttpClient;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 
 /**
  * Factory para crear instancias de AuthenticationService del QA Automation Framework.

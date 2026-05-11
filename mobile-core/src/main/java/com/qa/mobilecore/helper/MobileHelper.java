@@ -1,7 +1,7 @@
 package com.qa.mobilecore.helper;
 
-import com.qa.common.config.ConfigManager;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.logging.TestLogger;
 import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.driver.MobileDriverFactory;
 import com.qa.mobilecore.driver.MobileDriverManager;
@@ -30,7 +30,7 @@ import java.util.Set;
  * <p>Centraliza toda la interacción con Appium para los steps BDD.
  * Análogo a {@code WebHelper} de {@code web-core}.
  *
- * <p>Se registra en el {@link com.qa.common.runtime.ServiceRegistry} por {@code MobilePlugin}
+ * <p>Se registra en el {@link com.qa.common.internal.runtime.ServiceRegistry} por {@code MobilePlugin}
  * y se accede desde los steps vía:
  * <pre>
  * MobileHelper mobile = ExecutionContext.requireCurrent().service(MobileHelper.class);

@@ -1,8 +1,8 @@
 package com.qa.mobilecore.driver;
 
-import com.qa.common.pool.CapabilityDescriptor;
-import com.qa.common.pool.CapabilityRegistry;
-import com.qa.common.pool.DeviceHandle;
+import com.qa.common.api.pool.CapabilityDescriptor;
+import com.qa.common.api.pool.CapabilityRegistry;
+import com.qa.common.api.pool.DeviceHandle;
 import com.qa.mobilecore.model.DeviceStatus;
 import com.qa.mobilecore.model.DeviceType;
 import com.qa.mobilecore.pool.DevicePool;

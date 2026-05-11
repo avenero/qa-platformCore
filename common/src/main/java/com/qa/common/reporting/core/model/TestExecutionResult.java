@@ -1,4 +1,5 @@
 package com.qa.common.reporting.core.model;
+import com.qa.common.utils.security.SecurityUtilities;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

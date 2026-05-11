@@ -1,4 +1,5 @@
 package com.qa.common.reporting.core.config;
+import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.HashMap;
 import java.util.Map;

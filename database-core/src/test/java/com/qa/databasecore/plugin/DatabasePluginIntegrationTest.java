@@ -1,14 +1,15 @@
 package com.qa.databasecore.plugin;
 
-import com.qa.common.runtime.BddPhase;
-import com.qa.common.runtime.CorePlugin;
-import com.qa.common.runtime.CucumberRuntimeEngine;
-import com.qa.common.runtime.DefaultLifecycleManager;
-import com.qa.common.runtime.ExecutionConfig;
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.LifecycleManager;
-import com.qa.common.runtime.ServiceRegistry;
-import com.qa.common.runtime.StepDiscoveryService;
+
+import com.qa.common.spi.CorePlugin;
+import com.qa.common.api.runtime.BddPhase;
+import com.qa.common.internal.runtime.CucumberRuntimeEngine;
+import com.qa.common.internal.runtime.DefaultLifecycleManager;
+import com.qa.common.api.runtime.ExecutionConfig;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.LifecycleManager;
+import com.qa.common.internal.runtime.ServiceRegistry;
+import com.qa.common.internal.runtime.StepDiscoveryService;
 import com.qa.databasecore.helper.DatabaseHelper;
 import org.junit.jupiter.api.*;
 

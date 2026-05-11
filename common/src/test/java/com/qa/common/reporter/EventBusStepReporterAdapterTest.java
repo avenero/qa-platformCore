@@ -1,8 +1,13 @@
 package com.qa.common.reporter;
 
-import com.qa.common.runtime.ExecutionResult;
-import com.qa.common.runtime.events.EventBus;
-import com.qa.common.runtime.events.ExecutionEvent;
+
+import com.qa.common.api.reporter.EventBusStepReporterAdapter;
+import com.qa.common.api.reporter.EventDataKeys;
+import com.qa.common.api.reporter.ScenarioOutcome;
+import com.qa.common.api.reporter.StepReporter;
+import com.qa.common.api.runtime.ExecutionResult;
+import com.qa.common.api.runtime.events.EventBus;
+import com.qa.common.api.runtime.events.ExecutionEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

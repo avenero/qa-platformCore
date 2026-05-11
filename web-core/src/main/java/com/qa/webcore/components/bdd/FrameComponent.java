@@ -1,9 +1,9 @@
 package com.qa.webcore.components.bdd;
 
 import com.qa.webcore.steps.navigation.FrameSteps;
-import com.qa.common.runtime.BddPhase;
-import com.qa.common.runtime.StepComponent;
-import com.qa.common.runtime.annotation.StepId;
+import com.qa.common.api.runtime.BddPhase;
+import com.qa.common.api.runtime.StepComponent;
+import com.qa.common.api.runtime.annotation.StepId;
 
 import java.util.List;
 import java.util.Map;

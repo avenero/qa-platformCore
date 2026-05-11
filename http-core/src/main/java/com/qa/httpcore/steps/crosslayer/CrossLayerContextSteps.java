@@ -1,8 +1,8 @@
 package com.qa.httpcore.steps.crosslayer;
 
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.StepExecutionContext;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.internal.runtime.StepExecutionContext;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;

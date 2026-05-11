@@ -1,6 +1,6 @@
 package com.qa.databasecore.service;
 
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;

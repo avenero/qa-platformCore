@@ -1,7 +1,7 @@
 package com.qa.mobilecore.steps.device;
 
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
 import com.qa.mobilecore.helper.MobileHelper;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;

@@ -1,11 +1,12 @@
 package com.qa.common.reporting.extent.generator;
+import com.qa.common.utils.security.SecurityUtilities;
 
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
 import com.aventstack.extentreports.Status;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import com.aventstack.extentreports.reporter.configuration.Theme;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import com.qa.common.reporting.core.config.ExtentConfig;
 import com.qa.common.reporting.core.model.Attachment;
 import com.qa.common.reporting.core.model.EnvironmentInfo;

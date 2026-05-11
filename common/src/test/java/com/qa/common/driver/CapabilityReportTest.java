@@ -1,5 +1,9 @@
 package com.qa.common.driver;
 
+import com.qa.common.api.driver.CapabilityDescriptor;
+
+
+import com.qa.common.api.driver.CapabilityReport;
 import org.junit.jupiter.api.*;
 
 import java.util.ArrayList;

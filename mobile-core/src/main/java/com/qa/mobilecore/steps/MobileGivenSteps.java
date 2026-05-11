@@ -1,6 +1,6 @@
 package com.qa.mobilecore.steps;
 
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.internal.runtime.ExecutionContext;
 import com.qa.mobilecore.helper.MobileHelper;
 import io.cucumber.java.en.Given;
 import org.assertj.core.api.Assertions;

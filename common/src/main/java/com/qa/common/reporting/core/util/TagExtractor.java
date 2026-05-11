@@ -1,4 +1,5 @@
 package com.qa.common.reporting.core.util;
+import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.List;
 import java.util.regex.Matcher;

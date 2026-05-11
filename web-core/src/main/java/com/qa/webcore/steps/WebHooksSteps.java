@@ -1,8 +1,8 @@
 package com.qa.webcore.steps;
 
-import com.qa.common.config.ConfigManager;
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;

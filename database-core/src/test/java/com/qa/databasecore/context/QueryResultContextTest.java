@@ -1,7 +1,7 @@
 package com.qa.databasecore.context;
 
 import com.qa.databasecore.connector.DatabaseConnector;
-import com.qa.common.exception.FrameworkBusinessException;
+import com.qa.common.api.exception.FrameworkBusinessException;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,7 +1,7 @@
 package com.qa.httpcore.steps.validation;
 
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.exception.FrameworkBusinessException;
+import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.httpcore.model.HttpResponse;
 import io.cucumber.java.en.Then;
 import org.assertj.core.api.Assertions;

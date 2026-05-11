@@ -1,7 +1,7 @@
 package com.qa.httpcore.steps.validation;
 
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.internal.runtime.ExecutionContext;
 import io.cucumber.java.en.Then;
 import java.nio.charset.StandardCharsets;
 import org.assertj.core.api.Assertions;

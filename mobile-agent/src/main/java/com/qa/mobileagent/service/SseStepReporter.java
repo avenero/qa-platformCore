@@ -1,8 +1,8 @@
 package com.qa.mobileagent.service;
 
-import com.qa.common.reporter.ScenarioOutcome;
-import com.qa.common.reporter.StepReporter;
-import com.qa.common.runtime.ExecutionResult;
+import com.qa.common.api.reporter.ScenarioOutcome;
+import com.qa.common.api.reporter.StepReporter;
+import com.qa.common.api.runtime.ExecutionResult;
 import com.qa.mobileagent.api.dto.AgentEvent;
 
 import java.time.Duration;

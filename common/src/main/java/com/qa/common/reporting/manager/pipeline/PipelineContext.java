@@ -1,4 +1,5 @@
 package com.qa.common.reporting.manager.pipeline;
+import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.reporting.core.config.ReportingConfig;
 import com.qa.common.reporting.core.model.TestExecutionResult;

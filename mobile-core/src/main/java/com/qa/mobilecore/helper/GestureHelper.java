@@ -1,7 +1,7 @@
 package com.qa.mobilecore.helper;
 
-import com.qa.common.driver.Gesture;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.driver.Gesture;
+import com.qa.common.api.logging.TestLogger;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;

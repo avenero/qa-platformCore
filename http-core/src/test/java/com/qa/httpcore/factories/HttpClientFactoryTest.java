@@ -2,8 +2,8 @@ package com.qa.httpcore.factories;
 
 import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.HttpClient;
-import com.qa.common.runtime.ExecutionConfig;
-import com.qa.common.runtime.HttpEngine;
+import com.qa.common.api.runtime.ExecutionConfig;
+import com.qa.common.api.runtime.HttpEngine;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

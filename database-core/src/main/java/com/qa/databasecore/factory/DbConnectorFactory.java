@@ -1,12 +1,14 @@
 package com.qa.databasecore.factory;
 
+
+import com.qa.common.internal.config.ConfigManager;
 import com.qa.databasecore.config.DatabaseConfig;
 import com.qa.databasecore.connector.MySQLConnector;
 import com.qa.databasecore.connector.OracleConnector;
 import com.qa.databasecore.connector.PostgreSQLConnector;
 import com.qa.databasecore.connector.SQLServerConnector;
 import com.qa.databasecore.connector.DatabaseConnector;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import com.zaxxer.hikari.HikariDataSource;
 
 import javax.sql.DataSource;
@@ -195,8 +197,8 @@ public class DbConnectorFactory {
      * @throws IllegalArgumentException Si faltan configuraciones requeridas
      */
     public static DatabaseConnector createFromConfig() {
-        com.qa.common.config.ConfigManager config =
-            com.qa.common.config.ConfigManager.getInstance();
+        com.qa.common.internal.config.ConfigManager config =
+            com.qa.common.internal.config.ConfigManager.getInstance();
 
         String jdbcUrl = config.get("db.url");
         String username = config.get("db.username");
@@ -425,8 +427,8 @@ public class DbConnectorFactory {
      * @return DatabaseConnector configurado
      */
     private static DatabaseConnector getConnectorFromConfigManager(String dbType) {
-        com.qa.common.config.ConfigManager config =
-            com.qa.common.config.ConfigManager.getInstance();
+        com.qa.common.internal.config.ConfigManager config =
+            com.qa.common.internal.config.ConfigManager.getInstance();
 
         String urlKey = dbType + ".db.url";
         String usernameKey = dbType + ".db.username";

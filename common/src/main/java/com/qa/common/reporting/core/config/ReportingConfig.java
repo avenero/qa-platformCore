@@ -1,7 +1,8 @@
 package com.qa.common.reporting.core.config;
+import com.qa.common.utils.security.SecurityUtilities;
 
-import com.qa.common.config.ConfigManager;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.logging.TestLogger;
 
 import java.util.Properties;
 

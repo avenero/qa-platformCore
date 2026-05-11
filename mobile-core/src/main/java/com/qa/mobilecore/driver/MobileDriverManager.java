@@ -1,6 +1,6 @@
 package com.qa.mobilecore.driver;
 
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import io.appium.java_client.AppiumDriver;
 
 /**

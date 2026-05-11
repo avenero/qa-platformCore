@@ -1,6 +1,7 @@
 package com.qa.common.reporting.extent.generator;
+import com.qa.common.utils.security.SecurityUtilities;
 
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import com.qa.common.reporting.core.config.ReportingConfig;
 import com.qa.common.reporting.manager.pipeline.PipelineResult;
 import com.qa.common.reporting.manager.pipeline.ReportingPipeline;

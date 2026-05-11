@@ -1,7 +1,7 @@
 package com.qa.httpcore.reporting.util;
 
 import com.qa.httpcore.reporting.model.HttpStepDetail;
-import com.qa.common.utils.TextUtilities;
+import com.qa.common.utils.text.TextUtilities;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;

@@ -1,6 +1,7 @@
 package com.qa.common.runtime.parallel;
+import com.qa.common.utils.security.SecurityUtilities;
 
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 
 import java.util.ArrayList;
 import java.util.Collections;

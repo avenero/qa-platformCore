@@ -5,10 +5,10 @@ import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.AuthenticationService;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.exception.FrameworkBusinessException;
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.annotation.StepDef;
+import com.qa.common.api.exception.FrameworkBusinessException;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.annotation.StepDef;
 import io.cucumber.java.en.Given;
 import java.util.Map;
 

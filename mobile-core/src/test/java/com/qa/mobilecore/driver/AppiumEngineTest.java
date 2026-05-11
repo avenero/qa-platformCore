@@ -1,8 +1,8 @@
 package com.qa.mobilecore.driver;
 
-import com.qa.common.driver.ElementLocator;
-import com.qa.common.driver.UiDriver;
-import com.qa.common.runtime.ExecutionConfig;
+import com.qa.common.api.driver.ElementLocator;
+import com.qa.common.api.driver.UiDriver;
+import com.qa.common.api.runtime.ExecutionConfig;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
 import org.junit.jupiter.api.Nested;

@@ -1,6 +1,6 @@
 package com.qa.mobileagent.api.controller;
 
-import com.qa.common.driver.CapabilityReport;
+import com.qa.common.api.driver.CapabilityReport;
 import com.qa.mobileagent.service.AgentExecutionService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

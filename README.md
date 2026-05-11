@@ -178,6 +178,9 @@ El BE consume vía `com.qa.common.transport.HttpAgentTransport` (TASK-I03 — JD
 | [propuesta-desde-0-core.md](../propuesta-desde-0-core.md) | Plan maestro / roadmap / RFCs activos |
 | [docs/SECURITY_ACCEPTED_RISKS.md](../docs/SECURITY_ACCEPTED_RISKS.md) | Registro formal de CVEs aceptados |
 | [docs/MIGRATION_GUIDE_v2_to_v2.1.md](../docs/MIGRATION_GUIDE_v2_to_v2.1.md) | Guía de migración para consumidores externos (api-core → http-core, etc.) |
+| [docs/COMMON_PACKAGE_MAP.md](../docs/COMMON_PACKAGE_MAP.md) | TASK-K01 Phase A — mapa canónico de paquetes de `common` + árbol de decisión + plan de rollout |
+| [docs/K01_PHASE_B_SUBTASKS.md](../docs/K01_PHASE_B_SUBTASKS.md) | TASK-K01 Phase B — diseño detallado de las 6 sub-tasks K01-A..F (scope, riesgos, las 10 puertas) |
+| [docs/ROADMAP_TASK_MAP.md](../docs/ROADMAP_TASK_MAP.md) | Roadmap operativo: H1/H2/H3 + diagrama Mermaid de dependencias + reglas R-MAP-1..5 |
 | [common/README.md](common/README.md) | Shared kernel — SPI, runtime, reporting, SSL |
 | [`*/COMPONENTS.md`](#módulos) | Catálogo público de StepComponents por módulo |
 

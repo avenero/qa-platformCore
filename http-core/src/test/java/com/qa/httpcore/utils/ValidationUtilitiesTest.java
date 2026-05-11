@@ -1,7 +1,7 @@
 package com.qa.httpcore.utils;
 
 import com.qa.httpcore.utils.ValidationUtilities;
-import com.qa.common.exception.FrameworkBusinessException;
+import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.httpcore.model.HttpResponse;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;

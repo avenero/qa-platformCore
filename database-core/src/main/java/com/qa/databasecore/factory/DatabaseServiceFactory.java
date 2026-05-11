@@ -2,7 +2,7 @@ package com.qa.databasecore.factory;
 
 import com.qa.databasecore.service.BaseDatabaseService;
 import com.qa.databasecore.service.DatabaseService;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 
 /**
  * Factory para crear instancias de DatabaseService del QA Automation Framework.

@@ -1,15 +1,17 @@
 package com.qa.httpcore.factories;
 
+
+import com.qa.common.internal.config.ConfigManager;
 import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 // TASK-J01: BaseHttpClient (Unirest) eliminado. La opción legacy "unirest"
 // se mantiene en createForLegacyImpl() como fallback hacia Apache con
 // warning, para preservar back-compat de sistemas que aún setean
 // -Dhttp.client=unirest. Ver propuesta-desde-0-core.md §J01.
 import com.qa.httpcore.interfaces.HttpClient;
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionConfig;
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.HttpEngine;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.api.runtime.ExecutionConfig;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.HttpEngine;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -253,7 +255,7 @@ public final class HttpClientFactory {
         String impl = System.getProperty(CLIENT_IMPL_KEY);
         if (impl == null || impl.isBlank()) {
             try {
-                impl = com.qa.common.config.ConfigManager.getInstance().get(CLIENT_IMPL_KEY, IMPL_APACHE);
+                impl = com.qa.common.internal.config.ConfigManager.getInstance().get(CLIENT_IMPL_KEY, IMPL_APACHE);
             } catch (Exception e) {
                 impl = IMPL_APACHE;
             }

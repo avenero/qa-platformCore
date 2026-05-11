@@ -1,7 +1,7 @@
 package com.qa.common.utils;
 
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.VariableStore;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.VariableStore;
 import org.junit.jupiter.api.*;
 
 import java.util.concurrent.ExecutorService;

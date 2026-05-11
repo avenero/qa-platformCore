@@ -3,10 +3,10 @@ package com.qa.httpcore.steps.canonical;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.model.HttpMethod;
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.exception.FrameworkBusinessException;
-import com.qa.common.exception.FrameworkTechnicalException;
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.annotation.StepDef;
+import com.qa.common.api.exception.FrameworkBusinessException;
+import com.qa.common.api.exception.FrameworkTechnicalException;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.annotation.StepDef;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.When;
 

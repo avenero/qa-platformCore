@@ -1,8 +1,8 @@
 package com.qa.databasecore.context;
 
 import com.qa.databasecore.connector.DatabaseConnector;
-import com.qa.common.exception.FrameworkBusinessException;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.exception.FrameworkBusinessException;
+import com.qa.common.api.logging.TestLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,7 +22,7 @@ import java.util.Map;
  * captures the first row, {@code QueryResultContext} stores every row so that THEN
  * steps can assert on arbitrary rows (e.g. {@code row 3}).
  *
- * <p>Instances are stored in the Cucumber {@link com.qa.common.runtime.ExecutionContext}
+ * <p>Instances are stored in the Cucumber {@link com.qa.common.internal.runtime.ExecutionContext}
  * under the key {@code __queryResultContext}.
  *
  * @since 3.0.0

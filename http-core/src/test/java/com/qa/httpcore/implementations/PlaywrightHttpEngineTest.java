@@ -5,7 +5,7 @@ import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.options.RequestOptions;
 import com.qa.httpcore.model.HttpMethod;
 import com.qa.httpcore.model.HttpResponse;
-import com.qa.common.exception.FrameworkTechnicalException;
+import com.qa.common.api.exception.FrameworkTechnicalException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

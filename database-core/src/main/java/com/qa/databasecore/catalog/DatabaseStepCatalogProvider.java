@@ -1,9 +1,9 @@
 package com.qa.databasecore.catalog;
 
-import com.qa.common.stepcatalog.ParamSpec;
-import com.qa.common.stepcatalog.StepCatalogEntry;
-import com.qa.common.stepcatalog.StepCatalogProvider;
-import com.qa.common.stepcatalog.StepLayer;
+import com.qa.common.api.stepcatalog.ParamSpec;
+import com.qa.common.api.stepcatalog.StepCatalogEntry;
+import com.qa.common.api.stepcatalog.StepCatalogProvider;
+import com.qa.common.api.stepcatalog.StepLayer;
 
 import java.util.List;
 

@@ -1,5 +1,7 @@
 package com.qa.common.reporter;
 
+
+import com.qa.common.api.reporter.ScenarioOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;

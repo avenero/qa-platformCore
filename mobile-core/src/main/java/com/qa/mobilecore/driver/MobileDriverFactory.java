@@ -1,7 +1,7 @@
 package com.qa.mobilecore.driver;
 
-import com.qa.common.config.ConfigManager;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.logging.TestLogger;
 import com.qa.mobilecore.appium.AppiumServerManager;
 import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.model.DeviceDescriptor;
@@ -21,7 +21,7 @@ import java.time.Duration;
  *
  * <p>Combina el patrón factory (creación de sesiones Appium) con la gestión del ciclo
  * de vida: una instancia de esta clase vive un escenario BDD y se registra en el
- * {@link com.qa.common.runtime.ServiceRegistry} por {@link com.qa.mobilecore.plugin.MobilePlugin}.
+ * {@link com.qa.common.internal.runtime.ServiceRegistry} por {@link com.qa.mobilecore.plugin.MobilePlugin}.
  *
  * <h2>Ciclo de vida</h2>
  * <pre>
@@ -78,7 +78,7 @@ public class MobileDriverFactory {
 
     /**
      * Crea una nueva instancia que lee configuración de {@link ConfigManager}.
-     * Invocado por el supplier lazy de {@link com.qa.common.runtime.ServiceRegistry}.
+     * Invocado por el supplier lazy de {@link com.qa.common.internal.runtime.ServiceRegistry}.
      */
     public MobileDriverFactory() {
         this.config = ConfigManager.getInstance();

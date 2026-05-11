@@ -1,8 +1,8 @@
 package com.qa.webcore.driver;
 
-import com.qa.common.pool.CapabilityDescriptor;
-import com.qa.common.pool.CapabilityRegistry;
-import com.qa.common.pool.DeviceHandle;
+import com.qa.common.api.pool.CapabilityDescriptor;
+import com.qa.common.api.pool.CapabilityRegistry;
+import com.qa.common.api.pool.DeviceHandle;
 
 import java.time.Duration;
 import java.time.Instant;

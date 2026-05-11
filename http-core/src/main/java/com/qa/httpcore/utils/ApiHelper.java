@@ -2,14 +2,14 @@ package com.qa.httpcore.utils;
 
 import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.HttpClient;
-import com.qa.common.config.ConfigManager;
-import com.qa.common.exception.FrameworkBusinessException;
-import com.qa.common.exception.FrameworkTechnicalException;
+import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.exception.FrameworkBusinessException;
+import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.model.HttpResponse;
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.utils.JsonUtilities;
-import com.qa.common.utils.TextUtilities;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.utils.json.JsonUtilities;
+import com.qa.common.utils.text.TextUtilities;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -122,14 +122,14 @@ public class ApiHelper {
     // =========================================================================
 
     /**
-     * Obtiene un objeto del {@link com.qa.common.runtime.VariableStore} del contexto activo.
+     * Obtiene un objeto del {@link com.qa.common.api.runtime.VariableStore} del contexto activo.
      */
     private Object getContextVariable(String key) {
         return ExecutionContext.current().flatMap(ctx -> ctx.variables().get(key, Object.class)).orElse(null);
     }
 
     /**
-     * Almacena un objeto en el {@link com.qa.common.runtime.VariableStore} del contexto activo.
+     * Almacena un objeto en el {@link com.qa.common.api.runtime.VariableStore} del contexto activo.
      * Si {@code value} es {@code null}, elimina la variable del store.
      */
     private void setContextVariable(String key, Object value) {
@@ -143,7 +143,7 @@ public class ApiHelper {
     }
 
     /**
-     * Almacena un string en el {@link com.qa.common.runtime.VariableStore} del contexto activo.
+     * Almacena un string en el {@link com.qa.common.api.runtime.VariableStore} del contexto activo.
      */
     private void setContextString(String key, Object value) {
         if (value == null) {
@@ -520,7 +520,7 @@ public class ApiHelper {
 
     /**
      * Resuelve un nombre de objeto simple (sin notación de punto).
-     * Busca primero en el {@link com.qa.common.runtime.VariableStore} del contexto activo,
+     * Busca primero en el {@link com.qa.common.api.runtime.VariableStore} del contexto activo,
      * luego en la última respuesta deserializada.
      *
      * @param objectName nombre del objeto a resolver
@@ -1364,7 +1364,7 @@ public class ApiHelper {
             try {
                 HttpResponse response = httpClient.getLastResponse();
                 if (response != null && response.getBody() != null) {
-                    Object actual = com.qa.common.utils.JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
+                    Object actual = com.qa.common.utils.json.JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
                     if (actual != null && processedExpected.equals(actual.toString())) {
                         TestLogger.logInfo("API_HELPER_POLL",
                             String.format("✅ Polling exitoso en intento %d/%d — '%s' = '%s'",

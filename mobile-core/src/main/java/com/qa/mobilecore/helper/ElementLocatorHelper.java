@@ -1,6 +1,6 @@
 package com.qa.mobilecore.helper;
 
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
 import org.openqa.selenium.WebElement;

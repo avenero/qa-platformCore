@@ -6,8 +6,8 @@ import com.microsoft.playwright.options.RequestOptions;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.model.HttpMethod;
 import com.qa.httpcore.model.HttpResponse;
-import com.qa.common.exception.FrameworkTechnicalException;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.exception.FrameworkTechnicalException;
+import com.qa.common.api.logging.TestLogger;
 
 import javax.net.ssl.SSLContext;
 import java.net.URI;

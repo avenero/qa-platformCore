@@ -1,5 +1,9 @@
 package com.qa.common.stepcatalog;
 
+
+import com.qa.common.api.stepcatalog.ParamSpec;
+import com.qa.common.api.stepcatalog.StepCatalogProvider;
+import com.qa.common.api.stepcatalog.StepLayer;
 import org.junit.jupiter.api.Test;
 
 import java.util.ServiceLoader;

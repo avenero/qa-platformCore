@@ -192,6 +192,8 @@ ReportingManager.pipeline:
 
 ---
 
+> **Mapa canónico de paquetes (TASK-K01):** ver [`docs/COMMON_PACKAGE_MAP.md`](../../docs/COMMON_PACKAGE_MAP.md) para el árbol de decisión "¿dónde va mi clase?", la convención de sufijos, la tabla de migración estado-actual→target y el plan de rollout incremental (Phase B). **Devs que añaden código nuevo aquí DEBEN respetar el mapa.**
+>
 > **Para profundizar en un componente concreto:** los Javadoc de `CorePlugin`, `StepComponent`, `ExecutionTransport`, `SSLContextFactory` y `ReportingManager` son la fuente canónica.
 >
 > **Para ver el catálogo de steps:** ver el `COMPONENTS.md` de cada módulo de protocolo.

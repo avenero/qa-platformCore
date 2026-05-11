@@ -1,5 +1,7 @@
 package com.qa.common.runtime.parallel;
 
+import com.qa.common.utils.security.SecurityUtilities;
+
 /**
  * Resultado de la ejecución de una tarea en el {@link ParallelStepExecutor}.
  *

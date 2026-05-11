@@ -7,7 +7,7 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
-import com.qa.common.config.ConfigManager;
+import com.qa.common.internal.config.ConfigManager;
 
 import java.util.Locale;
 import java.util.Objects;

@@ -1,6 +1,8 @@
 package com.qa.common.transport;
 
-import com.qa.common.runtime.ExecutionResult;
+
+import com.qa.common.api.transport.ExecutionHandle;
+import com.qa.common.api.runtime.ExecutionResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

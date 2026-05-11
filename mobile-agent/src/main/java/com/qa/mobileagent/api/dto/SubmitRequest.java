@@ -14,7 +14,7 @@ import java.util.Map;
  * {@link #featureContents()} y el agente los materializa en su workspace.
  *
  * <p>Los campos {@link #environment()}, {@link #browser()}, {@link #tags()} y
- * {@link #properties()} se mapean 1:1 a un {@link com.qa.common.runtime.ExecutionConfig}
+ * {@link #properties()} se mapean 1:1 a un {@link com.qa.common.api.runtime.ExecutionConfig}
  * vía su builder. {@link #httpEngine()} es opcional; si {@code null}, el agente
  * resuelve el default vía {@code HttpEngine.resolveDefault()}.
  *

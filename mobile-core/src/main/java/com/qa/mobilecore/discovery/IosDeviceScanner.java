@@ -2,7 +2,7 @@ package com.qa.mobilecore.discovery;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import com.qa.mobilecore.model.DeviceDescriptor;
 import com.qa.mobilecore.model.DeviceType;
 

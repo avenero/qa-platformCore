@@ -1,10 +1,10 @@
 package com.qa.mobilecore.driver;
 
-import com.qa.common.driver.ElementLocator;
-import com.qa.common.driver.Gesture;
-import com.qa.common.driver.UiDriver;
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionConfig;
+import com.qa.common.api.driver.ElementLocator;
+import com.qa.common.api.driver.Gesture;
+import com.qa.common.api.driver.UiDriver;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.api.runtime.ExecutionConfig;
 import com.qa.mobilecore.appium.AppiumServerManager;
 import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.helper.GestureHelper;

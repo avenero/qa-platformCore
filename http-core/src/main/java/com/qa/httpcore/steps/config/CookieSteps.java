@@ -3,8 +3,8 @@ package com.qa.httpcore.steps.config;
 import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.interfaces.HttpRequestBuilder;
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
 import io.cucumber.java.en.Given;
 
 /**

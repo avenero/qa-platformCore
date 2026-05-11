@@ -1,10 +1,10 @@
 package com.qa.mobileagent.service;
 
-import com.qa.common.driver.CapabilityReport;
-import com.qa.common.runtime.ExecutionConfig;
-import com.qa.common.runtime.HttpEngine;
-import com.qa.common.transport.ExecutionHandle;
-import com.qa.common.transport.ExecutionTransport;
+import com.qa.common.api.driver.CapabilityReport;
+import com.qa.common.api.runtime.ExecutionConfig;
+import com.qa.common.api.runtime.HttpEngine;
+import com.qa.common.api.transport.ExecutionHandle;
+import com.qa.common.api.transport.ExecutionTransport;
 import com.qa.mobileagent.api.dto.AgentEvent;
 import com.qa.mobileagent.api.dto.SubmitRequest;
 import com.qa.mobileagent.api.dto.SubmitResponse;

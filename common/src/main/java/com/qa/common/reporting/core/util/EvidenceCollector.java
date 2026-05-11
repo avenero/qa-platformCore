@@ -1,7 +1,8 @@
 package com.qa.common.reporting.core.util;
+import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.reporting.core.model.Attachment;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 
 import java.io.File;
 import java.io.IOException;

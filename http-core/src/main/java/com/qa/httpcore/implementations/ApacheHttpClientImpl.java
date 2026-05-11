@@ -1,10 +1,10 @@
 package com.qa.httpcore.implementations;
 
 import com.qa.httpcore.interfaces.HttpClient;
-import com.qa.common.exception.FrameworkTechnicalException;
+import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.model.HttpMethod;
 import com.qa.httpcore.model.HttpResponse;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpHead;
@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
-import com.qa.common.ssl.SSLContextFactory;
+import com.qa.common.internal.ssl.SSLContextFactory;
 
 /**
  * Implementación de {@link HttpClient} basada en <b>Apache HttpClient 5</b>.
@@ -63,7 +63,7 @@ import com.qa.common.ssl.SSLContextFactory;
  * (headers, body, cookies, etc.) es mutable y pertenece a un único escenario BDD.
  * Para ejecuciones paralelas, cada hilo debe usar su propia instancia
  * (gestionada por {@link com.qa.httpcore.factories.HttpClientFactory} y el
- * {@link com.qa.common.runtime.ServiceRegistry}).
+ * {@link com.qa.common.internal.runtime.ServiceRegistry}).
  *
  * @author Abel Venero
  * @version 2.2.0

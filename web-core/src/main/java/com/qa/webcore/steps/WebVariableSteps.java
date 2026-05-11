@@ -1,7 +1,7 @@
 package com.qa.webcore.steps;
 
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.annotation.StepDef;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.api.runtime.annotation.StepDef;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.en.When;
 

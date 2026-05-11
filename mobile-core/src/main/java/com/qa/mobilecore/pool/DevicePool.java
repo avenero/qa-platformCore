@@ -1,7 +1,7 @@
 package com.qa.mobilecore.pool;
 
-import com.qa.common.config.ConfigManager;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.logging.TestLogger;
 import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.discovery.DeviceDiscoveryService;
 import com.qa.mobilecore.model.DeviceDescriptor;
@@ -195,7 +195,7 @@ public class DevicePool {
      *
      * <p>Variante de {@link #acquire(String)} que no lanza excepción sino que retorna
      * {@link Optional#empty()} si el dispositivo está ocupado o no existe. El parámetro
-     * {@code timeout} se documenta para simetría con {@link com.qa.common.pool.CapabilityRegistry}
+     * {@code timeout} se documenta para simetría con {@link com.qa.common.api.pool.CapabilityRegistry}
      * pero esta implementación no bloquea: o el dispositivo está libre ahora o retorna vacío.
      *
      * @param deviceId  ID del dispositivo a adquirir; no null

@@ -30,9 +30,9 @@ class ArchitectureTest {
     static final ArchRule R_MA_1_controllersGoThroughService =
             noClasses().that().resideInAPackage("..api.controller..")
                     .should().dependOnClassesThat().haveFullyQualifiedName(
-                            "com.qa.common.transport.ExecutionTransport")
+                            "com.qa.common.api.transport.ExecutionTransport")
                     .orShould().dependOnClassesThat().haveFullyQualifiedName(
-                            "com.qa.common.transport.InProcessTransport")
+                            "com.qa.common.internal.transport.InProcessTransport")
                     .because("Los controllers HTTP usan AgentExecutionService — no instancian"
                             + " ni invocan al transport directamente. Pueden referenciar tipos de"
                             + " resultado (ExecutionHandle) si los obtienen del service.");

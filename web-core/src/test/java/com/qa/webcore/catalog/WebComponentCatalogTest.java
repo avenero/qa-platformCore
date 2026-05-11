@@ -1,6 +1,6 @@
 package com.qa.webcore.catalog;
 
-import com.qa.common.runtime.catalog.ComponentCatalogWriter;
+import com.qa.common.internal.runtime.catalog.ComponentCatalogWriter;
 import com.qa.webcore.plugin.WebPlugin;
 import org.junit.jupiter.api.Test;
 

@@ -1,8 +1,8 @@
 package com.qa.httpcore.steps;
 
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import java.util.UUID;

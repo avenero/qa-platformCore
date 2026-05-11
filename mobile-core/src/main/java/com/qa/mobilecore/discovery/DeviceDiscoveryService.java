@@ -1,7 +1,7 @@
 package com.qa.mobilecore.discovery;
 
-import com.qa.common.config.ConfigManager;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.logging.TestLogger;
 import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.model.DeviceDescriptor;
 

@@ -16,7 +16,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *   <li>{@code POST /v1/runs}: el cliente envía configuración + contenidos
  *       de archivos {@code .feature}. El agente los materializa en su
  *       workspace local y arranca la ejecución vía
- *       {@link com.qa.common.transport.InProcessTransport}.</li>
+ *       {@link com.qa.common.internal.transport.InProcessTransport}.</li>
  *   <li>{@code GET /v1/runs/&#123;id&#125;/events}: stream SSE con eventos del
  *       reporter (scenario start / step pass / step fail / execution end).</li>
  *   <li>{@code POST /v1/runs/&#123;id&#125;/cancel}: cancela idempotentemente.</li>

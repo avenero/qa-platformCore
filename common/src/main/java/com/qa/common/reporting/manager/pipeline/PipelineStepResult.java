@@ -1,5 +1,7 @@
 package com.qa.common.reporting.manager.pipeline;
 
+import com.qa.common.utils.security.SecurityUtilities;
+
 /**
  * Resultado de la ejecución de un step del pipeline de reporting.
  *

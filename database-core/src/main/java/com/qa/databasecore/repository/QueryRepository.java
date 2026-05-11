@@ -1,7 +1,7 @@
 package com.qa.databasecore.repository;
 
 import com.qa.databasecore.connector.DatabaseConnector;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

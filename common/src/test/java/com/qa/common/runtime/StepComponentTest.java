@@ -1,6 +1,9 @@
 package com.qa.common.runtime;
 
-import com.qa.common.runtime.annotation.StepId;
+
+import com.qa.common.api.runtime.BddPhase;
+import com.qa.common.api.runtime.StepComponent;
+import com.qa.common.api.runtime.annotation.StepId;
 import org.junit.jupiter.api.*;
 
 import java.util.List;

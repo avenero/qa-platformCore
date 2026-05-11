@@ -1,5 +1,7 @@
 package com.qa.common.reporting.core.bridge;
 
+import com.qa.common.utils.security.SecurityUtilities;
+
 /**
  * Contrato de auto-renderizado para detalles de protocolo adjuntos a un step de prueba.
  *

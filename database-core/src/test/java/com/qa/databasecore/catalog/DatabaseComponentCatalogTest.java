@@ -1,6 +1,6 @@
 package com.qa.databasecore.catalog;
 
-import com.qa.common.runtime.catalog.ComponentCatalogWriter;
+import com.qa.common.internal.runtime.catalog.ComponentCatalogWriter;
 import com.qa.databasecore.plugin.DatabasePlugin;
 import org.junit.jupiter.api.Test;
 

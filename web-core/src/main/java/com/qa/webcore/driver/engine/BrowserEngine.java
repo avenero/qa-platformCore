@@ -1,7 +1,7 @@
 package com.qa.webcore.driver.engine;
 
-import com.qa.common.driver.ElementLocator;
-import com.qa.common.driver.UiDriver;
+import com.qa.common.api.driver.ElementLocator;
+import com.qa.common.api.driver.UiDriver;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -1,5 +1,7 @@
 package com.qa.common.reporting.core.model;
 
+import com.qa.common.utils.security.SecurityUtilities;
+
 /**
  * Resultado de un step individual de Cucumber.
  *

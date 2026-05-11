@@ -1,7 +1,7 @@
 package com.qa.webcore.driver;
 
-import com.qa.common.pool.CapabilityDescriptor;
-import com.qa.common.pool.DeviceHandle;
+import com.qa.common.api.pool.CapabilityDescriptor;
+import com.qa.common.api.pool.DeviceHandle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

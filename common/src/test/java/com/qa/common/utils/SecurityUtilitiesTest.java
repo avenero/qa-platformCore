@@ -1,6 +1,8 @@
 package com.qa.common.utils;
 
-import com.qa.common.exception.FrameworkTechnicalException;
+
+import com.qa.common.utils.security.SecurityUtilities;
+import com.qa.common.api.exception.FrameworkTechnicalException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;

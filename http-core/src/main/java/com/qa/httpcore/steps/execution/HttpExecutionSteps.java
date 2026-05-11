@@ -3,12 +3,12 @@ package com.qa.httpcore.steps.execution;
 import com.qa.httpcore.factories.HttpClientFactory;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.exception.FrameworkTechnicalException;
+import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.model.HttpResponse;
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.annotation.StepDef;
-import com.qa.common.utils.JsonUtilities;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.annotation.StepDef;
+import com.qa.common.utils.json.JsonUtilities;
 import io.cucumber.java.en.When;
 
 /**

@@ -1,6 +1,10 @@
 package com.qa.common.reporter;
 
-import com.qa.common.runtime.ExecutionResult;
+
+import com.qa.common.api.reporter.NoOpStepReporter;
+import com.qa.common.api.reporter.ScenarioOutcome;
+import com.qa.common.api.reporter.StepReporter;
+import com.qa.common.api.runtime.ExecutionResult;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;

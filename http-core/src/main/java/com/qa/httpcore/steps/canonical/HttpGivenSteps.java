@@ -1,8 +1,8 @@
 package com.qa.httpcore.steps.canonical;
 
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.exception.FrameworkBusinessException;
-import com.qa.common.runtime.annotation.StepDef;
+import com.qa.common.api.exception.FrameworkBusinessException;
+import com.qa.common.api.runtime.annotation.StepDef;
 import io.cucumber.java.en.Given;
 
 import java.io.IOException;

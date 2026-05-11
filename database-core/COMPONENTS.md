@@ -7,7 +7,7 @@
 > **Platform ID:** `DATABASE`  
 > **Display:** Database Testing  
 > **Componentes:** 3  
-> **Última generación:** 2026-05-10
+> **Última generación:** 2026-05-11
 
 Esta tabla es el **contrato público** de los `StepComponent` que el módulo `database-core` expone al Backend (catálogo i18n) y al Frontend (paleta del Scenario Builder). Cada entrada se deriva por reflexión vía SPI (`ServiceLoader<CorePlugin>`).
 
@@ -46,6 +46,6 @@ Esta tabla es el **contrato público** de los `StepComponent` que el módulo `da
 
 ---
 
-> Para añadir un componente nuevo: implementar `com.qa.common.runtime.StepComponent`, anotar la clase con `@com.qa.common.runtime.annotation.StepId("<id>")`, registrarla en el plugin (`getComponents()`), y regenerar este documento.
+> Para añadir un componente nuevo: implementar `com.qa.common.api.runtime.StepComponent`, anotar la clase con `@com.qa.common.api.runtime.annotation.StepId("<id>")`, registrarla en el plugin (`getComponents()`), y regenerar este documento.
 
 > Para deprecar: marcar `@StepId(value=..., deprecated=true, replacedBy="<nuevo-id>")` y mantener la clase activa al menos un sprint para permitir migración FE.

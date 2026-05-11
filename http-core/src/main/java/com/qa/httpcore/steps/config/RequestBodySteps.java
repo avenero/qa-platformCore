@@ -1,7 +1,7 @@
 package com.qa.httpcore.steps.config;
 
 import com.qa.httpcore.utils.ApiHelper;
-import com.qa.common.runtime.annotation.StepDef;
+import com.qa.common.api.runtime.annotation.StepDef;
 import io.cucumber.java.en.Given;
 import java.util.Map;
 

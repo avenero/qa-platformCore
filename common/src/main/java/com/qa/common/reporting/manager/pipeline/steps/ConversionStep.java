@@ -1,6 +1,7 @@
 package com.qa.common.reporting.manager.pipeline.steps;
+import com.qa.common.utils.security.SecurityUtilities;
 
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import com.qa.common.reporting.core.adapter.ResultAdapter;
 import com.qa.common.reporting.core.adapter.cucumber.CucumberResultAdapter;
 import com.qa.common.reporting.core.config.ReportingConfig;

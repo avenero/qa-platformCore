@@ -1,5 +1,16 @@
 package com.qa.common.runtime;
 
+
+
+import com.qa.common.api.driver.CapabilityReport;
+import com.qa.common.api.runtime.BddPhase;
+import com.qa.common.api.runtime.ExecutionConfig;
+import com.qa.common.api.runtime.StepComponent;
+import com.qa.common.api.runtime.StepInfo;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.internal.runtime.ServiceRegistry;
+import com.qa.common.internal.runtime.StepDiscoveryService;
+import com.qa.common.spi.CorePlugin;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -57,8 +68,8 @@ class StepDiscoveryServiceTest {
         return new CorePlugin() {
             @Override public String platformId()             { return pluginName.toUpperCase(); }
             @Override public String displayName()            { return pluginName + " Plugin"; }
-            @Override public com.qa.common.driver.CapabilityReport describeCapabilities() {
-                return com.qa.common.driver.CapabilityReport.available(pluginName.toUpperCase(), List.of());
+            @Override public com.qa.common.api.driver.CapabilityReport describeCapabilities() {
+                return com.qa.common.api.driver.CapabilityReport.available(pluginName.toUpperCase(), List.of());
             }
             @Override public Set<String> getActivationTags(){ return tags; }
             @Override public int getOrder()                  { return order; }

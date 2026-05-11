@@ -1,5 +1,7 @@
 package com.qa.common.reporting.core.model;
 
+import com.qa.common.utils.security.SecurityUtilities;
+
 /**
  * Representa un archivo adjunto (screenshot, log, video, reporte).
  * Usado para evidencias de tests y reportes.

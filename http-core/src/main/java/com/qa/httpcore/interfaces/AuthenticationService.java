@@ -1,6 +1,6 @@
 package com.qa.httpcore.interfaces;
 
-import com.qa.common.exception.FrameworkBusinessException;
+import com.qa.common.api.exception.FrameworkBusinessException;
 
 /**
  * Interface para servicios de autenticación del QA Automation Framework.

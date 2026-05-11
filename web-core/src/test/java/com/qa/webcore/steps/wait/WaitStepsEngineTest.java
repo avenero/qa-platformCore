@@ -1,7 +1,9 @@
 package com.qa.webcore.steps.wait;
 
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.ServiceRegistry;
+
+import com.qa.common.api.runtime.ExecutionConfig;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.internal.runtime.ServiceRegistry;
 import com.qa.webcore.driver.engine.BrowserElement;
 import com.qa.webcore.driver.engine.BrowserEngine;
 import org.junit.jupiter.api.AfterEach;
@@ -134,7 +136,7 @@ class WaitStepsEngineTest {
         @Override public void acceptAlert() {}
         @Override public void dismissAlert() {}
         @Override public boolean isActive() { return true; }
-        @Override public void open(com.qa.common.runtime.ExecutionConfig config) {}
+        @Override public void open(com.qa.common.api.runtime.ExecutionConfig config) {}
         @Override public void close() {}
     }
 }

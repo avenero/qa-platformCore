@@ -1,5 +1,7 @@
 package com.qa.common.ssl;
 
+
+import com.qa.common.internal.ssl.SSLContextFactory;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;

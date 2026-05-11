@@ -1,6 +1,6 @@
 package com.qa.mobilecore.appium;
 
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

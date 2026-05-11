@@ -1,6 +1,6 @@
 package com.qa.webcore.steps.config;
 
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.internal.runtime.ExecutionContext;
 import com.qa.webcore.config.WebConfigKeys;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;

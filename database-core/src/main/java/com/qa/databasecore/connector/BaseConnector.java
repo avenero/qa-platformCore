@@ -1,7 +1,7 @@
 package com.qa.databasecore.connector;
 
 import com.qa.databasecore.config.DatabaseConfig;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import com.zaxxer.hikari.HikariDataSource;
 
 import javax.sql.DataSource;

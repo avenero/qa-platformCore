@@ -1,6 +1,11 @@
 package com.qa.common.driver;
 
-import com.qa.common.runtime.ExecutionConfig;
+
+
+import com.qa.common.api.driver.ElementLocator;
+import com.qa.common.api.driver.Gesture;
+import com.qa.common.api.driver.UiDriver;
+import com.qa.common.api.runtime.ExecutionConfig;
 import org.junit.jupiter.api.*;
 
 import java.nio.file.Path;

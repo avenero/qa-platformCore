@@ -1,5 +1,7 @@
 package com.qa.common.config;
 
+
+import com.qa.common.internal.config.ConfigManager;
 import org.junit.jupiter.api.*;
 
 import static org.assertj.core.api.Assertions.*;

@@ -1,8 +1,8 @@
 package com.qa.webcore.steps.navigation;
 
-import com.qa.common.logging.TestLogger;
-import com.qa.common.runtime.ExecutionContext;
-import com.qa.common.runtime.annotation.StepDef;
+import com.qa.common.api.logging.TestLogger;
+import com.qa.common.internal.runtime.ExecutionContext;
+import com.qa.common.api.runtime.annotation.StepDef;
 import com.qa.webcore.driver.engine.BrowserEngine;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.Scenario;

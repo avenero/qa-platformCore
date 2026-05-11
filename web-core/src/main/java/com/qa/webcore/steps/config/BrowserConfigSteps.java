@@ -1,7 +1,7 @@
 package com.qa.webcore.steps.config;
 
-import com.qa.common.exception.FrameworkBusinessException;
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.api.exception.FrameworkBusinessException;
+import com.qa.common.internal.runtime.ExecutionContext;
 import com.qa.webcore.config.WebConfigKeys;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.en.Given;

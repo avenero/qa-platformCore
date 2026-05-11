@@ -1,9 +1,9 @@
 package com.qa.httpcore.components;
 
 import com.qa.httpcore.steps.config.ParameterSteps;
-import com.qa.common.runtime.BddPhase;
-import com.qa.common.runtime.StepComponent;
-import com.qa.common.runtime.annotation.StepId;
+import com.qa.common.api.runtime.BddPhase;
+import com.qa.common.api.runtime.StepComponent;
+import com.qa.common.api.runtime.annotation.StepId;
 
 import java.util.List;
 import java.util.Map;

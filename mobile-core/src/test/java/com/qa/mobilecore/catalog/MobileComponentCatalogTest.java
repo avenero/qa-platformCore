@@ -1,6 +1,6 @@
 package com.qa.mobilecore.catalog;
 
-import com.qa.common.runtime.catalog.ComponentCatalogWriter;
+import com.qa.common.internal.runtime.catalog.ComponentCatalogWriter;
 import com.qa.mobilecore.plugin.MobilePlugin;
 import org.junit.jupiter.api.Test;
 

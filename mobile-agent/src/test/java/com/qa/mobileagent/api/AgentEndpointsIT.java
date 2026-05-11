@@ -1,14 +1,14 @@
 package com.qa.mobileagent.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.qa.common.driver.CapabilityDescriptor;
-import com.qa.common.driver.CapabilityReport;
-import com.qa.common.reporter.ScenarioOutcome;
-import com.qa.common.reporter.StepReporter;
-import com.qa.common.runtime.ExecutionConfig;
-import com.qa.common.runtime.ExecutionResult;
-import com.qa.common.transport.ExecutionHandle;
-import com.qa.common.transport.ExecutionTransport;
+import com.qa.common.api.driver.CapabilityDescriptor;
+import com.qa.common.api.driver.CapabilityReport;
+import com.qa.common.api.reporter.ScenarioOutcome;
+import com.qa.common.api.reporter.StepReporter;
+import com.qa.common.api.runtime.ExecutionConfig;
+import com.qa.common.api.runtime.ExecutionResult;
+import com.qa.common.api.transport.ExecutionHandle;
+import com.qa.common.api.transport.ExecutionTransport;
 import com.qa.mobileagent.api.dto.SubmitRequest;
 import com.qa.mobileagent.api.dto.SubmitResponse;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,5 @@
 package com.qa.common.reporting.core.service;
+import com.qa.common.utils.security.SecurityUtilities;
 
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;

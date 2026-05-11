@@ -1,6 +1,6 @@
 package com.qa.httpcore.catalog;
 
-import com.qa.common.runtime.catalog.ComponentCatalogWriter;
+import com.qa.common.internal.runtime.catalog.ComponentCatalogWriter;
 import com.qa.httpcore.plugin.ApiPlugin;
 import org.junit.jupiter.api.Test;
 

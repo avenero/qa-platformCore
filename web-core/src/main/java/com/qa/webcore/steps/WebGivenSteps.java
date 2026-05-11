@@ -1,6 +1,6 @@
 package com.qa.webcore.steps;
 
-import com.qa.common.runtime.ExecutionContext;
+import com.qa.common.internal.runtime.ExecutionContext;
 import com.qa.webcore.driver.engine.BrowserEngine;
 import io.cucumber.java.en.Given;
 import org.slf4j.Logger;

@@ -2,7 +2,7 @@ package com.qa.databasecore.utils;
 
 import com.qa.databasecore.service.BaseDatabaseService;
 import com.qa.databasecore.service.DatabaseService;
-import com.qa.common.logging.TestLogger;
+import com.qa.common.api.logging.TestLogger;
 import java.util.List;
 import java.util.Map;
 

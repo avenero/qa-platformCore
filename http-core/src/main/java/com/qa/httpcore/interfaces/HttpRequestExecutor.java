@@ -1,7 +1,7 @@
 package com.qa.httpcore.interfaces;
 
 import com.qa.httpcore.model.HttpMethod;
-import com.qa.common.exception.FrameworkTechnicalException;
+import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.model.HttpResponse;
 
 /**
