@@ -1,4 +1,4 @@
-package com.qa.common.runtime.parallel;
+package com.qa.common.internal.concurrency;
 
 import com.qa.common.utils.security.SecurityUtilities;
 
