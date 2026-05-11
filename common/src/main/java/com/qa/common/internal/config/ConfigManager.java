@@ -72,7 +72,16 @@ import java.util.regex.Pattern;
  * @see ExecutionContext
  * @see com.qa.common.api.runtime.ExecutionConfig
  */
-@Internal(reason = "internal — TASK-K03 introducirá api/config/TypedConfig como reemplazo")
+@Internal(reason = "internal — usar com.qa.common.api.config.ConfigLoader + records TypedConfig en su lugar")
+/**
+ * @deprecated TASK-K03 — usar {@link com.qa.common.api.config.ConfigLoader}
+ *             + records {@link com.qa.common.api.config.TypedConfig}
+ *             en {@code com.qa.common.api.config.*}. La API basada en strings
+ *             de esta clase queda como facade legado durante la migración.
+ *             Eliminación prevista cuando todos los call sites estén migrados
+ *             (sub-task K03-migrate).
+ */
+@Deprecated(since = "2.1.0")
 public class ConfigManager {
 
     private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(ConfigManager.class);

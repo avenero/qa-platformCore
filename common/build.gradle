@@ -21,6 +21,15 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-annotations:${rootProject.ext.jacksonVersion}"
     api "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${rootProject.ext.jacksonVersion}"
 
+    // === BEAN VALIDATION (TASK-K03 — TypedConfig) ===
+    // API en `api` para que records `@TypedConfig` puedan declarar @NotNull, @Min, @Pattern, etc.
+    // sin filtrar el implementation runtime al classpath de consumidores que solo usan los records.
+    api 'jakarta.validation:jakarta.validation-api:3.0.2'
+    // Hibernate Validator es el provider runtime que ejecuta los constraints.
+    // No es API — los consumidores no necesitan referenciarlo directamente.
+    implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+    implementation 'org.glassfish.expressly:expressly:5.0.0'
+
     // JSON library básica (para DataUtilities)
     api 'org.json:json:20251224'
 

@@ -1,0 +1,3 @@
+# TASK-K03M-F5: SPI registration para ConfigLoaderHolder.
+# Mantiene la frontera api ↔ internal limpia (api/ConfigLoaderHolder no importa internal/DefaultConfigLoader).
+com.qa.common.internal.config.DefaultConfigLoader
