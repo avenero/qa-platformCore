@@ -17,6 +17,7 @@ import com.qa.webcore.driver.playwright.PlaywrightManager;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -236,6 +237,20 @@ public final class PlaywrightBrowserEngine implements BrowserEngine {
     @Override
     public void scrollIntoView(String selector) {
         currentPage().locator(normalizeSelector(selector)).scrollIntoViewIfNeeded();
+    }
+
+    @Override
+    public void uploadFile(String selector, String filePath) {
+        // Validate file existence client-side to surface a clear error before
+        // crossing the Playwright bridge. K-Infra K04 (ErrorCode +
+        // PlatformException) is not merged yet (v1.1 W1 cluster); replace with
+        // PlatformException(ErrorCode.WEB_UPLOAD_FILE_NOT_FOUND, ...) when it
+        // lands — fix-forward without breaking the public contract.
+        Path p = Paths.get(filePath);
+        if (!Files.isRegularFile(p)) {
+            throw new IllegalArgumentException("File not found for upload: " + filePath);
+        }
+        currentPage().setInputFiles(normalizeSelector(selector), p);
     }
 
     @Override

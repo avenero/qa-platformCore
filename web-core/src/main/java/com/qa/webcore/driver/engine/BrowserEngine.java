@@ -109,6 +109,24 @@ public interface BrowserEngine extends UiDriver {
     boolean isActive();
 
     // =========================================================================
+    // File upload
+    // =========================================================================
+
+    /**
+     * Upload a file to an HTML {@code <input type="file">} matched by the selector.
+     *
+     * <p>The {@code filePath} must be accessible to the JVM running the engine.
+     * For {@code HttpAgentTransport}: the file must exist on the agent host
+     * (NOT on the requester host).
+     *
+     * @param selector CSS / XPath selector of the file input
+     * @param filePath absolute or relative path to the file to upload
+     * @throws IllegalArgumentException when the file does not exist or is unreadable
+     * @since CORE-WEBAPI-UPLOAD (RFC-WEBAPI-01)
+     */
+    void uploadFile(String selector, String filePath);
+
+    // =========================================================================
     // UiDriver bridge defaults — delegan a la API string vía toSelector()
     // Las implementaciones concretas pueden sobrescribir para ir directo a Playwright.
     // =========================================================================

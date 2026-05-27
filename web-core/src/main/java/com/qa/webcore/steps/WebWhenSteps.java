@@ -98,15 +98,11 @@ public class WebWhenSteps {
 
     @When("I upload the file {string} to {string}")
     public void iUploadTheFileTo(String filename, String label) {
-        LOG.info("[WEB-WHEN] File upload '{}' to field '{}' — requires native file chooser interception.",
-                filename, label);
-        // La subida de archivos en Playwright requiere fileChooser API a nivel de Page.
-        // Esta operación requiere acceso directo a la Page vía PlaywrightManager.getPage()
-        // que está fuera del contrato de BrowserEngine.
-        // Implementación completa disponible cuando BrowserEngine exponga uploadFile().
-        throw new UnsupportedOperationException(
-            "File upload requires PlaywrightManager.getPage().setInputFiles() — "
-            + "pending BrowserEngine.uploadFile() API (RFC-WEBAPI-01)");
+        // Canonical @StepDef key lives in InputSteps#suboElArchivoEnElCampo (ES);
+        // this binding only routes the English Gherkin variant to the same
+        // BrowserEngine.uploadFile entry point (CORE-WEBAPI-UPLOAD).
+        LOG.info("[WEB-WHEN] Uploading file '{}' to field '{}'", filename, label);
+        engine().uploadFile(label, filename);
     }
 
     // =========================================================================

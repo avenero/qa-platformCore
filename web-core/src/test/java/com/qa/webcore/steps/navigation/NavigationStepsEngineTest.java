@@ -95,6 +95,7 @@ class NavigationStepsEngineTest {
         @Override public void acceptAlert() {}
         @Override public void dismissAlert() {}
         @Override public boolean isActive() { return true; }
+        @Override public void uploadFile(String selector, String filePath) {}
         @Override public void open(com.qa.common.api.runtime.ExecutionConfig config) {}
         @Override public void close() {}
     }

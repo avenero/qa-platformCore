@@ -421,9 +421,13 @@ public class WebHelper {
         assertTrue(Boolean.TRUE.equals(result), "El combo permite selección múltiple");
     }
 
+    /**
+     * Delegate to the engine's native file upload. The engine validates that
+     * the file exists; we just adapt the call so step glue can stay agnostic
+     * of the engine implementation.
+     */
     public void uploadFile(String locator, String filePath) {
-        throw new UnsupportedOperationException(
-                "uploadFile requiere API nativa de Playwright (setInputFiles) fuera del contrato BrowserEngine");
+        engine().uploadFile(locator, filePath);
     }
 
     public void tabAction(String locator) {

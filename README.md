@@ -17,10 +17,11 @@ Motor de testing end-to-end para CuAleon Test Engineering Platform. Modular, bas
 4. [Reglas de comunicación entre módulos](#reglas-de-comunicación-entre-módulos)
 5. [Módulos](#módulos)
 6. [Cómo escribir un escenario hoy](#cómo-escribir-un-escenario-hoy)
-7. [Build / publicar / consumir](#build--publicar--consumir)
-8. [Modo agente remoto (mobile-agent)](#modo-agente-remoto-mobile-agent)
-9. [Convenciones](#convenciones)
-10. [Documentos relacionados](#documentos-relacionados)
+7. [Run local en 5 min (DO-11)](#run-local-en-5-min-do-11)
+8. [Build / publicar / consumir](#build--publicar--consumir)
+9. [Modo agente remoto (mobile-agent)](#modo-agente-remoto-mobile-agent)
+10. [Convenciones](#convenciones)
+11. [Documentos relacionados](#documentos-relacionados)
 
 ---
 
@@ -133,6 +134,42 @@ Feature: API testing
     And la respuesta JSON contiene "$[0].id"
 ```
 
+## Run local en 5 min (DO-11)
+
+El Core se consume de dos formas (modelo dual inviolable):
+- **Con BE:** publicado a Maven Local y consumido como dependencia por `qa-platformBE`.
+- **Sin BE:** `qa-module-test` lo usa como librería CLI pura (sin servidor).
+
+**Prerrequisitos**
+
+| Requisito | Notas |
+|-----------|-------|
+| JDK 21 (Temurin/Zulu/Corretto) | `java -version` debe reportar 21+ |
+| Gradle wrapper (`./gradlew`) | Incluido en el repo |
+| Node/Postgres | **No** son necesarios para el Core; este módulo no levanta servidor |
+
+**Pasos**
+
+```bash
+# 1. Compilar y testear todos los módulos (common + http/web/mobile/database-core + mobile-agent)
+./gradlew build
+
+# 2. Publicar artifacts a Maven Local (consumidos por qa-platformBE en dev)
+./gradlew publishToMavenLocal
+# → ~/.m2/repository/com/qa/*-core/2.0.11-SNAPSHOT/
+
+# 3. (Opcional) regenerar catálogos COMPONENTS.md por módulo
+./gradlew generateComponentCatalog
+
+# 4. (Opcional) levantar el mobile-agent standalone (sin BE)
+./gradlew :mobile-agent:bootRun
+# → http://localhost:8082/v1/capabilities
+```
+
+**Sobre credenciales:** el Core es una librería + un agente HTTP/SSE. No expone login admin; la credencial `admin` / `Admin@QA2026!` aplica al BE/FE — ver [`../qa-platformBE/README.md §16`](../qa-platformBE/README.md#16-inicio-rápido-en-local) o el [QUICKSTART.md](../QUICKSTART.md) del monorepo. Tras el primer login en el BE/FE el sistema fuerza el cambio de contraseña (Flyway V52 / task **REL-DOC1**).
+
+---
+
 ## Build / publicar / consumir
 
 ```bash
@@ -170,6 +207,11 @@ El BE consume vía `com.qa.common.transport.HttpAgentTransport` (TASK-I03 — JD
 - **Logging:** SLF4J + Logback. No `System.out`, no `java.util.logging`.
 - **CVEs aceptados:** documentados en [`docs/SECURITY_ACCEPTED_RISKS.md`](../docs/SECURITY_ACCEPTED_RISKS.md) (TASK-J02). Política de revisión 90 días.
 - **Cliente HTTP:** `HttpClientFactory.create(config)` (Playwright o Apache 5). Unirest fue eliminado en TASK-J01.
+- **Pre-commit record guard (opt-in):** warning informativo si un Java record staged tiene ≥8 components. Java best practice es ≤7 — por encima, considera clase DTO con builder o sub-records agrupados. Instalar con:
+  ```bash
+  ln -s ../../.git-hooks/pre-commit-record-guard.sh .git/hooks/pre-commit
+  ```
+  Detalle en `docs/release/v1.0.0/backlog/devops.md#core-qa-record-guard`.
 
 ## Documentos relacionados
 

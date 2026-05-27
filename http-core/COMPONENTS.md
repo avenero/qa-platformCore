@@ -7,7 +7,7 @@
 > **Platform ID:** `HTTP`  
 > **Display:** HTTP API Testing  
 > **Componentes:** 12  
-> **Última generación:** 2026-05-13
+> **Última generación:** 2026-05-27
 
 Esta tabla es el **contrato público** de los `StepComponent` que el módulo `http-core` expone al Backend (catálogo i18n) y al Frontend (paleta del Scenario Builder). Cada entrada se deriva por reflexión vía SPI (`ServiceLoader<CorePlugin>`).
 
