@@ -59,12 +59,12 @@ public final class YamlFileSource implements ConfigSource {
 
     @Override
     public Optional<String> get(String key) {
-        if (key == null || key.isBlank() || root.isEmpty()) return Optional.empty();
+        if (key == null || key.isBlank() || root.isEmpty()) { return Optional.empty(); }
         Object node = root;
         for (String part : key.split("\\.")) {
-            if (!(node instanceof Map<?, ?> m)) return Optional.empty();
+            if (!(node instanceof Map<?, ?> m)) { return Optional.empty(); }
             node = m.get(part);
-            if (node == null) return Optional.empty();
+            if (node == null) { return Optional.empty(); }
         }
         return Optional.of(String.valueOf(node));
     }
@@ -79,7 +79,7 @@ public final class YamlFileSource implements ConfigSource {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> detectAndLoad() {
         String explicit = System.getProperty("config-file");
-        if (explicit == null) explicit = System.getenv("CONFIG_FILE");
+        if (explicit == null) { explicit = System.getenv("CONFIG_FILE"); }
         if (explicit != null && !explicit.isBlank()) {
             return safeLoadFile(Path.of(explicit));
         }

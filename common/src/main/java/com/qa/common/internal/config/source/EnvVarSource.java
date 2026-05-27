@@ -29,7 +29,7 @@ public final class EnvVarSource implements ConfigSource {
 
     @Override
     public Optional<String> get(String key) {
-        if (key == null || key.isBlank()) return Optional.empty();
+        if (key == null || key.isBlank()) { return Optional.empty(); }
         String envKey = toEnvVarName(key);
         String v = envGetter.apply(envKey);
         return (v == null || v.isEmpty()) ? Optional.empty() : Optional.of(v);

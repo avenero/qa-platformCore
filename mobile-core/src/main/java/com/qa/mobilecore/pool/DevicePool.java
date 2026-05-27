@@ -1,8 +1,8 @@
 package com.qa.mobilecore.pool;
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.MobileConfig;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.discovery.DeviceDiscoveryService;
 import com.qa.mobilecore.model.DeviceDescriptor;
 import com.qa.mobilecore.model.DeviceStatus;
@@ -50,7 +50,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class DevicePool {
 
     private static final DevicePool INSTANCE = new DevicePool();
-    private static final int DEFAULT_APPIUM_BASE_PORT = 4723;
 
     /** deviceId → estado actual del dispositivo */
     private final ConcurrentHashMap<String, AtomicReference<DeviceStatus>> statusMap =
@@ -89,8 +88,7 @@ public class DevicePool {
             return;
         }
 
-        ConfigManager config = ConfigManager.getInstance();
-        int basePort = config.getInt(MobileConfigKeys.APPIUM_BASE_PORT, DEFAULT_APPIUM_BASE_PORT);
+        int basePort = ConfigLoaderHolder.get().load(MobileConfig.class).appiumBasePort();
 
         if (autoScan) {
             DeviceDiscoveryService scanner = new DeviceDiscoveryService();

@@ -20,10 +20,11 @@ jobs:
       contents: read
       packages: read
 
-    # En master (push directo o PR hacia master) se activa modo estricto:
-    # Checkstyle y SpotBugs rompen el build si encuentran violaciones.
+    # Modo estricto activo por defecto (2026-05-12): Checkstyle y SpotBugs
+    # rompen el build en cualquier PR si encuentran violaciones. Baseline
+    # cleanup completo (NeedBraces, MagicNumber, LineLength, UnusedImports).
     env:
-      STRICT_FLAG: ${{ (github.ref == 'refs/heads/master' || github.base_ref == 'master') && '-Pstrict' || '' }}
+      STRICT_FLAG: '-Pstrict'
 
     steps:
 
@@ -68,8 +69,7 @@ jobs:
           CI: true
 
       # ── Checkstyle (estilo de código / code smells) ────────────────────────────
-      # develop: --continue + ignoreFailures=true → reporta sin bloquear
-      # master:  --continue + ignoreFailures=false (-Pstrict) → falla si hay violaciones
+      # -Pstrict siempre activo: cualquier violación falla el build.
       - name: Run Checkstyle static analysis
         run: ./gradlew checkstyleMain --continue --no-daemon ${{ env.STRICT_FLAG }}
 

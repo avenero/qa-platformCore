@@ -1,5 +1,4 @@
 package com.qa.common.utils.json;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.core.JsonProcessingException;

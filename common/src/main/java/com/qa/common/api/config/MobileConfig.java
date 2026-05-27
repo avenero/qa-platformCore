@@ -29,7 +29,8 @@ public record MobileConfig(
         @NotNull String deviceName,
         @NotBlank @Pattern(
                 regexp = "ANDROID_EMULATOR|ANDROID_PHYSICAL|IOS_SIMULATOR|IOS_PHYSICAL|REMOTE_GRID",
-                message = "deviceType debe ser ANDROID_EMULATOR | ANDROID_PHYSICAL | IOS_SIMULATOR | IOS_PHYSICAL | REMOTE_GRID")
+                message = "deviceType debe ser ANDROID_EMULATOR | ANDROID_PHYSICAL | IOS_SIMULATOR"
+                        + " | IOS_PHYSICAL | REMOTE_GRID")
         String deviceType,
         @NotNull String udid,
         @NotBlank @Pattern(regexp = "^https?://.*",
@@ -52,6 +53,10 @@ public record MobileConfig(
         boolean discoveryIncludePhysical
 ) implements TypedConfig {
 
+    private static final int DEFAULT_APPIUM_PORT = 4723;
+    private static final int DEFAULT_NEW_COMMAND_TIMEOUT_SEC = 30;
+    private static final int DEFAULT_SESSION_TIMEOUT_SEC = 120;
+
     public static MobileConfig defaults() {
         return new MobileConfig(
                 "android",
@@ -61,9 +66,9 @@ public record MobileConfig(
                 "ANDROID_EMULATOR",
                 "",
                 "http://localhost:4723",
-                4723,
+                DEFAULT_APPIUM_PORT,
                 false,
-                Duration.ofSeconds(30),
+                Duration.ofSeconds(DEFAULT_NEW_COMMAND_TIMEOUT_SEC),
                 10,
                 "",
                 "",
@@ -71,7 +76,7 @@ public record MobileConfig(
                 "",
                 true,
                 false,
-                Duration.ofSeconds(120),
+                Duration.ofSeconds(DEFAULT_SESSION_TIMEOUT_SEC),
                 1,
                 true,
                 true,

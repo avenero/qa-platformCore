@@ -92,7 +92,7 @@ public record ExecutionHandle(
      *
      * <p>Esta llamada NO bloquea esperando a que el transport reaccione. El
      * llamador puede observar la finalización vía {@link #future} (que
-     * típicamente completará con {@link ExecutionResult.Status#CANCELLED} o
+     * típicamente completará con {@link com.qa.common.api.runtime.ExecutionResult.Status#ERROR} o
      * cancellation excepcional, según la implementación).
      */
     public void cancel() {

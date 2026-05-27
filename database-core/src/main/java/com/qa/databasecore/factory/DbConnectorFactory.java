@@ -1,7 +1,7 @@
 package com.qa.databasecore.factory;
 
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.databasecore.config.DatabaseConfig;
 import com.qa.databasecore.connector.MySQLConnector;
 import com.qa.databasecore.connector.OracleConnector;
@@ -61,7 +61,7 @@ import java.util.Map;
  *
  * <p><b>Uso legacy (sigue funcionando):</b></p>
  * <pre>
- * // Desde ConfigManager (db.*)
+ * // Via TypedConfig (db.*)
  * DatabaseConnector generic = DbConnectorFactory.createFromConfig();
  *
  * // Desde System Properties (oracle.db.*)
@@ -172,10 +172,10 @@ public class DbConnectorFactory {
     }
 
     /**
-     * Crea un conector genérico desde ConfigManager.
+     * Crea un conector genérico desde configuración tipada.
      *
-     * <p><b>⭐ MÉTODO RECOMENDADO:</b> Este método usa ConfigManager para leer configuraciones,
-     * lo que permite usar archivos config-{env}.properties y variables de entorno.</p>
+     * <p><b>⭐ MÉTODO RECOMENDADO:</b> Lee configuración vía ConfigLoaderHolder (TypedConfig),
+     * soporta config-{env}.properties, variables de entorno y System Properties.</p>
      *
      * <p><b>Configuración requerida en config-{env}.properties:</b></p>
      * <pre>
@@ -197,12 +197,12 @@ public class DbConnectorFactory {
      * @throws IllegalArgumentException Si faltan configuraciones requeridas
      */
     public static DatabaseConnector createFromConfig() {
-        com.qa.common.internal.config.ConfigManager config =
-            com.qa.common.internal.config.ConfigManager.getInstance();
+        com.qa.common.api.config.DatabaseConfig db =
+            ConfigLoaderHolder.get().load(com.qa.common.api.config.DatabaseConfig.class);
 
-        String jdbcUrl = config.get("db.url");
-        String username = config.get("db.username");
-        String password = config.get("db.password");
+        String jdbcUrl = db.url();
+        String username = db.username();
+        String password = db.password();
 
         // Validar que al menos tengamos URL
         if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
@@ -214,11 +214,11 @@ public class DbConnectorFactory {
         }
 
         // Detectar driver automáticamente si no está especificado
-        String driver = config.get("db.driver");
+        String driver = db.driver();
 
         if (driver == null || driver.trim().isEmpty()) {
             // Intentar detectar por db.type
-            String dbType = config.get("db.type");
+            String dbType = db.type();
             if (dbType != null && !dbType.trim().isEmpty()) {
                 driver = getDriverByType(dbType.trim().toLowerCase());
                 TestLogger.logInfo("DB_CONNECTOR_FACTORY",
@@ -235,10 +235,10 @@ public class DbConnectorFactory {
 
         validateProperties(jdbcUrl, username, password, driver);
 
-        int poolSize = config.getInt("db.pool.size.max", DEFAULT_POOL_SIZE);
+        int poolSize = db.poolSizeMax();
 
         TestLogger.logInfo("DB_CONNECTOR_FACTORY",
-            "Creando conector desde ConfigManager",
+            "Creando conector desde configuración tipada",
             Map.of("driver", driver, "poolSize", poolSize));
 
         return create(jdbcUrl, username, password, driver, poolSize);
@@ -255,6 +255,15 @@ public class DbConnectorFactory {
      */
     public static DatabaseConnector create(String jdbcUrl, String username, String password, String driverClassName) {
         return create(jdbcUrl, username, password, driverClassName, DEFAULT_POOL_SIZE);
+    }
+
+    /**
+     * Creates an H2 connector with explicit parameters. H2 is supported primarily for
+     * self-contained QA scenarios and in-memory smoke tests; production workloads should
+     * use a vendor-specific connector.
+     */
+    public static DatabaseConnector getH2Connector(String jdbcUrl, String username, String password) {
+        return create(jdbcUrl, username, password, "org.h2.Driver", DEFAULT_POOL_SIZE);
     }
 
     /**
@@ -419,7 +428,7 @@ public class DbConnectorFactory {
     // =========================================================================
 
     /**
-     * Crea un conector leyendo configuración desde ConfigManager.
+     * Crea un conector leyendo configuración dinámica por prefijo de tipo de BD.
      *
      * <p>Lee {dbType}.db.url, {dbType}.db.username, {dbType}.db.password</p>
      *
@@ -427,16 +436,15 @@ public class DbConnectorFactory {
      * @return DatabaseConnector configurado
      */
     private static DatabaseConnector getConnectorFromConfigManager(String dbType) {
-        com.qa.common.internal.config.ConfigManager config =
-            com.qa.common.internal.config.ConfigManager.getInstance();
+        com.qa.common.api.config.ConfigLoader loader = ConfigLoaderHolder.get();
 
         String urlKey = dbType + ".db.url";
         String usernameKey = dbType + ".db.username";
         String passwordKey = dbType + ".db.password";
 
-        String jdbcUrl = config.get(urlKey);
-        String username = config.get(usernameKey);
-        String password = config.get(passwordKey);
+        String jdbcUrl = loader.getRaw(urlKey).orElse(null);
+        String username = loader.getRaw(usernameKey).orElse("");
+        String password = loader.getRaw(passwordKey).orElse("");
 
         // Validar URL (obligatoria)
         if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
@@ -471,7 +479,15 @@ public class DbConnectorFactory {
         }
 
         // Obtener pool size (default DEFAULT_POOL_SIZE)
-        int poolSize = config.getInt(dbType + ".db.pool.size.max", DEFAULT_POOL_SIZE);
+        int poolSize = loader.getRaw(dbType + ".db.pool.size.max")
+            .map(v -> {
+                try {
+                    return Integer.parseInt(v.trim());
+                } catch (NumberFormatException e) {
+                    return DEFAULT_POOL_SIZE;
+                }
+            })
+            .orElse(DEFAULT_POOL_SIZE);
 
         // Crear conector
         return create(jdbcUrl, username, password, driver, poolSize);

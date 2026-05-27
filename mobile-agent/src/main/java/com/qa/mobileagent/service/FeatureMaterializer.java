@@ -57,7 +57,7 @@ public class FeatureMaterializer {
     }
 
     public void cleanup(Path execDir) {
-        if (execDir == null || !Files.exists(execDir)) return;
+        if (execDir == null || !Files.exists(execDir)) { return; }
         try (var stream = Files.walk(execDir)) {
             stream.sorted(Comparator.reverseOrder()).forEach(p -> {
                 try { Files.deleteIfExists(p); } catch (IOException ignored) { /* best-effort */ }

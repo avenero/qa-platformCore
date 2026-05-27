@@ -1,5 +1,4 @@
 package com.qa.common.api.driver;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.time.Duration;
 import java.util.Objects;

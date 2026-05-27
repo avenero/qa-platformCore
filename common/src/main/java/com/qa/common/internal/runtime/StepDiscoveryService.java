@@ -8,12 +8,12 @@ import com.qa.common.api.runtime.BddPhase;
 import com.qa.common.api.runtime.StepComponent;
 import com.qa.common.api.runtime.StepDefinitionInfo;
 import com.qa.common.api.runtime.StepInfo;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -104,7 +104,7 @@ public final class StepDiscoveryService {
         List<CorePlugin> discovered = StreamSupport.stream(ServiceLoader.load(CorePlugin.class).spliterator(), false).
                 sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder())).collect(Collectors.toList());
         LOG.info("Plugins descubiertos via SPI: {}", discovered.size());
-        discovered.forEach(p -> LOG.info("  Plugin: {} (order={})", p.getName(), p.getOrder()));
+        discovered.forEach(p -> LOG.info("  Plugin: {} (order={})", pluginKey(p), p.getOrder()));
         return new StepDiscoveryService(discovered);
     }
 
@@ -115,7 +115,7 @@ public final class StepDiscoveryService {
      */
     public List<ComponentInfo> discoverAll() {
         return plugins.stream().flatMap(plugin -> plugin.getComponents().stream().
-                        map(component -> new ComponentInfo(plugin.getName(), component))).
+                        map(component -> new ComponentInfo(pluginKey(plugin), component))).
                 collect(Collectors.toUnmodifiableList());
     }
 
@@ -139,8 +139,10 @@ public final class StepDiscoveryService {
      */
     public List<ComponentInfo> discoverByPlugin(String pluginName) {
         Objects.requireNonNull(pluginName, "pluginName no puede ser null");
-        return plugins.stream().filter(p -> p.getName().equals(pluginName)).flatMap(p -> p.getComponents().stream().
-                        map(c -> new ComponentInfo(p.getName(), c))).collect(Collectors.toUnmodifiableList());
+        return plugins.stream().filter(p -> pluginKey(p).equals(pluginName))
+                .flatMap(p -> p.getComponents().stream()
+                        .map(c -> new ComponentInfo(pluginKey(p), c)))
+                .collect(Collectors.toUnmodifiableList());
     }
 
     /**
@@ -223,7 +225,12 @@ public final class StepDiscoveryService {
      * @return lista de nombres ordenados por prioridad
      */
     public List<String> getPluginNames() {
-        return plugins.stream().map(CorePlugin::getName).collect(Collectors.toUnmodifiableList());
+        return plugins.stream().map(StepDiscoveryService::pluginKey).collect(Collectors.toUnmodifiableList());
+    }
+
+    /** Clave canónica del plugin (platformId en minúsculas, consistente con la API previa). */
+    private static String pluginKey(CorePlugin plugin) {
+        return plugin.platformId().toLowerCase(Locale.ROOT);
     }
 
     /**

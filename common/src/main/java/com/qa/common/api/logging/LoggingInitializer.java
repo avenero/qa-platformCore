@@ -1,5 +1,4 @@
 package com.qa.common.api.logging;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +48,7 @@ public class LoggingInitializer {
     public static final String MODULE_API = "API";
     public static final String MODULE_WEB = "WEB";
     public static final String MODULE_MOBILE = "MOBILE";
+    public static final String MODULE_DATABASE = "DATABASE";
     public static final String MODULE_COMMON = "COMMON";
 
     // Keys para MDC

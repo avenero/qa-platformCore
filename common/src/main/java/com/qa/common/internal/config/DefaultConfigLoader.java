@@ -112,7 +112,7 @@ public class DefaultConfigLoader implements ConfigLoader {
      */
     @Override
     public Optional<String> getRaw(String key) {
-        if (key == null || key.isBlank()) return Optional.empty();
+        if (key == null || key.isBlank()) { return Optional.empty(); }
         return lookup(key);
     }
 
@@ -169,18 +169,27 @@ public class DefaultConfigLoader implements ConfigLoader {
     /**
      * Resuelve {@code key} contra el stack de sources.
      *
+     * <p>TASK-K03M-F7: para cada source, prueba la key canónica primero y
+     * luego sus aliases legacy ({@link LegacyKeyAliases#candidatesFor}).
+     * El orden exterior (sources) preserva la prioridad de source; el orden
+     * interior (candidatos) garantiza que el canónico nunca es "shadowed" por
+     * un alias en el mismo source.
+     *
      * <p>TASK-K03M-F3: aplica {@link VariableInterpolator} al valor ganador
      * <strong>excepto</strong> cuando provino de {@link ExecutionContextSource}
      * — esos valores son finales (mismo contrato que {@code ConfigManager}
      * legacy: el BE entrega valores ya resueltos en {@code ExecutionConfig}).
      */
     private Optional<String> lookup(String key) {
+        List<String> candidates = LegacyKeyAliases.candidatesFor(key);
         for (ConfigSource s : sources) {
-            Optional<String> v = s.get(key);
-            if (v.isPresent()) {
-                return s instanceof ExecutionContextSource
-                        ? v
-                        : Optional.of(VariableInterpolator.interpolate(v.get()));
+            for (String candidate : candidates) {
+                Optional<String> v = s.get(candidate);
+                if (v.isPresent()) {
+                    return s instanceof ExecutionContextSource
+                            ? v
+                            : Optional.of(VariableInterpolator.interpolate(v.get()));
+                }
             }
         }
         return Optional.empty();
@@ -222,17 +231,17 @@ public class DefaultConfigLoader implements ConfigLoader {
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         static Object parse(String raw, RecordComponent c) {
-            if (raw == null) return null;
+            if (raw == null) { return null; }
             Class<?> type = c.getType();
             String v = raw.trim();
             try {
-                if (type == String.class) return v;
-                if (type == int.class || type == Integer.class) return Integer.parseInt(v);
-                if (type == long.class || type == Long.class) return Long.parseLong(v);
-                if (type == boolean.class || type == Boolean.class) return Boolean.parseBoolean(v);
-                if (type == double.class || type == Double.class) return Double.parseDouble(v);
-                if (type == float.class || type == Float.class) return Float.parseFloat(v);
-                if (type == Duration.class) return parseDuration(v);
+                if (type == String.class) { return v; }
+                if (type == int.class || type == Integer.class) { return Integer.parseInt(v); }
+                if (type == long.class || type == Long.class) { return Long.parseLong(v); }
+                if (type == boolean.class || type == Boolean.class) { return Boolean.parseBoolean(v); }
+                if (type == double.class || type == Double.class) { return Double.parseDouble(v); }
+                if (type == float.class || type == Float.class) { return Float.parseFloat(v); }
+                if (type == Duration.class) { return parseDuration(v); }
                 if (type.isEnum()) {
                     return Enum.valueOf((Class<Enum>) type, v.toUpperCase(Locale.ROOT));
                 }
@@ -241,7 +250,7 @@ public class DefaultConfigLoader implements ConfigLoader {
                     List<String> items = new ArrayList<>();
                     for (String s : v.split(",")) {
                         String trimmed = s.trim();
-                        if (!trimmed.isEmpty()) items.add(trimmed);
+                        if (!trimmed.isEmpty()) { items.add(trimmed); }
                     }
                     return List.copyOf(items);
                 }

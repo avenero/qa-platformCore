@@ -57,7 +57,7 @@ public final class QueryResultContext {
             if (params != null && !params.isBlank()) {
                 String[] parts = params.split(",");
                 for (int i = 0; i < parts.length; i++) {
-                    stmt.setObject(i + 1, parts[i].trim());
+                    bindParameter(stmt, i + 1, parts[i].trim());
                 }
             }
 
@@ -110,6 +110,31 @@ public final class QueryResultContext {
         throw new FrameworkBusinessException("QueryResultContext.getValue",
             String.format("Column '%s' not found in row %d. Available: %s",
                 column, row, rowMap.keySet()));
+    }
+
+    /**
+     * Binds a positional parameter with light type inference for strict-typed
+     * backends (PostgreSQL). Mirrors {@code DatabaseHelper.bindParameter}.
+     */
+    private static void bindParameter(PreparedStatement stmt, int index, String raw)
+            throws SQLException {
+        if (raw == null || raw.isEmpty() || "null".equalsIgnoreCase(raw)) {
+            stmt.setObject(index, null);
+            return;
+        }
+        try {
+            if (raw.matches("-?\\d+")) {
+                stmt.setLong(index, Long.parseLong(raw));
+                return;
+            }
+            if (raw.matches("-?\\d+\\.\\d+")) {
+                stmt.setBigDecimal(index, new java.math.BigDecimal(raw));
+                return;
+            }
+        } catch (NumberFormatException ignored) {
+            // Falls through to setString.
+        }
+        stmt.setString(index, raw);
     }
 
     /**

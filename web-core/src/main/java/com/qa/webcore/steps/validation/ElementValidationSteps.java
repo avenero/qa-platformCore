@@ -76,6 +76,16 @@ public class ElementValidationSteps {
         helper.captureScreen(scenario);
     }
 
+    @Then("verifico que el elemento {string} no este vacio")
+    public void verificoQueElElementoNoEsteVacio(String locator) {
+        String text = engine().find(locator).getText();
+        Assertions.assertThat(text)
+            .as("El elemento " + locator + " no debería estar vacío")
+            .isNotNull()
+            .isNotBlank();
+        helper.captureScreen(scenario);
+    }
+
     @Then("verifico si existe el elemento {string} y valido que el texto sea {string}")
     public void verificoSiExisteElElementoYValidoQueElTextoSea(String locator, String expectedText) {
         if (engine().isPresent(locator)) {

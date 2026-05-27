@@ -49,12 +49,12 @@ public class MobileWhenSteps {
     // Nivel 1 — Formularios semánticos
     // =========================================================================
 
-    @When("I fill {string} with {string}")
+    @When("I fill mobile field {string} with {string}")
     public void iFillWith(String label, String value) {
         mobile().type(MobileLocatorResolver.byA11y(label), value);
     }
 
-    @When("I clear {string}")
+    @When("I clear mobile field {string}")
     public void iClear(String label) {
         mobile().clearField(MobileLocatorResolver.byA11y(label));
     }
@@ -73,7 +73,7 @@ public class MobileWhenSteps {
      * "Scroll down" in UX terms: the user sees content lower in the page.
      * On device: finger moves up (swipe "up" = content moves down).
      */
-    @When("I scroll down")
+    @When("I scroll the mobile screen down")
     public void iScrollDown() {
         mobile().swipe("up");
     }
@@ -82,7 +82,7 @@ public class MobileWhenSteps {
      * "Scroll up" in UX terms: the user sees content higher in the page.
      * On device: finger moves down (swipe "down" = content moves up).
      */
-    @When("I scroll up")
+    @When("I scroll the mobile screen up")
     public void iScrollUp() {
         mobile().swipe("down");
     }
@@ -175,7 +175,7 @@ public class MobileWhenSteps {
         mobile().tap(MobileLocatorResolver.nthOf(MobileLocatorResolver.byA11y(label), n));
     }
 
-    @When("I fill the {int}. {string} with {string}")
+    @When("I fill the {int}. {string} mobile field with {string}")
     public void iFillTheNthWith(int n, String label, String value) {
         mobile().type(MobileLocatorResolver.nthOf(MobileLocatorResolver.byA11y(label), n), value);
     }
@@ -217,7 +217,7 @@ public class MobileWhenSteps {
         mobile().tap(MobileLocatorResolver.byXPath(xpath));
     }
 
-    @When("I fill the element with xpath {string} with {string}")
+    @When("I fill the mobile element with xpath {string} with {string}")
     public void iFillElementWithXPathWith(String xpath, String value) {
         mobile().type(MobileLocatorResolver.byXPath(xpath), value);
     }

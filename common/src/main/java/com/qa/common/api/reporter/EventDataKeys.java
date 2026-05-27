@@ -1,6 +1,5 @@
 package com.qa.common.api.reporter;
 
-import com.qa.common.utils.security.SecurityUtilities;
 
 /**
  * Constantes de las claves del mapa {@code data} de {@link com.qa.common.api.runtime.events.ExecutionEvent}.

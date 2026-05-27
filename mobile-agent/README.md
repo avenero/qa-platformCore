@@ -13,6 +13,7 @@ una máquina externa con Android SDK / iOS Simulator instalado.
 | `GET`  | `/v1/runs/{id}/events` | Stream SSE de `AgentEvent` |
 | `POST` | `/v1/runs/{id}/cancel` | Cancela idempotentemente |
 | `GET`  | `/v1/capabilities` | Lista de `CapabilityReport` |
+| `GET`  | `/v1/devices` | Lista de `MobileDeviceDescriptor` (devices descubiertos via ADB + xcrun). `503` si discovery falla en el host del agente. UDID NO se publica (PII filtrada en wire). _Añadido en TASK-K03COV-BE7 (parte agente)._ |
 | `GET`  | `/actuator/health` | Liveness + readiness |
 
 > **R-2 (RFC-AGENT-01):** los campos del wire-protocol son aditivos.

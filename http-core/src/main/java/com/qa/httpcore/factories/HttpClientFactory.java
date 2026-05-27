@@ -1,7 +1,7 @@
 package com.qa.httpcore.factories;
 
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 // TASK-J01: BaseHttpClient (Unirest) eliminado. La opción legacy "unirest"
 // se mantiene en createForLegacyImpl() como fallback hacia Apache con
@@ -13,7 +13,6 @@ import com.qa.common.api.runtime.ExecutionConfig;
 import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.HttpEngine;
 
-import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -160,7 +159,7 @@ public final class HttpClientFactory {
      * No quita {@link HttpEngine#APACHE} (lo reinstala con su default).
      */
     public static void unregister(HttpEngine engine) {
-        if (engine == null) return;
+        if (engine == null) { return; }
         if (engine == HttpEngine.APACHE) {
             REGISTRY.put(HttpEngine.APACHE, ApacheHttpClientImpl::new);
             return;
@@ -243,7 +242,8 @@ public final class HttpClientFactory {
     /** @return información de debug del factory (motores registrados + property legacy). */
     public static String getFactoryInfo() {
         return String.format(
-                "HttpClientFactory v2.3.0 — engines registrados: %s. Property legacy: '%s' (apache | unirest@deprecated).",
+                "HttpClientFactory v2.3.0 — engines registrados: %s. Property legacy: '%s' "
+                        + "(apache | unirest@deprecated).",
                 REGISTRY.keySet(), CLIENT_IMPL_KEY);
     }
 
@@ -255,7 +255,7 @@ public final class HttpClientFactory {
         String impl = System.getProperty(CLIENT_IMPL_KEY);
         if (impl == null || impl.isBlank()) {
             try {
-                impl = com.qa.common.internal.config.ConfigManager.getInstance().get(CLIENT_IMPL_KEY, IMPL_APACHE);
+                impl = ConfigLoaderHolder.get().getRaw(CLIENT_IMPL_KEY, IMPL_APACHE);
             } catch (Exception e) {
                 impl = IMPL_APACHE;
             }

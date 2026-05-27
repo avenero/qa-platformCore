@@ -30,7 +30,8 @@ public class AuthenticationSteps {
     // ─── Obtención de servicios desde el ServiceRegistry ───────────
 
     private HttpClient getHttpClient() {
-        return ExecutionContext.current().map(ctx -> ctx.service(HttpClient.class)).orElseGet(ApacheHttpClientImpl::new);
+        return ExecutionContext.current().map(ctx -> ctx.service(HttpClient.class))
+                .orElseGet(ApacheHttpClientImpl::new);
     }
 
     private AuthenticationService getAuthentication() {

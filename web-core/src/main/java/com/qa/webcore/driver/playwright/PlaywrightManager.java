@@ -7,7 +7,8 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.WebConfig;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -161,7 +162,7 @@ public final class PlaywrightManager {
         synchronized (INIT_LOCK) {
             if (suiteApiCtxStandalone == null) {
                 Playwright pw = ensurePlaywright();
-                String baseUrl = ConfigManager.getInstance().get("base.url", "http://localhost");
+                String baseUrl = ConfigLoaderHolder.get().load(WebConfig.class).baseUrl();
                 suiteApiCtxStandalone = pw.request().newContext(
                     new APIRequest.NewContextOptions().setBaseURL(baseUrl)
                 );

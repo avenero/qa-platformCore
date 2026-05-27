@@ -45,7 +45,7 @@ public class MobileThenSteps {
                 .isFalse();
     }
 
-    @Then("I should see {string} inside {string}")
+    @Then("I should see {string} inside the mobile container {string}")
     public void iShouldSeeInsideContainer(String text, String container) {
         String selector = MobileLocatorResolver.inContainer(
             MobileLocatorResolver.byText(text),
@@ -59,7 +59,7 @@ public class MobileThenSteps {
     // Nivel 1 — Estado de campos de formulario
     // =========================================================================
 
-    @Then("the {string} field should contain {string}")
+    @Then("the {string} mobile field should contain {string}")
     public void theFieldShouldContain(String label, String expectedValue) {
         String selector = MobileLocatorResolver.byA11y(label);
         String actual = mobile().getText(selector);
@@ -68,7 +68,7 @@ public class MobileThenSteps {
                 .contains(expectedValue);
     }
 
-    @Then("the {string} field should be empty")
+    @Then("the {string} mobile field should be empty")
     public void theFieldShouldBeEmpty(String label) {
         String selector = MobileLocatorResolver.byA11y(label);
         String actual = mobile().getText(selector);
@@ -81,19 +81,19 @@ public class MobileThenSteps {
     // Nivel 1 — Estado de botones
     // =========================================================================
 
-    @Then("the {string} button should be enabled")
-    public void theButtonShouldBeEnabled(String label) {
+    @Then("the {string} mobile button should be enabled")
+    public void theMobileButtonShouldBeEnabled(String label) {
         String selector = MobileLocatorResolver.byA11y(label);
         Assertions.assertThat(mobile().isEnabled(selector))
-                .as("Button '%s' should be enabled", label)
+                .as("Mobile button '%s' should be enabled", label)
                 .isTrue();
     }
 
-    @Then("the {string} button should be disabled")
-    public void theButtonShouldBeDisabled(String label) {
+    @Then("the {string} mobile button should be disabled")
+    public void theMobileButtonShouldBeDisabled(String label) {
         String selector = MobileLocatorResolver.byA11y(label);
         Assertions.assertThat(mobile().isEnabled(selector))
-                .as("Button '%s' should be disabled", label)
+                .as("Mobile button '%s' should be disabled", label)
                 .isFalse();
     }
 
@@ -186,7 +186,7 @@ public class MobileThenSteps {
     // Nivel 3 — Escape hatch XPath
     // =========================================================================
 
-    @Then("the element with xpath {string} should be visible")
+    @Then("the mobile element with xpath {string} should be visible")
     public void theElementWithXPathShouldBeVisible(String xpath) {
         String selector = MobileLocatorResolver.byXPath(xpath);
         Assertions.assertThat(mobile().isVisible(selector))

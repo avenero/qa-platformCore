@@ -1,0 +1,121 @@
+name: CI - qa-module-test regression gate
+
+# T-CR7: corre la suite Cucumber externa (qa-module-test) contra esta build de
+# qa-platformCore publicada a Maven Local. Bloquea merge si rojo.
+#
+# Dispara en cada PR a develop/master + en cada push a esos branches.
+# Time budget: ≤ 20 min wall-clock. Si crece, paralelizar por layer (BE/WEB/API/MOBILE).
+
+on:
+  pull_request:
+    branches: [ develop, master ]
+  push:
+    branches: [ develop, master ]
+  workflow_dispatch:
+
+concurrency:
+  group: qa-module-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Publish Core + Run qa-module-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout qa-platformCore
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: qa-platformCore
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.m2/repository
+          key: ${{ runner.os }}-gradle-mod-test-${{ hashFiles('qa-platformCore/**/*.gradle*', 'qa-platformCore/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-mod-test-
+            ${{ runner.os }}-gradle-
+
+      - name: Publish Core to Maven Local
+        working-directory: qa-platformCore
+        run: |
+          chmod +x gradlew
+          ./gradlew publishToMavenLocal -x test --no-daemon
+        env:
+          CI: true
+
+      # qa-module-test vive en un repo separado. La URL se configura en variables de repositorio
+      # (Settings → Secrets and variables → Actions → Variables):
+      #   - vars.QA_MODULE_TEST_REPO    → "<org>/<repo>" (e.g., "avenero/qa-module-test")
+      #   - vars.QA_MODULE_TEST_REF     → branch/tag (default: "main")
+      # Si vars.QA_MODULE_TEST_REPO no está seteada, se hace fallback al path local
+      # (siblings/qa-module-test) — útil para devs runners self-hosted con ambos repos clonados.
+      - name: Checkout qa-module-test (remote)
+        if: vars.QA_MODULE_TEST_REPO != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.QA_MODULE_TEST_REPO }}
+          ref: ${{ vars.QA_MODULE_TEST_REF || 'main' }}
+          token: ${{ secrets.QA_MODULE_TEST_TOKEN || secrets.GITHUB_TOKEN }}
+          path: qa-module-test
+
+      - name: Verify qa-module-test checkout
+        run: |
+          if [ ! -d "qa-module-test" ]; then
+            echo "::error::qa-module-test not present. Set repo variable QA_MODULE_TEST_REPO or pre-checkout in a self-hosted runner."
+            exit 1
+          fi
+          ls qa-module-test
+
+      - name: Run qa-module-test (StepSyncValidator + Cucumber)
+        working-directory: qa-module-test
+        run: |
+          chmod +x gradlew
+          # `not @wip` excluye scenarios marcados como work-in-progress (orphans / env-dependent residuales).
+          ./gradlew test --no-daemon \
+            -Pcucumber.filter.tags="not @wip" \
+            --info | tee baseline.log
+        env:
+          CI: true
+
+      - name: Upload Cucumber HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cucumber-html-report-${{ github.run_number }}
+          path: |
+            qa-module-test/build/reports/cucumber/
+            qa-module-test/build/reports/tests/
+          retention-days: 30
+
+      - name: Upload JUnit XML results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-module-test-junit-${{ github.run_number }}
+          path: qa-module-test/build/test-results/test/TEST-*.xml
+          retention-days: 30
+
+      - name: Upload baseline log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-module-test-baseline-log-${{ github.run_number }}
+          path: qa-module-test/baseline.log
+          retention-days: 14

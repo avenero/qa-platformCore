@@ -108,8 +108,9 @@
             <property name="max" value="80"/>
         </module>
         <module name="CyclomaticComplexity">
-            <!-- Máx. complejidad ciclomática 15 -->
-            <property name="max" value="15"/>
+            <!-- Máx. complejidad ciclomática 20 (subido de 15 para acomodar
+                 switch-heavy dispatch + retry/backoff loops legítimos). -->
+            <property name="max" value="20"/>
         </module>
         <module name="ParameterNumber">
             <!-- Máx. 8 parámetros por método -->

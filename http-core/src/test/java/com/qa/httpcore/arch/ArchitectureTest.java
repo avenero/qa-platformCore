@@ -57,8 +57,6 @@ public class ArchitectureTest {
      * {@code docs/K01_PHASE_B_SUBTASKS.md} §K02 whitelist.
      */
     private static final Set<String> K02_INTERNAL_WHITELIST = Set.of(
-            // TASK-K03 reemplazará con TypedConfig (api/config/)
-            "com.qa.common.internal.config.ConfigManager",
             // TASK-K07 expondrá un wrapper api/concurrency cuando RetryPolicy llegue
             "com.qa.common.internal.concurrency.ParallelStepExecutor",
             "com.qa.common.internal.concurrency.ParallelResult",

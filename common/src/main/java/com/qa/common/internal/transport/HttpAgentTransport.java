@@ -4,7 +4,6 @@ package com.qa.common.internal.transport;
 import com.qa.common.api.Internal;
 import com.qa.common.api.transport.ExecutionHandle;
 import com.qa.common.api.transport.ExecutionTransport;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -72,7 +71,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   <li><b>R-2.</b> Los DTOs en {@code transport.wire} sólo evolucionan de
  *       forma aditiva.</li>
  *   <li><b>R-5.</b> Auth bearer (cuando llegue) NUNCA en logs. El método
- *       {@link #log(String)} ya redacta el header.</li>
+ *       {@code log(String)} ya redacta el header.</li>
  * </ul>
  *
  * @author Abel Venero
@@ -83,6 +82,9 @@ public class HttpAgentTransport implements ExecutionTransport {
 
     private static final Logger LOG = LoggerFactory.getLogger(HttpAgentTransport.class);
     private static final AtomicLong THREAD_SEQ = new AtomicLong();
+    private static final int HTTP_202_ACCEPTED = 202;
+    private static final int HTTP_404_NOT_FOUND = 404;
+    private static final int HTTP_STATUS_CLASS_DIVISOR = 100;
 
     private final URI baseUrl;
     private final HttpClient httpClient;
@@ -145,7 +147,7 @@ public class HttpAgentTransport implements ExecutionTransport {
         try {
             submission = postSubmit(body);
         } catch (IOException | InterruptedException ex) {
-            if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
+            if (ex instanceof InterruptedException) { Thread.currentThread().interrupt(); }
             return failedHandle("submit a " + baseUrl + " falló: " + ex.getMessage(), ex);
         }
 
@@ -185,7 +187,7 @@ public class HttpAgentTransport implements ExecutionTransport {
             try {
                 postCancel(submission.executionId());
             } catch (IOException | InterruptedException ex) {
-                if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
+                if (ex instanceof InterruptedException) { Thread.currentThread().interrupt(); }
                 LOG.warn("cancel remoto falló para {}: {}", submission.executionId(), ex.getMessage());
             } finally {
                 sse.stop();
@@ -241,7 +243,8 @@ public class HttpAgentTransport implements ExecutionTransport {
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
         HttpResponse<Void> resp = httpClient.send(req, HttpResponse.BodyHandlers.discarding());
-        if (resp.statusCode() != 202 && resp.statusCode() != 404 && resp.statusCode() / 100 != 2) {
+        int code = resp.statusCode();
+        if (code != HTTP_202_ACCEPTED && code != HTTP_404_NOT_FOUND && code / HTTP_STATUS_CLASS_DIVISOR != 2) {
             throw new IOException("HTTP " + resp.statusCode() + " desde /v1/runs/{id}/cancel");
         }
     }
@@ -290,7 +293,7 @@ public class HttpAgentTransport implements ExecutionTransport {
         }
         String execId = ev.executionId();
         String type = ev.type() != null ? ev.type() : eventType;
-        if (type == null) return;
+        if (type == null) { return; }
         switch (type) {
             case "SCENARIO_STARTED" -> reporter.onScenarioStarted(execId, nullToEmpty(ev.name()));
             case "STEP_STARTED"     -> reporter.onStepStarted(execId, nullToEmpty(ev.stepText()));
@@ -338,14 +341,14 @@ public class HttpAgentTransport implements ExecutionTransport {
     private static String nullToEmpty(String s) { return s == null ? "" : s; }
 
     private static ScenarioOutcome mapOutcome(String s) {
-        if (s == null) return ScenarioOutcome.ABORTED;
+        if (s == null) { return ScenarioOutcome.ABORTED; }
         try { return ScenarioOutcome.valueOf(s); } catch (IllegalArgumentException ex) {
             return ScenarioOutcome.ABORTED;
         }
     }
 
     private static ExecutionResult.Status parseStatus(String s) {
-        if (s == null) return ExecutionResult.Status.ERROR;
+        if (s == null) { return ExecutionResult.Status.ERROR; }
         try { return ExecutionResult.Status.valueOf(s); } catch (IllegalArgumentException ex) {
             return ExecutionResult.Status.ERROR;
         }
@@ -385,18 +388,53 @@ public class HttpAgentTransport implements ExecutionTransport {
         private Duration sseRetryBackoff = Duration.ofMillis(500);
         private String bearerToken;
 
-        Builder(URI baseUrl) { this.baseUrl = baseUrl; }
+        Builder(URI baseUrl) {
+            this.baseUrl = baseUrl;
+        }
 
-        public Builder httpClient(HttpClient c)    { this.httpClient = c; return this; }
-        public Builder objectMapper(ObjectMapper m){ this.mapper = m; return this; }
-        public Builder sseExecutor(ExecutorService e){ this.sseExecutor = e; return this; }
-        public Builder connectTimeout(Duration d)  { this.connectTimeout = d; return this; }
-        public Builder requestTimeout(Duration d)  { this.requestTimeout = d; return this; }
-        public Builder maxSseRetries(int n)        { this.maxSseRetries = n; return this; }
-        public Builder sseRetryBackoff(Duration d) { this.sseRetryBackoff = d; return this; }
-        public Builder bearerToken(String t)       { this.bearerToken = t; return this; }
+        public Builder httpClient(HttpClient c) {
+            this.httpClient = c;
+            return this;
+        }
 
-        public HttpAgentTransport build() { return new HttpAgentTransport(this); }
+        public Builder objectMapper(ObjectMapper m) {
+            this.mapper = m;
+            return this;
+        }
+
+        public Builder sseExecutor(ExecutorService e) {
+            this.sseExecutor = e;
+            return this;
+        }
+
+        public Builder connectTimeout(Duration d) {
+            this.connectTimeout = d;
+            return this;
+        }
+
+        public Builder requestTimeout(Duration d) {
+            this.requestTimeout = d;
+            return this;
+        }
+
+        public Builder maxSseRetries(int n) {
+            this.maxSseRetries = n;
+            return this;
+        }
+
+        public Builder sseRetryBackoff(Duration d) {
+            this.sseRetryBackoff = d;
+            return this;
+        }
+
+        public Builder bearerToken(String t) {
+            this.bearerToken = t;
+            return this;
+        }
+
+        public HttpAgentTransport build() {
+            return new HttpAgentTransport(this);
+        }
     }
 
     /**

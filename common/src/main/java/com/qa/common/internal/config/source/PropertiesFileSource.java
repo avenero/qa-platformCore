@@ -61,7 +61,7 @@ public final class PropertiesFileSource implements ConfigSource {
 
     @Override
     public Optional<String> get(String key) {
-        if (key == null || key.isBlank() || properties.isEmpty()) return Optional.empty();
+        if (key == null || key.isBlank() || properties.isEmpty()) { return Optional.empty(); }
         String v = properties.getProperty(key);
         return (v == null) ? Optional.empty() : Optional.of(v);
     }
@@ -73,8 +73,8 @@ public final class PropertiesFileSource implements ConfigSource {
 
     static String resolveEnvironment() {
         String env = System.getProperty("env");
-        if (env == null || env.isBlank()) env = System.getenv("TEST_ENV");
-        if (env == null || env.isBlank()) env = "dev";
+        if (env == null || env.isBlank()) { env = System.getenv("TEST_ENV"); }
+        if (env == null || env.isBlank()) { env = "dev"; }
         return env.toLowerCase().trim();
     }
 
@@ -96,7 +96,7 @@ public final class PropertiesFileSource implements ConfigSource {
 
     private static Properties tryLoad(String name, Function<String, InputStream> loader) {
         try (InputStream is = loader.apply(name)) {
-            if (is == null) return null;
+            if (is == null) { return null; }
             Properties p = new Properties();
             p.load(is);
             return p;

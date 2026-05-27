@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime.annotation;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

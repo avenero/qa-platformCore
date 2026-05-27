@@ -1,5 +1,4 @@
 package com.qa.common.api.driver;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.List;
 import java.util.Objects;
@@ -28,7 +27,7 @@ import java.util.Objects;
  * los factory methods para garantizar que el caller no pueda mutar el informe después
  * de crearlo.
  *
- * @param platformId        identificador de la plataforma ({@link com.qa.common.runtime.CorePlugin#platformId()})
+ * @param platformId        identificador de la plataforma ({@link com.qa.common.spi.CorePlugin#platformId()})
  * @param available         {@code true} si el plugin puede operar en el entorno actual
  * @param unavailableReason razón de no disponibilidad; {@code null} si {@code available == true}
  * @param options           capacidades concretas disponibles (browsers, dispositivos, motores de BD, etc.)

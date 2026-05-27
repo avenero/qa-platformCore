@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.runtime.annotation.StepId;
 
@@ -224,7 +223,8 @@ public interface StepComponent {
      * <ul>
      *   <li>Sugerir al Frontend qué componente seleccionar en lugar del deprecado.</li>
      *   <li>Migrar automáticamente escenarios persistidos durante operaciones de lint/import.</li>
-     *   <li>Validar que el reemplazo existe en el catálogo ({@link StepDiscoveryService#resolveStep}).</li>
+     *   <li>Validar que el reemplazo existe en el catálogo
+     *       ({@link com.qa.common.internal.runtime.StepDiscoveryService#resolveStep}).</li>
      * </ul>
      *
      * <p>La implementación por defecto lee {@link StepId#replacedBy()} de la anotación

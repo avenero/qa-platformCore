@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.List;
 import java.util.Map;
@@ -36,7 +35,7 @@ import java.util.Objects;
  * @author Abel Venero
  * @since 2.1.0
  * @see StepComponent
- * @see StepDiscoveryService#discoverAllAsStepInfo()
+ * @see com.qa.common.internal.runtime.StepDiscoveryService#discoverAllAsStepInfo()
  */
 public record StepInfo(
         String id,

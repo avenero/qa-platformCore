@@ -62,7 +62,7 @@ public record SubmitRequest(
         if (properties == null) {
             properties = Map.of();
         }
-        if (browser == null) browser = "";
-        if (tags == null) tags = "";
+        if (browser == null) { browser = ""; }
+        if (tags == null) { tags = ""; }
     }
 }

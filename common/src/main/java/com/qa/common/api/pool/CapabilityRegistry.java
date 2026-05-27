@@ -1,5 +1,4 @@
 package com.qa.common.api.pool;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.time.Duration;
 import java.util.List;
@@ -100,7 +99,7 @@ public interface CapabilityRegistry {
      *
      * <p>Debe coincidir con el {@code platformId} de los {@link CapabilityDescriptor}
      * retornados por {@link #list()} y con el valor retornado por
-     * {@link com.qa.common.runtime.CorePlugin#platformId()}.
+     * {@link com.qa.common.spi.CorePlugin#platformId()}.
      *
      * @return identificador de plataforma (ej: {@code "WEB"}, {@code "ANDROID"}, {@code "DATABASE"})
      */

@@ -66,6 +66,7 @@ public class PlaywrightHttpEngine implements HttpClient {
 
     // ── Constantes ────────────────────────────────────────────────────────────
 
+    private static final int MAX_REDIRECTS               = 20;
     private static final int DEFAULT_CONNECT_TIMEOUT_MS  = 30_000;
     private static final int DEFAULT_RESPONSE_TIMEOUT_MS = 60_000;
     private static final String DEFAULT_CONTENT_TYPE     = "application/json";
@@ -710,7 +711,7 @@ public class PlaywrightHttpEngine implements HttpClient {
 
         RequestOptions opts = RequestOptions.create()
                 .setTimeout(timeoutMs)
-                .setMaxRedirects(followRedirects ? 20 : 0);
+                .setMaxRedirects(followRedirects ? MAX_REDIRECTS : 0);
         effectiveHeaders.forEach(opts::setHeader);
 
         // Body / form fields:
@@ -720,7 +721,7 @@ public class PlaywrightHttpEngine implements HttpClient {
             // Codifica campos como x-www-form-urlencoded.
             StringBuilder sb = new StringBuilder();
             fields.forEach((k, v) -> {
-                if (sb.length() > 0) sb.append('&');
+                if (sb.length() > 0) { sb.append('&'); }
                 sb.append(URLEncoder.encode(k, StandardCharsets.UTF_8))
                   .append('=')
                   .append(URLEncoder.encode(v == null ? "" : v, StandardCharsets.UTF_8));

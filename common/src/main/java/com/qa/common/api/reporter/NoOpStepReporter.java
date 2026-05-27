@@ -1,6 +1,5 @@
 package com.qa.common.api.reporter;
 
-import com.qa.common.utils.security.SecurityUtilities;
 
 /**
  * Implementación inerte de {@link StepReporter} — no realiza ninguna acción.

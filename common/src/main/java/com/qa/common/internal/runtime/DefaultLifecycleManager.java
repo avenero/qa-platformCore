@@ -12,7 +12,6 @@ import com.qa.common.api.runtime.ExecutionRequest;
 import com.qa.common.api.runtime.LifecycleManager;
 import com.qa.common.api.runtime.ScenarioMetadata;
 import com.qa.common.api.runtime.VariableStore;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.runtime.events.EventBus;
 import com.qa.common.api.runtime.events.ExecutionEvent;

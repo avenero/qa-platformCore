@@ -90,7 +90,7 @@ public class AgentExecutionService {
 
     public boolean cancel(String executionId) {
         RunSession s = sessions.get(executionId);
-        if (s == null) return false;
+        if (s == null) { return false; }
         s.handle().cancel();
         return true;
     }

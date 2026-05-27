@@ -1,6 +1,5 @@
 package com.qa.common.api.driver;
 
-import com.qa.common.utils.security.SecurityUtilities;
 
 /**
  * Describe una capacidad concreta que un plugin soporta (browser, plataforma, motor de BD, etc.).

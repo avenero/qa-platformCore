@@ -57,6 +57,111 @@ public class DatabaseGivenSteps {
         ExecutionContext.requireCurrent().variables().set("currentDbType", connectionName);
     }
 
+    /**
+     * Connects to a database passing all connection parameters inline. No external
+     * config file required — useful for self-contained feature files and ad-hoc
+     * scenarios across any backend.
+     *
+     * <p>Supported {@code dbType} values (case-insensitive):
+     * {@code oracle}, {@code postgresql} (alias {@code postgres}), {@code mysql},
+     * {@code sqlserver} (aliases {@code sql-server}, {@code mssql}), {@code h2}.
+     *
+     * <p>The {@code password} parameter supports {@code ${ENV_VAR}} interpolation
+     * via the framework {@code VariableInterpolator}; raw passwords in feature
+     * files should be avoided in favor of environment variables.
+     *
+     * <p>Example:
+     * <pre>
+     * Given I connect to the "postgresql" database with url "jdbc:postgresql://localhost:5432/qa"
+     *       user "qa_user" password "${QA_DB_PASS}"
+     * </pre>
+     */
+    @Given("I connect to the {string} database with url {string} user {string} password {string}")
+    public void iConnectToTheDatabaseWithParams(String dbType, String jdbcUrl,
+                                                 String user, String password)
+            throws FrameworkBusinessException {
+        dbType   = resolvePlaceholders(dbType);
+        jdbcUrl  = resolvePlaceholders(jdbcUrl);
+        user     = resolvePlaceholders(user);
+        password = resolvePlaceholders(password);
+        if (dbType == null || dbType.isBlank()) {
+            throw new FrameworkBusinessException("iConnectToTheDatabaseWithParams",
+                "dbType cannot be null or blank");
+        }
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            throw new FrameworkBusinessException("iConnectToTheDatabaseWithParams",
+                "jdbcUrl cannot be null or blank");
+        }
+        String type = dbType.toLowerCase().trim();
+        DatabaseConnector connector = switch (type) {
+            case "oracle" -> DbConnectorFactory.getOracleConnector(jdbcUrl, user, password);
+            case "postgresql", "postgres" -> DbConnectorFactory.getPostgreSQLConnector(jdbcUrl, user, password);
+            case "mysql" -> DbConnectorFactory.getMySQLConnector(jdbcUrl, user, password);
+            case "sqlserver", "sql-server", "mssql" ->
+                    DbConnectorFactory.getSQLServerConnector(jdbcUrl, user, password);
+            case "h2" -> DbConnectorFactory.getH2Connector(jdbcUrl, user, password);
+            default -> throw new FrameworkBusinessException("iConnectToTheDatabaseWithParams",
+                "Unsupported dbType '" + dbType + "'. Supported: oracle, postgresql, mysql, sqlserver, h2");
+        };
+        ExecutionContext.requireCurrent().variables().set("currentDbConnector", connector);
+        ExecutionContext.requireCurrent().variables().set("currentDbType", type);
+    }
+
+    /**
+     * Connects to a database using a DataTable carrying all connection params.
+     * Cleaner alternative when the connection definition is long or has comments.
+     *
+     * <p>Expected columns: {@code type | url | user | password} (order-independent;
+     * accepts Spanish aliases {@code tipo}, {@code usuario}, {@code contraseña}).
+     *
+     * <p>Example:
+     * <pre>
+     * Given I connect to a database with parameters:
+     *   | type     | url                                   | user    | password      |
+     *   | postgres | jdbc:postgresql://localhost:5432/qa   | qa_user | ${QA_DB_PASS} |
+     * </pre>
+     */
+    @Given("I connect to a database with parameters:")
+    public void iConnectToADatabaseWithParameters(DataTable params)
+            throws FrameworkBusinessException {
+        List<List<String>> raw = params.cells();
+        if (raw.size() != 2) {
+            throw new FrameworkBusinessException("iConnectToADatabaseWithParameters",
+                "Expected exactly 1 header row + 1 data row, got " + raw.size() + " row(s) total");
+        }
+        List<String> headers = raw.get(0);
+        List<String> values  = raw.get(1);
+        Map<String, String> row = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < headers.size(); i++) {
+            row.put(headers.get(i), i < values.size() ? values.get(i) : null);
+        }
+        String type = lookupParam(row, "type", "tipo", "dbType");
+        String url  = lookupParam(row, "url", "jdbcUrl");
+        String user = lookupParam(row, "user", "username", "usuario");
+        String pass = lookupParam(row, "password", "pass", "contraseña");
+        iConnectToTheDatabaseWithParams(type, url, user, pass);
+    }
+
+    /** Resolves {@code ${VAR}} placeholders against the active ExecutionContext variable store. */
+    private static String resolvePlaceholders(String raw) {
+        if (raw == null) { return null; }
+        return ExecutionContext.current()
+            .map(ctx -> ctx.variables().resolve(raw))
+            .orElse(raw);
+    }
+
+    private static String lookupParam(Map<String, String> row, String... aliases)
+            throws FrameworkBusinessException {
+        for (String a : aliases) {
+            for (Map.Entry<String, String> e : row.entrySet()) {
+                if (e.getKey().equalsIgnoreCase(a)) { return e.getValue(); }
+            }
+        }
+        throw new FrameworkBusinessException("lookupParam",
+            "Missing column in connection DataTable. Expected one of: "
+            + String.join(", ", aliases) + ". Got: " + row.keySet());
+    }
+
     // =========================================================================
     // Table fixture helpers
     // =========================================================================

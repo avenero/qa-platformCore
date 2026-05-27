@@ -1,6 +1,6 @@
 package com.qa.webcore.utils;
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.common.api.logging.TestLogger;
 import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.webcore.driver.engine.BrowserElement;
@@ -33,9 +33,7 @@ public class WebHelper {
     private static final int DEFAULT_TIMEOUT_MS = 30_000;
 
     public String getConfigProperty(String key, String defaultValue) {
-        return ExecutionContext.current()
-                .map(ctx -> ctx.config().getProperty(key, defaultValue))
-                .orElseGet(() -> ConfigManager.getInstance().get(key, defaultValue));
+        return ConfigLoaderHolder.get().getRaw(key, defaultValue);
     }
 
     public String normalizeBrowserName(String browserName) {

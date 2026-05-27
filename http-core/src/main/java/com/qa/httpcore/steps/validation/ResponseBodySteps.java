@@ -85,6 +85,16 @@ public class ResponseBodySteps {
         apiHelper().validateJsonPathNotNull(jsonPath);
     }
 
+    @Then("valido que el campo {string} NO sea {string}")
+    public void validoCampoNoSea(String jsonPath, String forbiddenValue) throws FrameworkBusinessException {
+        apiHelper().validateJsonPathNotEqual(jsonPath, forbiddenValue);
+    }
+
+    @Then("valido que el campo {string} NO contenga el texto {string}")
+    public void validoCampoNoContengaElTexto(String jsonPath, String forbiddenText) throws FrameworkBusinessException {
+        apiHelper().validateJsonPathDoesNotContain(jsonPath, forbiddenText);
+    }
+
     @Then("valido que el campo {string} sea de tipo {string}")
     public void validoTipoDeCampo(String jsonPath, String type) throws FrameworkBusinessException {
         apiHelper().validateJsonPathType(jsonPath, type);

@@ -57,7 +57,7 @@ public class DatabaseWhenSteps {
     @When("I query {string} with parameters {string}")
     public void iQueryWithParams(String query, String params) throws FrameworkBusinessException {
         DatabaseConnector connector = requireConnector();
-        QueryResultContext ctx = QueryResultContext.execute(connector, query, params);
+        QueryResultContext ctx = QueryResultContext.execute(connector, resolve(query), resolve(params));
         storeQueryResult(ctx);
     }
 
@@ -112,7 +112,7 @@ public class DatabaseWhenSteps {
     @When("I execute {string} with parameters {string}")
     public void iExecuteWithParams(String sql, String params) throws FrameworkBusinessException {
         DatabaseConnector connector = requireConnector();
-        int affected = DatabaseHelper.executeStatement(connector, sql, params);
+        int affected = DatabaseHelper.executeStatement(connector, resolve(sql), resolve(params));
         ExecutionContext.requireCurrent().variables().set("rowsAffected", affected);
     }
 
@@ -135,6 +135,30 @@ public class DatabaseWhenSteps {
     @When("I execute:")
     public void iExecuteDocString(String sql) throws FrameworkBusinessException {
         iExecuteWithParams(sql.strip(), null);
+    }
+
+    // =========================================================================
+    // Error-capturing DML (negative testing)
+    // =========================================================================
+
+    /**
+     * Executes a DML statement that is expected to fail, capturing the SQL state
+     * for assertion. Required for testing constraint violations (FK, UK, NOT NULL).
+     *
+     * <p>On success, the assertion {@code the previous query should have failed
+     * with SQL state ...} will fail because no state was captured.
+     */
+    @When("I try to execute {string} expecting failure")
+    public void iTryToExecuteExpectingFailure(String sql) throws FrameworkBusinessException {
+        DatabaseConnector connector = requireConnector();
+        try (java.sql.Connection conn = connector.getConnection();
+             java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.executeUpdate();
+            ExecutionContext.requireCurrent().variables().set("__lastSqlState", "");
+        } catch (java.sql.SQLException e) {
+            String state = e.getSQLState() == null ? "" : e.getSQLState();
+            ExecutionContext.requireCurrent().variables().set("__lastSqlState", state);
+        }
     }
 
     // =========================================================================
@@ -216,6 +240,14 @@ public class DatabaseWhenSteps {
     // =========================================================================
     // Helpers
     // =========================================================================
+
+    /** Resolves {@code ${VAR}} placeholders against the active ExecutionContext variable store. */
+    private static String resolve(String raw) {
+        if (raw == null) { return null; }
+        return ExecutionContext.current()
+            .map(ctx -> ctx.variables().resolve(raw))
+            .orElse(raw);
+    }
 
     private DatabaseConnector requireConnector() throws FrameworkBusinessException {
         return ExecutionContext.requireCurrent().variables()

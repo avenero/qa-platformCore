@@ -3,7 +3,6 @@ package com.qa.common.internal.runtime.catalog;
 
 import com.qa.common.api.Internal;
 import com.qa.common.spi.CorePlugin;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.runtime.BddPhase;
 import com.qa.common.api.runtime.StepComponent;
@@ -50,7 +49,7 @@ public final class ComponentCatalogWriter {
         Objects.requireNonNull(moduleName, "moduleName");
 
         List<StepComponent> components = plugin.getComponents();
-        if (components == null) components = List.of();
+        if (components == null) { components = List.of(); }
 
         StringBuilder md = new StringBuilder();
         appendHeader(md, plugin, moduleName, components.size());
@@ -157,8 +156,8 @@ public final class ComponentCatalogWriter {
         String en = i18n != null ? i18n.get("en") : null;
         String fr = i18n != null ? i18n.get("fr") : null;
         StringBuilder out = new StringBuilder("**").append(safeStr(es)).append("** _(es)_");
-        if (en != null && !en.isBlank()) out.append(" / **").append(en).append("** _(en)_");
-        if (fr != null && !fr.isBlank()) out.append(" / **").append(fr).append("** _(fr)_");
+        if (en != null && !en.isBlank()) { out.append(" / **").append(en).append("** _(en)_"); }
+        if (fr != null && !fr.isBlank()) { out.append(" / **").append(fr).append("** _(fr)_"); }
         return out.toString();
     }
 

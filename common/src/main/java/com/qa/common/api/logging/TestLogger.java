@@ -1,7 +1,5 @@
 package com.qa.common.api.logging;
 
-import com.qa.common.api.logging.LoggingInitializer;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -400,16 +398,18 @@ public class TestLogger {
         String packageName = clazz.getPackage().getName();
         String moduleName;
 
-        if (packageName.contains(".apicore.")) {
+        if (packageName.contains(".httpcore.") || packageName.contains(".apicore.")) {
             moduleName = LoggingInitializer.MODULE_API;
         } else if (packageName.contains(".webcore.")) {
             moduleName = LoggingInitializer.MODULE_WEB;
         } else if (packageName.contains(".mobilecore.")) {
             moduleName = LoggingInitializer.MODULE_MOBILE;
+        } else if (packageName.contains(".databasecore.")) {
+            moduleName = LoggingInitializer.MODULE_DATABASE;
         } else if (packageName.contains(".common.")) {
             moduleName = LoggingInitializer.MODULE_COMMON;
         } else {
-            moduleName = "UNKNOWN";
+            moduleName = LoggingInitializer.MODULE_COMMON;
         }
 
         LoggingInitializer.initModuleContext(moduleName);

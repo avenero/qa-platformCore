@@ -1,8 +1,8 @@
 package com.qa.httpcore.reporting;
 
 import com.qa.httpcore.reporting.bridge.HttpDetailData;
-import com.qa.common.reporting.core.bridge.HttpStepSummary;
-import com.qa.common.reporting.core.bridge.StepDetail;
+import com.qa.common.api.reporter.bridge.HttpStepSummary;
+import com.qa.common.api.reporter.detail.StepDetail;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

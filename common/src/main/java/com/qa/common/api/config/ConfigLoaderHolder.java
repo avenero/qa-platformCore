@@ -42,7 +42,7 @@ public final class ConfigLoaderHolder {
      */
     public static ConfigLoader get() {
         ConfigLoader local = instance;
-        if (local != null) return local;
+        if (local != null) { return local; }
         synchronized (ConfigLoaderHolder.class) {
             if (instance == null) {
                 instance = loadViaSpi();
@@ -70,7 +70,7 @@ public final class ConfigLoaderHolder {
     private static ConfigLoader loadViaSpi() {
         ServiceLoader<ConfigLoader> sl = ServiceLoader.load(ConfigLoader.class);
         Iterator<ConfigLoader> it = sl.iterator();
-        if (it.hasNext()) return it.next();
+        if (it.hasNext()) { return it.next(); }
         throw new IllegalStateException(
                 "No hay implementación de ConfigLoader registrada via ServiceLoader. "
                         + "Verifica que el classpath contenga "

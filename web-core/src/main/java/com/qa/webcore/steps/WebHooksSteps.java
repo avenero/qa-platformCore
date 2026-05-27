@@ -1,8 +1,8 @@
 package com.qa.webcore.steps;
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.FrameworkConfig;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.webcore.utils.WebHelper;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
@@ -27,9 +27,7 @@ public class WebHooksSteps {
 
     @Before(value = "@web or @ui or @playwright or @browser", order = 100)
     public void beforeScenario(Scenario scenario) {
-        String moduleName = ExecutionContext.current().
-                map(ctx -> ctx.config().getProperty("framework.module.name", "PLATFORM")).
-                orElseGet(() -> ConfigManager.getInstance().get("framework.module.name", "PLATFORM"));
+        String moduleName = ConfigLoaderHolder.get().load(FrameworkConfig.class).moduleName();
         TestLogger.setFramework(moduleName);
         TestLogger.logInfo("WEB_HOOKS", "Escenario iniciado: " + scenario.getName(), null);
     }

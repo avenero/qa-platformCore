@@ -21,12 +21,14 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class SseStepReporter implements StepReporter {
 
+    private static final int MIN_BUFFER_CAPACITY = 64;
+
     private final String executionId;
     private final LinkedBlockingQueue<AgentEvent> queue;
 
     public SseStepReporter(String executionId, int bufferCapacity) {
         this.executionId = Objects.requireNonNull(executionId, "executionId");
-        this.queue = new LinkedBlockingQueue<>(Math.max(64, bufferCapacity));
+        this.queue = new LinkedBlockingQueue<>(Math.max(MIN_BUFFER_CAPACITY, bufferCapacity));
     }
 
     public LinkedBlockingQueue<AgentEvent> queue() {

@@ -1,7 +1,6 @@
 package com.qa.common.internal.ssl;
 
 import com.qa.common.api.Internal;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;

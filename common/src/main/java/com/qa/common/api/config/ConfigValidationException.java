@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class ConfigValidationException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
+    private static final int REDACT_LENGTH_THRESHOLD = 64;
 
     private final Class<? extends TypedConfig> configClass;
     private final transient Set<? extends ConstraintViolation<?>> violations;
@@ -52,12 +53,12 @@ public class ConfigValidationException extends RuntimeException {
 
     /** Redacta valores que podrían ser sensibles (passwords, tokens). */
     private static Object redact(Object value) {
-        if (value == null) return null;
+        if (value == null) { return null; }
         String s = String.valueOf(value);
         // Heurística pasiva: oculta strings que parecen tokens/passwords largos.
         // Las claves "password"/"secret"/"token" se redactan en logs, no aquí
         // (este método solo redacta valores largos sin estructura — last-resort).
-        if (s.length() > 64) return "<redacted:" + s.length() + " chars>";
+        if (s.length() > REDACT_LENGTH_THRESHOLD) { return "<redacted:" + s.length() + " chars>"; }
         return s;
     }
 }

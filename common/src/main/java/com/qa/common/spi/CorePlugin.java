@@ -4,7 +4,6 @@ import com.qa.common.api.runtime.ExecutionConfig;
 import com.qa.common.api.runtime.StepComponent;
 import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.ServiceRegistry;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.driver.CapabilityReport;
 

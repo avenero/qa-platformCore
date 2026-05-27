@@ -2,7 +2,8 @@ package com.qa.webcore.plugin;
 
 
 import com.qa.common.spi.CorePlugin;
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.WebConfig;
 import com.qa.common.api.driver.CapabilityDescriptor;
 import com.qa.common.api.driver.CapabilityReport;
 import com.qa.common.api.runtime.ExecutionConfig;
@@ -149,12 +150,15 @@ public class WebPlugin implements CorePlugin {
     }
 
     private static boolean resolveHeadless(ExecutionContext context, boolean defaultValue) {
+        // TASK-K03M-M3: ExecutionContext per-thread sigue ganando si tiene la key explícita;
+        // si no, fallback a WebConfig.headless() (cubre SysProp/Env/Properties/Yaml + alias F7).
+        // El defaultValue del param se preserva como sentinel del context.getProperty.
         String defaultAsString = Boolean.toString(defaultValue);
         String fromContext = context.config().getProperty(WebConfigKeys.BROWSER_HEADLESS, defaultAsString);
         if (fromContext != null && !fromContext.isBlank()) {
             return Boolean.parseBoolean(fromContext);
         }
-        return ConfigManager.getInstance().getBoolean(WebConfigKeys.BROWSER_HEADLESS, defaultValue);
+        return ConfigLoaderHolder.get().load(WebConfig.class).headless();
     }
 
     static void setPlaywrightScenarioInitializerForTesting(PlaywrightScenarioInitializer initializer) {

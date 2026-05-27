@@ -140,6 +140,31 @@ class HttpClientFactoryTest {
             HttpClient client = HttpClientFactory.getInstance();
             assertThat(client).isInstanceOf(ApacheHttpClientImpl.class);
         }
+
+        @Test
+        @DisplayName("TASK-K03M-M3: -Dhttp.engine=APACHE (canónica) → resuelto por HttpConfig record → Apache")
+        void noContextCanonicalHttpEngineApacheViaRecord() {
+            // Sin -Dhttp.client (legacy), el resolveLegacyImpl cae al record HttpConfig.engine().
+            // Si user setea -Dhttp.engine=APACHE (key canónica TypedConfig), el record lo lee.
+            System.clearProperty(HttpClientFactory.CLIENT_IMPL_KEY);
+            System.setProperty("http.engine", "APACHE");
+            try {
+                HttpClient client = HttpClientFactory.getInstance();
+                assertThat(client).isInstanceOf(ApacheHttpClientImpl.class);
+            } finally {
+                System.clearProperty("http.engine");
+            }
+        }
+
+        @Test
+        @DisplayName("TASK-K03M-M3: -Dhttp.client=unirest preserva flag legacy → switch warning + fallback Apache")
+        void noContextLegacyUnirestPreservedAndFallsBack() {
+            // El getRaw(\"http.client\") preserva el string literal \"unirest\" para que el switch
+            // de createForLegacyImpl emita warning y caiga a Apache (en vez de hacerlo silente).
+            System.setProperty(HttpClientFactory.CLIENT_IMPL_KEY, "unirest");
+            HttpClient client = HttpClientFactory.getInstance();
+            assertThat(client).isInstanceOf(ApacheHttpClientImpl.class);
+        }
     }
 
     @Nested

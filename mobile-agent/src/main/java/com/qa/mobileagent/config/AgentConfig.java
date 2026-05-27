@@ -2,6 +2,7 @@ package com.qa.mobileagent.config;
 
 import com.qa.common.api.transport.ExecutionTransport;
 import com.qa.common.internal.transport.InProcessTransport;
+import com.qa.mobilecore.discovery.DeviceDiscoveryService;
 import com.qa.mobileagent.service.FeatureMaterializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,11 @@ public class AgentConfig {
     public ExecutionTransport executionTransport() {
         this.transport = InProcessTransport.withDefaults();
         return transport;
+    }
+
+    @Bean
+    public DeviceDiscoveryService deviceDiscoveryService() {
+        return new DeviceDiscoveryService();
     }
 
     @Bean

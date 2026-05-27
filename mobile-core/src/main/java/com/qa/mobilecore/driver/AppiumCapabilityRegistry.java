@@ -174,8 +174,8 @@ public class AppiumCapabilityRegistry implements CapabilityRegistry {
     }
 
     private static String resolvePlatformId(DeviceType type) {
-        if (type.isAndroid()) return "ANDROID";
-        if (type.isIOS())     return "IOS";
+        if (type.isAndroid()) { return "ANDROID"; }
+        if (type.isIOS()) { return "IOS"; }
         return "MOBILE"; // REMOTE_GRID
     }
 

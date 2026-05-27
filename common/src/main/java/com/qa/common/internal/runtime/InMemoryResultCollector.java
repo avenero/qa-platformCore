@@ -3,7 +3,6 @@ package com.qa.common.internal.runtime;
 
 import com.qa.common.api.Internal;
 import com.qa.common.api.runtime.ExecutionResult;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import io.cucumber.plugin.ConcurrentEventListener;
 import io.cucumber.plugin.event.EventPublisher;

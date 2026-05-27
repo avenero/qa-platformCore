@@ -1,7 +1,7 @@
 package com.qa.httpcore.reporting.bridge;
 
-import com.qa.common.reporting.core.bridge.HttpStepSummary;
-import com.qa.common.reporting.core.bridge.StepDetail;
+import com.qa.common.api.reporter.bridge.HttpStepSummary;
+import com.qa.common.api.reporter.detail.StepDetail;
 
 import java.util.Map;
 

@@ -1,5 +1,4 @@
 package com.qa.common.utils.file;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.logging.TestLogger;
 
@@ -12,7 +11,7 @@ import java.nio.file.StandardOpenOption;
  * Utilidades para operaciones con archivos y directorios.
  *
  * <p>Consolida las operaciones de I/O de archivos que antes estaban dispersas en
- * {@link DataUtilities}, siguiendo el principio de responsabilidad única.</p>
+ * {@link com.qa.common.utils.data.DataUtilities}, siguiendo el principio de responsabilidad única.</p>
  *
  * @author Abel Venero
  * @since 2.1.0

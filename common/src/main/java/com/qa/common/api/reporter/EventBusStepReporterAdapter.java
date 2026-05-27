@@ -1,5 +1,4 @@
 package com.qa.common.api.reporter;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.runtime.ExecutionResult;
 import com.qa.common.api.runtime.events.EventSubscriber;

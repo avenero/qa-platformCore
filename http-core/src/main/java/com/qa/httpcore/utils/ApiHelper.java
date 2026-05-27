@@ -2,7 +2,7 @@ package com.qa.httpcore.utils;
 
 import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.interfaces.HttpClient;
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.model.HttpResponse;
@@ -158,7 +158,7 @@ public class ApiHelper {
 
     /**
      * Configura el endpoint usando una propiedad del archivo config-{env}.properties.
-     * Lee de ConfigManager y soporta reemplazo de variables.
+     * Lee vía {@code ConfigLoaderHolder.get().getRaw(...)} y soporta reemplazo de variables.
      *
      * @param propertyKey clave de la propiedad
      * @throws RuntimeException si la propiedad no existe
@@ -170,10 +170,8 @@ public class ApiHelper {
             if (propertyKey.startsWith("http://") || propertyKey.startsWith("https://")) {
                 endpointValue = propertyKey;
             } else {
-                // Preferir ExecutionContext.config() — es por ejecución e inmutable (safe en paralelo)
-                // Fallback a ConfigManager para compatibilidad con ejecución sin Engine
-                endpointValue = ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(propertyKey)).
-                        filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(propertyKey));
+                endpointValue = ConfigLoaderHolder.get().getRaw(propertyKey)
+                        .filter(v -> !v.trim().isEmpty()).orElse(null);
 
                 if (endpointValue == null || endpointValue.trim().isEmpty()) {
                     endpointValue = resolveHostPathFallback(propertyKey);
@@ -394,18 +392,16 @@ public class ApiHelper {
     // =========================================================================
 
     /**
-     * Configura endpoint desde ConfigManager con base URL y path.
+     * Configura endpoint desde configuración (TypedConfig + getRaw) con base URL y path.
      * Encapsula toda la lógica de construcción de URL.
      */
     public void configureEndpointFromConfig(String baseUrlKey, String pathKey) {
         try {
-            // Preferir ExecutionContext.config() — es por ejecución e inmutable (safe en paralelo)
-            // Fallback a ConfigManager para compatibilidad con ejecución sin Engine
-            String baseUrl = ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(baseUrlKey)).
-                    filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(baseUrlKey));
+            String baseUrl = ConfigLoaderHolder.get().getRaw(baseUrlKey)
+                    .filter(v -> !v.trim().isEmpty()).orElse(null);
 
-            String endpointPath = ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(pathKey)).
-                    filter(v -> !v.trim().isEmpty()).orElseGet(() -> ConfigManager.getInstance().get(pathKey));
+            String endpointPath = ConfigLoaderHolder.get().getRaw(pathKey)
+                    .filter(v -> !v.trim().isEmpty()).orElse(null);
 
             if (baseUrl == null || baseUrl.trim().isEmpty()) {
                 throw new RuntimeException(
@@ -1189,6 +1185,26 @@ public class ApiHelper {
     }
 
     /**
+     * Valida que el campo JSON ({@code jsonPath}) NO sea igual al valor prohibido.
+     * @since 2.0.11
+     */
+    public void validateJsonPathNotEqual(String jsonPath, String forbiddenValue)
+            throws FrameworkBusinessException {
+        HttpResponse response = httpClient.getLastResponse();
+        ValidationUtilities.validateJsonPathNotEqual(response, jsonPath, resolve(forbiddenValue));
+    }
+
+    /**
+     * Valida que el campo JSON ({@code jsonPath}) NO contenga el texto prohibido.
+     * @since 2.0.11
+     */
+    public void validateJsonPathDoesNotContain(String jsonPath, String forbiddenText)
+            throws FrameworkBusinessException {
+        HttpResponse response = httpClient.getLastResponse();
+        ValidationUtilities.validateJsonPathDoesNotContain(response, jsonPath, resolve(forbiddenText));
+    }
+
+    /**
      * Valida el tipo de dato de un campo JSON.
      * @since 2.0.0
      */
@@ -1364,7 +1380,8 @@ public class ApiHelper {
             try {
                 HttpResponse response = httpClient.getLastResponse();
                 if (response != null && response.getBody() != null) {
-                    Object actual = com.qa.common.utils.json.JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
+                    Object actual = com.qa.common.utils.json.JsonUtilities
+                            .getJsonParameter(response.getBody(), jsonPath);
                     if (actual != null && processedExpected.equals(actual.toString())) {
                         TestLogger.logInfo("API_HELPER_POLL",
                             String.format("✅ Polling exitoso en intento %d/%d — '%s' = '%s'",
@@ -1396,16 +1413,42 @@ public class ApiHelper {
 
     /**
      * Valida que la respuesta cumpla un JSON Schema cargado desde un archivo.
+     *
+     * <p>Lookup en orden: (1) classpath del thread context loader; (2) classpath
+     * del ApiHelper.class loader; (3) filesystem (relativo a working dir).
+     * Esto evita que features tengan que conocer la ruta absoluta del repo.
      */
     public void validateResponseSchemaFromFile(String filePath) throws FrameworkBusinessException {
-        try {
-            byte[] schemaBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(resolve(filePath)));
-            String schema = new String(schemaBytes, StandardCharsets.UTF_8);
-            validateResponseSchema(schema);
-        } catch (java.io.IOException e) {
-            throw new FrameworkBusinessException("validateResponseSchemaFromFile",
-                "No se pudo leer el archivo de esquema: " + filePath + " — " + e.getMessage());
+        String resolved = resolve(filePath);
+        String schema = loadSchemaFromClasspath(resolved);
+        if (schema == null) {
+            try {
+                byte[] schemaBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(resolved));
+                schema = new String(schemaBytes, StandardCharsets.UTF_8);
+            } catch (java.io.IOException e) {
+                throw new FrameworkBusinessException("validateResponseSchemaFromFile",
+                    "No se pudo leer el archivo de esquema (intentado classpath y filesystem): "
+                        + filePath + " — " + e.getMessage());
+            }
         }
+        validateResponseSchema(schema);
+    }
+
+    private String loadSchemaFromClasspath(String path) {
+        String normalized = path.startsWith("/") ? path.substring(1) : path;
+        for (ClassLoader cl : new ClassLoader[]{
+                Thread.currentThread().getContextClassLoader(),
+                ApiHelper.class.getClassLoader()}) {
+            if (cl == null) {
+                continue;
+            }
+            try (java.io.InputStream in = cl.getResourceAsStream(normalized)) {
+                if (in != null) {
+                    return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            } catch (java.io.IOException ignored) { /* fall through */ }
+        }
+        return null;
     }
 
     /**

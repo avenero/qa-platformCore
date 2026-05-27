@@ -1,6 +1,7 @@
 package com.qa.mobilecore.steps;
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.FrameworkConfig;
 import com.qa.common.api.logging.TestLogger;
 import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.mobilecore.driver.MobileDriverManager;
@@ -38,9 +39,9 @@ public class MobileHooksSteps {
 
     @Before(value = "@mobile or @ios or @android or @appium", order = HOOK_ORDER)
     public void beforeScenario(Scenario scenario) {
-        String moduleName = ExecutionContext.current().
-                map(ctx -> ctx.config().getProperty("framework.module.name", "MOBILE")).
-                orElseGet(() -> ConfigManager.getInstance().get("framework.module.name", "MOBILE"));
+        // Default record es "PLATFORM"; el BE setea framework.moduleName=MOBILE per execution
+        // cuando dispatch sea mobile (K03COV-BE4 lo automatiza).
+        String moduleName = ConfigLoaderHolder.get().load(FrameworkConfig.class).moduleName();
 
         TestLogger.setFramework(moduleName);
         TestLogger.logInfo("MOBILE_HOOKS",

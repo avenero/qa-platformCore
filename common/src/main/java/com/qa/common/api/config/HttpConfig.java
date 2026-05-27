@@ -41,12 +41,14 @@ public record HttpConfig(
      * Valores razonables por defecto. Sobre estos defaults se aplica el merge
      * de SystemProperty → Env → YAML.
      */
+    private static final int DEFAULT_READ_TIMEOUT_SEC = 60;
+
     public static HttpConfig defaults() {
         return new HttpConfig(
                 HttpEngine.resolveDefault(),
                 "http://localhost",
                 Duration.ofSeconds(10),
-                Duration.ofSeconds(60),
+                Duration.ofSeconds(DEFAULT_READ_TIMEOUT_SEC),
                 0,
                 true
         );

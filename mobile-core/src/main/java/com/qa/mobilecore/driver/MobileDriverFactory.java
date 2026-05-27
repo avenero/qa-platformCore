@@ -1,9 +1,9 @@
 package com.qa.mobilecore.driver;
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.MobileConfig;
 import com.qa.common.api.logging.TestLogger;
 import com.qa.mobilecore.appium.AppiumServerManager;
-import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.model.DeviceDescriptor;
 import com.qa.mobilecore.model.DeviceType;
 import io.appium.java_client.AppiumDriver;
@@ -34,7 +34,7 @@ import java.time.Duration;
  * <ol>
  *   <li>Si {@link #setDevice(DeviceDescriptor)} fue llamado (p.ej. desde
  *       {@code MobileHelper.initSession()}), usa ese dispositivo.</li>
- *   <li>Si no, resuelve el dispositivo desde {@code ConfigManager}
+ *   <li>Si no, resuelve el dispositivo desde {@code ConfigLoaderHolder} (TypedConfig).
  *       (prioridad: ExecutionConfig → System Properties → env → archivos).</li>
  * </ol>
  *
@@ -59,9 +59,7 @@ import java.time.Duration;
  */
 public class MobileDriverFactory {
 
-    private static final int DEFAULT_STARTUP_TIMEOUT_SEC = 30;
-
-    private final ConfigManager config;
+    private final MobileConfig config;
 
     /** Driver activo para este escenario. volatile para visibilidad inmediata entre hilos. */
     private volatile AppiumDriver currentDriver;
@@ -77,11 +75,11 @@ public class MobileDriverFactory {
     // =========================================================================
 
     /**
-     * Crea una nueva instancia que lee configuración de {@link ConfigManager}.
+     * Crea una nueva instancia que lee configuración de {@link ConfigLoaderHolder} (TypedConfig).
      * Invocado por el supplier lazy de {@link com.qa.common.api.runtime.ServiceRegistry}.
      */
     public MobileDriverFactory() {
-        this.config = ConfigManager.getInstance();
+        this.config = ConfigLoaderHolder.get().load(MobileConfig.class);
     }
 
     // =========================================================================
@@ -108,9 +106,8 @@ public class MobileDriverFactory {
 
         DriverConfig driverConfig = buildDriverConfigFromConfig();
 
-        boolean autoStart      = config.getBoolean(MobileConfigKeys.APPIUM_AUTO_START, false);
-        int     startupTimeout = config.getInt(
-            MobileConfigKeys.APPIUM_STARTUP_TIMEOUT_SEC, DEFAULT_STARTUP_TIMEOUT_SEC);
+        boolean autoStart      = config.appiumAutoStart();
+        int     startupTimeout = (int) config.appiumStartupTimeout().getSeconds();
         AppiumServerManager.ensureRunning(device.getAppiumServerUrl(), autoStart, startupTimeout);
 
         TestLogger.logInfo("MOBILE_FACTORY",
@@ -234,13 +231,13 @@ public class MobileDriverFactory {
     // =========================================================================
 
     private DeviceDescriptor resolveDeviceFromConfig() {
-        String typeStr  = config.get(MobileConfigKeys.DEVICE_TYPE, "ANDROID_EMULATOR");
-        String platform = config.get(MobileConfigKeys.PLATFORM, "Android");
-        String version  = config.get(MobileConfigKeys.PLATFORM_VERSION, "");
-        String name     = config.get(MobileConfigKeys.DEVICE_NAME, "");
-        String udid     = config.get(MobileConfigKeys.UDID, "");
-        String url      = config.get(MobileConfigKeys.APPIUM_SERVER_URL, "http://localhost:4723");
-        String id       = config.get(MobileConfigKeys.DEVICE_ID, "device-default");
+        String typeStr  = config.deviceType();
+        String platform = config.platform();
+        String version  = config.platformVersion();
+        String name     = config.deviceName();
+        String udid     = config.udid();
+        String url      = config.appiumServerUrl();
+        String id       = config.deviceId().isBlank() ? "device-default" : config.deviceId();
 
         DeviceType type;
         try {
@@ -256,13 +253,13 @@ public class MobileDriverFactory {
     }
 
     private DriverConfig buildDriverConfigFromConfig() {
-        return new DriverConfig().withAppPath(config.get(MobileConfigKeys.APP_PATH, "")).
-                withAppPackage(config.get(MobileConfigKeys.APP_PACKAGE, "")).
-                withAppActivity(config.get(MobileConfigKeys.APP_ACTIVITY, "")).
-                withBundleId(config.get(MobileConfigKeys.BUNDLE_ID, "")).
-                withAutoLaunch(config.getBoolean(MobileConfigKeys.APP_AUTO_LAUNCH, true)).
-                withNoReset(config.getBoolean(MobileConfigKeys.APP_NO_RESET, false)).
-                withImplicitWait(config.getInt(MobileConfigKeys.IMPLICIT_WAIT_SEC, 10));
+        return new DriverConfig().withAppPath(config.appPath()).
+                withAppPackage(config.appPackage()).
+                withAppActivity(config.appActivity()).
+                withBundleId(config.bundleId()).
+                withAutoLaunch(config.appAutoLaunch()).
+                withNoReset(config.appNoReset()).
+                withImplicitWait(config.implicitWaitSec());
     }
 
     // =========================================================================

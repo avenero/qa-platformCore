@@ -1,7 +1,6 @@
 package com.qa.common.internal.transport;
 
 import com.qa.common.api.Internal;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,16 +75,16 @@ public final class SseClient {
                 return;                          // EOF limpio
             } catch (IOException io) {
                 last = io;
-                if (stopped.get()) return;
+                if (stopped.get()) { return; }
                 attempt++;
-                if (attempt > maxRetries) break;
+                if (attempt > maxRetries) { break; }
                 long sleep = baseBackoff.toMillis() * attempt;
                 LOG.warn("SSE {} cayó (intento {}/{}): {} — reintentando en {} ms",
                         url, attempt, maxRetries, io.getMessage(), sleep);
                 Thread.sleep(sleep);
             }
         }
-        if (last != null) throw last;
+        if (last != null) { throw last; }
     }
 
     public void stop() {
@@ -119,7 +118,7 @@ public final class SseClient {
             StringBuilder data = new StringBuilder();
             var it = lines.iterator();
             while (it.hasNext()) {
-                if (stopped.get()) return;
+                if (stopped.get()) { return; }
                 String line = it.next();
                 if (line.isEmpty()) {
                     if (data.length() > 0) {
@@ -137,7 +136,7 @@ public final class SseClient {
                 } else if (line.startsWith("event:")) {
                     currentEvent = line.substring("event:".length()).trim();
                 } else if (line.startsWith("data:")) {
-                    if (data.length() > 0) data.append('\n');
+                    if (data.length() > 0) { data.append('\n'); }
                     data.append(line.substring("data:".length()).stripLeading());
                 } else if (line.startsWith("id:") || line.startsWith("retry:")) {
                     // soportable a futuro; no se usa en v1

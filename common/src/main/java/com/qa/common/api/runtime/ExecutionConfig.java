@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import javax.net.ssl.SSLContext;
 import java.util.Collections;
@@ -55,7 +54,10 @@ public final class ExecutionConfig {
     private final SSLContext sslContext;
     /** true = ignorar validación de certificado (solo entornos no-producción). */
     private final boolean trustAllSsl;
-    /** Motor HTTP seleccionado para el escenario. Resuelto vía {@link HttpEngine#resolveDefault()} si no se especifica. */
+    /**
+     * Motor HTTP seleccionado para el escenario.
+     * Resuelto vía {@link HttpEngine#resolveDefault()} si no se especifica.
+     */
     private final HttpEngine httpEngine;
 
     /**

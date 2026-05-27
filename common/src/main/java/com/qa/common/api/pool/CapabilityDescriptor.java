@@ -1,5 +1,4 @@
 package com.qa.common.api.pool;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.Map;
 import java.util.Objects;
@@ -40,7 +39,8 @@ import java.util.Objects;
  * @param id                     identificador técnico único dentro del registry (ej: {@code "pixel7"})
  * @param name                   nombre legible para el usuario (ej: {@code "Pixel 7 (Android 13)"})
  * @param platformId             plataforma propietaria (ej: {@code "ANDROID"}, {@code "WEB"})
- * @param type                   tipo de recurso: {@code "REAL"}, {@code "EMULATOR"}, {@code "BROWSER"}, {@code "DATABASE"}
+ * @param type                   tipo de recurso: {@code "REAL"}, {@code "EMULATOR"},
+ *                               {@code "BROWSER"}, {@code "DATABASE"}
  * @param available              {@code true} si el recurso puede ser reservado ahora mismo
  * @param inUse                  {@code true} si hay una sesión activa usando este recurso
  * @param estimatedFreeInSeconds segundos estimados hasta que el recurso quede libre; {@code null} si desconocido

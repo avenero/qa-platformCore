@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime.events;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;

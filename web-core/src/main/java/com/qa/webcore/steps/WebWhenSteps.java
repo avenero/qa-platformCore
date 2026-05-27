@@ -98,7 +98,8 @@ public class WebWhenSteps {
 
     @When("I upload the file {string} to {string}")
     public void iUploadTheFileTo(String filename, String label) {
-        LOG.info("[WEB-WHEN] File upload '{}' to field '{}' — requires native file chooser interception.", filename, label);
+        LOG.info("[WEB-WHEN] File upload '{}' to field '{}' — requires native file chooser interception.",
+                filename, label);
         // La subida de archivos en Playwright requiere fileChooser API a nivel de Page.
         // Esta operación requiere acceso directo a la Page vía PlaywrightManager.getPage()
         // que está fuera del contrato de BrowserEngine.

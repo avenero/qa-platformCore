@@ -20,7 +20,7 @@ public class MobileStepCatalogProvider implements StepCatalogProvider {
     private static final String CAT_INTER  = "step.mobile.category.interaction";
     private static final String CAT_FORM   = "step.mobile.category.forms";
     private static final String CAT_SCROLL = "step.mobile.category.scroll";
-    private static final String CAT_GESTURE= "step.mobile.category.gestures";
+    private static final String CAT_GESTURE = "step.mobile.category.gestures";
     private static final String CAT_DEVICE = "step.mobile.category.device";
     private static final String CAT_VALID  = "step.mobile.category.assertions";
     private static final String CAT_PERM   = "step.mobile.category.permissions";
@@ -103,13 +103,13 @@ public class MobileStepCatalogProvider implements StepCatalogProvider {
 
         // ── Formularios (WHEN) ────────────────────────────────────────────────
         entry("mobile.when.fill",
-              "I fill {string} with {string}",
+              "I fill mobile field {string} with {string}",
               "WHEN", CAT_FORM, "step.mobile.when.fill.description",
               List.of(param("locator", "step.mobile.param.locator"),
                       param("value",   "step.mobile.param.value"))),
 
         entry("mobile.when.fill-nth",
-              "I fill the {int}. {string} with {string}",
+              "I fill the {int}. {string} mobile field with {string}",
               "WHEN", CAT_FORM, "step.mobile.when.fill-nth.description",
               List.of(param("index",   "step.mobile.param.index"),
                       param("locator", "step.mobile.param.locator"),
@@ -128,13 +128,13 @@ public class MobileStepCatalogProvider implements StepCatalogProvider {
                       param("value",      "step.mobile.param.value"))),
 
         entry("mobile.when.fill-xpath",
-              "I fill the element with xpath {string} with {string}",
+              "I fill the mobile element with xpath {string} with {string}",
               "WHEN", CAT_FORM, "step.mobile.when.fill-xpath.description",
               List.of(param("xpath",  "step.mobile.param.xpath"),
                       param("value",  "step.mobile.param.value"))),
 
         entry("mobile.when.clear",
-              "I clear {string}",
+              "I clear mobile field {string}",
               "WHEN", CAT_FORM, "step.mobile.when.clear.description",
               List.of(param("locator", "step.mobile.param.locator"))),
 
@@ -146,12 +146,12 @@ public class MobileStepCatalogProvider implements StepCatalogProvider {
 
         // ── Scroll (WHEN) ─────────────────────────────────────────────────────
         entry("mobile.when.scroll-down",
-              "I scroll down",
+              "I scroll the mobile screen down",
               "WHEN", CAT_SCROLL, "step.mobile.when.scroll-down.description",
               List.of()),
 
         entry("mobile.when.scroll-up",
-              "I scroll up",
+              "I scroll the mobile screen up",
               "WHEN", CAT_SCROLL, "step.mobile.when.scroll-up.description",
               List.of()),
 

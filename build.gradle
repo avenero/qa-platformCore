@@ -58,6 +58,20 @@ subprojects {
         reportLevel    = com.github.spotbugs.snom.Confidence.valueOf('HIGH')
         excludeFilter  = rootProject.file("config/spotbugs/exclude.xml")
     }
+    // SpotBugs 4.9.x bundle BCEL 6.10+ que requiere commons-lang3 ≥ 3.18 (uso de
+    // SystemProperties.getJdkModulePath, added en 3.18). Sin este pin, Gradle resuelve
+    // una versión transitiva más vieja → NoSuchMethodError al arrancar SpotBugs.
+    afterEvaluate {
+        configurations.matching { it.name == 'spotbugs' }.configureEach {
+            resolutionStrategy.eachDependency { details ->
+                if (details.requested.group == 'org.apache.commons'
+                        && details.requested.name == 'commons-lang3') {
+                    details.useVersion '3.19.0'
+                    details.because 'SpotBugs/BCEL needs commons-lang3 ≥ 3.18'
+                }
+            }
+        }
+    }
     tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
         reports {
             xml  { required = true  }

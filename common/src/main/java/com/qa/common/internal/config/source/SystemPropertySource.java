@@ -15,7 +15,7 @@ public final class SystemPropertySource implements ConfigSource {
 
     @Override
     public Optional<String> get(String key) {
-        if (key == null || key.isBlank()) return Optional.empty();
+        if (key == null || key.isBlank()) { return Optional.empty(); }
         String v = System.getProperty(key);
         return (v == null || v.isEmpty()) ? Optional.empty() : Optional.of(v);
     }

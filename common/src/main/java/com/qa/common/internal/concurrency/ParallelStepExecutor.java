@@ -1,7 +1,6 @@
 package com.qa.common.internal.concurrency;
 
 import com.qa.common.api.Internal;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.logging.TestLogger;
 

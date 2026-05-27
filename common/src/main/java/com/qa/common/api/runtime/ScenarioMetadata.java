@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -8,7 +7,7 @@ import java.util.Set;
 /**
  * Metadatos inmutables de un escenario Cucumber.
  *
- * <p>Creado por {@link ScenarioLifecycleBridge} a partir del evento
+ * <p>Creado por {@link com.qa.common.internal.runtime.ScenarioLifecycleBridge} a partir del evento
  * {@code TestCaseStarted}/{@code TestCaseFinished} de Cucumber, y propagado
  * a {@link LifecycleManager#onScenarioStart} / {@link LifecycleManager#onScenarioEnd}
  * para que los {@link CorePlugin} puedan inspeccionarlo antes y después de cada escenario.
@@ -40,7 +39,7 @@ import java.util.Set;
  *
  * @author Abel Venero
  * @since 2.1.0
- * @see ScenarioLifecycleBridge
+ * @see com.qa.common.internal.runtime.ScenarioLifecycleBridge
  * @see LifecycleManager
  */
 public record ScenarioMetadata(

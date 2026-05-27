@@ -43,10 +43,8 @@ public class ArchitectureTest {
                     "com.qa.mobilecore..")
             .as("database-core no debe importar http-core, web-core ni mobile-core");
 
-    /** TASK-K02 — whitelist de internals legítimos. */
-    private static final Set<String> K02_INTERNAL_WHITELIST = Set.of(
-            "com.qa.common.internal.config.ConfigManager"
-    );
+    /** TASK-K02 — whitelist de internals legítimos. Vacía post K03-migrate. */
+    private static final Set<String> K02_INTERNAL_WHITELIST = Set.of();
 
     @ArchTest
     static final ArchRule databasecore_does_not_import_common_internal_except_whitelist = noClasses()

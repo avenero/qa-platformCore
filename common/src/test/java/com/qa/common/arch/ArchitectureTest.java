@@ -71,4 +71,20 @@ public class ArchitectureTest {
                     "org.openqa.selenium..",
                     "org.apache.hc..")
             .as("common no debe depender de Playwright, Appium, Selenium ni Apache HttpClient");
+
+    /**
+     * TASK-K03M-M9 — R-K03M-1: nadie puede depender del antiguo {@code ConfigManager}
+     * legacy. La clase fue eliminada en M9; este guard previene su reintroducción
+     * accidental (p. ej. resucitada desde un branch viejo o copy/paste de docs).
+     *
+     * <p>API canónica de configuración post K03-migrate:
+     * {@code com.qa.common.api.config.ConfigLoaderHolder.get()} +
+     * {@code load(XxxConfig.class)} (TypedConfig) o {@code getRaw(key)} (escape hatch).
+     */
+    @ArchTest
+    static final ArchRule no_dependency_on_legacy_config_manager = noClasses()
+            .should().dependOnClassesThat().haveFullyQualifiedName(
+                    "com.qa.common.internal.config.ConfigManager")
+            .as("R-K03M-1: ConfigManager fue eliminado en K03-migrate M9. "
+                + "Usá ConfigLoaderHolder.get().load(XxxConfig.class) o getRaw(key).");
 }

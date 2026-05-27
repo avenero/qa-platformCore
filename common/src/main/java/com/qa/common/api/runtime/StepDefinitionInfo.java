@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,7 @@ import java.util.stream.Collectors;
  *
  * <h2>Metadata i18n (desde v2.3.0)</h2>
  * <p>Los mapas {@link #displayNameByLocale()} y {@link #descriptionByLocale()} son
- * propagados desde el componente padre al construirse vía {@link StepMethodScanner}.
+ * propagados desde el componente padre al construirse vía {@link com.qa.common.internal.runtime.StepMethodScanner}.
  * En este primer corte, todos los steps de un mismo componente comparten los mismos
  * mapas i18n. El Backend puede enriquecer con traducciones por step si lo requiere en
  * el futuro mediante {@link com.qa.common.api.runtime.annotation.StepDef#displayName()}.
@@ -64,7 +63,7 @@ import java.util.stream.Collectors;
  *   <li><strong>Explícito:</strong> declarado en {@link com.qa.common.api.runtime.annotation.StepDef}
  *       en el método de la clase de steps. Formato: {@code {componentId}.{sub-id}}.
  *       Ejemplo: {@code "api.authentication.bearer.identifier"}.</li>
- *   <li><strong>Derivado:</strong> generado por {@link StepMethodScanner} con el formato
+ *   <li><strong>Derivado:</strong> generado por {@link com.qa.common.internal.runtime.StepMethodScanner} con el formato
  *       {@code {componentId}#{methodName}}. Menos estable frente a refactorizaciones.</li>
  * </ul>
  * <p>Para IDs duraderos se recomienda siempre declarar
@@ -93,7 +92,7 @@ import java.util.stream.Collectors;
  * @see StepInfo
  * @see ParamInfo
  * @see ParamSchema
- * @see StepMethodScanner
+ * @see com.qa.common.internal.runtime.StepMethodScanner
  * @see com.qa.common.api.runtime.annotation.StepDef
  */
 public record StepDefinitionInfo(

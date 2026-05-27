@@ -1,6 +1,5 @@
 package com.qa.common.api.runtime.events;
 
-import com.qa.common.utils.security.SecurityUtilities;
 
 /**
  * Interfaz funcional para suscriptores de eventos de ejecucion.

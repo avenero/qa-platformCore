@@ -2,7 +2,8 @@ package com.qa.mobilecore.plugin;
 
 
 import com.qa.common.spi.CorePlugin;
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.MobileConfig;
 import com.qa.common.api.driver.CapabilityDescriptor;
 import com.qa.common.api.driver.CapabilityReport;
 import com.qa.common.api.runtime.ExecutionConfig;
@@ -19,7 +20,6 @@ import com.qa.mobilecore.components.MobileElementValidationComponent;
 import com.qa.mobilecore.components.NativeElementComponent;
 import com.qa.mobilecore.components.NotificationComponent;
 import com.qa.mobilecore.components.SensorComponent;
-import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.driver.AppiumCapabilityRegistry;
 import com.qa.mobilecore.driver.MobileDriverFactory;
 import com.qa.mobilecore.driver.MobileDriverManager;
@@ -120,7 +120,8 @@ public class MobilePlugin implements CorePlugin {
         registry.registerLazy(AppiumCapabilityRegistry.class,
                 () -> new AppiumCapabilityRegistry(DevicePool.getInstance()));
 
-        LOG.info("[MobilePlugin] Servicios registrados: MobileDriverFactory (lazy) + MobileHelper (lazy) + AppiumCapabilityRegistry (lazy)");
+        LOG.info("[MobilePlugin] Servicios registrados: MobileDriverFactory (lazy)"
+                + " + MobileHelper (lazy) + AppiumCapabilityRegistry (lazy)");
     }
 
     /**
@@ -131,7 +132,7 @@ public class MobilePlugin implements CorePlugin {
     public void onScenarioStart(ExecutionContext context) {
         LOG.debug("[MobilePlugin] onScenarioStart");
 
-        boolean autoScan = ConfigManager.getInstance().getBoolean(MobileConfigKeys.DISCOVERY_AUTO_SCAN, true);
+        boolean autoScan = ConfigLoaderHolder.get().load(MobileConfig.class).discoveryAutoScan();
 
         DevicePool pool = DevicePool.getInstance();
         if (!pool.hasDevices()) {

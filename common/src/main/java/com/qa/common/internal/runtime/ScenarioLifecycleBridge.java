@@ -6,7 +6,6 @@ import com.qa.common.api.Internal;
 import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.LifecycleManager;
 import com.qa.common.api.runtime.ScenarioMetadata;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import io.cucumber.plugin.ConcurrentEventListener;
 import io.cucumber.plugin.event.EventPublisher;
@@ -31,7 +30,7 @@ import java.util.stream.Collectors;
  *
  * <p><b>Responsabilidad única:</b> este bridge no contiene lógica de negocio.
  * Solo extrae metadatos del {@link TestCase} de Cucumber y delega al
- * {@link LifecycleManager}, que a su vez notifica a los {@link CorePlugin} activos.
+ * {@link LifecycleManager}, que a su vez notifica a los {@link com.qa.common.spi.CorePlugin} activos.
  *
  * <p><b>Thread safety:</b> implementa {@link ConcurrentEventListener} (no {@code EventListener})
  * para ser compatible con ejecución paralela de escenarios en Cucumber.

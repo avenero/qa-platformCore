@@ -517,6 +517,60 @@ public class ValidationUtilities {
     }
   }
 
+  /**
+   * Valida que el campo JSON {@code jsonPath} NO sea igual a {@code forbiddenValue}.
+   * Si el campo no existe, lanza excepción (la ausencia no es equivalente a "distinto").
+   */
+  public static void validateJsonPathNotEqual(HttpResponse response, String jsonPath,
+                                              Object forbiddenValue) throws FrameworkBusinessException {
+    if (response == null || response.getBody() == null) {
+      throw new FrameworkBusinessException("validateJsonPathNotEqual", "Response or body is null");
+    }
+    try {
+      Object actualValue = JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
+      if (valuesEquivalent(forbiddenValue, actualValue)) {
+        throw new FrameworkBusinessException(
+            "validateJsonPathNotEqual",
+            String.format("JSON path '%s' expected NOT '%s' but was equal", jsonPath, forbiddenValue));
+      }
+      LOG.debug("JSON path '{}' confirmado distinto de: {}", jsonPath, forbiddenValue);
+    } catch (FrameworkBusinessException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new FrameworkBusinessException(
+          "validateJsonPathNotEqual",
+          String.format("Error validating JSON path '%s': %s", jsonPath, e.getMessage()));
+    }
+  }
+
+  /**
+   * Valida que el campo JSON {@code jsonPath} NO contenga el texto {@code forbiddenText}.
+   * Útil para verificaciones anti-enumeración / disclosure prevention.
+   */
+  public static void validateJsonPathDoesNotContain(HttpResponse response, String jsonPath,
+                                                    String forbiddenText) throws FrameworkBusinessException {
+    if (response == null || response.getBody() == null) {
+      throw new FrameworkBusinessException("validateJsonPathDoesNotContain", "Response or body is null");
+    }
+    try {
+      Object actualValue = JsonUtilities.getJsonParameter(response.getBody(), jsonPath);
+      String haystack = actualValue == null ? "" : actualValue.toString();
+      if (haystack.contains(forbiddenText)) {
+        throw new FrameworkBusinessException(
+            "validateJsonPathDoesNotContain",
+            String.format("JSON path '%s' should not contain '%s' but value was '%s'",
+                          jsonPath, forbiddenText, haystack));
+      }
+      LOG.debug("JSON path '{}' confirmado no contiene: {}", jsonPath, forbiddenText);
+    } catch (FrameworkBusinessException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new FrameworkBusinessException(
+          "validateJsonPathDoesNotContain",
+          String.format("Error validating JSON path '%s': %s", jsonPath, e.getMessage()));
+    }
+  }
+
   private static boolean valuesEquivalent(Object expectedValue, Object actualValue) {
     if (expectedValue == actualValue) {
       return true;

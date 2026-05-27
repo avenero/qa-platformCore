@@ -37,7 +37,7 @@ public final class VariableInterpolator {
     private VariableInterpolator() {}
 
     public static String interpolate(String value) {
-        if (value == null || !value.contains("${")) return value;
+        if (value == null || !value.contains("${")) { return value; }
 
         Matcher matcher = PLACEHOLDER.matcher(value);
         StringBuilder out = new StringBuilder();
@@ -56,14 +56,14 @@ public final class VariableInterpolator {
 
     private static String resolve(String varName) {
         String v = System.getProperty(varName);
-        if (v != null) return v;
+        if (v != null) { return v; }
 
         v = System.getenv(varName);
-        if (v != null) return v;
+        if (v != null) { return v; }
 
         String upperSnake = varName.toUpperCase(Locale.ROOT).replace('.', '_');
         v = System.getenv(upperSnake);
-        if (v != null) return v;
+        if (v != null) { return v; }
 
         String lowerDotted = varName.toLowerCase(Locale.ROOT).replace('_', '.');
         return System.getProperty(lowerDotted);

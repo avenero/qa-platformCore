@@ -2,7 +2,6 @@ package com.qa.common.internal.concurrency;
 
 
 import com.qa.common.api.Internal;
-import com.qa.common.utils.security.SecurityUtilities;
 
 /**
  * Resultado de la ejecución de una tarea en el {@link ParallelStepExecutor}.

@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.Map;
 import java.util.Objects;
@@ -42,7 +41,7 @@ import java.util.Objects;
  * <h2>Obtención</h2>
  * <p>El Backend y el FE no deben construir {@code ParamSchema} manualmente. La fuente
  * canónica es {@link StepDefinitionInfo#paramSchemas()}, que los deriva automáticamente
- * de los {@link ParamInfo} ya calculados por {@link StepMethodScanner}.
+ * de los {@link ParamInfo} ya calculados por {@link com.qa.common.internal.runtime.StepMethodScanner}.
  *
  * <p>Para convertir un {@link ParamInfo} individualmente, usar el factory:
  * <pre>
@@ -59,7 +58,7 @@ import java.util.Objects;
  * @since 2.3.0
  * @see ParamInfo
  * @see StepDefinitionInfo#paramSchemas()
- * @see StepMethodScanner
+ * @see com.qa.common.internal.runtime.StepMethodScanner
  */
 public record ParamSchema(
         String name,

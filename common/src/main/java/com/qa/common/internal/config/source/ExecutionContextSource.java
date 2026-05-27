@@ -31,7 +31,7 @@ public final class ExecutionContextSource implements ConfigSource {
 
     @Override
     public Optional<String> get(String key) {
-        if (key == null || key.isBlank()) return Optional.empty();
+        if (key == null || key.isBlank()) { return Optional.empty(); }
         try {
             return ExecutionContext.current().flatMap(ctx -> ctx.config().getProperty(key));
         } catch (RuntimeException e) {

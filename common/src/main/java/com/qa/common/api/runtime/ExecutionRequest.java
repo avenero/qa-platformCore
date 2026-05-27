@@ -1,5 +1,4 @@
 package com.qa.common.api.runtime;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +13,8 @@ import java.util.Objects;
  * <h2>Modos de uso</h2>
  * <ul>
  *   <li><b>Modo SPI (recomendado):</b> {@link #of(List, ExecutionConfig)} — sin gluePaths.
- *       El {@link CucumberRuntimeEngine} deriva los paquetes de glue automáticamente desde
+ *       El {@link com.qa.common.internal.runtime.CucumberRuntimeEngine} deriva los paquetes de glue
+ *       automáticamente desde
  *       los plugins descubiertos vía {@link java.util.ServiceLoader}. El Backend no necesita
  *       mantener una lista manual de paquetes.</li>
  *   <li><b>Modo explícito (override):</b> {@link #of(List, List, ExecutionConfig)} — con gluePaths.
@@ -41,7 +41,7 @@ public final class ExecutionRequest {
     /**
      * Crea un request SIN gluePaths explícitos.
      *
-     * <p>El {@link CucumberRuntimeEngine} derivará los paquetes de glue automáticamente
+     * <p>El {@link com.qa.common.internal.runtime.CucumberRuntimeEngine} derivará los paquetes de glue automáticamente
      * de los plugins descubiertos vía SPI ({@link java.util.ServiceLoader}).
      * El Backend no necesita conocer ni mantener ningún paquete de steps.
      *

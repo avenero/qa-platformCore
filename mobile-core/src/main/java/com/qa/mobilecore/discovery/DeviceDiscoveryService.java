@@ -1,8 +1,8 @@
 package com.qa.mobilecore.discovery;
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.MobileConfig;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.model.DeviceDescriptor;
 
 import java.util.ArrayList;
@@ -38,12 +38,12 @@ public class DeviceDiscoveryService {
 
     private final AdbDeviceScanner adbScanner;
     private final IosDeviceScanner iosScanner;
-    private final ConfigManager    config;
+    private final MobileConfig     config;
 
     public DeviceDiscoveryService() {
         this.adbScanner = new AdbDeviceScanner();
         this.iosScanner = new IosDeviceScanner();
-        this.config     = ConfigManager.getInstance();
+        this.config     = ConfigLoaderHolder.get().load(MobileConfig.class);
     }
 
     /**
@@ -58,8 +58,8 @@ public class DeviceDiscoveryService {
      * @return lista inmutable de dispositivos detectados; nunca null
      */
     public List<DeviceDescriptor> discoverAll() {
-        boolean includeVirtual  = config.getBoolean(MobileConfigKeys.DISCOVERY_INCLUDE_VIRTUAL,  true);
-        boolean includePhysical = config.getBoolean(MobileConfigKeys.DISCOVERY_INCLUDE_PHYSICAL, true);
+        boolean includeVirtual  = config.discoveryIncludeVirtual();
+        boolean includePhysical = config.discoveryIncludePhysical();
 
         TestLogger.logInfo("DISCOVERY",
             "Iniciando descubrimiento de dispositivos (virtual=" + includeVirtual
@@ -78,8 +78,8 @@ public class DeviceDiscoveryService {
      * Descubre solo dispositivos Android.
      */
     public List<DeviceDescriptor> discoverAndroid() {
-        boolean includeVirtual  = config.getBoolean(MobileConfigKeys.DISCOVERY_INCLUDE_VIRTUAL,  true);
-        boolean includePhysical = config.getBoolean(MobileConfigKeys.DISCOVERY_INCLUDE_PHYSICAL, true);
+        boolean includeVirtual  = config.discoveryIncludeVirtual();
+        boolean includePhysical = config.discoveryIncludePhysical();
         return Collections.unmodifiableList(adbScanner.scan(includeVirtual, includePhysical));
     }
 
@@ -87,7 +87,7 @@ public class DeviceDiscoveryService {
      * Descubre solo dispositivos iOS.
      */
     public List<DeviceDescriptor> discoverIOS() {
-        boolean includeVirtual = config.getBoolean(MobileConfigKeys.DISCOVERY_INCLUDE_VIRTUAL, true);
+        boolean includeVirtual = config.discoveryIncludeVirtual();
         return Collections.unmodifiableList(iosScanner.scan(includeVirtual));
     }
 

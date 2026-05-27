@@ -27,6 +27,42 @@ public class DatabaseHelper {
     private static final int METADATA_KEY_COUNT = 2;
 
     /**
+     * Binds a positional parameter to a {@link PreparedStatement} with light type
+     * inference so that strict-typed backends (PostgreSQL) accept the value:
+     * <ul>
+     *   <li>Empty token or literal {@code null} (case-insensitive) → SQL NULL.</li>
+     *   <li>Integer-only token in long range → {@code setLong}.</li>
+     *   <li>Decimal-looking token → {@code setBigDecimal}.</li>
+     *   <li>Otherwise → {@code setString} (preserves SQL injection guarantees via
+     *       {@code PreparedStatement}).</li>
+     * </ul>
+     *
+     * <p>The previous {@code setObject(idx, String)} worked on MySQL/Oracle/H2 due
+     * to implicit type coercion but fails on PostgreSQL with
+     * {@code 42804 column "x" is of type integer but expression is of type character varying}.
+     */
+    private static void bindParameter(PreparedStatement stmt, int index, String raw)
+            throws SQLException {
+        if (raw == null || raw.isEmpty() || "null".equalsIgnoreCase(raw)) {
+            stmt.setObject(index, null);
+            return;
+        }
+        try {
+            if (raw.matches("-?\\d+")) {
+                stmt.setLong(index, Long.parseLong(raw));
+                return;
+            }
+            if (raw.matches("-?\\d+\\.\\d+")) {
+                stmt.setBigDecimal(index, new java.math.BigDecimal(raw));
+                return;
+            }
+        } catch (NumberFormatException ignored) {
+            // Falls through to setString — never propagate parse errors as bind errors.
+        }
+        stmt.setString(index, raw);
+    }
+
+    /**
      * Ejecuta una consulta SQL y retorna los resultados.
      *
      * @param connector Conector de BD activo
@@ -53,7 +89,7 @@ public class DatabaseHelper {
             if (parameters != null && !parameters.trim().isEmpty()) {
                 String[] params = parameters.split(",");
                 for (int i = 0; i < params.length; i++) {
-                    stmt.setObject(i + 1, params[i].trim());
+                    bindParameter(stmt, i + 1, params[i].trim());
                 }
 
                 TestLogger.logInfo("DB_HELPER",
@@ -135,7 +171,7 @@ public class DatabaseHelper {
             if (parameters != null && !parameters.trim().isEmpty()) {
                 String[] params = parameters.split(",");
                 for (int i = 0; i < params.length; i++) {
-                    stmt.setObject(i + 1, params[i].trim());
+                    bindParameter(stmt, i + 1, params[i].trim());
                 }
 
                 TestLogger.logInfo("DB_HELPER",

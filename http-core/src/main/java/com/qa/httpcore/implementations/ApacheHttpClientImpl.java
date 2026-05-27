@@ -507,7 +507,6 @@ public class ApacheHttpClientImpl implements HttpClient {
             throws FrameworkTechnicalException {
 
         validateHost();
-        validateEndpoint(endpoint);
 
         String requestId = UUID.randomUUID().toString().substring(0, REQUEST_ID_LENGTH);
         lastRequestId = requestId;
@@ -684,7 +683,12 @@ public class ApacheHttpClientImpl implements HttpClient {
 
     private String buildUrl(String endpoint) {
         String base = host.replaceAll("/+$", "");
-        String path = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+        String path;
+        if (endpoint == null || endpoint.isBlank()) {
+            path = "";
+        } else {
+            path = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+        }
 
         if (queryParams.isEmpty()) {
             return base + path;
@@ -916,12 +920,6 @@ public class ApacheHttpClientImpl implements HttpClient {
             throw new IllegalStateException(
                 "Host no configurado. Llama a setHost(url) antes de ejecutar peticiones. " +
                 "Ejemplo: client.setHost(\"https://api.example.com\")");
-        }
-    }
-
-    private void validateEndpoint(String endpoint) {
-        if (endpoint == null || endpoint.isBlank()) {
-            throw new IllegalArgumentException("endpoint no puede ser null o vacío");
         }
     }
 

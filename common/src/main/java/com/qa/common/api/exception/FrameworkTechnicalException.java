@@ -1,6 +1,5 @@
 package com.qa.common.api.exception;
 
-import com.qa.common.utils.security.SecurityUtilities;
 
 /**
  * Excepción técnica del framework QA.

@@ -21,6 +21,12 @@ public class ResponseHeaderSteps {
             as("Header '" + header + "' esperado: " + expectedValue).isEqualTo(expectedValue);
     }
 
+    @Then("valido que el header de respuesta {string} NO sea {string}")
+    public void validoHeaderDeRespuestaNoSea(String header, String forbiddenValue) {
+        Assertions.assertThat(apiHelper().getLastResponse().getHeader(header)).
+            as("Header '" + header + "' NO debería ser: " + forbiddenValue).isNotEqualTo(forbiddenValue);
+    }
+
     @Then("valido que el header de respuesta {string} contenga {string}")
     public void validoHeaderContenga(String header, String text) {
         Assertions.assertThat(apiHelper().getLastResponse().getHeader(header)).

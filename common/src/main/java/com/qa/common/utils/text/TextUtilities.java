@@ -1,5 +1,4 @@
 package com.qa.common.utils.text;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.logging.TestLogger;
 import com.qa.common.api.runtime.ExecutionContext;
@@ -10,7 +9,8 @@ import java.util.Set;
 /**
  * Utilidades para manipulación, normalización y comparación de texto.
  *
- * <p>Consolida operaciones sobre strings que antes estaban dispersas en {@link DataUtilities}:</p>
+ * <p>Consolida operaciones sobre strings que antes estaban dispersas en
+ * {@link com.qa.common.utils.data.DataUtilities}:</p>
  * <ul>
  *   <li>Normalización de texto (espacios, HTML entities, tabs/newlines)</li>
  *   <li>Comparación flexible (exact, ignore-case, trim, contains)</li>
@@ -43,7 +43,7 @@ public final class TextUtilities {
 
     /**
      * Nombres de header HTTP cuyo valor no debe exponerse en logs ni en {@code HttpStepDetail}
-     * (misma política que {@link com.qa.common.reporting.core.util.HttpDetailRedactor}).
+     * (misma política que {@link com.qa.common.internal.reporting.util.HttpDetailRedactor}).
      */
     private static final Set<String> SENSITIVE_HTTP_HEADER_NAMES = Set.of(
             "authorization",

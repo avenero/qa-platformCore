@@ -1,5 +1,6 @@
 package com.qa.httpcore.implementations;
 
+import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.factories.HttpClientFactory;
 import com.qa.httpcore.interfaces.HttpClient;
 import org.junit.jupiter.api.*;
@@ -347,11 +348,15 @@ class ApacheHttpClientImplTest {
     }
 
     @Test
-    @DisplayName("executeRequest endpoint null lanza IllegalArgumentException")
-    void executeRequest_nullEndpoint_throws() {
-        client.setHost("https://api.example.com");
+    @DisplayName("executeRequest con endpoint null/blank usa el host como URL completa")
+    void executeRequest_nullEndpoint_usesHostAsFullUrl() {
+        // Patrón "configuro la URL completa": el host trae path completo, endpoint vacío
+        client.setHost("https://api.example.com/v1/login");
+        // No debe lanzar IllegalArgumentException; lo que falla es la conexión real
         assertThatThrownBy(() -> client.get(null))
-            .isInstanceOf(IllegalArgumentException.class);
+            .isInstanceOf(FrameworkTechnicalException.class);
+        assertThatThrownBy(() -> client.get(""))
+            .isInstanceOf(FrameworkTechnicalException.class);
     }
 
     // =========================================================================

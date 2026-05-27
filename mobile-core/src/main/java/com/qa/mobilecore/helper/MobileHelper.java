@@ -1,6 +1,7 @@
 package com.qa.mobilecore.helper;
 
-import com.qa.common.internal.config.ConfigManager;
+import com.qa.common.api.config.ConfigLoader;
+import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.common.api.logging.TestLogger;
 import com.qa.mobilecore.config.MobileConfigKeys;
 import com.qa.mobilecore.driver.MobileDriverFactory;
@@ -57,7 +58,7 @@ public class MobileHelper {
     private static final int NOTIFICATION_SWIPE_X = 200;
     private static final int NOTIFICATION_SWIPE_END_Y = 300;
 
-    private final ConfigManager       config;
+    private final ConfigLoader        config;
     private final MobileDriverFactory mobileDriverFactory;
 
     /** Descriptor del dispositivo asignado a esta sesión (null hasta initSession). */
@@ -87,7 +88,7 @@ public class MobileHelper {
             throw new IllegalArgumentException("MobileDriverFactory no puede ser null");
         }
         this.mobileDriverFactory = mobileDriverFactory;
-        this.config              = ConfigManager.getInstance();
+        this.config              = ConfigLoaderHolder.get();
     }
 
     // =========================================================================
@@ -230,7 +231,7 @@ public class MobileHelper {
 
     public void closeApp() {
         driver().executeScript("mobile:terminateApp",
-            Map.of("bundleId", config.get(MobileConfigKeys.BUNDLE_ID, "")));
+            Map.of("bundleId", config.getRaw(MobileConfigKeys.BUNDLE_ID, "")));
         TestLogger.logInfo("MOBILE_HELPER", "App cerrada", null);
     }
 
@@ -325,7 +326,7 @@ public class MobileHelper {
     public void grantPermission(String permission) {
         if (driver() instanceof AndroidDriver androidDriver) {
             try {
-                String pkg = config.get(MobileConfigKeys.APP_PACKAGE, "");
+                String pkg = config.getRaw(MobileConfigKeys.APP_PACKAGE, "");
                 if (!pkg.isBlank()) {
                     androidDriver.executeScript("mobile:shell",
                         Map.of("command", "pm grant " + pkg + " " + permission));
@@ -344,7 +345,7 @@ public class MobileHelper {
     public void denyPermission(String permission) {
         if (driver() instanceof AndroidDriver androidDriver) {
             try {
-                String pkg = config.get(MobileConfigKeys.APP_PACKAGE, "");
+                String pkg = config.getRaw(MobileConfigKeys.APP_PACKAGE, "");
                 if (!pkg.isBlank()) {
                     androidDriver.executeScript("mobile:shell",
                         Map.of("command", "pm revoke " + pkg + " " + permission));
@@ -626,7 +627,7 @@ public class MobileHelper {
                     ".scrollIntoView(new UiSelector().textContains(\"" + text + "\"))"));
             } else {
                 for (int i = 0; i < 5; i++) {
-                    if (elementExists("text:" + text)) break;
+                    if (elementExists("text:" + text)) { break; }
                     swipe("down");
                 }
             }
@@ -646,7 +647,7 @@ public class MobileHelper {
      * si no existe lo construye desde las propiedades de configuración y lo registra.
      */
     public DeviceDescriptor resolveDevice() {
-        String preferredId = config.get(MobileConfigKeys.DEVICE_ID);
+        String preferredId = config.getRaw(MobileConfigKeys.DEVICE_ID).orElse(null);
 
         DevicePool pool = DevicePool.getInstance();
 
@@ -661,13 +662,13 @@ public class MobileHelper {
     }
 
     private DeviceDescriptor buildDeviceFromConfig() {
-        String typeStr  = config.get(MobileConfigKeys.DEVICE_TYPE, "ANDROID_EMULATOR");
-        String platform = config.get(MobileConfigKeys.PLATFORM, "Android");
-        String version  = config.get(MobileConfigKeys.PLATFORM_VERSION, "");
-        String name     = config.get(MobileConfigKeys.DEVICE_NAME, "");
-        String udid     = config.get(MobileConfigKeys.UDID, "");
-        String url      = config.get(MobileConfigKeys.APPIUM_SERVER_URL, "http://localhost:4723");
-        String id       = config.get(MobileConfigKeys.DEVICE_ID, "device-default");
+        String typeStr  = config.getRaw(MobileConfigKeys.DEVICE_TYPE, "ANDROID_EMULATOR");
+        String platform = config.getRaw(MobileConfigKeys.PLATFORM, "Android");
+        String version  = config.getRaw(MobileConfigKeys.PLATFORM_VERSION, "");
+        String name     = config.getRaw(MobileConfigKeys.DEVICE_NAME, "");
+        String udid     = config.getRaw(MobileConfigKeys.UDID, "");
+        String url      = config.getRaw(MobileConfigKeys.APPIUM_SERVER_URL, "http://localhost:4723");
+        String id       = config.getRaw(MobileConfigKeys.DEVICE_ID, "device-default");
 
         DeviceType type;
         try {

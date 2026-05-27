@@ -173,7 +173,7 @@ public final class MobileLocatorResolver {
             return "//*[@resource-id='" + id + "']";
         }
         if (expression.startsWith("xpath:")) {
-            return expression.substring(6);
+            return expression.substring("xpath:".length());
         }
         // Sin prefijo → Accessibility ID por default (misma convención que ElementLocatorHelper)
         return "//*[@content-desc='" + expression + "' or @name='" + expression + "']";

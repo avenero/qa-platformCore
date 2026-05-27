@@ -129,6 +129,24 @@ public class DatabaseConnectionSteps {
         ExecutionContext.requireCurrent().variables().set("currentDbType", dbType);
     }
 
+    /**
+     * Variante en español del step canónico con parámetros explícitos.
+     * Útil para escenarios autocontenidos que no dependen de archivo de configuración.
+     *
+     * <p>Ejemplo:
+     * <pre>
+     * Given establezco conexion a "postgresql" con url "jdbc:postgresql://localhost:5432/qa"
+     *       usuario "qa_user" contraseña "${QA_DB_PASS}"
+     * </pre>
+     */
+    @Given("establezco conexion a {string} con url {string} usuario {string} contraseña {string}")
+    public void establecerConexionConParams(String dbType, String jdbcUrl,
+                                             String user, String password)
+            throws FrameworkBusinessException {
+        new com.qa.databasecore.steps.canonical.DatabaseGivenSteps()
+            .iConnectToTheDatabaseWithParams(dbType, jdbcUrl, user, password);
+    }
+
     // =========================================================================
     // WHEN STEPS - ACCIONES
     // =========================================================================

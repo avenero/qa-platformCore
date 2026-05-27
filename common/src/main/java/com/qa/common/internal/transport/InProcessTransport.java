@@ -75,7 +75,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class InProcessTransport implements ExecutionTransport {
 
     private static final Logger LOG = LoggerFactory.getLogger(InProcessTransport.class);
-    private static final java.util.concurrent.atomic.AtomicLong THREAD_SEQ = new java.util.concurrent.atomic.AtomicLong();
+    private static final java.util.concurrent.atomic.AtomicLong THREAD_SEQ =
+            new java.util.concurrent.atomic.AtomicLong();
 
     private final CucumberRuntimeEngine engine;
     private final ExecutorService executor;
@@ -297,5 +298,5 @@ public class InProcessTransport implements ExecutionTransport {
 
     // Suprimido para evitar import warnings sobre el record `TestStepFinished` de cucumber-messages.
     @SuppressWarnings("unused")
-    private static void _keepImports(TestStepFinished unused) { /* solo evita unused-import */ }
+    private static void keepImports(TestStepFinished unused) { /* solo evita unused-import */ }
 }

@@ -41,7 +41,7 @@ import java.lang.annotation.Target;
  * <ul>
  *   <li><b>R-K02-1:</b> toda clase pública en {@code com.qa.common.internal.**}
  *       debe llevar {@code @Internal}.</li>
- *   <li><b>R-K02-2:} los consumidores externos NO importan clases
+ *   <li><b>R-K02-2:</b> los consumidores externos NO importan clases
  *       {@code @Internal}. Excepciones se documentan en el test ArchUnit del
  *       consumer, con razón y plan de salida (puerto / api equivalente).</li>
  *   <li><b>R-K02-3:</b> {@code api.*} NO importa {@code internal.*} (regla

@@ -1,6 +1,5 @@
 package com.qa.common.api.runtime;
 
-import com.qa.common.utils.security.SecurityUtilities;
 
 /**
  * Fase BDD a la que pertenece un componente de steps.

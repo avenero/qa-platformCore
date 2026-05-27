@@ -44,17 +44,23 @@ public record WebConfig(
         @NotNull Duration implicitWait
 ) implements TypedConfig {
 
+    private static final int DEFAULT_VIEWPORT_WIDTH = 1920;
+    private static final int DEFAULT_VIEWPORT_HEIGHT = 1080;
+    private static final int DEFAULT_NAVIGATION_TIMEOUT_SEC = 30;
+    private static final int DEFAULT_ACTION_TIMEOUT_SEC = 15;
+    private static final int DEFAULT_EXPLICIT_WAIT_SEC = 10;
+
     public static WebConfig defaults() {
         return new WebConfig(
                 "chromium",
                 true,
-                1920,
-                1080,
+                DEFAULT_VIEWPORT_WIDTH,
+                DEFAULT_VIEWPORT_HEIGHT,
                 "http://localhost",
-                Duration.ofSeconds(30),
-                Duration.ofSeconds(15),
+                Duration.ofSeconds(DEFAULT_NAVIGATION_TIMEOUT_SEC),
+                Duration.ofSeconds(DEFAULT_ACTION_TIMEOUT_SEC),
                 "",
-                Duration.ofSeconds(10),
+                Duration.ofSeconds(DEFAULT_EXPLICIT_WAIT_SEC),
                 Duration.ZERO
         );
     }

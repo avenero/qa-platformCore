@@ -5,7 +5,6 @@ import com.qa.common.api.Internal;
 import com.qa.common.api.runtime.BddPhase;
 import com.qa.common.api.runtime.ParamInfo;
 import com.qa.common.api.runtime.StepDefinitionInfo;
-import com.qa.common.utils.security.SecurityUtilities;
 
 import com.qa.common.api.runtime.annotation.StepDef;
 import com.qa.common.api.runtime.annotation.StepMetadata;
@@ -28,7 +27,7 @@ import java.util.stream.Collectors;
 /**
  * Escáner de reflexión que descubre los steps BDD individuales de una clase de steps Cucumber.
  *
- * <p>Opera sobre la clase retornada por {@link StepComponent#getStepDefinitionClass()} y
+ * <p>Opera sobre la clase retornada por {@link com.qa.common.api.runtime.StepComponent#getStepDefinitionClass()} y
  * detecta todos los métodos anotados con {@code @Given}, {@code @When} o {@code @Then},
  * construyendo un {@link StepDefinitionInfo} por cada uno.
  *
@@ -47,7 +46,7 @@ import java.util.stream.Collectors;
  * </ol>
  *
  * <h2>Comportamiento ante clases nulas o sin steps</h2>
- * <p>Si {@link StepComponent#getStepDefinitionClass()} retorna {@code null} (componente
+ * <p>Si {@link com.qa.common.api.runtime.StepComponent#getStepDefinitionClass()} retorna {@code null} (componente
  * aún no implementado), se emite un LOG DEBUG y se retorna lista vacía sin lanzar excepción.
  * Si la reflexión falla por cualquier motivo, se emite un LOG WARN y se retorna lista vacía.
  *
@@ -55,13 +54,13 @@ import java.util.stream.Collectors;
  * <p>Cucumber puede inyectar {@code DataTable} o {@code DocString} como último parámetro
  * de un método sin que aparezcan como tokens {@code {}} en el patrón. El scanner detecta
  * este caso: si hay más parámetros Java que tokens en el patrón, los parámetros restantes
- * reciben {@code cucumberToken = null} en su {@link ParamInfo}, y su {@link ParamSchema}
+ * reciben {@code cucumberToken = null} en su {@link ParamInfo}, y su {@link com.qa.common.api.runtime.ParamSchema}
  * reflejará el tipo estructurado correspondiente ({@code "table"}, {@code "json"},
  * {@code "docstring"}).
  *
  * <h2>I18n propagada desde el componente (v2.3.0)</h2>
  * <p>Los mapas {@code displayNameByLocale} y {@code descriptionByLocale} del
- * {@link StepComponent} se propagan a todos sus {@link StepDefinitionInfo}. En este
+ * {@link com.qa.common.api.runtime.StepComponent} se propagan a todos sus {@link StepDefinitionInfo}. En este
  * corte inicial, todos los steps de un componente comparten los mismos mapas. El soporte
  * de i18n por step individual se planifica para una versión futura vía
  * {@link com.qa.common.api.runtime.annotation.StepDef}.
@@ -81,7 +80,7 @@ import java.util.stream.Collectors;
  * @since 2.2.0
  * @see StepDefinitionInfo
  * @see ParamInfo
- * @see ParamSchema
+ * @see com.qa.common.api.runtime.ParamSchema
  * @see StepDiscoveryService#discoverAllStepDefs()
  * @see com.qa.common.api.runtime.annotation.StepDef
  */
@@ -111,8 +110,8 @@ public final class StepMethodScanner {
     /**
      * Escanea un componente y retorna la lista de sus steps individuales.
      *
-     * <p>Si {@link StepComponent#getStepDefinitionClass()} retorna {@code null}, el componente
-     * aún no está implementado y se retorna lista vacía sin error.
+     * <p>Si {@link com.qa.common.api.runtime.StepComponent#getStepDefinitionClass()} retorna {@code null},
+     * el componente aún no está implementado y se retorna lista vacía sin error.
      *
      * @param componentInfo componente a escanear, no null
      * @return lista inmutable de {@link StepDefinitionInfo}; nunca null, puede estar vacía

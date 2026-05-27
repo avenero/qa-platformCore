@@ -117,4 +117,14 @@
         </Or>
     </Match>
 
+    <!-- =========================================================
+         CucumberReportingPlugin — alias intencional (TASK-K01-C) que
+         reexporta el plugin canónico en `internal.reporting.cucumber`
+         con el mismo nombre simple. Será renombrado en v1.1.
+         ========================================================= -->
+    <Match>
+        <Bug pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS"/>
+        <Class name="com.qa.common.reporting.cucumber.CucumberReportingPlugin"/>
+    </Match>
+
 </FindBugsFilter>

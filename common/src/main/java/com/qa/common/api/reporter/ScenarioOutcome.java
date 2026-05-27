@@ -1,6 +1,5 @@
 package com.qa.common.api.reporter;
 
-import com.qa.common.utils.security.SecurityUtilities;
 
 /**
  * Resultado final de la ejecución de un escenario BDD.

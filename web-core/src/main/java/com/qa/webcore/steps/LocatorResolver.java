@@ -111,7 +111,7 @@ public final class LocatorResolver {
      * @param n        posición 1-based (el 1.° elemento, el 2.° elemento…)
      */
     public static String nthOf(String selector, int n) {
-        if (n < 1) throw new IllegalArgumentException("n debe ser >= 1, fue: " + n);
+        if (n < 1) { throw new IllegalArgumentException("n debe ser >= 1, fue: " + n); }
         return selector + " >> nth=" + (n - 1);
     }
 
