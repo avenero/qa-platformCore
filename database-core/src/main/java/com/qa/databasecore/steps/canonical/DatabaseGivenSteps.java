@@ -15,7 +15,7 @@ import java.util.Map;
  * Canonical English database step vocabulary — GIVEN phase (connection and fixture setup).
  *
  * <p>TASK-D08: introduces stable English setup steps. Existing Spanish step definitions
- * in {@link DatabaseConnectionSteps} are kept for backward compatibility.
+ * in {@link com.qa.databasecore.steps.DatabaseConnectionSteps} are kept for backward compatibility.
  *
  * <p>Connection name resolution: the {@code connectionName} parameter is used as the
  * cache key AND as the config property prefix ({@code {connectionName}.db.url/username/password}).

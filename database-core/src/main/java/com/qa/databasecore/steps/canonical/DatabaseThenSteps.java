@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  * Canonical English database step vocabulary — THEN phase (result assertions).
  *
  * <p>TASK-D08: introduces stable English assertion steps aligned with industry
- * conventions. Existing Spanish step definitions in {@link DatabaseConnectionSteps}
+ * conventions. Existing Spanish step definitions in {@link com.qa.databasecore.steps.DatabaseConnectionSteps}
  * are kept for backward compatibility.
  *
  * <p>Row-indexed steps (e.g. {@code row {int}}) use the {@link QueryResultContext} stored

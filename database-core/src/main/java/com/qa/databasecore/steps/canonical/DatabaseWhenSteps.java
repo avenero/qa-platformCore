@@ -11,7 +11,7 @@ import io.cucumber.java.en.When;
  * Canonical English database step vocabulary — WHEN phase (query and DML execution).
  *
  * <p>TASK-D08: introduces stable English execution steps. Existing Spanish step definitions
- * in {@link DatabaseConnectionSteps} are kept for backward compatibility.
+ * in {@link com.qa.databasecore.steps.DatabaseConnectionSteps} are kept for backward compatibility.
  *
  * <p>Every SELECT step stores two context variables:
  * <ul>
