@@ -1,5 +1,7 @@
 package com.qa.common.api.runtime;
 
+import com.qa.common.api.config.ExecutionProfile;
+
 import javax.net.ssl.SSLContext;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,6 +61,13 @@ public final class ExecutionConfig {
      * Resuelto vía {@link HttpEngine#resolveDefault()} si no se especifica.
      */
     private final HttpEngine httpEngine;
+    /**
+     * Execution profile signal propagated from {@code EXECUTION_PROFILE} env var via BE bootstrap.
+     * Fail-closed: defaults to {@link ExecutionProfile#PROD} when not set explicitly.
+     *
+     * @since 2.1.0 (INIT-EXEC-PROFILE / IEP-1)
+     */
+    private final ExecutionProfile profile;
 
     /**
      * Constructor privado; usar {@link Builder#build()}.
@@ -75,6 +84,7 @@ public final class ExecutionConfig {
         this.sslContext = builder.sslContext;
         this.trustAllSsl = builder.trustAllSsl;
         this.httpEngine = builder.httpEngine != null ? builder.httpEngine : HttpEngine.resolveDefault();
+        this.profile = builder.profile;
     }
 
     /**
@@ -183,12 +193,23 @@ public final class ExecutionConfig {
         return httpEngine;
     }
 
+    /**
+     * Execution profile resolved from {@code EXECUTION_PROFILE} (BE bootstrap) or
+     * {@link ExecutionProfile#PROD} fail-closed default when not set.
+     *
+     * @return profile, never {@code null}
+     * @since 2.1.0 (INIT-EXEC-PROFILE / IEP-1)
+     */
+    public ExecutionProfile getProfile() {
+        return profile;
+    }
+
     @Override
     public String toString() {
         return "ExecutionConfig{env='" + environment + "', browser='" + browser
                 + "', tags='" + tags + "', parallel=" + parallelEnabled
                 + ", threads=" + threadCount + ", props=" + properties.size()
-                + ", httpEngine=" + httpEngine + "}";
+                + ", httpEngine=" + httpEngine + ", profile=" + profile + "}";
     }
 
     /**
@@ -204,6 +225,8 @@ public final class ExecutionConfig {
         private SSLContext sslContext = null;
         private boolean trustAllSsl = false;
         private HttpEngine httpEngine = null;
+        /** Fail-closed default: {@link ExecutionProfile#PROD} when not set (ADR-IEP-1). */
+        private ExecutionProfile profile = ExecutionProfile.PROD;
 
         /**
          * Constructor por defecto con valores iniciales predefinidos.
@@ -335,6 +358,19 @@ public final class ExecutionConfig {
          */
         public Builder httpEngine(HttpEngine httpEngine) {
             this.httpEngine = httpEngine;
+            return this;
+        }
+
+        /**
+         * Configura el perfil de ejecución. Si no se invoca, queda en
+         * {@link ExecutionProfile#PROD} (fail-closed).
+         *
+         * @param profile perfil resuelto desde {@code EXECUTION_PROFILE}; no null
+         * @return este Builder
+         * @since 2.1.0 (INIT-EXEC-PROFILE / IEP-1)
+         */
+        public Builder profile(ExecutionProfile profile) {
+            this.profile = Objects.requireNonNull(profile, "profile no puede ser null");
             return this;
         }
 

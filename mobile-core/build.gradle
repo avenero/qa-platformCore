@@ -10,12 +10,16 @@ dependencies {
     // Dependencia del módulo común
     api project(':common')
 
-    // Appium for mobile testing
-    api 'io.appium:java-client:8.6.0'
+    // Appium for mobile testing — W3-H3-APP bump 8.6.0 → 9.4.0 (Core Audit 2026-05-27).
+    // Nota drift §4.3: el spec proponía añadir `io.appium:appium-uiautomator2` +
+    // `appium-xcuitest` como deps Maven explícitas; esos artefactos NO existen en Maven Central
+    // (son drivers de Appium Server, distribuídos vía npm). El java-client 9.x sigue
+    // exponiendo AndroidDriver/IOSDriver sin deps adicionales.
+    api 'io.appium:java-client:9.4.0'
 
-    // Selenium WebDriver (compatible con Appium) - usando versión 4.13.0 para compatibilidad
-    api 'org.seleniumhq.selenium:selenium-java:4.13.0'
-    api 'org.seleniumhq.selenium:selenium-support:4.13.0'
+    // Selenium WebDriver (compatible con Appium 9) — W3-H3-SEL bump 4.13.0 → 4.27.0
+    api 'org.seleniumhq.selenium:selenium-java:4.27.0'
+    api 'org.seleniumhq.selenium:selenium-support:4.27.0'
 
     // Forzar versión segura de async-http-client para corregir CVE-2024-53990
     // Forzar versión segura de Netty (4.1.121.Final) para mitigar CVEs en io.netty:netty-codec-http
@@ -26,7 +30,7 @@ dependencies {
     // ⚠️ CVE-2025-58056 (LOW)    — Request smuggling via chunk extensions
     // ⚠️ CVE-2025-67735 (MEDIUM) — CRLF injection in HttpRequestEncoder
     // ⚠️ CVE-2026-33870 (HIGH)   — HTTP Request Smuggling via Chunked Extension Quoted-String
-    // Versión 4.1.121.Final es la máxima mitigación disponible y la última estable compatible con Appium 8.6.0
+    // Versión 4.1.121.Final mantenida como mitigación; revalidar compatibilidad con Appium 9.4.0 en el siguiente ciclo de auditoría de deps
     constraints {
         implementation('org.asynchttpclient:async-http-client:2.12.4') {
             because 'CVE-2024-53990: AsyncHttpClient CookieStore vulnerability'

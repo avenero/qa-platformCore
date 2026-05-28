@@ -121,7 +121,8 @@ test {
     useJUnitPlatform()
 
     testLogging {
-        events "passed", "skipped", "failed"
+        // Gradle 8.14+: space-call setter deprecated; idiom asignacion explicita.
+        events          = ["passed", "skipped", "failed"]
         exceptionFormat = "full"
         showExceptions = true
         showCauses = true

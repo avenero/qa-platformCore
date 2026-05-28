@@ -115,7 +115,9 @@ subprojects {
         systemProperty 'qa.logs.verbose', System.getProperty('qa.logs.verbose', 'false')
 
         testLogging {
-            events "passed", "failed", "skipped"
+            // Gradle 8.14+: space-call setter `events "p", "f", "s"` esta deprecated; asignacion
+            // explicita con `events = [...]` es idiomatica y a prueba de Gradle 9/10.
+            events           = ["passed", "failed", "skipped"]
             exceptionFormat  = 'full'
             showExceptions   = true
             showCauses       = true

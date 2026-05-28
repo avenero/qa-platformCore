@@ -483,6 +483,7 @@ public class MobileHelper {
         return findElement(locator).getText();
     }
 
+    @SuppressWarnings("deprecation") // Appium overrides WebElement.getAttribute to query the native /element/{id}/attribute/{name} endpoint; Selenium 4's getDomProperty/getDomAttribute send different W3C commands that don't map to Appium's native attribute model — see SEL-MIGRATE-DOMATTR.
     public String getAttribute(String locator, String attribute) {
         return findElement(locator).getAttribute(attribute);
     }
