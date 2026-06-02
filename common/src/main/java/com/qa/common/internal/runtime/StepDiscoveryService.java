@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -228,9 +227,9 @@ public final class StepDiscoveryService {
         return plugins.stream().map(StepDiscoveryService::pluginKey).collect(Collectors.toUnmodifiableList());
     }
 
-    /** Clave canónica del plugin (platformId en minúsculas, consistente con la API previa). */
+    /** Clave canónica del plugin: {@link CorePlugin#platformId()} en MAYÚSCULAS (UPPER), contrato uniforme Core→BE→FE. */
     private static String pluginKey(CorePlugin plugin) {
-        return plugin.platformId().toLowerCase(Locale.ROOT);
+        return plugin.platformId();
     }
 
     /**

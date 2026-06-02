@@ -24,19 +24,19 @@ class SSLContextFactoryTest {
 
     @Test
     void createTrustAllContext_returnsNonNullContext() {
-        SSLContext ctx = SSLContextFactory.createTrustAllContext();
+        SSLContext ctx = SSLContextFactory.createTrustAllContext(com.qa.common.api.config.ExecutionProfile.DEV, "http://localhost:8080");
         assertThat(ctx).isNotNull();
     }
 
     @Test
     void createTrustAllContext_protocolIsTLS() {
-        SSLContext ctx = SSLContextFactory.createTrustAllContext();
+        SSLContext ctx = SSLContextFactory.createTrustAllContext(com.qa.common.api.config.ExecutionProfile.DEV, "http://localhost:8080");
         assertThat(ctx.getProtocol()).isEqualTo("TLS");
     }
 
     @Test
     void createTrustAllContext_canCreateSocketFactory() {
-        SSLContext ctx = SSLContextFactory.createTrustAllContext();
+        SSLContext ctx = SSLContextFactory.createTrustAllContext(com.qa.common.api.config.ExecutionProfile.DEV, "http://localhost:8080");
         assertThat(ctx.getSocketFactory()).isNotNull();
     }
 

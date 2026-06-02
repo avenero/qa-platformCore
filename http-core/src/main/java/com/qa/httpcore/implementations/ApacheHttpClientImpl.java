@@ -41,6 +41,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
+import com.qa.common.api.config.ExecutionProfile;
+import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.internal.ssl.SSLContextFactory;
 
 /**
@@ -850,7 +852,8 @@ public class ApacheHttpClientImpl implements HttpClient {
 
         if (trustAllSsl || sslContext != null) {
             javax.net.ssl.SSLContext ctx = trustAllSsl
-                ? SSLContextFactory.createTrustAllContext() : sslContext;
+                ? SSLContextFactory.createTrustAllContext(resolveProfileForTrustAllGuard(), url)
+                : sslContext;
             var sslSFBuilder = SSLConnectionSocketFactoryBuilder.create().setSslContext(ctx);
             if (trustAllSsl) {
                 sslSFBuilder.setHostnameVerifier(NoopHostnameVerifier.INSTANCE);
@@ -869,6 +872,18 @@ public class ApacheHttpClientImpl implements HttpClient {
                 return buildHttpResponse(apacheResponse);
             }
         }
+    }
+
+    /**
+     * Resuelve el {@link ExecutionProfile} desde el {@link ExecutionContext} per-thread.
+     * Fail-closed a {@link ExecutionProfile#PROD} cuando no hay contexto activo (CLI sin BE,
+     * tests sin ctx) — alinea con el contrato fail-closed de IEP-1 y deja que el guard
+     * de W1-T3-M3 enforce el rechazo si además el host es público.
+     */
+    private static ExecutionProfile resolveProfileForTrustAllGuard() {
+        return ExecutionContext.current()
+            .map(ctx -> ctx.config().getProfile())
+            .orElse(ExecutionProfile.PROD);
     }
 
     private HttpResponse buildHttpResponse(CloseableHttpResponse apacheResponse) throws Exception {

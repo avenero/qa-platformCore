@@ -149,7 +149,7 @@ class StepDiscoveryServiceTest {
             StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
 
             StepDiscoveryService.ComponentInfo info = svc.discoverAll().get(0);
-            assertThat(info.pluginName()).isEqualTo("api");
+            assertThat(info.pluginName()).isEqualTo("API");
             assertThat(info.component().getName()).isEqualTo("URL Config");
         }
 
@@ -160,7 +160,7 @@ class StepDiscoveryServiceTest {
                     makeComponent("URL Config", BddPhase.GIVEN)
             ));
             StepDiscoveryService svc = new StepDiscoveryService(List.of(api));
-            assertThat(svc.discoverAll().get(0).qualifiedName()).isEqualTo("api/URL Config");
+            assertThat(svc.discoverAll().get(0).qualifiedName()).isEqualTo("API/URL Config");
         }
     }
 
@@ -221,9 +221,9 @@ class StepDiscoveryServiceTest {
             ));
             StepDiscoveryService svc = new StepDiscoveryService(List.of(api, web));
 
-            List<StepDiscoveryService.ComponentInfo> webComponents = svc.discoverByPlugin("web");
+            List<StepDiscoveryService.ComponentInfo> webComponents = svc.discoverByPlugin("WEB");
             assertThat(webComponents).hasSize(2);
-            webComponents.forEach(c -> assertThat(c.pluginName()).isEqualTo("web"));
+            webComponents.forEach(c -> assertThat(c.pluginName()).isEqualTo("WEB"));
         }
 
         @Test
@@ -287,9 +287,9 @@ class StepDiscoveryServiceTest {
             StepDiscoveryService svc = new StepDiscoveryService(List.of(api, web));
             Map<String, List<StepDiscoveryService.ComponentInfo>> grouped = svc.groupByPlugin();
 
-            assertThat(grouped).containsKeys("api", "web");
-            assertThat(grouped.get("api")).hasSize(2);
-            assertThat(grouped.get("web")).hasSize(1);
+            assertThat(grouped).containsKeys("API", "WEB");
+            assertThat(grouped.get("API")).hasSize(2);
+            assertThat(grouped.get("WEB")).hasSize(1);
         }
     }
 
@@ -320,7 +320,7 @@ class StepDiscoveryServiceTest {
             CorePlugin web = makePlugin("web", 100, Set.of("@web"), List.of());
             StepDiscoveryService svc = new StepDiscoveryService(List.of(api, web));
 
-            assertThat(svc.getPluginNames()).containsExactly("api", "web");
+            assertThat(svc.getPluginNames()).containsExactly("API", "WEB");
         }
     }
 
@@ -466,7 +466,7 @@ class StepDiscoveryServiceTest {
             StepDiscoveryService svc = new StepDiscoveryService(List.of(web));
             StepInfo info = svc.discoverAllAsStepInfo().get(0);
 
-            assertThat(info.layer()).isEqualTo("web");
+            assertThat(info.layer()).isEqualTo("WEB");
         }
 
         @Test

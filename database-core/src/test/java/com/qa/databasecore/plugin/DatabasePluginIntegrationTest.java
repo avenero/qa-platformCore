@@ -148,13 +148,13 @@ class DatabasePluginIntegrationTest {
         }
 
         @Test
-        @DisplayName("StepDiscoveryService agrupa los 3 componentes bajo clave 'database'")
+        @DisplayName("StepDiscoveryService agrupa los 3 componentes bajo clave 'DATABASE'")
         void discoveryAgrupaPorPlugin() {
             StepDiscoveryService discovery = new StepDiscoveryService(List.of(plugin));
 
             var componentsByPlugin = discovery.groupByPlugin();
-            assertThat(componentsByPlugin).containsKey("database");
-            assertThat(componentsByPlugin.get("database")).hasSize(3);
+            assertThat(componentsByPlugin).containsKey("DATABASE");
+            assertThat(componentsByPlugin.get("DATABASE")).hasSize(3);
         }
     }
 }

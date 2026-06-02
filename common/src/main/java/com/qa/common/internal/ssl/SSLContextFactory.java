@@ -1,6 +1,7 @@
 package com.qa.common.internal.ssl;
 
 import com.qa.common.api.Internal;
+import com.qa.common.api.config.ExecutionProfile;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -8,16 +9,19 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URI;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.util.regex.Pattern;
 
 /**
  * Factory de {@link SSLContext} con soporte para múltiples estrategias de confianza.
  *
  * <p>Estrategias disponibles:</p>
  * <ul>
- *   <li>{@link #createTrustAllContext()} — acepta cualquier certificado. <strong>Solo para testing.</strong></li>
+ *   <li>{@link #createTrustAllContext(ExecutionProfile, String)} — acepta cualquier certificado;
+ *       gated por profile+host allowlist (W1-T3-M3). <strong>No usable en PROD sobre hosts públicos.</strong></li>
  *   <li>{@link #createFromJksTrustStore(String, char[])} — JKS truststore con certificado personalizado.</li>
  *   <li>{@link #createFromPkcs12TrustStore(String, char[])} — PKCS12 truststore.</li>
  *   <li>{@link #createFromSystemTrustStore()} — delega en el truststore del JVM (cacerts).</li>
@@ -38,22 +42,57 @@ public final class SSLContextFactory {
 
     private static final String TLS = "TLS";
 
+    /**
+     * Allowlist of hosts where trust-all is tolerated even in non-PROD profiles.
+     * Matches: {@code localhost}, {@code *.local}, {@code *.internal}, IPv4 in {@code 127.*},
+     * {@code 10.*}, {@code 192.168.*}. Anchored full-match (case-insensitive).
+     */
+    static final Pattern PRIVATE_HOST_PATTERN = Pattern.compile(
+        "(?i)^(localhost|.*\\.local|.*\\.internal|127\\..*|10\\..*|192\\.168\\..*)$");
+
+    private static final org.slf4j.Logger LOG =
+        org.slf4j.LoggerFactory.getLogger(SSLContextFactory.class);
+
     private SSLContextFactory() {}
 
     // =========================================================================
-    // Trust-all (testing only)
+    // Trust-all (testing only — env-guarded by ExecutionProfile per ADR-CORE-M-3)
     // =========================================================================
 
     /**
-     * Crea un {@link SSLContext} que acepta cualquier certificado sin validación.
+     * Crea un {@link SSLContext} que acepta cualquier certificado sin validación,
+     * gated por el {@link ExecutionProfile} para evitar abrir MITM en producción.
      *
-     * <p><strong>ADVERTENCIA:</strong> usar únicamente en ambientes de testing local.
-     * No usar en staging/production — abre la conexión a ataques MITM.</p>
+     * <p><strong>Contrato (W1-T3-M3, Core Audit 2026-05-27 §D.2):</strong>
+     * <ul>
+     *   <li>Si {@code profile.isProd()} <em>y</em> {@code targetUrl}'s host no matchea
+     *       {@link #PRIVATE_HOST_PATTERN} → {@link IllegalStateException} (fail-fast).</li>
+     *   <li>En cualquier otro caso (DEV/TEST/STAGING en cualquier host; PROD en host privado)
+     *       se loggea {@code WARN} y se retorna el contexto trust-all. La fricción es intencional:
+     *       la línea WARN es la señal para que SRE migre a un cert real.</li>
+     * </ul>
      *
+     * @param profile   profile del runtime resuelto por IEP-1 (fail-closed PROD)
+     * @param targetUrl URL del request siendo configurado; el host se extrae para el guard.
+     *                  Null/blank/unparseable se tratan como "host desconocido" y caen al PROD-fail-fast
+     *                  cuando {@code profile.isProd()}.
      * @return SSLContext configurado con TrustManager que acepta todo
+     * @throws IllegalStateException     si {@code profile.isProd()} y host no está en la allowlist
      * @throws SSLContextCreationException si la creación falla
      */
-    public static SSLContext createTrustAllContext() {
+    public static SSLContext createTrustAllContext(ExecutionProfile profile, String targetUrl) {
+        ExecutionProfile effectiveProfile = profile != null ? profile : ExecutionProfile.PROD;
+        String host = extractHost(targetUrl);
+
+        if (effectiveProfile.isProd() && !PRIVATE_HOST_PATTERN.matcher(host).matches()) {
+            throw new IllegalStateException(
+                "trustAllSsl forbidden in PROD profile on public host " + host
+                + " — set EXECUTION_PROFILE=DEV/TEST or whitelist host as *.internal/*.local/localhost");
+        }
+
+        LOG.warn("trustAllSsl=true on profile={} host={} — migrate to a real cert before promoting to PROD",
+            effectiveProfile, host);
+
         try {
             TrustManager[] trustAllManagers = new TrustManager[]{
                 new X509TrustManager() {
@@ -67,6 +106,23 @@ public final class SSLContextFactory {
             return ctx;
         } catch (Exception e) {
             throw new SSLContextCreationException("No se pudo crear SSLContext trust-all", e);
+        }
+    }
+
+    /**
+     * Extrae el host de una URL para evaluar la allowlist. Sentinel "unknown" cuando
+     * la URL es null/blank o no parsea — el guard PROD lo trata como host público
+     * (no matchea PRIVATE_HOST_PATTERN), fail-closed.
+     */
+    private static String extractHost(String targetUrl) {
+        if (targetUrl == null || targetUrl.isBlank()) {
+            return "unknown";
+        }
+        try {
+            String h = URI.create(targetUrl.trim()).getHost();
+            return (h == null || h.isBlank()) ? "unknown" : h;
+        } catch (IllegalArgumentException e) {
+            return "unknown";
         }
     }
 

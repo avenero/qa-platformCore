@@ -28,8 +28,8 @@ import java.time.Duration;
  * @since TASK-K03
  */
 public record WebConfig(
-        @NotBlank @Pattern(regexp = "chromium|firefox|webkit|chrome|edge",
-                message = "browser debe ser chromium/firefox/webkit/chrome/edge")
+        @NotBlank @Pattern(regexp = "^(CHROMIUM|FIREFOX|WEBKIT)$",
+                message = "browser debe ser CHROMIUM, FIREFOX o WEBKIT (Playwright engines)")
         String browser,
         boolean headless,
         @Min(320) int viewportWidth,
@@ -52,7 +52,7 @@ public record WebConfig(
 
     public static WebConfig defaults() {
         return new WebConfig(
-                "chromium",
+                "CHROMIUM",
                 true,
                 DEFAULT_VIEWPORT_WIDTH,
                 DEFAULT_VIEWPORT_HEIGHT,
