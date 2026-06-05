@@ -138,6 +138,11 @@ public class ApacheHttpClientImpl implements HttpClient {
             throw new IllegalArgumentException("host no puede ser null o vacío");
         }
         this.host = host.trim();
+        // BUG-006: apuntar a un nuevo target inicia un request nuevo, por lo que el
+        // buffer de body acumulado del request anterior (p. ej. el POST de login de un
+        // Background) se descarta. Así la construcción incremental con addBodyField
+        // parte de un body limpio en vez de reenviar el body previo.
+        this.body = null;
     }
 
     @Override

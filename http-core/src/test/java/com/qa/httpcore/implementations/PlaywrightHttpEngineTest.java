@@ -163,13 +163,56 @@ class PlaywrightHttpEngineTest {
     }
 
     @Test
-    @DisplayName("supplier devuelve null → IllegalStateException con mensaje claro")
-    void supplierNullDevuelveErrorClaro() {
-        PlaywrightHttpEngine eng = new PlaywrightHttpEngine(() -> null);
+    @DisplayName("supplier null → auto-provisiona contexto standalone y ejecuta la petición (FEC-API-SHIP-CORE)")
+    void supplierNullAutoProvisionaStandalone() throws Exception {
+        APIRequestContext standalone = mock(APIRequestContext.class);
+        APIResponse pw = stubResponse(200, "{\"ok\":true}", Map.of("Content-Type", "application/json"));
+        when(standalone.get(anyString(), any(RequestOptions.class))).thenReturn(pw);
+
+        // Supplier retorna null (p.ej. @api puro sin browser). createStandaloneContext()
+        // se stubea para no lanzar el binario nativo de Playwright en el test unitario.
+        PlaywrightHttpEngine eng = new PlaywrightHttpEngine(() -> null) {
+            @Override
+            APIRequestContext createStandaloneContext() {
+                return standalone;
+            }
+        };
         eng.setHost("https://api.example.com");
-        assertThatThrownBy(() -> eng.get("/x"))
-                .isInstanceOf(FrameworkTechnicalException.class)
-                .hasMessageContaining("falló");
+
+        HttpResponse resp = eng.get("/x");
+
+        assertThat(resp.getStatusCode()).isEqualTo(200);
+        assertThat(resp.getBody()).isEqualTo("{\"ok\":true}");
+        verify(standalone, times(1)).get(eq("https://api.example.com/x"), any(RequestOptions.class));
+    }
+
+    @Test
+    @DisplayName("constructor sin args (standalone) reusa el contexto entre peticiones; close() lo dispone (idempotente)")
+    void noArgConstructorReusaContextoYClose() throws Exception {
+        APIRequestContext standalone = mock(APIRequestContext.class);
+        APIResponse pw = stubResponse(200, "ok", Map.of());
+        when(standalone.get(anyString(), any(RequestOptions.class))).thenReturn(pw);
+
+        AtomicInteger created = new AtomicInteger(0);
+        PlaywrightHttpEngine eng = new PlaywrightHttpEngine() {
+            @Override
+            APIRequestContext createStandaloneContext() {
+                created.incrementAndGet();
+                return standalone;
+            }
+        };
+        eng.setHost("https://api.example.com");
+        eng.get("/a");
+        eng.get("/b");
+
+        // El contexto standalone se crea una sola vez y se reusa entre peticiones.
+        assertThat(created.get()).isEqualTo(1);
+
+        eng.close();
+        verify(standalone, times(1)).dispose();
+        // close() es idempotente: una segunda llamada no vuelve a disponer.
+        eng.close();
+        verify(standalone, times(1)).dispose();
     }
 
     @Test

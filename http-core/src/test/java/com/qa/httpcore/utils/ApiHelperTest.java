@@ -1,6 +1,7 @@
 package com.qa.httpcore.utils;
 
 import com.qa.httpcore.interfaces.HttpClient;
+import com.qa.httpcore.implementations.ApacheHttpClientImpl;
 import com.qa.httpcore.utils.ApiHelper;
 import com.qa.httpcore.model.HttpMethod;
 import com.qa.common.api.exception.FrameworkBusinessException;
@@ -325,6 +326,30 @@ class ApiHelperTest {
             assertThatThrownBy(() -> helper.validateResponseContainsText("text"))
                 .isInstanceOf(FrameworkBusinessException.class);
         }
+
+        @Test
+        @DisplayName("Resuelve variables ${...} antes de comparar (BUG-007 regression)")
+        void resuelveVariablesAntesDeComparar() {
+            ctx.variables().set("miVar", "abc-123-resolved");
+            // El body contiene el VALOR resuelto, no el literal ${miVar}.
+            // En master (sin resolve) compara el literal y lanza — este test falla.
+            stub.stubbedResponse = new HttpResponse(200,
+                "{\"id\":\"abc-123-resolved\"}", new HashMap<>(), 0L);
+            assertThatNoException().isThrownBy(() ->
+                helper.validateResponseContainsText("${miVar}"));
+        }
+
+        @Test
+        @DisplayName("Tras resolver, si el valor no esta en el body falla con el valor resuelto")
+        void resuelveYFallaConValorResuelto() {
+            ctx.variables().set("miVar", "valor-esperado");
+            stub.stubbedResponse = new HttpResponse(200,
+                "{\"id\":\"otro-valor\"}", new HashMap<>(), 0L);
+            assertThatThrownBy(() -> helper.validateResponseContainsText("${miVar}"))
+                .isInstanceOf(FrameworkBusinessException.class)
+                .hasMessageContaining("valor-esperado")   // mensaje muestra el valor resuelto
+                .hasMessageNotContaining("${miVar}");      // no el literal sin resolver
+        }
     }
 
     // =========================================================================
@@ -404,6 +429,100 @@ class ApiHelperTest {
             ctx.variables().set("fieldVal", "testValue");
             assertThatNoException().isThrownBy(() ->
                 helper.addField("key", "${fieldVal}"));
+        }
+    }
+
+    // =========================================================================
+    // addBodyField — BUG-006: construcción incremental de body JSON
+    // =========================================================================
+
+    @Nested
+    @DisplayName("addBodyField() — BUG-006")
+    @Order(10)
+    class AddBodyFieldTests {
+
+        // El StubHttpClient no modela el reset del buffer en setHost ni el estado real
+        // del body; por eso la regresión usa la implementación real ApacheHttpClientImpl
+        // (sin red: solo se inspecciona el estado del request construido).
+
+        @Test
+        @DisplayName("tras un request previo (login) construye un body JSON limpio con SÓLO los campos nuevos")
+        void addBodyField_afterPreviousRequest_buildsCleanJsonBody() throws Exception {
+            ApacheHttpClientImpl realClient = new ApacheHttpClientImpl();
+            ApiHelper realHelper = new ApiHelper(realClient);
+
+            // (a) Request A: body del login.
+            realClient.setHost("http://localhost:8080/api/auth/login");
+            java.util.Map<String, String> login = new java.util.LinkedHashMap<>();
+            login.put("usernameOrEmail", "qa-architecture@aspectra.io");
+            login.put("password", "Admin@QA2026!");
+            realHelper.setJsonBody(login);
+            assertThat(realClient.getBody()).contains("usernameOrEmail");
+
+            // (b) Inicia request B: apuntar a un nuevo target descarta el body anterior.
+            realClient.setHost("http://localhost:8080/api/projects/1/suites");
+            assertThat(realClient.getBody()).isNull();
+
+            // (c) Construcción incremental del body de B.
+            realHelper.addBodyField("name", "S1");
+            realHelper.addBodyField("type", "API");
+
+            // (d) El body de B contiene SÓLO {name, type}; sin los campos del login.
+            String bodyB = realClient.getBody();
+            com.fasterxml.jackson.databind.JsonNode node =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(bodyB);
+            assertThat(node.isObject()).isTrue();
+            java.util.List<String> fields = new java.util.ArrayList<>();
+            node.fieldNames().forEachRemaining(fields::add);
+            assertThat(fields).containsExactlyInAnyOrder("name", "type");
+            assertThat(node.get("name").asText()).isEqualTo("S1");
+            assertThat(node.get("type").asText()).isEqualTo("API");
+            assertThat(bodyB).doesNotContain("usernameOrEmail").doesNotContain("password");
+        }
+
+        @Test
+        @DisplayName("sobre un body vacío arranca un objeto JSON nuevo")
+        void addBodyField_emptyBody_startsFreshObject() {
+            ApacheHttpClientImpl realClient = new ApacheHttpClientImpl();
+            ApiHelper realHelper = new ApiHelper(realClient);
+            realClient.setHost("http://localhost:8080/api/projects/1/suites");
+
+            realHelper.addBodyField("name", "S1");
+
+            assertThat(realClient.getBody()).isEqualTo("{\"name\":\"S1\"}");
+        }
+
+        @Test
+        @DisplayName("fusiona campos sucesivos sobre el mismo body JSON")
+        void addBodyField_mergesSuccessiveFields() throws Exception {
+            ApacheHttpClientImpl realClient = new ApacheHttpClientImpl();
+            ApiHelper realHelper = new ApiHelper(realClient);
+            realClient.setHost("http://localhost:8080/api/x");
+
+            realHelper.addBodyField("name", "S1");
+            realHelper.addBodyField("description", "desc");
+            realHelper.addBodyField("layer", "API");
+
+            com.fasterxml.jackson.databind.JsonNode node =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(realClient.getBody());
+            assertThat(node.get("name").asText()).isEqualTo("S1");
+            assertThat(node.get("description").asText()).isEqualTo("desc");
+            assertThat(node.get("layer").asText()).isEqualTo("API");
+        }
+
+        @Test
+        @DisplayName("resuelve variables ${...} en clave y valor")
+        void addBodyField_resolvesVariables() throws Exception {
+            ApacheHttpClientImpl realClient = new ApacheHttpClientImpl();
+            ApiHelper realHelper = new ApiHelper(realClient);
+            realClient.setHost("http://localhost:8080/api/x");
+            ctx.variables().set("sts", "123");
+
+            realHelper.addBodyField("name", "API-Suite-${sts}");
+
+            com.fasterxml.jackson.databind.JsonNode node =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(realClient.getBody());
+            assertThat(node.get("name").asText()).isEqualTo("API-Suite-123");
         }
     }
 }

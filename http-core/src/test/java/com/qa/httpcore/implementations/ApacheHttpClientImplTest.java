@@ -319,6 +319,20 @@ class ApacheHttpClientImplTest {
         assertThat(client.getLastRequestDuration()).isEqualTo(-1L);
     }
 
+    @Test
+    @DisplayName("setHost descarta el body del request anterior (BUG-006)")
+    void setHost_clearsPreviousRequestBody() {
+        client.setHost("https://api.example.com/auth/login");
+        client.setBody("{\"usernameOrEmail\":\"qa@x.io\",\"password\":\"secret\"}");
+        assertThat(client.hasBody()).isTrue();
+
+        // Apuntar a un nuevo target = nuevo request → el body previo se descarta.
+        client.setHost("https://api.example.com/projects/1/suites");
+
+        assertThat(client.hasBody()).isFalse();
+        assertThat(client.getBody()).isNull();
+    }
+
     // =========================================================================
     // Estado de última respuesta antes de ejecutar
     // =========================================================================

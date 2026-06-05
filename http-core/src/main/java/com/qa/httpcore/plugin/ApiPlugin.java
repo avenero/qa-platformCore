@@ -2,6 +2,7 @@ package com.qa.httpcore.plugin;
 
 
 import com.qa.common.spi.CorePlugin;
+import com.qa.httpcore.bootstrap.HttpEngineBootstrap;
 import com.qa.httpcore.components.ApiAuthComponent;
 import com.qa.httpcore.components.ApiCookieComponent;
 import com.qa.httpcore.components.ApiExecutionComponent;
@@ -103,6 +104,12 @@ public class ApiPlugin implements CorePlugin {
     @Override
     public void registerServices(ServiceRegistry registry, ExecutionConfig config) {
         LOG.debug("[ApiPlugin] Registrando servicios HTTP...");
+
+        // FEC-API-SHIP-CORE: registra el motor PLAYWRIGHT (default advertido por el FE y por
+        // HttpEngine.resolveDefault()) en HttpClientFactory antes de la resolución lazy del
+        // HttpClient. Sin esto, create() caía silenciosamente a APACHE aunque el config dijera
+        // PLAYWRIGHT, porque sólo APACHE venía pre-registrado. Idempotente.
+        HttpEngineBootstrap.register();
 
         // HttpClient — inicialización lazy. Resuelve el motor (PLAYWRIGHT/APACHE) desde
         // ExecutionConfig.getHttpEngine() vía HttpClientFactory.create(config) (TASK-E04).

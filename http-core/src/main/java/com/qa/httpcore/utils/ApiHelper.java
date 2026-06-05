@@ -310,18 +310,21 @@ public class ApiHelper {
 
     /**
      * Valida que la respuesta contenga un texto específico.
+     * Resuelve variables {@code ${var}} en {@code expectedText} contra el
+     * {@link ExecutionContext} activo, igual que el resto de steps de esta clase.
      */
     public void validateResponseContainsText(String expectedText) throws FrameworkBusinessException {
+        String expected = resolve(expectedText);
         HttpResponse lastResponse = httpClient.getLastResponse();
         String responseBody = lastResponse.getBody();
 
-        if (responseBody == null || !responseBody.contains(expectedText)) {
+        if (responseBody == null || !responseBody.contains(expected)) {
             throw new FrameworkBusinessException("validateResponseContainsText",
-                String.format("Texto '%s' no encontrado en la respuesta", expectedText));
+                String.format("Texto '%s' no encontrado en la respuesta", expected));
         }
 
         TestLogger.logInfo("API_HELPER_VALIDATION",
-            String.format("Texto validado en respuesta: %s", expectedText), null);
+            String.format("Texto validado en respuesta: %s", expected), null);
     }
 
     /**
@@ -1295,15 +1298,44 @@ public class ApiHelper {
     }
 
     /**
-     * Agrega un campo al body JSON de la petición resolviendo variables en clave y valor.
-     * Alias semánticamente explícito de {@link #addField(String, String)}.
+     * Agrega un campo al body JSON de la petición, construyéndolo de forma incremental.
+     * Resuelve variables {@code ${...}} en la clave y el valor.
+     *
+     * <p>El campo se fusiona sobre el body JSON actual; si el body está vacío se parte
+     * de un objeto JSON nuevo. El buffer de body se limpia automáticamente al apuntar a
+     * un nuevo target de request (ver {@link HttpClient#setHost(String)}), de modo que la
+     * construcción incremental tras un request previo (p. ej. el login de un
+     * {@code Background}) siempre parte de un body limpio. El reset NO vive en este
+     * método: cuelga del inicio del request (configuración de URL nueva).
      *
      * @param key   nombre del campo (soporta variables {@code ${...}})
      * @param value valor del campo  (soporta variables {@code ${...}})
      * @since 2.0.0
      */
     public void addBodyField(String key, String value) {
-        addField(key, value);
+        String processedKey   = resolve(key);
+        String processedValue = resolve(value);
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+            String current = httpClient.getBody();
+            com.fasterxml.jackson.databind.node.ObjectNode node;
+            if (current == null || current.isBlank()) {
+                node = mapper.createObjectNode();
+            } else {
+                com.fasterxml.jackson.databind.JsonNode parsed = mapper.readTree(current);
+                node = parsed.isObject()
+                    ? (com.fasterxml.jackson.databind.node.ObjectNode) parsed
+                    : mapper.createObjectNode();
+            }
+            node.put(processedKey, processedValue);
+            httpClient.setBody(mapper.writeValueAsString(node));
+            TestLogger.logInfo("API_HELPER_REQUEST",
+                String.format("✅ Campo agregado al body JSON: %s", processedKey), null);
+        } catch (Exception e) {
+            throw new RuntimeException(
+                "Error agregando campo al body JSON: " + e.getMessage(), e);
+        }
     }
 
     /**

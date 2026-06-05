@@ -2,6 +2,7 @@ package com.qa.httpcore.implementations;
 
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.RequestOptions;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.model.HttpMethod;
@@ -62,7 +63,7 @@ import java.util.function.Supplier;
  * @see HttpClient
  * @see APIRequestContext
  */
-public class PlaywrightHttpEngine implements HttpClient {
+public class PlaywrightHttpEngine implements HttpClient, AutoCloseable {
 
     // ── Constantes ────────────────────────────────────────────────────────────
 
@@ -112,10 +113,37 @@ public class PlaywrightHttpEngine implements HttpClient {
     private final Supplier<APIRequestContext> apiContextSupplier;
 
     /**
+     * Recursos del contexto standalone auto-proveído (FEC-API-SHIP-CORE). Se crean de
+     * forma lazy la primera vez que {@link #resolveApiContext()} no obtiene un contexto
+     * del supplier (p.ej. {@code @api} puro sin browser) y se liberan en {@link #close()}.
+     */
+    private Playwright standalonePlaywright;
+    private APIRequestContext standaloneContext;
+
+    /**
+     * Constructor en modo <em>standalone self-provision</em> ({@code @api} puro, sin browser).
+     *
+     * <p>El engine auto-provee su propio {@link APIRequestContext} de Playwright la primera
+     * vez que ejecuta una petición y lo libera en {@link #close()}. Es el modo registrado por
+     * {@code HttpEngineBootstrap.register()} en CORE. El cableado con la sesión del browser
+     * para escenarios híbridos lo aporta FEC-API-SHIP-WEB-SHARE vía
+     * {@link #PlaywrightHttpEngine(Supplier)}.</p>
+     */
+    public PlaywrightHttpEngine() {
+        this(() -> null);
+    }
+
+    /**
      * Constructor que recibe el proveedor de {@link APIRequestContext}.
      *
+     * <p>Si el supplier retorna {@code null} en tiempo de ejecución (no hay sesión de
+     * browser activa en este hilo), el engine cae a modo standalone y auto-provee su
+     * propio contexto (ver {@link #resolveApiContext()}). Así el mismo engine sirve tanto
+     * el caso híbrido {@code @web+@api} (contexto del browser) como {@code @api} puro.</p>
+     *
      * @param apiContextSupplier proveedor — típicamente {@code PlaywrightManager::getApiContext}
-     *                           cableado desde la capa consumidora. No puede ser {@code null}.
+     *                           cableado desde la capa consumidora. No puede ser {@code null}
+     *                           (pero <em>puede</em> retornar {@code null}).
      */
     public PlaywrightHttpEngine(Supplier<APIRequestContext> apiContextSupplier) {
         if (apiContextSupplier == null) {
@@ -134,6 +162,10 @@ public class PlaywrightHttpEngine implements HttpClient {
             throw new IllegalArgumentException("host no puede ser null o vacío");
         }
         this.host = host.trim();
+        // BUG-006: paridad con ApacheHttpClientImpl — apuntar a un nuevo target inicia
+        // un request nuevo y descarta el buffer de body del request anterior, para que
+        // addBodyField construya el body de forma incremental partiendo limpio.
+        this.body = null;
     }
 
     @Override public String getHost() { return host; }
@@ -703,10 +735,12 @@ public class PlaywrightHttpEngine implements HttpClient {
     private HttpResponse doExecute(HttpMethod method, String url,
                                    Map<String, String> effectiveHeaders,
                                    boolean followRedirects, int timeoutMs) {
-        APIRequestContext ctx = apiContextSupplier.get();
+        APIRequestContext ctx = resolveApiContext();
         if (ctx == null) {
+            // Defensivo: resolveApiContext() sólo retorna null si la auto-provisión falló
+            // en silencio. No debería ocurrir; preservamos un error claro por si acaso.
             throw new IllegalStateException(
-                "apiContextSupplier devolvió null. ¿Olvidaste inicializar la suite Playwright?");
+                "No se pudo resolver ni auto-proveer un APIRequestContext de Playwright.");
         }
 
         RequestOptions opts = RequestOptions.create()
@@ -762,6 +796,70 @@ public class PlaywrightHttpEngine implements HttpClient {
             return pw.text();
         } catch (RuntimeException e) {
             return "";
+        }
+    }
+
+    // ── Auto-provisión standalone (FEC-API-SHIP-CORE) ─────────────────────────
+
+    /**
+     * Resuelve el {@link APIRequestContext} a usar para la petición.
+     *
+     * <p>Prefiere el contexto entregado por el supplier (p.ej. la sesión del browser en
+     * un escenario híbrido {@code @web+@api}). Si el supplier retorna {@code null}
+     * ({@code @api} puro sin browser), auto-provee un contexto standalone propio,
+     * cacheado para reuso entre peticiones y liberado en {@link #close()}.</p>
+     */
+    private APIRequestContext resolveApiContext() {
+        APIRequestContext supplied = apiContextSupplier.get();
+        if (supplied != null) {
+            return supplied;
+        }
+        return getOrCreateStandaloneContext();
+    }
+
+    private APIRequestContext getOrCreateStandaloneContext() {
+        if (standaloneContext == null) {
+            standaloneContext = createStandaloneContext();
+        }
+        return standaloneContext;
+    }
+
+    /**
+     * Crea un {@link APIRequestContext} standalone lanzando un proceso Playwright propio
+     * (sin browser). Visible a nivel de paquete a propósito: permite a los tests unitarios
+     * sustituir la creación sin lanzar el binario nativo.
+     */
+    APIRequestContext createStandaloneContext() {
+        standalonePlaywright = Playwright.create();
+        return standalonePlaywright.request().newContext();
+    }
+
+    /**
+     * Libera el contexto standalone auto-proveído y su proceso Playwright, si se crearon.
+     * No-op cuando el engine operó con un contexto inyectado por el supplier (la capa que
+     * lo proveyó es dueña de su ciclo de vida).
+     *
+     * <p>Lo invoca {@link com.qa.common.api.runtime.ServiceRegistry#destroyAll()} al
+     * finalizar la ejecución (el engine se registra como servicio {@link AutoCloseable}).
+     * Idempotente.</p>
+     */
+    @Override
+    public void close() {
+        if (standaloneContext != null) {
+            try {
+                standaloneContext.dispose();
+            } catch (RuntimeException ignored) {
+                // Limpieza defensiva — no propagamos errores en el cierre.
+            }
+            standaloneContext = null;
+        }
+        if (standalonePlaywright != null) {
+            try {
+                standalonePlaywright.close();
+            } catch (RuntimeException ignored) {
+                // idem.
+            }
+            standalonePlaywright = null;
         }
     }
 

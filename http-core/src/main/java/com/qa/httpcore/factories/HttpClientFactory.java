@@ -37,11 +37,15 @@ import java.util.function.Supplier;
  * (idempotente, thread-safe):
  * <ul>
  *   <li>{@link HttpEngine#APACHE} viene pre-registrado con {@link ApacheHttpClientImpl}.</li>
- *   <li>{@link HttpEngine#PLAYWRIGHT} <b>NO</b> se registra desde {@code http-core} — eso
- *       requeriría depender de {@code web-core} y violaría la regla inviolable
- *       "ningún módulo especializado conoce a otro" (Parte 1 §2 de la propuesta).
- *       La capa que sí conoce {@code PlaywrightManager} (BE / tests / wiring) debe
- *       registrar el motor antes de la primera llamada:
+ *   <li>{@link HttpEngine#PLAYWRIGHT} lo registra {@code HttpEngineBootstrap.register()}
+ *       (invocado desde {@code ApiPlugin.registerServices()}) en modo <b>standalone
+ *       self-provision</b> — FEC-API-SHIP-CORE. No requiere depender de {@code web-core}:
+ *       el {@link com.qa.httpcore.implementations.PlaywrightHttpEngine} auto-provee su
+ *       propio {@code APIRequestContext} cuando no hay sesión de browser, preservando la
+ *       regla inviolable "ningún módulo especializado conoce a otro" (Parte 1 §2 de la propuesta).
+ *       La capa que sí conoce {@code PlaywrightManager} (web-core / BE) puede
+ *       <em>sobrescribir</em> el registro para compartir la sesión del browser en híbrido
+ *       {@code @web+@api} (FEC-API-SHIP-WEB-SHARE):
  *
  *       <pre>{@code
  *       HttpClientFactory.register(HttpEngine.PLAYWRIGHT,
@@ -92,7 +96,8 @@ public final class HttpClientFactory {
     static {
         // APACHE viene siempre disponible desde http-core (sin dependencias externas).
         REGISTRY.put(HttpEngine.APACHE, ApacheHttpClientImpl::new);
-        // PLAYWRIGHT no se registra aquí — la capa wiring (BE / tests) debe hacerlo.
+        // PLAYWRIGHT no se registra en este static block — lo hace HttpEngineBootstrap.register()
+        // (modo standalone self-provision) desde ApiPlugin.registerServices() (FEC-API-SHIP-CORE).
     }
 
     private HttpClientFactory() {
