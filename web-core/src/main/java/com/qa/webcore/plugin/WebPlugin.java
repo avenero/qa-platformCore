@@ -6,6 +6,7 @@ import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.common.api.config.WebConfig;
 import com.qa.common.api.driver.CapabilityDescriptor;
 import com.qa.common.api.driver.CapabilityReport;
+import com.qa.common.api.runtime.ApiContextHolder;
 import com.qa.common.api.runtime.ExecutionConfig;
 import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.ServiceRegistry;
@@ -141,12 +142,22 @@ public class WebPlugin implements CorePlugin {
     ) {
         PlaywrightManager.initSuite(browserName, headless);
         PlaywrightManager.startScenario();
+        // FEC-API-SHIP-WEB-SHARE: publica el APIRequestContext del browser en el puerto neutral
+        // para que los steps @api (motor PLAYWRIGHT) reutilicen cookies/sesión del navegador
+        // en escenarios híbridos @web+@api. getApiContext() devuelve browserContext.request().
+        ApiContextHolder.set(PlaywrightManager.getApiContext());
         context.registry().registerInstance(BrowserEngine.class,
                 new PlaywrightBrowserEngine(PlaywrightManager.getPage()));
     }
 
     private static void terminateScenarioDefault(ExecutionContext context) {
-        PlaywrightManager.endScenario();
+        try {
+            PlaywrightManager.endScenario();
+        } finally {
+            // FEC-API-SHIP-WEB-SHARE: limpia el holder para no filtrar un contexto ya cerrado
+            // al siguiente escenario. En finally: se limpia aunque endScenario() falle.
+            ApiContextHolder.clear();
+        }
     }
 
     private static boolean resolveHeadless(ExecutionContext context, boolean defaultValue) {

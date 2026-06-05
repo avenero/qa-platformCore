@@ -71,6 +71,11 @@ test {
         'httpclient.wire.content': 'INFO'
     ]
 
+    // FEC-API-SHIP-WEB-SHARE: reenvía el flag del IT gateado (WebPluginSessionHolderIT) al JVM
+    // de tests. El assignment `systemProperties = [...]` de arriba NO hereda los -D de la línea
+    // de comandos; sin esto el IT quedaría permanentemente skipped (no habilitable en CI/DO-02).
+    systemProperty 'playwright.it', System.getProperty('playwright.it', 'false')
+
     // JVM Arguments para control de logging
     jvmArgs = [
         '-Dlog4j2.configurationFile=classpath:log4j2.xml',

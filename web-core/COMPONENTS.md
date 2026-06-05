@@ -7,7 +7,7 @@
 > **Platform ID:** `WEB`  
 > **Display:** Web Browser Testing  
 > **Componentes:** 16  
-> **Última generación:** 2026-06-01
+> **Última generación:** 2026-06-05
 
 Esta tabla es el **contrato público** de los `StepComponent` que el módulo `web-core` expone al Backend (catálogo i18n) y al Frontend (paleta del Scenario Builder). Cada entrada se deriva por reflexión vía SPI (`ServiceLoader<CorePlugin>`).
 
