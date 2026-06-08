@@ -430,7 +430,14 @@ public class DbConnectorFactory {
     /**
      * Crea un conector leyendo configuración dinámica por prefijo de tipo de BD.
      *
-     * <p>Lee {dbType}.db.url, {dbType}.db.username, {dbType}.db.password</p>
+     * <p>Lee {dbType}.db.url, {dbType}.db.username, {dbType}.db.password,
+     * {dbType}.db.driver y {dbType}.db.pool.size.max.</p>
+     *
+     * <p><b>Driver:</b> si {@code {dbType}.db.driver} está presente y no es blank se usa
+     * tal cual (honra el campo driver configurado desde el FE y habilita backends como H2
+     * que la URL no permite auto-detectar); en caso contrario se infiere desde la URL JDBC
+     * vía {@link #detectDriverFromUrl(String)} — mismo contrato que el path por defecto
+     * {@link #createFromConfig()}.</p>
      *
      * @param dbType Tipo de BD
      * @return DatabaseConnector configurado
@@ -441,6 +448,7 @@ public class DbConnectorFactory {
         String urlKey = dbType + ".db.url";
         String usernameKey = dbType + ".db.username";
         String passwordKey = dbType + ".db.password";
+        String driverKey = dbType + ".db.driver";
 
         String jdbcUrl = loader.getRaw(urlKey).orElse(null);
         String username = loader.getRaw(usernameKey).orElse("");
@@ -454,12 +462,22 @@ public class DbConnectorFactory {
             );
         }
 
-        // Detectar driver automáticamente por URL
-        String driver = detectDriverFromUrl(jdbcUrl);
-
-        TestLogger.logInfo("DB_CONNECTOR_FACTORY",
-            "Driver detectado automáticamente",
-            Map.of("type", dbType, "driver", driver));
+        // Driver: explícito si está configurado ({dbType}.db.driver), si no auto-detección por URL.
+        // El driver explícito honra el campo configurado desde el FE y habilita backends como H2
+        // que detectDriverFromUrl no reconoce; alinea este path nombrado con createFromConfig().
+        String configuredDriver = loader.getRaw(driverKey).orElse(null);
+        String driver;
+        if (configuredDriver != null && !configuredDriver.trim().isEmpty()) {
+            driver = configuredDriver.trim();
+            TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                "Driver leído de configuración explícita",
+                Map.of("type", dbType, "driver", driver, "key", driverKey));
+        } else {
+            driver = detectDriverFromUrl(jdbcUrl);
+            TestLogger.logInfo("DB_CONNECTOR_FACTORY",
+                "Driver detectado automáticamente por URL",
+                Map.of("type", dbType, "driver", driver));
+        }
 
         // Detectar Windows Authentication
         boolean isWindowsAuth = jdbcUrl.toLowerCase().contains("integratedsecurity=true");
