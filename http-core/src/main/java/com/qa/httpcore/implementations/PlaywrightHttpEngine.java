@@ -504,7 +504,6 @@ public class PlaywrightHttpEngine implements HttpClient, AutoCloseable {
                                        boolean followRedirects, int timeoutMs)
             throws FrameworkTechnicalException {
         validateHost();
-        validateEndpoint(endpoint);
 
         String requestId = UUID.randomUUID().toString().substring(0, REQUEST_ID_LENGTH);
         lastRequestId = requestId;
@@ -671,7 +670,15 @@ public class PlaywrightHttpEngine implements HttpClient, AutoCloseable {
 
     private String buildUrl(String endpoint) {
         String base = host.replaceAll("/+$", "");
-        String path = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+        // Paridad con ApacheHttpClientImpl.buildUrl (ADR-FECPW-01): endpoint null/blank
+        // es válido — patrón canónico "URL completa en host" de los steps de ejecución
+        // (HttpExecutionSteps.ejecutarPeticionHttp ejecuta get("")).
+        String path;
+        if (endpoint == null || endpoint.isBlank()) {
+            path = "";
+        } else {
+            path = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+        }
         StringBuilder sb = new StringBuilder(base).append(path);
         if (!queryParams.isEmpty()) {
             sb.append('?');
@@ -867,12 +874,6 @@ public class PlaywrightHttpEngine implements HttpClient, AutoCloseable {
         if (!hasValidHost()) {
             throw new IllegalStateException(
                 "Host no configurado. Llama a setHost(url) antes de ejecutar peticiones.");
-        }
-    }
-
-    private void validateEndpoint(String endpoint) {
-        if (endpoint == null || endpoint.isBlank()) {
-            throw new IllegalArgumentException("endpoint no puede ser null o vacío");
         }
     }
 

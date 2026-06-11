@@ -139,11 +139,43 @@ class PlaywrightHttpEngineTest {
     }
 
     @Test
-    @DisplayName("endpoint vacío lanza IllegalArgumentException")
-    void endpointVacioFalla() {
+    @DisplayName("endpoint vacío con host válido ejecuta petición host-only (paridad Apache, ADR-FECPW-01)")
+    void endpointVacioEjecutaHostOnly() throws Exception {
+        // Patrón canónico de los steps: la URL completa vive en host y el step
+        // ejecuta con endpoint "" (HttpExecutionSteps.ejecutarPeticionHttp → get("")).
+        APIResponse pw = stubResponse(200, "ok", Map.of());
+        when(apiCtx.get(anyString(), any(RequestOptions.class))).thenReturn(pw);
+
+        engine.setHost("https://api.example.com/v1/login");
+        HttpResponse resp = engine.executeRequest(HttpMethod.GET, "");
+
+        assertThat(resp.getStatusCode()).isEqualTo(200);
+        verify(apiCtx).get(eq("https://api.example.com/v1/login"), any(RequestOptions.class));
+    }
+
+    @Test
+    @DisplayName("endpoint null con host válido ejecuta petición host-only (paridad Apache, ADR-FECPW-01)")
+    void endpointNullEjecutaHostOnly() throws Exception {
+        APIResponse pw = stubResponse(200, "ok", Map.of());
+        when(apiCtx.get(anyString(), any(RequestOptions.class))).thenReturn(pw);
+
+        engine.setHost("https://api.example.com/v1/login");
+        HttpResponse resp = engine.executeRequest(HttpMethod.GET, null);
+
+        assertThat(resp.getStatusCode()).isEqualTo(200);
+        verify(apiCtx).get(eq("https://api.example.com/v1/login"), any(RequestOptions.class));
+    }
+
+    @Test
+    @DisplayName("endpoint sin slash inicial se normaliza con '/' (paridad Apache)")
+    void endpointSinSlashSeNormaliza() throws Exception {
+        APIResponse pw = stubResponse(200, "ok", Map.of());
+        when(apiCtx.get(anyString(), any(RequestOptions.class))).thenReturn(pw);
+
         engine.setHost("https://api.example.com");
-        assertThatThrownBy(() -> engine.executeRequest(HttpMethod.GET, ""))
-                .isInstanceOf(IllegalArgumentException.class);
+        engine.executeRequest(HttpMethod.GET, "users");
+
+        verify(apiCtx).get(eq("https://api.example.com/users"), any(RequestOptions.class));
     }
 
     @Test
