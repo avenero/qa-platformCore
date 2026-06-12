@@ -42,8 +42,12 @@ import java.util.stream.Collectors;
  *
  * <h2>Descubrimiento vía SPI</h2>
  * <p>Los plugins se descubren automáticamente con {@link java.util.ServiceLoader}
- * desde archivos {@code META-INF/services/com.qa.common.runtime.CorePlugin} en cada
- * módulo. Cada módulo registra su propio plugin; {@code common} no registra ninguno.
+ * vía cualquiera de estos archivos de servicio durante el período de alias:
+ * <ul>
+ *   <li>{@code META-INF/services/com.qa.common.spi.CorePlugin} (canónico, desde 2.0)</li>
+ *   <li>{@code META-INF/services/com.qa.common.runtime.CorePlugin} (alias, {@code @Deprecated(forRemoval=true)} desde 2.1; eliminación en 2.2 — iniciativa CORE-ALIAS-CLEANUP-V22)</li>
+ * </ul>
+ * Cada módulo registra su propio plugin; {@code common} no registra ninguno.
  *
  * <h2>Ejemplo mínimo</h2>
  * <pre>
