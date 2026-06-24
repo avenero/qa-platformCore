@@ -3,7 +3,7 @@ import com.qa.common.api.Internal;
 
 import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.reporting.config.ReportingConfig;
+import com.qa.common.internal.reporting.config.MutableReportingConfig;
 import com.qa.common.internal.reporting.extent.ReportingManager;
 import com.qa.common.internal.reporting.manager.pipeline.PipelineResult;
 import io.cucumber.plugin.EventListener;
@@ -88,7 +88,7 @@ public class CucumberReportingPlugin implements EventListener {
                 + "═".repeat(LOG_SEPARATOR_LENGTH), null);
 
         try {
-            ReportingConfig config = ReportingConfig.load();
+            MutableReportingConfig config = MutableReportingConfig.load();
 
             // Guard #1 — Reporting deshabilitado explícitamente en configuración
             if (!config.isEnabled()) {

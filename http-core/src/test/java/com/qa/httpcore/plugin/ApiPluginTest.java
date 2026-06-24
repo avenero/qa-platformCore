@@ -23,7 +23,7 @@ import static org.mockito.Mockito.*;
  *   <li>Registro lazy de servicios: {@link HttpClient}, {@link AuthenticationService}, {@link ApiHelper}</li>
  *   <li>{@code onScenarioStart} — invoca {@code clearRequestData()} en HttpClient si esta registrado</li>
  *   <li>{@code onScenarioEnd} — invoca {@code reset()} en HttpClient si esta registrado</li>
- *   <li>{@code getComponents()} — 12 componentes inmutables con fases BDD correctas</li>
+ *   <li>{@code getComponents()} — 13 componentes inmutables con fases BDD correctas</li>
  * </ul>
  *
  * <p><b>Estrategia:</b> Sin HTTP real. Se usan stubs de {@link ServiceRegistry}
@@ -293,9 +293,9 @@ class ApiPluginTest {
     class GetComponentsTests {
 
         @Test
-        @DisplayName("Retorna exactamente 12 componentes")
-        void retornaDoceComponentes() {
-            assertThat(plugin.getComponents()).hasSize(12);
+        @DisplayName("Retorna exactamente 13 componentes")
+        void retornaTreceComponentes() {
+            assertThat(plugin.getComponents()).hasSize(13);
         }
 
         @Test
@@ -342,16 +342,16 @@ class ApiPluginTest {
                 .map(c -> c.getId())
                 .distinct()
                 .count();
-            assertThat(uniqueIds).isEqualTo(12);
+            assertThat(uniqueIds).isEqualTo(13);
         }
 
         @Test
-        @DisplayName("Incluye los 6 componentes GIVEN de configuracion de peticion")
-        void incluyeSeisComponentesGiven() {
+        @DisplayName("Incluye los 7 componentes GIVEN de configuracion de peticion")
+        void incluyeSieteComponentesGiven() {
             long givenCount = plugin.getComponents().stream()
                 .filter(c -> c.getPhase().name().equals("GIVEN"))
                 .count();
-            assertThat(givenCount).isEqualTo(6);
+            assertThat(givenCount).isEqualTo(7);
         }
 
         @Test
@@ -395,6 +395,29 @@ class ApiPluginTest {
             assertThat(plugin.getComponents())
                 .anyMatch(c -> c instanceof ApiPerformanceComponent)
                 .anyMatch(c -> c instanceof ApiSecurityComponent);
+        }
+
+        @Test
+        @DisplayName("Registra el sucesor api.request.body (no-deprecado) sobre RequestBodySteps")
+        void registraSucesorRequestBodyNoDeprecado() {
+            assertThat(plugin.getComponents())
+                .filteredOn(c -> "api.request.body".equals(c.getId()))
+                .singleElement()
+                .satisfies(c -> {
+                    assertThat(c.isDeprecated())
+                        .as("el sucesor api.request.body NO debe estar deprecado")
+                        .isFalse();
+                    assertThat(c.getStepDefinitionClass())
+                        .isEqualTo(com.qa.httpcore.steps.config.RequestBodySteps.class);
+                });
+        }
+
+        @Test
+        @DisplayName("Coexisten sucesor api.request.body y predecesor api.body (deprecado) — zero-downtime")
+        void coexistenSucesorYPredecesorDeprecado() {
+            assertThat(plugin.getComponents())
+                .anyMatch(c -> "api.request.body".equals(c.getId()) && !c.isDeprecated())
+                .anyMatch(c -> "api.body".equals(c.getId()) && c.isDeprecated());
         }
     }
 

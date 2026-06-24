@@ -1,0 +1,51 @@
+{
+  "scenarios" : [
+    {
+      "name" : "Passing scenario",
+      "status" : "PASS",
+      "steps" : [
+        {
+          "name" : "a clean system",
+          "status" : "PASS"
+        },
+        {
+          "name" : "the result is recorded",
+          "status" : "PASS"
+        }
+      ]
+    },
+    {
+      "name" : "Failing scenario",
+      "status" : "FAIL",
+      "steps" : [
+        {
+          "name" : "a valid precondition",
+          "status" : "PASS"
+        },
+        {
+          "name" : "the assertion fails",
+          "status" : "FAIL"
+        }
+      ]
+    },
+    {
+      "name" : "Skipped scenario",
+      "status" : "SKIP",
+      "steps" : [
+        {
+          "name" : "a step that is skipped",
+          "status" : "SKIP"
+        },
+        {
+          "name" : "another skipped step",
+          "status" : "SKIP"
+        }
+      ]
+    }
+  ],
+  "totals" : {
+    "failed" : 1,
+    "passed" : 1,
+    "skipped" : 1
+  }
+}

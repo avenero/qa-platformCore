@@ -20,7 +20,8 @@ import java.util.List;
  * 1. screenshot / API response guardado en test-evidences/
  * 2. EvidenceCollector.collectScreenshots() → convierte a List&lt;Attachment&gt;
  * 3. ScenarioResult.setScreenshots() → adjunta al resultado
- * 4. ExtentReportGenerator usa los Attachments para el reporte HTML
+ * 4. CucumberResultAdapter proyecta a AttachmentData y ExtentReportGeneratorImpl
+ *    los renderiza en el reporte HTML
  *
  * @author Abel Venero
  * @version 1.0.0

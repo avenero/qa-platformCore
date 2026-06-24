@@ -2,7 +2,8 @@ package com.qa.databasecore.factory;
 
 
 import com.qa.common.api.config.ConfigLoaderHolder;
-import com.qa.databasecore.config.DatabaseConfig;
+import com.qa.databasecore.config.HikariDataSourceFactory;
+import com.qa.databasecore.config.JdbcDriverAllowlist;
 import com.qa.databasecore.connector.MySQLConnector;
 import com.qa.databasecore.connector.OracleConnector;
 import com.qa.databasecore.connector.PostgreSQLConnector;
@@ -231,6 +232,10 @@ public class DbConnectorFactory {
                     "Driver detectado por URL JDBC",
                     Map.of("driver", driver));
             }
+        } else {
+            // 'db.driver' configurado explícitamente (input-driven): validar contra la allowlist
+            // antes de que HikariCP cargue/instancie la clase (W2-M2-DB-DRIVER).
+            JdbcDriverAllowlist.requireAllowed(driver);
         }
 
         validateProperties(jdbcUrl, username, password, driver);
@@ -469,6 +474,9 @@ public class DbConnectorFactory {
         String driver;
         if (configuredDriver != null && !configuredDriver.trim().isEmpty()) {
             driver = configuredDriver.trim();
+            // Driver input-driven ({name}.db.driver): validar contra la allowlist antes de
+            // pasarlo a HikariCP, que carga/instancia la clase (W2-M2-DB-DRIVER).
+            JdbcDriverAllowlist.requireAllowed(driver);
             TestLogger.logInfo("DB_CONNECTOR_FACTORY",
                 "Driver leído de configuración explícita",
                 Map.of("type", dbType, "driver", driver, "key", driverKey));
@@ -633,7 +641,7 @@ public class DbConnectorFactory {
                 "Creando conector genérico de base de datos",
                 Map.of("driver", driverClassName, "poolSize", maxPoolSize));
 
-            this.dataSource = (HikariDataSource) DatabaseConfig.createHikariDataSource(
+            this.dataSource = (HikariDataSource) HikariDataSourceFactory.createHikariDataSource(
                 jdbcUrl, username, password, driverClassName, maxPoolSize, MIN_POOL_SIZE
             );
         }

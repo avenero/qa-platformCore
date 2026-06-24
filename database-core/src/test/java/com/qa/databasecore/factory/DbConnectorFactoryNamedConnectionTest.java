@@ -1,5 +1,6 @@
 package com.qa.databasecore.factory;
 
+import com.qa.databasecore.config.JdbcDriverAllowlist;
 import com.qa.databasecore.connector.DatabaseConnector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -99,5 +100,18 @@ class DbConnectorFactoryNamedConnectionTest {
         assertThatThrownBy(() -> DbConnectorFactory.connectAndCache(name))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("No se pudo detectar el tipo de base de datos");
+    }
+
+    @Test
+    @DisplayName("disallowed explicit driver is rejected by the allowlist before HikariCP loads it (W2-M2-DB-DRIVER)")
+    void namedConnection_disallowedDriver_rejectedByAllowlist() {
+        String name = "smokeevildrv";
+        setProp(name + ".db.url", "jdbc:h2:mem:named_evil_" + System.nanoTime());
+        setProp(name + ".db.username", "sa");
+        setProp(name + ".db.driver", "com.acme.EvilDriver");   // input-driven, not in the allowlist
+
+        assertThatThrownBy(() -> DbConnectorFactory.connectAndCache(name))
+            .isInstanceOf(SecurityException.class)
+            .hasMessage(JdbcDriverAllowlist.MSG_DRIVER_NOT_ALLOWED);
     }
 }

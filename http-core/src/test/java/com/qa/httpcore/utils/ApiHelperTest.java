@@ -7,10 +7,17 @@ import com.qa.httpcore.model.HttpMethod;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.httpcore.model.HttpResponse;
 import com.qa.common.api.runtime.ExecutionContext;
+import com.qa.common.api.config.ConfigLoader;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.TypedConfig;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -523,6 +530,182 @@ class ApiHelperTest {
             com.fasterxml.jackson.databind.JsonNode node =
                 new com.fasterxml.jackson.databind.ObjectMapper().readTree(realClient.getBody());
             assertThat(node.get("name").asText()).isEqualTo("API-Suite-123");
+        }
+    }
+
+    // =========================================================================
+    // validateHeaderValue — BUG-007-FOLLOWUP: resolución de ${var}
+    // =========================================================================
+
+    @Nested
+    @DisplayName("validateHeaderValue() — BUG-007-FOLLOWUP")
+    @Order(11)
+    class ValidateHeaderValueTests {
+
+        private HttpResponse responseWithHeader(String name, String value) {
+            Map<String, String> headers = new HashMap<>();
+            headers.put(name, value);
+            return new HttpResponse(200, "{}", headers, 0L);
+        }
+
+        @Test
+        @DisplayName("Pasa cuando el valor del header coincide")
+        void valorCoincideOk() {
+            stub.stubbedResponse = responseWithHeader("Content-Type", "application/json");
+            assertThatNoException().isThrownBy(() ->
+                helper.validateHeaderValue("Content-Type", "application/json"));
+        }
+
+        @Test
+        @DisplayName("Falla cuando el valor del header no coincide")
+        void valorDistintoFalla() {
+            stub.stubbedResponse = responseWithHeader("Content-Type", "text/html");
+            assertThatThrownBy(() -> helper.validateHeaderValue("Content-Type", "application/json"))
+                .isInstanceOf(FrameworkBusinessException.class)
+                .hasMessageContaining("application/json")
+                .hasMessageContaining("text/html");
+        }
+
+        @Test
+        @DisplayName("Resuelve variables ${...} antes de comparar (regression fail-on-master)")
+        void resuelveVariablesAntesDeComparar() {
+            ctx.variables().set("expectedCt", "application/json");
+            // El header trae el valor RESUELTO. En master (sin resolve) compara el literal
+            // "${expectedCt}" contra "application/json" y lanza — este test falla.
+            stub.stubbedResponse = responseWithHeader("Content-Type", "application/json");
+            assertThatNoException().isThrownBy(() ->
+                helper.validateHeaderValue("Content-Type", "${expectedCt}"));
+        }
+
+        @Test
+        @DisplayName("Tras resolver, si el valor no coincide falla con el valor resuelto")
+        void resuelveYFallaConValorResuelto() {
+            ctx.variables().set("expectedCt", "application/json");
+            stub.stubbedResponse = responseWithHeader("Content-Type", "text/html");
+            assertThatThrownBy(() -> helper.validateHeaderValue("Content-Type", "${expectedCt}"))
+                .isInstanceOf(FrameworkBusinessException.class)
+                .hasMessageContaining("application/json")   // mensaje muestra el valor resuelto
+                .hasMessageNotContaining("${expectedCt}");  // no el literal sin resolver
+        }
+    }
+
+    // =========================================================================
+    // validateJsonField — BUG-007-FOLLOWUP: resolución de ${var} con guard de tipo
+    // =========================================================================
+
+    @Nested
+    @DisplayName("validateJsonField() — BUG-007-FOLLOWUP")
+    @Order(12)
+    class ValidateJsonFieldTests {
+
+        @Test
+        @DisplayName("Pasa cuando el valor String coincide")
+        void valorStringCoincideOk() {
+            stub.stubbedResponse = new HttpResponse(200, "{\"id\":\"abc-123\"}", new HashMap<>(), 0L);
+            assertThatNoException().isThrownBy(() ->
+                helper.validateJsonField("$.id", "abc-123"));
+        }
+
+        @Test
+        @DisplayName("Resuelve variables ${...} en valores String antes de comparar (regression fail-on-master)")
+        void resuelveVariablesAntesDeComparar() {
+            ctx.variables().set("miVar", "abc-123-resolved");
+            // El body contiene el valor RESUELTO. En master (sin resolve) compara el literal
+            // "${miVar}" y lanza — este test falla.
+            stub.stubbedResponse =
+                new HttpResponse(200, "{\"id\":\"abc-123-resolved\"}", new HashMap<>(), 0L);
+            assertThatNoException().isThrownBy(() ->
+                helper.validateJsonField("$.id", "${miVar}"));
+        }
+
+        @Test
+        @DisplayName("Los valores no-String se pasan tal cual (guard instanceof String)")
+        void valorNoStringPasaTalCual() {
+            stub.stubbedResponse = new HttpResponse(200, "{\"age\":30}", new HashMap<>(), 0L);
+            assertThatNoException().isThrownBy(() ->
+                helper.validateJsonField("$.age", 30));
+        }
+    }
+
+    // =========================================================================
+    // validateResponseSchemaFromFile() - guard path-traversal tier filesystem (W2-M4 follow-up)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("validateResponseSchemaFromFile() - guard FS bajo http.schema.root")
+    @Order(13)
+    class ValidateResponseSchemaFromFileGuardTests {
+
+        @TempDir
+        Path schemaRoot;
+
+        /** Apunta http.schema.root al @TempDir vía instancia fake de ConfigLoader. */
+        @BeforeEach
+        void overrideSchemaRoot() {
+            final String root = schemaRoot.toString();
+            ConfigLoaderHolder.replace(new ConfigLoader() {
+                @Override public <T extends TypedConfig> T load(Class<T> c) {
+                    throw new UnsupportedOperationException("no usado en este test");
+                }
+                @Override public <T extends TypedConfig> T reload(Class<T> c) {
+                    throw new UnsupportedOperationException("no usado en este test");
+                }
+                @Override public Optional<String> getRaw(String key) {
+                    return ValidationUtilities.SCHEMA_ROOT_CONFIG_KEY.equals(key)
+                        ? Optional.of(root) : Optional.empty();
+                }
+            });
+        }
+
+        @AfterEach
+        void restoreLoader() {
+            ConfigLoaderHolder.reset();
+        }
+
+        @Test
+        @DisplayName("ruta relativa dentro de la raiz -> lee y valida (sin SecurityException)")
+        void withinRootResolvesAndValidates() throws Exception {
+            Files.writeString(schemaRoot.resolve("ok-schema.json"),
+                "{\"type\":\"object\",\"required\":[\"id\"],\"properties\":{\"id\":{\"type\":\"string\"}}}");
+            stub.stubbedResponse = new HttpResponse(200, "{\"id\":\"abc\"}", new HashMap<>(), 0L);
+
+            assertThatNoException().isThrownBy(() ->
+                helper.validateResponseSchemaFromFile("ok-schema.json"));
+        }
+
+        @Test
+        @DisplayName("../../../etc/passwd -> SecurityException")
+        void parentTraversalRejected() {
+            assertThatExceptionOfType(SecurityException.class)
+                .isThrownBy(() -> helper.validateResponseSchemaFromFile("../../../etc/passwd"))
+                .withMessageContaining(ValidationUtilities.MSG_SCHEMA_PATH_ESCAPES_ROOT);
+        }
+
+        @Test
+        @DisplayName("ruta absoluta fuera de la raiz -> SecurityException")
+        void absoluteOutsideRootRejected() {
+            assertThatExceptionOfType(SecurityException.class)
+                .isThrownBy(() -> helper.validateResponseSchemaFromFile("/etc/passwd"))
+                .withMessageContaining(ValidationUtilities.MSG_SCHEMA_PATH_ESCAPES_ROOT);
+        }
+
+        @Test
+        @DisplayName("nombre dentro de la raiz pero inexistente -> FrameworkBusinessException (guard pasa, IO falla)")
+        void missingWithinRootWrappedAsBusinessException() {
+            assertThatThrownBy(() -> helper.validateResponseSchemaFromFile("missing.json"))
+                .isInstanceOf(FrameworkBusinessException.class)
+                .isNotInstanceOf(SecurityException.class);
+        }
+
+        @Test
+        @DisplayName("recurso en classpath -> resuelve sin tocar el guard FS (tier 1/2 intacto)")
+        void classpathResourceBypassesGuard() {
+            // schemas/test-classpath-schema.json vive en src/test/resources (classpath),
+            // NO bajo el @TempDir: si el guard FS se aplicara fallaria; debe resolver via classpath.
+            stub.stubbedResponse = new HttpResponse(200, "{\"id\":\"xyz\"}", new HashMap<>(), 0L);
+
+            assertThatNoException().isThrownBy(() ->
+                helper.validateResponseSchemaFromFile("schemas/test-classpath-schema.json"));
         }
     }
 }

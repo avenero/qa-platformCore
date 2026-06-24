@@ -6,8 +6,8 @@
 > **Plugin:** `com.qa.webcore.plugin.WebPlugin`  
 > **Platform ID:** `WEB`  
 > **Display:** Web Browser Testing  
-> **Componentes:** 16  
-> **Última generación:** 2026-06-09
+> **Componentes:** 17  
+> **Última generación:** 2026-06-23
 
 Esta tabla es el **contrato público** de los `StepComponent` que el módulo `web-core` expone al Backend (catálogo i18n) y al Frontend (paleta del Scenario Builder). Cada entrada se deriva por reflexión vía SPI (`ServiceLoader<CorePlugin>`).
 
@@ -92,6 +92,14 @@ Esta tabla es el **contrato público** de los `StepComponent` que el módulo `we
 - **Descripción:** Scroll hacia elementos o direcciones
 - **Glue:** `com.qa.webcore.steps.interaction.ScrollSteps`
 
+## `web.drag.drop`
+
+- **Display:** **Drag and Drop** _(es)_ / **Drag and Drop** _(en)_ / **Glisser-deposer** _(fr)_
+- **Categoría:** Interaccion  · **Fase BDD:** `WHEN`  · **Display order:** `95`
+- **Icono:** `open_with`  · **Keywords:** drag, drop, arrastrar, soltar, move, mover, reorder, dnd, drag-and-drop, glisser-deposer, resize, redimensionar
+- **Descripción:** Arrastrar y soltar elementos
+- **Glue:** `com.qa.webcore.steps.interaction.DragDropSteps`
+
 ## `web.dragdrop`
 
 > ⚠️ **Deprecado** — usar `web.drag.drop` en su lugar.
@@ -100,7 +108,6 @@ Esta tabla es el **contrato público** de los `StepComponent` que el módulo `we
 - **Categoría:** Interaccion  · **Fase BDD:** `WHEN`  · **Display order:** `95`
 - **Icono:** `open_with`  · **Keywords:** drag, drop, arrastar, soltar, move, mover, reorder, dnd, drag-and-drop, glisser-deposer
 - **Descripción:** Arrastrar y soltar elementos
-- **Glue:** `com.qa.webcore.steps.interaction.DragDropSteps`
 
 ## `web.alert`
 

@@ -4,8 +4,6 @@ import com.qa.common.api.logging.TestLogger;
 import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.api.runtime.annotation.StepDef;
 import com.qa.webcore.driver.engine.BrowserEngine;
-import com.qa.webcore.utils.WebHelper;
-import io.cucumber.java.Scenario;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 
@@ -25,9 +23,6 @@ import io.cucumber.java.en.When;
 public class NavigationSteps {
 
     private static final int PAGE_LOAD_TIMEOUT_MS = 30_000;
-
-    private final WebHelper helper = new WebHelper();
-    private Scenario scenario;
 
     // =========================================================================
     // Steps canónicos de navegación
@@ -79,37 +74,6 @@ public class NavigationSteps {
         engine().evaluate("window.history.forward()");
         engine().waitForLoadState("load", PAGE_LOAD_TIMEOUT_MS);
         TestLogger.logInfo("NAV_STEPS", "Navegado hacia adelante", null);
-    }
-
-    // =========================================================================
-    // Step DEPRECATED — macro de negocio, no pertenece a un step atómico
-    // =========================================================================
-
-    /**
-     * @deprecated Step macro de negocio — debe descomponerse en steps individuales:
-     *             {@code web.navigation.go-to-url}, pasos de input y click.
-     */
-    @Deprecated(since = "2.1.0", forRemoval = false)
-    @StepDef(value = "web.navigation.legacy-completo-flujo",
-             deprecated = true,
-             displayName = "completo el flujo navegando… (DEPRECATED — macro de negocio, usar steps individuales)")
-    @Given("completo el flujo navegando a {string} con campos {string} {string}"
-        + " {string} con textos {string} {string} {string} y presionando {string}")
-    @SuppressWarnings("checkstyle:LineLength")
-    public void completoElFlujoNavegandoConCamposYPresionando(
-            String url, String c1, String c2, String c3,
-            String t1, String t2, String t3, String boton) {
-        engine().navigateTo(url);
-        engine().waitForLoadState("load", PAGE_LOAD_TIMEOUT_MS);
-        helper.setTextWithWait(t1, c1);
-        if (c2 != null && !c2.trim().isEmpty()) {
-            helper.setTextWithWait(t2, c2);
-        }
-        if (c3 != null && !c3.trim().isEmpty()) {
-            helper.setTextWithWait(t3, c3);
-        }
-        helper.clicButton(boton);
-        helper.captureScreen(scenario);
     }
 
     private BrowserEngine engine() {

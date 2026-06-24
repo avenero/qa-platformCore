@@ -355,7 +355,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     }
 
     try {
-      LOG.info("Obteniendo token Basic Auth desde: {} para usuario: {}",
+      LOG.debug("Obteniendo token Basic Auth desde: {} para usuario: {}",
           authEndpoint, TextUtilities.sanitizeValue("username", username));
 
       httpClient.clearRequestData();
@@ -370,7 +370,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
       if (cacheEnabled) {
         tokenCache.put(cacheKey, new TokenCacheEntry(token, tokenCacheTTL));
       }
-      LOG.info("✓ Token Basic Auth obtenido exitosamente para usuario: {}",
+      LOG.debug("✓ Token Basic Auth obtenido exitosamente para usuario: {}",
           TextUtilities.sanitizeValue("username", username));
       return token;
 
@@ -1429,7 +1429,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
     String cacheKey = "mfa_auth:" + endpoint + ":" + username + ":" + mfaCode.hashCode();
 
     try {
-      LOG.info("Obteniendo token MFA desde: {} para usuario: {}",
+      LOG.debug("Obteniendo token MFA desde: {} para usuario: {}",
           endpoint, TextUtilities.sanitizeValue("username", username));
 
       httpClient.clearRequestData();
@@ -1444,7 +1444,7 @@ public class BaseAuthenticationManager implements AuthenticationService {
         long mfaTtl = Math.min(tokenCacheTTL, MFA_MAX_TTL_MS);
         tokenCache.put(cacheKey, new TokenCacheEntry(token, mfaTtl));
       }
-      LOG.info("✓ Token MFA obtenido exitosamente para usuario: {}",
+      LOG.debug("✓ Token MFA obtenido exitosamente para usuario: {}",
           TextUtilities.sanitizeValue("username", username));
       return token;
 

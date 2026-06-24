@@ -31,8 +31,8 @@ import java.util.List;
  * then returns the full HTML as a String — making report persistence the caller's concern.
  *
  * <p>All rendering logic operates on bridge models from
- * {@code com.qa.common.reporting.core.bridge}; no dependency on {@code TestExecutionResult}
- * or any BE domain model.
+ * {@code com.qa.common.api.reporter.bridge}; no dependency on any legacy mutable
+ * reporting model or BE domain model.
  *
  * <p>Thread safety: each call to {@code generateHtml} creates its own {@link ExtentReports}
  * instance, so concurrent invocations are safe.

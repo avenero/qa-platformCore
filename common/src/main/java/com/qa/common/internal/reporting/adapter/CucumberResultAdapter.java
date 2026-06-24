@@ -2,10 +2,15 @@ package com.qa.common.internal.reporting.adapter;
 import com.qa.common.api.Internal;
 
 import com.qa.common.api.logging.TestLogger;
+import com.qa.common.api.reporter.bridge.AttachmentData;
+import com.qa.common.api.reporter.bridge.EnvironmentDetails;
+import com.qa.common.api.reporter.bridge.ExecutionData;
+import com.qa.common.api.reporter.bridge.ScenarioData;
+import com.qa.common.api.reporter.bridge.StepData;
 import com.qa.common.internal.reporting.model.Attachment;
+import com.qa.common.internal.reporting.model.EnvironmentInfo;
 import com.qa.common.internal.reporting.model.ScenarioResult;
 import com.qa.common.internal.reporting.model.StepResult;
-import com.qa.common.internal.reporting.model.TestExecutionResult;
 import com.qa.common.api.reporter.model.TestStatus;
 import com.qa.common.internal.reporting.util.EvidenceCollector;
 import com.qa.common.internal.reporting.util.TagExtractor;
@@ -20,15 +25,14 @@ import java.util.List;
 
 /**
  * Adaptador para resultados de Cucumber en formato JSON estándar.
- * Extrae solo la información relevante para reportar a Jira.
+ * Extrae solo la información relevante y la proyecta al modelo puente
+ * {@link ExecutionData} consumido por {@code ReportGeneratorPort}.
  * Integrado con el sistema de logging del QA Automation Framework.
  *
  * @author QA Automation Framework Team
  * @since 1.0.0
  */
 @Internal
-@SuppressWarnings("removal")
-
 public class CucumberResultAdapter implements ResultAdapter {
 
     /** Maximum characters for a business-facing error message (Jira limit). */
@@ -55,16 +59,11 @@ public class CucumberResultAdapter implements ResultAdapter {
     }
 
     @Override
-    public TestExecutionResult convert(String rawResults) {
+    public ExecutionData convert(String rawResults) {
         TestLogger.logInfo("CUCUMBER_ADAPTER", "🥒 Procesando resultados de Cucumber", null);
 
         try {
             JsonNode rootNode = objectMapper.readTree(rawResults);
-
-            TestExecutionResult result = new TestExecutionResult();
-            result.setExecutionStart(LocalDateTime.now());
-            result.setExecutionEnd(LocalDateTime.now());
-            result.setSummary("Test Execution - " + LocalDateTime.now());
 
             List<ScenarioResult> scenarios = new ArrayList<>();
 
@@ -75,16 +74,170 @@ public class CucumberResultAdapter implements ResultAdapter {
                 }
             }
 
-            result.setScenarios(scenarios);
-
             TestLogger.logInfo("CUCUMBER_ADAPTER",
                 "✅ Procesados " + scenarios.size() + " scenarios de Cucumber", null);
-            return result;
+            return toExecutionData(scenarios);
 
         } catch (Exception e) {
             TestLogger.logException("CUCUMBER_ADAPTER", "❌ Error procesando resultados de Cucumber", e);
             throw new RuntimeException("Error al convertir resultados de Cucumber", e);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Proyección al modelo puente (ExecutionData) consumido por la SPI
+    // -------------------------------------------------------------------------
+
+    /**
+     * Proyecta los scenarios parseados al modelo puente {@link ExecutionData}.
+     * Las claves de ejecución/proyecto/ambiente y la ventana temporal no están
+     * disponibles en el JSON de Cucumber (sólo trae duraciones por step), por lo
+     * que se dejan en null; los totales se derivan del estado de cada scenario.
+     */
+    private ExecutionData toExecutionData(List<ScenarioResult> scenarios) {
+        List<ScenarioData> scenarioData = new ArrayList<>(scenarios.size());
+        int passed = 0;
+        int failed = 0;
+        int skipped = 0;
+
+        for (ScenarioResult scenario : scenarios) {
+            scenarioData.add(toScenarioData(scenario));
+            TestStatus status = scenario.getStatus();
+            if (status == TestStatus.PASS) {
+                passed++;
+            } else if (status == TestStatus.FAIL) {
+                failed++;
+            } else if (status == TestStatus.SKIP) {
+                skipped++;
+            }
+        }
+
+        return new ExecutionData(
+            null,                       // executionKey — no presente en cucumber.json (lo aporta el BE)
+            null,                       // projectKey
+            null,                       // startTime — sin reloj de pared confiable en cucumber.json
+            null,                       // endTime
+            overallStatus(failed, passed, skipped),
+            null,                       // environment
+            scenarios.size(),
+            passed,
+            failed,
+            skipped,
+            scenarioData,
+            detectEnvironment()
+        );
+    }
+
+    private TestStatus overallStatus(int failed, int passed, int skipped) {
+        if (failed > 0) {
+            return TestStatus.FAIL;
+        }
+        if (passed > 0) {
+            return TestStatus.PASS;
+        }
+        if (skipped > 0) {
+            return TestStatus.SKIP;
+        }
+        return TestStatus.TODO;
+    }
+
+    private ScenarioData toScenarioData(ScenarioResult scenario) {
+        List<StepData> steps = new ArrayList<>();
+        if (scenario.getSteps() != null) {
+            for (StepResult step : scenario.getSteps()) {
+                steps.add(toStepData(step));
+            }
+        }
+
+        List<AttachmentData> screenshots = new ArrayList<>();
+        if (scenario.getScreenshots() != null) {
+            for (Attachment att : scenario.getScreenshots()) {
+                AttachmentData mapped = toAttachmentData(att);
+                if (mapped != null) {
+                    screenshots.add(mapped);
+                }
+            }
+        }
+
+        return new ScenarioData(
+            scenario.getScenarioName(),
+            scenario.getFeatureFile(),
+            scenario.getStatus(),
+            null,                       // startTime — no renderizado; cucumber.json no trae timestamps absolutos
+            null,                       // endTime
+            scenario.getDurationMs(),
+            scenario.getErrorMessage(),
+            scenario.getBusinessMessage(),
+            scenario.getStackTrace(),
+            steps,
+            scenario.getTags(),
+            scenario.isOutline(),
+            scenario.getOutlineExample(),
+            screenshots
+        );
+    }
+
+    private StepData toStepData(StepResult step) {
+        return new StepData(
+            step.getKeyword(),
+            step.getName(),
+            step.getStatus(),
+            step.getDurationMs(),
+            step.getErrorMessage(),
+            step.getStackTrace(),
+            step.getProtocolDetail()
+        );
+    }
+
+    /**
+     * Mapea un {@link Attachment} al record puente {@link AttachmentData}, codificando
+     * el contenido a base64 para que el reporte sea autocontenido. Devuelve null si el
+     * attachment no tiene contenido ni ruta legible (se omite del reporte).
+     */
+    private AttachmentData toAttachmentData(Attachment att) {
+        String base64 = encodeAttachment(att);
+        if (base64 == null) {
+            return null;
+        }
+        String name = att.getName() != null ? att.getName() : "Screenshot";
+        String mimeType = att.getMimeType() != null ? att.getMimeType() : "image/png";
+        return new AttachmentData(name, base64, mimeType);
+    }
+
+    private String encodeAttachment(Attachment att) {
+        if (att.getContent() != null) {
+            return java.util.Base64.getEncoder().encodeToString(att.getContent());
+        }
+        if (att.getPath() != null) {
+            try {
+                byte[] bytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(att.getPath()));
+                return java.util.Base64.getEncoder().encodeToString(bytes);
+            } catch (java.io.IOException e) {
+                TestLogger.logWarning("CUCUMBER_ADAPTER",
+                    "⚠️ No se pudo leer el screenshot para el reporte: " + att.getPath(), null);
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Detecta la información del entorno (SO/JVM) para la sección de system-info del
+     * reporte, preservando la paridad con el generador legacy. Browser/device quedan
+     * en null en el flujo CLI (no provistos por cucumber.json).
+     */
+    private EnvironmentDetails detectEnvironment() {
+        EnvironmentInfo info = new EnvironmentInfo(); // auto-detecta os/osVersion/javaVersion
+        return new EnvironmentDetails(
+            info.getOs(),
+            info.getOsVersion(),
+            info.getJavaVersion(),
+            info.getBrowser(),
+            info.getBrowserVersion(),
+            info.getDevice(),
+            info.getPlatform(),
+            info.getCustomInfo()
+        );
     }
 
     private List<ScenarioResult> processFeature(JsonNode featureNode) {

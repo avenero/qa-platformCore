@@ -10,6 +10,7 @@ import com.qa.httpcore.components.ApiHeaderComponent;
 import com.qa.httpcore.components.ApiParameterComponent;
 import com.qa.httpcore.components.ApiPerformanceComponent;
 import com.qa.httpcore.components.ApiRequestBodyComponent;
+import com.qa.httpcore.components.ApiRequestBodyComponentV2;
 import com.qa.httpcore.components.ApiResponseBodyComponent;
 import com.qa.httpcore.components.ApiResponseHeaderComponent;
 import com.qa.httpcore.components.ApiSecurityComponent;
@@ -42,7 +43,7 @@ import java.util.Set;
  * Plugin de API para el runtime de ejecución BDD.
  *
  * <p>Registra los servicios HTTP ({@link HttpClient}, {@link AuthenticationService},
- * {@link ApiHelper}) y declara los 12 componentes de steps API organizados por
+ * {@link ApiHelper}) y declara los 13 componentes de steps API organizados por
  * responsabilidad (configuración, ejecución, validación).
  *
  * <p>Se descubre automáticamente vía Java SPI desde:
@@ -302,14 +303,17 @@ public class ApiPlugin implements CorePlugin {
     }
 
     /**
-     * Declara los 12 componentes de steps API (Fase 2).
+     * Declara los 13 componentes de steps API (Fase 2).
      *
      * <p>Cada componente apunta a su clase específica de steps
      * según {@code DISENO-STEPS-POR-COMPONENTES.md §3}.
      *
-     * <p><em>Nota de deprecación:</em> {@code ApiRequestBodyComponent} (stepId {@code "api.body"})
-     * se incluye durante el ciclo de transición hacia {@code "api.request.body"} (v2.2.0).
-     * Remover en v2.3.0 una vez que todos los escenarios persistidos hayan sido migrados.
+     * <p><em>Nota de deprecación:</em> durante la ventana de transición coexisten dos
+     * componentes de request body sobre {@code RequestBodySteps} (zero-downtime):
+     * {@code ApiRequestBodyComponentV2} (stepId canónico {@code "api.request.body"}) y
+     * el predecesor {@code ApiRequestBodyComponent} (stepId {@code "api.body"}, deprecado).
+     * El sucesor se removerá del fallback al migrar los escenarios; el predecesor se
+     * remueve en v2.3.0 (card aparte).
      */
     @SuppressWarnings("deprecation")
     @Override
@@ -321,8 +325,10 @@ public class ApiPlugin implements CorePlugin {
                 new ApiHeaderComponent(),
                 new ApiCookieComponent(),
                 new ApiParameterComponent(),
+                // Request body — stepId canónico "api.request.body" (sucesor)
+                new ApiRequestBodyComponentV2(),
                 // TODO: remover ApiRequestBodyComponent en v2.3.0
-                // @deprecated — reemplazar por "api.request.body" en v2.2.0
+                // @deprecated — reemplazado por "api.request.body" (ApiRequestBodyComponentV2)
                 new ApiRequestBodyComponent(),
                 // WHEN — Ejecución
                 new ApiExecutionComponent(),

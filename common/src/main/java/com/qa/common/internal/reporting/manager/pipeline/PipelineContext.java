@@ -1,8 +1,8 @@
 package com.qa.common.internal.reporting.manager.pipeline;
 import com.qa.common.api.Internal;
 
-import com.qa.common.internal.reporting.config.ReportingConfig;
-import com.qa.common.internal.reporting.model.TestExecutionResult;
+import com.qa.common.api.reporter.bridge.ExecutionData;
+import com.qa.common.internal.reporting.config.MutableReportingConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,16 +16,15 @@ import java.util.Map;
  * @since 1.0.0
  */
 @Internal
-@SuppressWarnings("removal")
 public class PipelineContext {
 
     private final String rawResults;
-    private final ReportingConfig config;
+    private final MutableReportingConfig config;
     private final Map<String, Object> data;
     private final Map<String, PipelineStepResult> stepResults;
 
     // Datos principales
-    private TestExecutionResult testExecutionResult;
+    private ExecutionData executionData;
     private String extentReportPath;
 
     /**
@@ -34,7 +33,7 @@ public class PipelineContext {
      * @param rawResults resultados JSON sin procesar del reporte Cucumber
      * @param config     configuración de reporting para esta ejecución
      */
-    public PipelineContext(String rawResults, ReportingConfig config) {
+    public PipelineContext(String rawResults, MutableReportingConfig config) {
         this.rawResults = rawResults;
         this.config = config;
         this.data = new HashMap<>();
@@ -97,7 +96,7 @@ public class PipelineContext {
      *
      * @return configuración de reporting
      */
-    public ReportingConfig getConfig() {
+    public MutableReportingConfig getConfig() {
         return config;
     }
 
@@ -122,19 +121,19 @@ public class PipelineContext {
     /**
      * Obtiene el resultado de ejecución de los tests.
      *
-     * @return resultado agregado de la ejecución de tests
+     * @return resultado agregado de la ejecución de tests (modelo puente)
      */
-    public TestExecutionResult getTestExecutionResult() {
-        return testExecutionResult;
+    public ExecutionData getExecutionData() {
+        return executionData;
     }
 
     /**
      * Establece el resultado de ejecución de los tests.
      *
-     * @param testExecutionResult resultado a almacenar
+     * @param executionData resultado a almacenar (modelo puente)
      */
-    public void setTestExecutionResult(TestExecutionResult testExecutionResult) {
-        this.testExecutionResult = testExecutionResult;
+    public void setExecutionData(ExecutionData executionData) {
+        this.executionData = executionData;
     }
 
     /**

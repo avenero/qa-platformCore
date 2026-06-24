@@ -209,6 +209,29 @@ class TypedConfigRecordsTest {
     }
 
     @Test
+    @DisplayName("WebConfig rechaza navigationTimeout < 1000ms")
+    void webConfigRejectsShortNavigationTimeout() {
+        WebConfig bad = new WebConfig(
+                "CHROMIUM",
+                true,
+                1920,
+                1080,
+                "http://localhost",
+                Duration.ofMillis(500),
+                Duration.ofMillis(1000),
+                "",
+                Duration.ofSeconds(10),
+                Duration.ZERO
+        );
+
+        Set<ConstraintViolation<WebConfig>> violations = validator.validate(bad);
+        assertThat(violations).anySatisfy(cv -> {
+            assertThat(cv.getPropertyPath().toString()).isEqualTo("navigationTimeoutValid");
+            assertThat(cv.getMessage()).isEqualTo("navigationTimeout must be ≥ 1000ms");
+        });
+    }
+
+    @Test
     @DisplayName("DatabaseConfig.defaults() válido + prefix override 'db'")
     void databaseConfigDefaults() {
         DatabaseConfig c = DatabaseConfig.defaults();

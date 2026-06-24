@@ -69,9 +69,9 @@ import java.util.stream.Collectors;
  * <p>Para IDs duraderos se recomienda siempre declarar
  * {@link com.qa.common.api.runtime.annotation.StepDef} en los métodos de step.
  *
- * <h2>Compatibilidad de constructores</h2>
- * <p>El constructor canónico (11 args) es el principal desde v2.3.0. Para compatibilidad
- * con código existente se mantiene el constructor de 9 args que usa mapas i18n vacíos.
+ * <h2>Constructor</h2>
+ * <p>Desde v2.4.0 el record expone únicamente el constructor canónico de 13 args. El
+ * constructor compacto valida los campos requeridos y normaliza colecciones e i18n.
  *
  * @param stepDefId              ID del step; explícito (via {@code @StepDef}) o derivado
  * @param cucumberPattern        patrón Cucumber Expression (texto de {@code @Given/@When/@Then})
@@ -147,58 +147,6 @@ public record StepDefinitionInfo(
                 ? Map.copyOf(descriptionByLocale) : Map.of();
         // replacementStepDefId, canOverrideBaseUrl, usesLiteralUrl: no normalization needed
     }
-
-    // =========================================================================
-    // Backward-compatible constructor (v2.2.0 — 9 args, sin i18n)
-    // =========================================================================
-
-    /**
-     * Constructor de compatibilidad con v2.3.0 (11 args, sin flags de override).
-     *
-     * @deprecated desde v2.4.0 — usar el constructor de 13 argumentos que incluye
-     *             {@code canOverrideBaseUrl} y {@code usesLiteralUrl}.
-     */
-    @Deprecated(since = "2.4.0", forRemoval = false)
-    //CHECKSTYLE:OFF: ParameterNumber
-    public StepDefinitionInfo(
-            String stepDefId,
-            String cucumberPattern,
-            List<ParamInfo> params,
-            BddPhase phase,
-            String layer,
-            String componentId,
-            String displayName,
-            boolean deprecated,
-            String replacementStepDefId,
-            Map<String, String> displayNameByLocale,
-            Map<String, String> descriptionByLocale) {
-        this(stepDefId, cucumberPattern, params, phase, layer, componentId,
-             displayName, deprecated, replacementStepDefId,
-             displayNameByLocale, descriptionByLocale,
-             false, false);
-    }
-
-    /**
-     * Constructor de compatibilidad con código anterior a v2.3.0 (9 args, sin i18n ni flags).
-     *
-     * @deprecated desde v2.3.0 — preferir el constructor completo de 13 argumentos.
-     */
-    @Deprecated(since = "2.3.0", forRemoval = false)
-    public StepDefinitionInfo(
-            String stepDefId,
-            String cucumberPattern,
-            List<ParamInfo> params,
-            BddPhase phase,
-            String layer,
-            String componentId,
-            String displayName,
-            boolean deprecated,
-            String replacementStepDefId) {
-        this(stepDefId, cucumberPattern, params, phase, layer, componentId,
-             displayName, deprecated, replacementStepDefId,
-             Map.of(), Map.of(), false, false);
-    }
-    //CHECKSTYLE:ON: ParameterNumber
 
     // =========================================================================
     // Derived — ParamSchema (vista semántica de parámetros)

@@ -3,10 +3,6 @@ package com.qa.httpcore.factories;
 
 import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.httpcore.implementations.ApacheHttpClientImpl;
-// TASK-J01: BaseHttpClient (Unirest) eliminado. La opción legacy "unirest"
-// se mantiene en createForLegacyImpl() como fallback hacia Apache con
-// warning, para preservar back-compat de sistemas que aún setean
-// -Dhttp.client=unirest. Ver propuesta-desde-0-core.md §J01.
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.common.api.logging.TestLogger;
 import com.qa.common.api.runtime.ExecutionConfig;
@@ -64,8 +60,8 @@ import java.util.function.Supplier;
  * <ol>
  *   <li>Si hay {@link ExecutionContext} activo y tiene {@link ExecutionConfig#getHttpEngine()},
  *       delega a {@link #create(ExecutionConfig)}.</li>
- *   <li>Si no, usa la property legacy {@value #CLIENT_IMPL_KEY} (valores
- *       {@value #IMPL_APACHE} / {@value #IMPL_UNIREST}) — modo histórico para
+ *   <li>Si no, usa la property legacy {@value #CLIENT_IMPL_KEY} (valor
+ *       {@value #IMPL_APACHE}) — modo histórico para
  *       callers fuera del runtime BDD (tests aislados, scripts CLI).</li>
  * </ol>
  *
@@ -78,12 +74,9 @@ import java.util.function.Supplier;
  */
 public final class HttpClientFactory {
 
-    /** Property legacy ({@code apache} | {@code unirest}). Usar {@link HttpEngine} en su lugar. */
+    /** Property legacy ({@code apache}). Usar {@link HttpEngine} en su lugar. */
     public static final String CLIENT_IMPL_KEY     = "http.client";
     public static final String IMPL_APACHE         = "apache";
-    /** @deprecated Unirest está deprecado; usa {@link HttpEngine#APACHE}. */
-    @Deprecated(since = "2.2.0", forRemoval = true)
-    public static final String IMPL_UNIREST        = "unirest";
 
     private static final TestLogger.LoggerWrapper LOG = TestLogger.getLogger(HttpClientFactory.class);
 
@@ -198,21 +191,6 @@ public final class HttpClientFactory {
         return createForLegacyImpl(impl);
     }
 
-    /**
-     * Crea una instancia de {@link HttpClient} específica para un framework.
-     * Conservada por backward-compat; ignora el argumento (todos los frameworks
-     * comparten implementación).
-     *
-     * @deprecated Usa {@link #create(ExecutionConfig)}.
-     */
-    @Deprecated(since = "2.3.0")
-    public static HttpClient getInstance(String frameworkType) {
-        if (frameworkType == null || frameworkType.isBlank()) {
-            LOG.warn("frameworkType es null o vacío, usando implementación por defecto");
-        }
-        return getInstance();
-    }
-
     /** Crea una instancia preconfigurada con host. */
     public static HttpClient getInstanceWithHost(String host) {
         if (host == null || host.isBlank()) {
@@ -248,7 +226,7 @@ public final class HttpClientFactory {
     public static String getFactoryInfo() {
         return String.format(
                 "HttpClientFactory v2.3.0 — engines registrados: %s. Property legacy: '%s' "
-                        + "(apache | unirest@deprecated).",
+                        + "(apache).",
                 REGISTRY.keySet(), CLIENT_IMPL_KEY);
     }
 
@@ -270,15 +248,6 @@ public final class HttpClientFactory {
 
     private static HttpClient createForLegacyImpl(String impl) {
         return switch (impl) {
-            case IMPL_UNIREST -> {
-                // TASK-J01: BaseHttpClient (Unirest) eliminado del classpath.
-                // Mantener este caso como puente con warning para no romper
-                // configuraciones que aún sigan seteando -Dhttp.client=unirest.
-                LOG.warn("Implementación 'unirest' fue eliminada (TASK-J01). " +
-                        "Usando Apache HttpClient 5 como reemplazo. Limpia tu " +
-                        "configuración: -D{}={}", CLIENT_IMPL_KEY, IMPL_APACHE);
-                yield new ApacheHttpClientImpl();
-            }
             default -> {
                 if (!IMPL_APACHE.equals(impl)) {
                     LOG.warn("Implementación '{}' no reconocida, usando Apache HttpClient 5 por defecto", impl);

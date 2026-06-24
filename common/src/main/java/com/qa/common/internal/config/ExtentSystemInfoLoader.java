@@ -24,7 +24,7 @@ import java.util.Map;
  *   <li>{@code extent.systemInfo.Fecha} con valor {@code "auto"} o {@code ${...}} → timestamp actual</li>
  * </ul>
  */
-@Internal(reason = "internal — usado por ReportingConfig.load()")
+@Internal(reason = "internal — usado por MutableReportingConfig.load()")
 public final class ExtentSystemInfoLoader {
 
     private static final String SYSPROP_PREFIX = "extent.systemInfo.";

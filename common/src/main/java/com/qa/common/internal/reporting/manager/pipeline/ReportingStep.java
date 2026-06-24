@@ -1,7 +1,7 @@
 package com.qa.common.internal.reporting.manager.pipeline;
 import com.qa.common.api.Internal;
 
-import com.qa.common.internal.reporting.config.ReportingConfig;
+import com.qa.common.internal.reporting.config.MutableReportingConfig;
 
 /**
  * Representa un paso individual en el pipeline de reporting.
@@ -30,7 +30,7 @@ public interface ReportingStep {
      * @param config configuración de reporting
      * @return true si debe ejecutarse
      */
-    boolean isEnabled(ReportingConfig config);
+    boolean isEnabled(MutableReportingConfig config);
 
     /**
      * Indica si este step es requerido (falla pipeline si falla).

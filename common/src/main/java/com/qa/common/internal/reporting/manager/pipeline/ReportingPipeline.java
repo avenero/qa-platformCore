@@ -2,7 +2,7 @@ package com.qa.common.internal.reporting.manager.pipeline;
 import com.qa.common.api.Internal;
 
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.reporting.config.ReportingConfig;
+import com.qa.common.internal.reporting.config.MutableReportingConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +12,7 @@ import java.util.List;
  * Implementa Chain of Responsibility pattern.
  *
  * FLUJO:
- * 1. ConversionStep → Convierte raw results a TestExecutionResult
+ * 1. ConversionStep → Convierte raw results a ExecutionData
  * 2. ExtentGenerationStep → Genera reporte HTML
  * 3. JiraUpdateStep → Actualiza status en Jira
  * 4. AttachmentUploadStep → Sube attachments a Jira
@@ -26,7 +26,7 @@ import java.util.List;
 public class ReportingPipeline {
 
     private final List<ReportingStep> steps;
-    private final ReportingConfig config;
+    private final MutableReportingConfig config;
 
     /**
      * Crea un pipeline con los steps y configuración especificados.
@@ -34,7 +34,7 @@ public class ReportingPipeline {
      * @param steps  lista de steps a ejecutar en orden
      * @param config configuración de reporting para la ejecución
      */
-    public ReportingPipeline(List<ReportingStep> steps, ReportingConfig config) {
+    public ReportingPipeline(List<ReportingStep> steps, MutableReportingConfig config) {
         this.steps = steps;
         this.config = config;
     }
@@ -130,7 +130,7 @@ public class ReportingPipeline {
      */
     public static class Builder {
         private final List<ReportingStep> steps = new ArrayList<>();
-        private ReportingConfig config;
+        private MutableReportingConfig config;
 
         /**
          * Establece la configuración de reporting.
@@ -138,7 +138,7 @@ public class ReportingPipeline {
          * @param config configuración de reporting, no null
          * @return este Builder para encadenamiento
          */
-        public Builder withConfig(ReportingConfig config) {
+        public Builder withConfig(MutableReportingConfig config) {
             this.config = config;
             return this;
         }
@@ -172,7 +172,7 @@ public class ReportingPipeline {
          */
         public ReportingPipeline build() {
             if (config == null) {
-                throw new IllegalStateException("ReportingConfig es requerido");
+                throw new IllegalStateException("MutableReportingConfig es requerido");
             }
             return new ReportingPipeline(steps, config);
         }

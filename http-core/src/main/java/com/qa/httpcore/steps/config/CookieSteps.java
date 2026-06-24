@@ -1,6 +1,6 @@
 package com.qa.httpcore.steps.config;
 
-import com.qa.httpcore.implementations.ApacheHttpClientImpl;
+import com.qa.httpcore.factories.HttpClientFactory;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.interfaces.HttpRequestBuilder;
 import com.qa.common.api.logging.TestLogger;
@@ -22,8 +22,9 @@ public class CookieSteps {
     // ─── Obtención de la sub-interface más estrecha desde el ServiceRegistry ───
 
     private HttpRequestBuilder getHttpRequestBuilder() {
+        // W2-CW2: fallback vía factory (honra el motor configurado) en vez de Apache directo.
         return ExecutionContext.current().map(ctx -> (HttpRequestBuilder) ctx.service(HttpClient.class)).
-                orElseGet(ApacheHttpClientImpl::new);
+                orElseGet(() -> (HttpRequestBuilder) HttpClientFactory.getInstance());
     }
 
     @Given("agrego cookie {string} con valor {string}")

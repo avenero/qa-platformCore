@@ -1,17 +1,24 @@
 package com.qa.webcore.steps.interaction;
 
 import com.qa.common.api.runtime.ExecutionContext;
+import com.qa.common.api.runtime.annotation.StepDef;
 import com.qa.webcore.driver.engine.BrowserEngine;
 import io.cucumber.java.en.When;
 
 /**
- * Steps de drag and drop.
- * Nuevo componente en Fase 2 (placeholder para implementacion futura).
+ * Steps de drag and drop: arrastrar/soltar (DragEvent) y redimensionar (resize via JS) elementos.
+ *
+ * <p>Clase de steps canónica del componente {@link com.qa.webcore.components.bdd.WebDragDropComponent}
+ * ({@code @StepId("web.drag.drop")}). Los ids estables {@code "web.drag.drop"} y
+ * {@code "web.drag.resize"} se declaran con {@link StepDef} para que renombrar los métodos Java
+ * no rompa los escenarios persistidos en el Backend.
+ *
  * @author Abel Venero
  * @since 2.0.0
  */
 public class DragDropSteps {
 
+    @StepDef("web.drag.drop")
     @When("arrastro el elemento {string} hacia {string}")
     public void arrastroElementoHacia(String source, String target) {
         engine().evaluate(
@@ -27,6 +34,7 @@ public class DragDropSteps {
         );
     }
 
+    @StepDef("web.drag.resize")
     @When("redimensiono el elemento {string} a ancho {int} alto {int}")
     public void redimensionoElemento(String locator, int width, int height) {
         engine().evaluate(

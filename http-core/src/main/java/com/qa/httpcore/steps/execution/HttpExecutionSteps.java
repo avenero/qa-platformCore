@@ -71,7 +71,7 @@ public class HttpExecutionSteps {
      * When envío la petición "POST"
      * </pre>
      */
-    @StepDef(value = "api.execution.execute",
+    @StepDef(value = "api.execution.send",
              displayName = "Enviar petición HTTP")
     @When("envío la petición {string}")
     public void envioLaPeticion(String method) throws FrameworkTechnicalException {

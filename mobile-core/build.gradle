@@ -21,7 +21,9 @@ dependencies {
     api 'org.seleniumhq.selenium:selenium-java:4.27.0'
     api 'org.seleniumhq.selenium:selenium-support:4.27.0'
 
-    // Forzar versión segura de async-http-client para corregir CVE-2024-53990
+    // async-http-client pin = guard de CVE-2024-53990 (CVSS 9.2); transitivamente ausente
+    // post Selenium 4.27 / Appium 9.4 (0 jars en runtimeClasspath, verificado 2026-06) → es
+    // cap de regresión, no exposición viva. Guard: AsyncHttpClientCveGuardTest. Ver docs/SECURITY_ACCEPTED_RISKS.md §B.
     // Forzar versión segura de Netty (4.1.121.Final) para mitigar CVEs en io.netty:netty-codec-http
     // ✅ CVE-2024-29025 (MEDIUM): HttpPostRequestDecoder OOM — CORREGIDO en 4.1.121.Final
     //

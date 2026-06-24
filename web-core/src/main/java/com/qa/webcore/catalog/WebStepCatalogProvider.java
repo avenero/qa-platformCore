@@ -110,6 +110,20 @@ public class WebStepCatalogProvider implements StepCatalogProvider {
               "WHEN", CAT_INTER, "step.web.alert.dismiss.description",
               List.of()),
 
+        // ── Drag & Drop ──────────────────────────────────────────────────────
+        entry("web.drag.drop",
+              "I drag {string} onto {string}",
+              "WHEN", CAT_INTER, "step.web.drag.drop.description",
+              List.of(param("source", "step.web.drag.drop.param.source"),
+                      param("target", "step.web.drag.drop.param.target"))),
+
+        entry("web.drag.resize",
+              "I resize {string} to width {int} and height {int}",
+              "WHEN", CAT_INTER, "step.web.drag.resize.description",
+              List.of(param("target", "step.web.drag.resize.param.target"),
+                      param("width",  "step.web.drag.resize.param.width"),
+                      param("height", "step.web.drag.resize.param.height"))),
+
         // ── Input / Forms ────────────────────────────────────────────────────
         entry("web.input.fill",
               "I fill {string} with {string}",
@@ -128,6 +142,12 @@ public class WebStepCatalogProvider implements StepCatalogProvider {
               "I clear {string}",
               "WHEN", CAT_FORM, "step.web.input.clear.description",
               List.of(param("locator", "step.web.click.param.locator"))),
+
+        entry("web.input.upload-file",
+              "I upload the file {string} to {string}",
+              "WHEN", CAT_FORM, "step.web.input.upload-file.description",
+              List.of(param("filePath", "step.web.input.upload-file.param.filePath"),
+                      param("locator",  "step.web.input.upload-file.param.locator"))),
 
         // ── Select ───────────────────────────────────────────────────────────
         entry("web.select.dropdown",

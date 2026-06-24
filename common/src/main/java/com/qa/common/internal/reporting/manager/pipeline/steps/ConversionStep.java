@@ -2,26 +2,25 @@ package com.qa.common.internal.reporting.manager.pipeline.steps;
 import com.qa.common.api.Internal;
 
 import com.qa.common.api.logging.TestLogger;
+import com.qa.common.api.reporter.bridge.ExecutionData;
 import com.qa.common.internal.reporting.adapter.ResultAdapter;
 import com.qa.common.internal.reporting.adapter.CucumberResultAdapter;
-import com.qa.common.internal.reporting.config.ReportingConfig;
-import com.qa.common.internal.reporting.model.TestExecutionResult;
+import com.qa.common.internal.reporting.config.MutableReportingConfig;
 import com.qa.common.internal.reporting.manager.pipeline.PipelineContext;
 import com.qa.common.internal.reporting.manager.pipeline.ReportingStep;
 import com.qa.common.internal.reporting.manager.pipeline.PipelineStepResult;
 
 /**
- * Step 1: Conversión de resultados raw a modelo estándar.
+ * Step 1: Conversión de resultados raw al modelo puente.
  *
  * Detecta automáticamente el formato (Cucumber JSON, JUnit XML, etc.)
- * y usa el adaptador apropiado para convertir a TestExecutionResult.
+ * y usa el adaptador apropiado para convertir a ExecutionData.
  *
  * @author Abel Venero
  * @version 1.0.0
  * @since 1.0.0
  */
 @Internal
-@SuppressWarnings("removal")
 public class ConversionStep implements ReportingStep {
 
     @Override
@@ -30,7 +29,7 @@ public class ConversionStep implements ReportingStep {
     }
 
     @Override
-    public boolean isEnabled(ReportingConfig config) {
+    public boolean isEnabled(MutableReportingConfig config) {
         // Siempre habilitado (requerido para todos los pipelines)
         return true;
     }
@@ -62,27 +61,27 @@ public class ConversionStep implements ReportingStep {
                 "   Adaptador seleccionado: " + adapter.getName(), null);
 
             // Convertir
-            TestExecutionResult result = adapter.convert(rawResults);
+            ExecutionData result = adapter.convert(rawResults);
 
             if (result == null) {
                 return PipelineStepResult.failure("El adaptador retornó null");
             }
 
             // Validar resultado
-            if (result.getScenarios() == null || result.getScenarios().isEmpty()) {
+            if (result.scenarios() == null || result.scenarios().isEmpty()) {
                 TestLogger.logWarning("CONVERSION_STEP",
                     "⚠️  No se encontraron scenarios en los resultados", null);
             } else {
                 TestLogger.logInfo("CONVERSION_STEP",
-                    String.format("   Scenarios procesados: %d", result.getScenarios().size()), null);
+                    String.format("   Scenarios procesados: %d", result.scenarios().size()), null);
             }
 
             // Guardar en contexto
-            context.setTestExecutionResult(result);
+            context.setExecutionData(result);
 
             return PipelineStepResult.success(
                 String.format("Convertidos %d scenarios exitosamente",
-                    result.getScenarios() != null ? result.getScenarios().size() : 0)
+                    result.scenarios() != null ? result.scenarios().size() : 0)
             );
 
         } catch (Exception e) {

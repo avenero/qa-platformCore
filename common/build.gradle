@@ -30,9 +30,6 @@ dependencies {
     implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
     implementation 'org.glassfish.expressly:expressly:5.0.0'
 
-    // JSON library básica (para DataUtilities)
-    api 'org.json:json:20251224'
-
     // YAML processing (para ConfigurationProvider)
     api 'org.yaml:snakeyaml:2.2'
 
@@ -68,14 +65,6 @@ dependencies {
 
     // === REPORTING (Extent Reports para HTML reports) ===
     api 'com.aventstack:extentreports:5.1.2'
-
-    // === HTTP CLIENT (para Jira integration) ===
-    api 'org.apache.httpcomponents:httpclient:4.5.14'
-    api 'org.apache.httpcomponents:httpmime:4.5.14'
-
-    // Forzar versión segura de commons-codec (dependencia transitiva de httpclient)
-    // Resuelve WS-2019-0379 (Input Validation vulnerability)
-    api 'commons-codec:commons-codec:1.22.0'
 
     // ========================================================================
     // NOTAS DE ARQUITECTURA:

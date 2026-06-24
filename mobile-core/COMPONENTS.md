@@ -7,7 +7,7 @@
 > **Platform ID:** `MOBILE`  
 > **Display:** Mobile App Testing  
 > **Componentes:** 10  
-> **Última generación:** 2026-06-09
+> **Última generación:** 2026-06-23
 
 Esta tabla es el **contrato público** de los `StepComponent` que el módulo `mobile-core` expone al Backend (catálogo i18n) y al Frontend (paleta del Scenario Builder). Cada entrada se deriva por reflexión vía SPI (`ServiceLoader<CorePlugin>`).
 

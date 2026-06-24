@@ -23,7 +23,6 @@ public class HttpStepCatalogProvider implements StepCatalogProvider {
     private static final String CAT_BODY   = "step.http.category.body";
     private static final String CAT_HEADER = "step.http.category.headers";
     private static final String CAT_PERF   = "step.http.category.performance";
-    private static final String CAT_SEC    = "step.http.category.security";
 
     private static final List<StepCatalogEntry> ENTRIES = List.of(
 
@@ -71,6 +70,12 @@ public class HttpStepCatalogProvider implements StepCatalogProvider {
               "I set the request body from file {string}",
               "GIVEN", CAT_REQ, "step.http.given.body-file.description",
               List.of(param("filename", "step.http.given.body-file.param.filename"))),
+
+        // Sucesor canónico del componente "api.body" (deprecado) — W2-DS4.
+        entry("api.request.body",
+              "I set the request body to {string}",
+              "GIVEN", CAT_REQ, "step.http.request-body.description",
+              List.of(param("body", "step.http.request-body.param.body"))),
 
         // ── Ejecución (WHEN) ──────────────────────────────────────────────────
         entry("api.when.get",

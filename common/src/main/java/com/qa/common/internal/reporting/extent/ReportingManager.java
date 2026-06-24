@@ -2,7 +2,7 @@ package com.qa.common.internal.reporting.extent;
 import com.qa.common.api.Internal;
 
 import com.qa.common.api.logging.TestLogger;
-import com.qa.common.internal.reporting.config.ReportingConfig;
+import com.qa.common.internal.reporting.config.MutableReportingConfig;
 import com.qa.common.internal.reporting.manager.pipeline.PipelineResult;
 import com.qa.common.internal.reporting.manager.pipeline.ReportingPipeline;
 import com.qa.common.internal.reporting.manager.pipeline.ReportingStep;
@@ -18,7 +18,7 @@ import java.util.List;
  *
  * USO:
  * <pre>
- * ReportingConfig config = ReportingConfig.load();
+ * MutableReportingConfig config = MutableReportingConfig.load();
  * ReportingManager.initialize(config);
  *
  * String cucumberJson = loadCucumberResults();
@@ -37,7 +37,7 @@ import java.util.List;
 
 public class ReportingManager {
 
-    private static ReportingConfig config;
+    private static MutableReportingConfig config;
     private static boolean initialized = false;
 
     private ReportingManager() {
@@ -50,9 +50,9 @@ public class ReportingManager {
      *
      * @param reportingConfig configuración de reporting
      */
-    public static void initialize(ReportingConfig reportingConfig) {
+    public static void initialize(MutableReportingConfig reportingConfig) {
         if (reportingConfig == null) {
-            throw new IllegalArgumentException("ReportingConfig no puede ser null");
+            throw new IllegalArgumentException("MutableReportingConfig no puede ser null");
         }
 
         config = reportingConfig;
@@ -156,7 +156,7 @@ public class ReportingManager {
     /**
      * Obtiene la configuración actual.
      */
-    public static ReportingConfig getConfig() {
+    public static MutableReportingConfig getConfig() {
         validateInitialized();
         return config;
     }

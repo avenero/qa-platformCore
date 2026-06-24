@@ -72,7 +72,7 @@ public class DatabaseTestUtilities {
    */
   public static Map<String, Object> executeQueryForMap(String dbType, String sql) {
     LOG.info(
-        "DatabaseTestUtils - Ejecutando consulta para Map en {}: {}", dbType, sanitizeSql(sql));
+        "DatabaseTestUtils - Ejecutando consulta para Map en {}: {}", dbType, truncateSqlForLog(sql));
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
@@ -98,7 +98,7 @@ public class DatabaseTestUtilities {
    */
   public static List<Map<String, Object>> executeQueryForList(String dbType, String sql) {
     LOG.info(
-        "DatabaseTestUtils - Ejecutando consulta para List en {}: {}", dbType, sanitizeSql(sql));
+        "DatabaseTestUtils - Ejecutando consulta para List en {}: {}", dbType, truncateSqlForLog(sql));
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
@@ -123,7 +123,7 @@ public class DatabaseTestUtilities {
    */
   public static Long executeQueryForCount(String dbType, String sql) {
     LOG.info(
-        "DatabaseTestUtils - Ejecutando consulta de conteo en {}: {}", dbType, sanitizeSql(sql));
+        "DatabaseTestUtils - Ejecutando consulta de conteo en {}: {}", dbType, truncateSqlForLog(sql));
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
@@ -147,7 +147,7 @@ public class DatabaseTestUtilities {
    * @return número de filas afectadas
    */
   public static int executeUpdate(String dbType, String sql) {
-    LOG.info("DatabaseTestUtils - Ejecutando update en {}: {}", dbType, sanitizeSql(sql));
+    LOG.info("DatabaseTestUtils - Ejecutando update en {}: {}", dbType, truncateSqlForLog(sql));
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
@@ -278,7 +278,7 @@ public class DatabaseTestUtilities {
     LOG.info(
         "DatabaseTestUtils - Ejecutando consulta parametrizada para Map en {}: {}",
         dbType,
-        sanitizeSql(sql));
+        truncateSqlForLog(sql));
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
@@ -304,7 +304,7 @@ public class DatabaseTestUtilities {
    */
   public static int executeUpdate(String dbType, String sql, Object... parameters) {
     LOG.info(
-        "DatabaseTestUtils - Ejecutando update parametrizado en {}: {}", dbType, sanitizeSql(sql));
+        "DatabaseTestUtils - Ejecutando update parametrizado en {}: {}", dbType, truncateSqlForLog(sql));
 
     try {
       DatabaseService dbService = createDatabaseService(dbType);
@@ -332,8 +332,8 @@ public class DatabaseTestUtilities {
     return new BaseDatabaseService(dbType);
   }
 
-  /** Sanitiza SQL para logging (oculta datos sensibles). */
-  private static String sanitizeSql(String sql) {
+  /** Truncates the SQL string for safe log emission (does NOT redact inline values - only length-bounds). */
+  private static String truncateSqlForLog(String sql) {
     if (sql == null) {
       return "null";
     }

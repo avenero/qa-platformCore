@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -33,7 +34,7 @@ class StepDefinitionInfoTest {
 
     /** Crea un StepDefinitionInfo mínimo y válido para los tests. */
     private static StepDefinitionInfo minimal() {
-        return new StepDefinitionInfo(
+        return full13(
                 "api.auth.bearer",
                 "agrego autenticación Bearer para RUT {string}",
                 List.of(new ParamInfo(0, "rut", "String", "{string}")),
@@ -44,6 +45,27 @@ class StepDefinitionInfoTest {
                 false,
                 null
         );
+    }
+
+    /**
+     * Construye el {@link StepDefinitionInfo} canónico (13 args) a partir de los 9 campos
+     * esenciales, rellenando los mapas i18n vacíos y los flags de override en {@code false}.
+     * Reemplaza al constructor de conveniencia de 9 args eliminado en v2.4.0 (W1-T1-DS7).
+     */
+    private static StepDefinitionInfo full13(
+            String stepDefId,
+            String cucumberPattern,
+            List<ParamInfo> params,
+            BddPhase phase,
+            String layer,
+            String componentId,
+            String displayName,
+            boolean deprecated,
+            String replacementStepDefId) {
+        return new StepDefinitionInfo(
+                stepDefId, cucumberPattern, params, phase, layer, componentId,
+                displayName, deprecated, replacementStepDefId,
+                Map.of(), Map.of(), false, false);
     }
 
     // =========================================================================
@@ -58,7 +80,7 @@ class StepDefinitionInfoTest {
         @DisplayName("stepDefId null lanza NullPointerException")
         void testStepDefIdNull() {
             assertThatNullPointerException().isThrownBy(() ->
-                    new StepDefinitionInfo(null, "patron", List.of(),
+                    full13(null, "patron", List.of(),
                             BddPhase.GIVEN, "api", "api.auth", "display", false, null));
         }
 
@@ -66,7 +88,7 @@ class StepDefinitionInfoTest {
         @DisplayName("cucumberPattern null lanza NullPointerException")
         void testCucumberPatternNull() {
             assertThatNullPointerException().isThrownBy(() ->
-                    new StepDefinitionInfo("id", null, List.of(),
+                    full13("id", null, List.of(),
                             BddPhase.GIVEN, "api", "api.auth", "display", false, null));
         }
 
@@ -74,7 +96,7 @@ class StepDefinitionInfoTest {
         @DisplayName("phase null lanza NullPointerException")
         void testPhaseNull() {
             assertThatNullPointerException().isThrownBy(() ->
-                    new StepDefinitionInfo("id", "patron", List.of(),
+                    full13("id", "patron", List.of(),
                             null, "api", "api.auth", "display", false, null));
         }
 
@@ -82,7 +104,7 @@ class StepDefinitionInfoTest {
         @DisplayName("layer null lanza NullPointerException")
         void testLayerNull() {
             assertThatNullPointerException().isThrownBy(() ->
-                    new StepDefinitionInfo("id", "patron", List.of(),
+                    full13("id", "patron", List.of(),
                             BddPhase.GIVEN, null, "api.auth", "display", false, null));
         }
 
@@ -90,7 +112,7 @@ class StepDefinitionInfoTest {
         @DisplayName("componentId null lanza NullPointerException")
         void testComponentIdNull() {
             assertThatNullPointerException().isThrownBy(() ->
-                    new StepDefinitionInfo("id", "patron", List.of(),
+                    full13("id", "patron", List.of(),
                             BddPhase.GIVEN, "api", null, "display", false, null));
         }
     }
@@ -106,7 +128,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("params null se normaliza a lista vacía")
         void testParamsNullNormalizadoAVacio() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "patron", null, BddPhase.GIVEN, "api", "api.auth", "d", false, null);
             assertThat(sdi.params()).isEmpty();
         }
@@ -114,7 +136,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("params vacía se acepta sin error")
         void testParamsVacioAceptado() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "patron", List.of(), BddPhase.GIVEN, "api", "api.auth", "d", false, null);
             assertThat(sdi.params()).isEmpty();
         }
@@ -125,7 +147,7 @@ class StepDefinitionInfoTest {
             List<ParamInfo> original = new ArrayList<>();
             original.add(new ParamInfo(0, "rut", "String", "{string}"));
 
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "patron", original, BddPhase.GIVEN, "api", "api.auth", "d", false, null);
             assertThat(sdi.params()).hasSize(1);
         }
@@ -153,7 +175,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("displayName null se deriva del cucumberPattern")
         void testDisplayNameNullSeDerivaDePetron() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "agrego autenticacion", List.of(),
                     BddPhase.GIVEN, "api", "api.auth", null, false, null);
             assertThat(sdi.displayName()).isEqualTo("agrego autenticacion");
@@ -162,7 +184,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("displayName blank se deriva del cucumberPattern")
         void testDisplayNameBlankSeDeriva() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "ejecuto GET a {string}", List.of(),
                     BddPhase.WHEN, "api", "api.execution", "   ", false, null);
             assertThat(sdi.displayName()).isEqualTo("ejecuto GET a {string}");
@@ -171,7 +193,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("displayName con valor propio se respeta")
         void testDisplayNameConValorRespetado() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "agrego autenticacion", List.of(),
                     BddPhase.GIVEN, "api", "api.auth", "Agregar Autenticación", false, null);
             assertThat(sdi.displayName()).isEqualTo("Agregar Autenticación");
@@ -189,7 +211,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("retorna false cuando no hay parámetros")
         void testSinParametros() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "no agrego autenticacion", List.of(),
                     BddPhase.GIVEN, "api", "api.auth", "d", false, null);
             assertThat(sdi.hasParams()).isFalse();
@@ -204,7 +226,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("retorna true cuando params es null (se normaliza a vacío → false)")
         void testConParamsNull() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "patron", null,
                     BddPhase.GIVEN, "api", "api.auth", "d", false, null);
             assertThat(sdi.hasParams()).isFalse();
@@ -228,7 +250,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("retorna false cuando replacementStepDefId es blank")
         void testReplacementBlank() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "patron", List.of(),
                     BddPhase.GIVEN, "api", "api.auth", "d", true, "   ");
             assertThat(sdi.hasReplacement()).isFalse();
@@ -237,7 +259,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("retorna true cuando replacementStepDefId tiene valor")
         void testReplacementConValor() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "id", "patron", List.of(),
                     BddPhase.GIVEN, "api", "api.auth", "d", true, "api.auth.nuevo");
             assertThat(sdi.hasReplacement()).isTrue();
@@ -257,7 +279,7 @@ class StepDefinitionInfoTest {
         @DisplayName("Todos los campos del record se leen correctamente")
         void testCamposTodos() {
             ParamInfo param = new ParamInfo(0, "rut", "String", "{string}");
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "api.auth.bearer.rut",
                     "agrego autenticación Bearer para RUT {string}",
                     List.of(param),
@@ -283,7 +305,7 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("Step deprecado tiene todos sus flags correctos")
         void testStepDeprecado() {
-            StepDefinitionInfo sdi = new StepDefinitionInfo(
+            StepDefinitionInfo sdi = full13(
                     "api.auth.old",
                     "agrego Bearer token",
                     List.of(),
@@ -314,9 +336,9 @@ class StepDefinitionInfoTest {
         void testIgualdad() {
             List<ParamInfo> p = List.of(new ParamInfo(0, "rut", "String", "{string}"));
 
-            StepDefinitionInfo a = new StepDefinitionInfo(
+            StepDefinitionInfo a = full13(
                     "api.auth.bearer", "patron", p, BddPhase.GIVEN, "api", "api.auth", "d", false, null);
-            StepDefinitionInfo b = new StepDefinitionInfo(
+            StepDefinitionInfo b = full13(
                     "api.auth.bearer", "patron", p, BddPhase.GIVEN, "api", "api.auth", "d", false, null);
 
             assertThat(a).isEqualTo(b);
@@ -326,9 +348,9 @@ class StepDefinitionInfoTest {
         @Test
         @DisplayName("Dos StepDefinitionInfo con stepDefId diferente no son iguales")
         void testDesigualdad() {
-            StepDefinitionInfo a = new StepDefinitionInfo(
+            StepDefinitionInfo a = full13(
                     "api.auth.bearer", "patron", List.of(), BddPhase.GIVEN, "api", "api.auth", "d", false, null);
-            StepDefinitionInfo b = new StepDefinitionInfo(
+            StepDefinitionInfo b = full13(
                     "api.auth.basic",  "patron", List.of(), BddPhase.GIVEN, "api", "api.auth", "d", false, null);
 
             assertThat(a).isNotEqualTo(b);

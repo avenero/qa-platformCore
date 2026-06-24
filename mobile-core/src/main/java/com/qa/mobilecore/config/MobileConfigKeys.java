@@ -104,6 +104,16 @@ public final class MobileConfigKeys {
     public static final String APPIUM_STARTUP_TIMEOUT_SEC = "mobile.appium.startup.timeout.sec";
 
     /**
+     * Ruta al binario {@code appium}. Si se define, debe apuntar a un archivo
+     * ejecutable; de lo contrario el auto-start falla con {@link IllegalStateException}.
+     * <br>Si se omite (default), se resuelve por el {@code $PATH} del sistema
+     * (comportamiento retrocompatible).
+     * <br>Ejemplos: {@code /usr/local/bin/appium},
+     * {@code C:\\Users\\me\\AppData\\Roaming\\npm\\appium.cmd}.
+     */
+    public static final String APPIUM_PATH = "mobile.appium.path";
+
+    /**
      * Segundos de implicit wait del driver Appium. Default: {@code 10}.
      * Preferir usar explicit waits en los steps.
      */
@@ -163,4 +173,14 @@ public final class MobileConfigKeys {
      * Si {@code true}, incluye dispositivos físicos en el escaneo. Default: {@code true}.
      */
     public static final String DISCOVERY_INCLUDE_PHYSICAL = "mobile.discovery.include.physical";
+
+    /**
+     * Ruta al binario {@code adb} (Android Debug Bridge) usado por el escaneo Android.
+     * Si se define, debe apuntar a un archivo ejecutable; de lo contrario el escaneo
+     * Android se omite con un warning.
+     * <br>Si se omite (default), se resuelve por el {@code $PATH} del sistema
+     * (comportamiento retrocompatible).
+     * <br>Ejemplo: {@code /opt/android-sdk/platform-tools/adb}.
+     */
+    public static final String ADB_PATH = "mobile.adb.path";
 }

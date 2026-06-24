@@ -1,7 +1,7 @@
 package com.qa.httpcore.steps.config;
 
 import com.qa.httpcore.implementations.BaseAuthenticationManager;
-import com.qa.httpcore.implementations.ApacheHttpClientImpl;
+import com.qa.httpcore.factories.HttpClientFactory;
 import com.qa.httpcore.interfaces.AuthenticationService;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.httpcore.utils.ApiHelper;
@@ -30,8 +30,9 @@ public class AuthenticationSteps {
     // ─── Obtención de servicios desde el ServiceRegistry ───────────
 
     private HttpClient getHttpClient() {
+        // W2-CW2: fallback vía factory (honra el motor configurado) en vez de Apache directo.
         return ExecutionContext.current().map(ctx -> ctx.service(HttpClient.class))
-                .orElseGet(ApacheHttpClientImpl::new);
+                .orElseGet(HttpClientFactory::getInstance);
     }
 
     private AuthenticationService getAuthentication() {
@@ -60,8 +61,9 @@ public class AuthenticationSteps {
         TestLogger.logInfo("AUTH_STEPS", "Autenticacion Client Credentials configurada", null);
     }
 
-    // Kept original Spanish with accent for backward compat — mismo ID
-    @StepDef(value = "api.authentication.client-credentials",
+    // Variante con tilde del step Client Credentials: id propio y distinto
+    // (W1-T2-A12 / ADR-CAT-03). Se conserva el @Given para tolerar el acento.
+    @StepDef(value = "api.authentication.client-credentials-accent",
              displayName = "Autenticación Client Credentials (con tilde)")
     @Given("agrego autenticación Client Credentials")
     public void agregoAutenticacionClientCredentialsAccent() throws FrameworkBusinessException {

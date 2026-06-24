@@ -8,7 +8,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests unitarios para DatabaseConfig.
+ * Tests unitarios para HikariDataSourceFactory.
  *
  * <p>Estrategia: Sin conexiones reales a BD ni H2.
  * Se valida la lógica interna (detección Windows Auth, tipo de BD,
@@ -18,8 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Abel Venero
  * @since 1.0.0
  */
-@DisplayName("DatabaseConfig")
-class DatabaseConfigTest {
+@DisplayName("HikariDataSourceFactory")
+class HikariDataSourceFactoryTest {
 
     // =========================================================================
     // Validación de parámetros de entrada
@@ -33,7 +33,7 @@ class DatabaseConfigTest {
         @DisplayName("URL null lanza RuntimeException")
         void urlNullLanzaExcepcion() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(null, "user", "pass", "oracle.jdbc.OracleDriver"));
+                () -> HikariDataSourceFactory.createHikariDataSource(null, "user", "pass", "oracle.jdbc.OracleDriver"));
             assertNotNull(ex.getMessage());
         }
 
@@ -41,7 +41,7 @@ class DatabaseConfigTest {
         @DisplayName("Driver null lanza RuntimeException")
         void driverNullLanzaExcepcion() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource("jdbc:oracle:thin:@host:1521:XE", "user", "pass", null));
+                () -> HikariDataSourceFactory.createHikariDataSource("jdbc:oracle:thin:@host:1521:XE", "user", "pass", null));
             assertNotNull(ex.getMessage());
         }
 
@@ -49,7 +49,7 @@ class DatabaseConfigTest {
         @DisplayName("Driver vacío lanza RuntimeException")
         void driverVacioLanzaExcepcion() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource("jdbc:oracle:thin:@host:1521:XE", "user", "pass", ""));
+                () -> HikariDataSourceFactory.createHikariDataSource("jdbc:oracle:thin:@host:1521:XE", "user", "pass", ""));
             assertNotNull(ex.getMessage());
         }
 
@@ -57,7 +57,7 @@ class DatabaseConfigTest {
         @DisplayName("Driver inexistente lanza RuntimeException con mensaje de DataSource o Driver")
         void driverInexistenteLanzaExcepcion() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", "user", "pass", "com.invalid.NonExistentDriver"));
             assertTrue(ex.getMessage().contains("DataSource") || ex.getMessage().contains("Driver") ||
                        ex.getMessage().contains("load") || ex.getMessage().contains("Failed"),
@@ -77,7 +77,7 @@ class DatabaseConfigTest {
         @DisplayName("maxPoolSize=0 lanza RuntimeException")
         void poolSizeCeroLanzaExcepcion() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", "user", "pass", "oracle.jdbc.OracleDriver", 0, 0));
             assertNotNull(ex.getMessage());
         }
@@ -86,7 +86,7 @@ class DatabaseConfigTest {
         @DisplayName("maxPoolSize negativo lanza RuntimeException")
         void poolSizeNegativoLanzaExcepcion() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", "user", "pass", "oracle.jdbc.OracleDriver", -1, 0));
             assertNotNull(ex.getMessage());
         }
@@ -95,7 +95,7 @@ class DatabaseConfigTest {
         @DisplayName("Pool válido (10/2) falla por driver, no por pool config")
         void poolValidoFallaPorDriver() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", "user", "pass", "oracle.jdbc.OracleDriver", 10, 2));
             assertFalse(ex.getMessage().toLowerCase().contains("pool size"),
                 "Error no esperado de pool: " + ex.getMessage());
@@ -105,9 +105,9 @@ class DatabaseConfigTest {
         @DisplayName("Método sin pool size delega en método con pool size (misma excepción)")
         void metodoSinPoolSizeDelegaCorrectamente() {
             RuntimeException ex1 = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource("jdbc:invalid", "u", "p", "invalid.Driver"));
+                () -> HikariDataSourceFactory.createHikariDataSource("jdbc:invalid", "u", "p", "invalid.Driver"));
             RuntimeException ex2 = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource("jdbc:invalid", "u", "p", "invalid.Driver", 10, 2));
+                () -> HikariDataSourceFactory.createHikariDataSource("jdbc:invalid", "u", "p", "invalid.Driver", 10, 2));
             assertEquals(ex1.getClass(), ex2.getClass());
         }
     }
@@ -130,7 +130,7 @@ class DatabaseConfigTest {
         @DisplayName("Con integratedSecurity=true ignora credenciales (Windows Auth)")
         void detectaWindowsAuth(String url) {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     url, "ignorado", "ignorado", "com.microsoft.sqlserver.jdbc.SQLServerDriver"));
             assertNotNull(ex.getMessage());
         }
@@ -146,7 +146,7 @@ class DatabaseConfigTest {
         @DisplayName("Sin integratedSecurity=true usa autenticación SQL estándar")
         void noDetectaWindowsAuth(String url) {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(url, "user", "pass", "oracle.jdbc.OracleDriver"));
+                () -> HikariDataSourceFactory.createHikariDataSource(url, "user", "pass", "oracle.jdbc.OracleDriver"));
             assertNotNull(ex.getMessage());
         }
 
@@ -154,7 +154,7 @@ class DatabaseConfigTest {
         @DisplayName("URL null no causa NullPointerException en detección de Windows Auth")
         void urlNullNoNPEEnDeteccion() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(null, "user", "pass", "oracle.jdbc.OracleDriver"));
+                () -> HikariDataSourceFactory.createHikariDataSource(null, "user", "pass", "oracle.jdbc.OracleDriver"));
             assertFalse(ex instanceof NullPointerException);
         }
     }
@@ -180,7 +180,7 @@ class DatabaseConfigTest {
         @DisplayName("Cada driver conocido falla por driver no disponible (no por config interna)")
         void deteccionTipoNoExplota(String driverClass, String url) {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(url.trim(), "user", "pass", driverClass.trim()));
+                () -> HikariDataSourceFactory.createHikariDataSource(url.trim(), "user", "pass", driverClass.trim()));
             assertTrue(ex.getMessage().contains("DataSource") || ex.getMessage().contains("Driver") ||
                        ex.getMessage().contains("class") || ex.getMessage().contains("load"),
                 "Mensaje inesperado: " + ex.getMessage());
@@ -190,7 +190,7 @@ class DatabaseConfigTest {
         @DisplayName("Driver desconocido (tipo Unknown) no lanza excepción interna propia")
         void driverDesconocidoUnknownNoExplotaInterno() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:custom://host/db", "user", "pass", "com.custom.unknown.Driver"));
             assertNotNull(ex.getMessage());
         }
@@ -214,7 +214,7 @@ class DatabaseConfigTest {
         @DisplayName("Configuración de test query no lanza excepción propia (falla solo por driver)")
         void testQueryNoExplotaInternamente(String driverClass, String url) {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(url.trim(), "user", "pass", driverClass.trim()));
+                () -> HikariDataSourceFactory.createHikariDataSource(url.trim(), "user", "pass", driverClass.trim()));
             assertNotNull(ex.getMessage());
         }
     }
@@ -231,7 +231,7 @@ class DatabaseConfigTest {
         @DisplayName("Username null no causa NullPointerException (solo warning en log)")
         void usernameNullNoNPE() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", null, "pass", "oracle.jdbc.OracleDriver"));
             assertFalse(ex instanceof NullPointerException);
         }
@@ -240,7 +240,7 @@ class DatabaseConfigTest {
         @DisplayName("Username vacío genera warning pero no falla por username")
         void usernameVacioNoFallaPorUsername() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", "", "pass", "oracle.jdbc.OracleDriver"));
             assertFalse(ex.getMessage().toLowerCase().contains("username"),
                 "No debe fallar por username: " + ex.getMessage());
@@ -250,7 +250,7 @@ class DatabaseConfigTest {
         @DisplayName("Password null no causa NullPointerException")
         void passwordNullNoNPE() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", "user", null, "oracle.jdbc.OracleDriver"));
             assertFalse(ex instanceof NullPointerException);
         }
@@ -259,7 +259,7 @@ class DatabaseConfigTest {
         @DisplayName("Password vacío genera warning pero no falla por password")
         void passwordVacioNoFallaPorPassword() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", "user", "", "oracle.jdbc.OracleDriver"));
             assertFalse(ex.getMessage().toLowerCase().contains("password"),
                 "No debe fallar por password: " + ex.getMessage());
@@ -269,7 +269,7 @@ class DatabaseConfigTest {
         @DisplayName("Password con caracteres especiales no explota")
         void passwordCaracteresEspeciales() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", "user", "P@ss!#$%^&*()", "oracle.jdbc.OracleDriver"));
             assertNotNull(ex.getMessage());
         }
@@ -287,7 +287,7 @@ class DatabaseConfigTest {
         @DisplayName("URL con password=xxx en parámetros no causa NPE en masking")
         void urlConPasswordEnParametros() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:sqlserver://host:1433;password=SuperSecret!;databaseName=DB",
                     "user", "pass", "com.microsoft.sqlserver.jdbc.SQLServerDriver"));
             assertNotNull(ex.getMessage());
@@ -297,7 +297,7 @@ class DatabaseConfigTest {
         @DisplayName("URL con PASSWORD en mayúsculas no causa NPE en masking (case-insensitive)")
         void urlConPasswordMayusculas() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:sqlserver://host:1433;PASSWORD=Secret123;integratedSecurity=true",
                     "user", "pass", "com.microsoft.sqlserver.jdbc.SQLServerDriver"));
             assertNotNull(ex.getMessage());
@@ -316,7 +316,7 @@ class DatabaseConfigTest {
         @DisplayName("Windows Auth + password en URL: credenciales pasadas se ignoran")
         void windowsAuthConPasswordEnUrl() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:sqlserver://host:1433;integratedSecurity=true;password=ShouldBeIgnored",
                     "ignored_user", "ignored_pass",
                     "com.microsoft.sqlserver.jdbc.SQLServerDriver"));
@@ -327,7 +327,7 @@ class DatabaseConfigTest {
         @DisplayName("SQL Auth con URL compleja (múltiples parámetros) no falla por URL")
         void sqlAuthUrlCompleja() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:sqlserver://host:1433;databaseName=DB;encrypt=true;trustServerCertificate=true;loginTimeout=30",
                     "user", "pass", "com.microsoft.sqlserver.jdbc.SQLServerDriver"));
             assertNotNull(ex.getMessage());
@@ -337,7 +337,7 @@ class DatabaseConfigTest {
         @DisplayName("Credenciales ambas null con driver Oracle no causa NullPointerException sin envolver")
         void credencialesNullNoNPE() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:oracle:thin:@host:1521:XE", null, null, "oracle.jdbc.OracleDriver"));
             assertFalse(ex instanceof NullPointerException,
                 "No debe propagarse NullPointerException sin envolver");
@@ -347,7 +347,7 @@ class DatabaseConfigTest {
         @DisplayName("Windows Auth con pool size personalizado no falla por pool config")
         void windowsAuthConPoolPersonalizado() {
             RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> DatabaseConfig.createHikariDataSource(
+                () -> HikariDataSourceFactory.createHikariDataSource(
                     "jdbc:sqlserver://host:1433;integratedSecurity=true",
                     null, null,
                     "com.microsoft.sqlserver.jdbc.SQLServerDriver",

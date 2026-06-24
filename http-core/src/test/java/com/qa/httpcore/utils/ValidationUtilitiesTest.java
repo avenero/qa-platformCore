@@ -1,15 +1,23 @@
 package com.qa.httpcore.utils;
 
 import com.qa.httpcore.utils.ValidationUtilities;
+import com.qa.common.api.config.ConfigLoader;
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.common.api.config.TypedConfig;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.httpcore.model.HttpResponse;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.FileNotFoundException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -453,6 +461,83 @@ class ValidationUtilitiesTest {
             ctor.newInstance();
         })
             .hasCauseInstanceOf(UnsupportedOperationException.class);
+    }
+
+    // =========================================================================
+    // resolveSchemaFilePath - guard de path-traversal (W2-M4 / hallazgo M-4)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("resolveSchemaFilePath() - guard de path-traversal (W2-M4)")
+    @Order(8)
+    class ResolveSchemaFilePathTests {
+
+        @TempDir
+        Path schemaRoot;
+
+        /** Apunta {@code http.schema.root} al @TempDir vía la instancia fake de ConfigLoader. */
+        @BeforeEach
+        void overrideSchemaRoot() {
+            final String root = schemaRoot.toString();
+            ConfigLoaderHolder.replace(new ConfigLoader() {
+                @Override
+                public <T extends TypedConfig> T load(Class<T> configClass) {
+                    throw new UnsupportedOperationException("no usado en este test");
+                }
+
+                @Override
+                public <T extends TypedConfig> T reload(Class<T> configClass) {
+                    throw new UnsupportedOperationException("no usado en este test");
+                }
+
+                @Override
+                public Optional<String> getRaw(String key) {
+                    return ValidationUtilities.SCHEMA_ROOT_CONFIG_KEY.equals(key)
+                        ? Optional.of(root)
+                        : Optional.empty();
+                }
+            });
+        }
+
+        @AfterEach
+        void restoreLoader() {
+            ConfigLoaderHolder.reset();
+        }
+
+        @Test
+        @DisplayName("(a) ruta relativa dentro de la raiz -> resuelve al archivo")
+        void relativeWithinRootResolves() throws Exception {
+            Files.writeString(schemaRoot.resolve("user-schema.json"), "{}");
+
+            Path resolved = ValidationUtilities.resolveSchemaFilePath("user-schema.json");
+
+            assertThat(resolved).isRegularFile();
+            assertThat(resolved.startsWith(schemaRoot)).isTrue();
+            assertThat(resolved.getFileName().toString()).isEqualTo("user-schema.json");
+        }
+
+        @Test
+        @DisplayName("(b) ../../../etc/passwd -> SecurityException")
+        void parentTraversalRejected() {
+            assertThatExceptionOfType(SecurityException.class)
+                .isThrownBy(() -> ValidationUtilities.resolveSchemaFilePath("../../../etc/passwd"))
+                .withMessageContaining(ValidationUtilities.MSG_SCHEMA_PATH_ESCAPES_ROOT);
+        }
+
+        @Test
+        @DisplayName("(c) ruta absoluta fuera de la raiz -> SecurityException")
+        void absoluteOutsideRootRejected() {
+            assertThatExceptionOfType(SecurityException.class)
+                .isThrownBy(() -> ValidationUtilities.resolveSchemaFilePath("/etc/passwd"))
+                .withMessageContaining(ValidationUtilities.MSG_SCHEMA_PATH_ESCAPES_ROOT);
+        }
+
+        @Test
+        @DisplayName("(d) nombre dentro de la raiz pero inexistente -> FileNotFoundException")
+        void missingFileWithinRootThrowsFileNotFound() {
+            assertThatExceptionOfType(FileNotFoundException.class)
+                .isThrownBy(() -> ValidationUtilities.resolveSchemaFilePath("does-not-exist.json"));
+        }
     }
 }
 

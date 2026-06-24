@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.AssertTrue;
 
 import java.time.Duration;
 
@@ -63,5 +64,15 @@ public record WebConfig(
                 Duration.ofSeconds(DEFAULT_EXPLICIT_WAIT_SEC),
                 Duration.ZERO
         );
+    }
+
+    @AssertTrue(message = "navigationTimeout must be ≥ 1000ms")
+    public boolean isNavigationTimeoutValid() {
+        return navigationTimeout == null || navigationTimeout.toMillis() >= 1000;
+    }
+
+    @AssertTrue(message = "actionTimeout must be ≥ 500ms")
+    public boolean isActionTimeoutValid() {
+        return actionTimeout == null || actionTimeout.toMillis() >= 500;
     }
 }

@@ -111,7 +111,7 @@ import javax.sql.DataSource;
  * @version 1.0.0
  * @since 1.0.0
  * @see com.qa.databasecore.connector.DatabaseConnector
- * @see com.qa.databasecore.config.DatabaseConfig
+ * @see com.qa.databasecore.config.HikariDataSourceFactory
  */
 public interface DatabaseService extends AutoCloseable {
 

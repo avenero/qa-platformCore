@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
  * Utilidad para detectar parámetros de steps que contienen URLs absolutas hardcodeadas.
  *
  * <p>Se usa como fallback cuando un step no tiene la anotación
- * {@link com.qa.httpcore.annotation.StepMetadata}: si el parámetro en runtime parece
+ * {@code StepMetadata}: si el parámetro en runtime parece
  * una URL absoluta, el {@link com.qa.httpcore.plugin.ApiPlugin} lo registra como
  * {@link com.qa.httpcore.execution.BaseUrlSource#STEP_LITERAL}.
  *

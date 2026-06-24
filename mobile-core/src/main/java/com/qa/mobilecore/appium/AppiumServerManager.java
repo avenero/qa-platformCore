@@ -1,11 +1,15 @@
 package com.qa.mobilecore.appium;
 
+import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.common.api.logging.TestLogger;
+import com.qa.mobilecore.config.MobileConfigKeys;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.net.URI;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
@@ -129,6 +133,18 @@ public final class AppiumServerManager {
     }
 
     private static boolean isAppiumInPath() {
+        final String appium;
+        try {
+            appium = resolveBinary(MobileConfigKeys.APPIUM_PATH, "appium");
+        } catch (IllegalStateException e) {
+            TestLogger.logWarning("APPIUM_SERVER", e.getMessage(), null);
+            return false;
+        }
+        // Una ruta configurada ya fue validada como ejecutable por resolveBinary.
+        if (!"appium".equals(appium)) {
+            return true;
+        }
+        // Default: probar el $PATH del sistema buscando el binario 'appium'.
         try {
             String cmd = isWindows() ? "where appium" : "which appium";
             Process p = Runtime.getRuntime().exec(
@@ -141,9 +157,11 @@ public final class AppiumServerManager {
 
     private static Process launchAppiumProcess(int port) {
         try {
+            String appium = resolveBinary(MobileConfigKeys.APPIUM_PATH, "appium");
+            // En Windows el binario suele ser un shim npm (appium.cmd) que requiere "cmd /c".
             String[] cmd = isWindows()
-                ? new String[]{"cmd", "/c", "appium", "--port", String.valueOf(port), "--log-level", "warn"}
-                : new String[]{"appium", "--port", String.valueOf(port), "--log-level", "warn"};
+                ? new String[]{"cmd", "/c", appium, "--port", String.valueOf(port), "--log-level", "warn"}
+                : new String[]{appium, "--port", String.valueOf(port), "--log-level", "warn"};
 
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.redirectErrorStream(true);
@@ -235,5 +253,30 @@ public final class AppiumServerManager {
 
     private static boolean isWindows() {
         return System.getProperty("os.name", "").toLowerCase().contains("win");
+    }
+
+    /**
+     * Resuelve la ruta del binario externo a partir de una clave de configuración.
+     *
+     * <p>Si {@code configKey} está definido con un valor no vacío, debe apuntar a un
+     * archivo ejecutable o se lanza {@link IllegalStateException} (fail-fast ante
+     * mala configuración). Si está ausente/vacío, retorna {@code defaultName} para
+     * que aplique la resolución por {@code $PATH} (comportamiento retrocompatible).
+     *
+     * @param configKey   clave de config (p.ej. {@link MobileConfigKeys#APPIUM_PATH})
+     * @param defaultName nombre del binario para el fallback por {@code $PATH}
+     * @return ruta absoluta configurada, o {@code defaultName} para lookup por {@code $PATH}
+     * @throws IllegalStateException si la clave está definida pero la ruta no es ejecutable
+     */
+    static String resolveBinary(String configKey, String defaultName) {
+        String configured = ConfigLoaderHolder.get().getRaw(configKey).orElse(null);
+        if (configured != null && !configured.isBlank()) {
+            if (!Files.isExecutable(Paths.get(configured))) {
+                throw new IllegalStateException(
+                    configKey + " set but not executable: " + configured);
+            }
+            return configured;
+        }
+        return defaultName;
     }
 }

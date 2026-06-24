@@ -1,6 +1,5 @@
 package com.qa.webcore.components.bdd;
 
-import com.qa.webcore.steps.interaction.DragDropSteps;
 import com.qa.common.api.runtime.BddPhase;
 import com.qa.common.api.runtime.StepComponent;
 import com.qa.common.api.runtime.annotation.StepId;
@@ -9,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Componente de steps Web: Drag and Drop (DEPRECATED).
+ * Componente de steps Web: Drag and Drop (DEPRECATED — alias marcador).
  *
  * <p>Este componente está marcado como <strong>deprecated</strong> desde la versión 2.1.0.
  * El stepId {@code "web.dragdrop"} fue normalizado a {@code "web.drag.drop"} para consistencia
@@ -18,14 +17,18 @@ import java.util.Map;
  *
  * <p><strong>Migración:</strong> Reemplazar el uso de {@code "web.dragdrop"} por
  * {@code "web.drag.drop"} en todos los escenarios persistidos. El componente
- * sucesor {@code "web.drag.drop"} estará disponible desde la versión 2.2.0.
+ * sucesor {@link WebDragDropComponent} ({@code "web.drag.drop"}) ya expone los steps reales
+ * desde la versión 2.2.0.
  *
- * <p>Este componente se mantiene activo durante el ciclo de deprecación para garantizar
- * retrocompatibilidad con escenarios persistidos en la base de datos antes de la migración.
+ * <p>Este componente se mantiene registrado durante el ciclo de deprecación como
+ * <strong>marcador del id {@code "web.dragdrop"}</strong> (retrocompatibilidad de resolución
+ * por id), pero {@link #getStepDefinitionClass()} retorna {@code null}: la clase de steps la
+ * enruta ahora {@link WebDragDropComponent}, de modo que el catálogo no registra dos veces los
+ * mismos {@code @StepDef}. La ejecución no se ve afectada — el glue se resuelve por paquete.
  *
  * @author Abel Venero
  * @since 2.0.0
- * @deprecated Usar stepId {@code "web.drag.drop"} disponible desde v2.2.0.
+ * @deprecated Usar stepId {@code "web.drag.drop"} ({@link WebDragDropComponent}) disponible desde v2.2.0.
  */
 @SuppressWarnings("DeprecatedIsStillUsed") // el plugin lo registra durante el ciclo de deprecación
 @Deprecated(since = "2.1.0", forRemoval = false)
@@ -72,7 +75,10 @@ public class DragDropComponent implements StepComponent {
 
     @Override
     public Class<?> getStepDefinitionClass() {
-        return DragDropSteps.class;
+        // Alias deprecado: marcador del id "web.dragdrop". La clase de steps la enruta ahora el
+        // sucesor WebDragDropComponent ("web.drag.drop"); retornar null evita que el catálogo
+        // (StepDiscoveryService) registre dos veces los mismos @StepDef de DragDropSteps.
+        return null;
     }
 
     @Override

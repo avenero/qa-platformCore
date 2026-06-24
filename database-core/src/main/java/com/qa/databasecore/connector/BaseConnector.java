@@ -1,6 +1,6 @@
 package com.qa.databasecore.connector;
 
-import com.qa.databasecore.config.DatabaseConfig;
+import com.qa.databasecore.config.HikariDataSourceFactory;
 import com.qa.common.api.logging.TestLogger;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -28,7 +28,7 @@ abstract class BaseConnector implements DatabaseConnector {
 
         validateProperties(jdbcUrl, username, password);
 
-        this.dataSource = (HikariDataSource) DatabaseConfig.createHikariDataSource(
+        this.dataSource = (HikariDataSource) HikariDataSourceFactory.createHikariDataSource(
             jdbcUrl, username, password, driverClass
         );
 

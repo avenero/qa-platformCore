@@ -6,8 +6,8 @@
 > **Plugin:** `com.qa.httpcore.plugin.ApiPlugin`  
 > **Platform ID:** `HTTP`  
 > **Display:** HTTP API Testing  
-> **Componentes:** 12  
-> **Última generación:** 2026-06-09
+> **Componentes:** 13  
+> **Última generación:** 2026-06-23
 
 Esta tabla es el **contrato público** de los `StepComponent` que el módulo `http-core` expone al Backend (catálogo i18n) y al Frontend (paleta del Scenario Builder). Cada entrada se deriva por reflexión vía SPI (`ServiceLoader<CorePlugin>`).
 
@@ -63,6 +63,14 @@ Esta tabla es el **contrato público** de los `StepComponent` que el módulo `ht
 ## `api.body`
 
 > ⚠️ **Deprecado** — usar `api.request.body` en su lugar.
+
+- **Display:** **Request Body** _(es)_ / **Request Body** _(en)_ / **Corps de la requete** _(fr)_
+- **Categoría:** Configuracion de Peticion  · **Fase BDD:** `GIVEN`  · **Display order:** `60`
+- **Icono:** `description`  · **Keywords:** body, cuerpo, payload, json, xml, form-data, multipart, template, raw, request-body
+- **Descripción:** Cuerpo de la peticion: JSON, XML, form-data, template
+- **Glue:** `com.qa.httpcore.steps.config.RequestBodySteps`
+
+## `api.request.body`
 
 - **Display:** **Request Body** _(es)_ / **Request Body** _(en)_ / **Corps de la requete** _(fr)_
 - **Categoría:** Configuracion de Peticion  · **Fase BDD:** `GIVEN`  · **Display order:** `60`

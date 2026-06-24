@@ -1,0 +1,69 @@
+[
+  {
+    "uri": "features/snapshot-harness.feature",
+    "keyword": "Feature",
+    "name": "Snapshot harness feature",
+    "elements": [
+      {
+        "type": "scenario",
+        "keyword": "Scenario",
+        "name": "Passing scenario",
+        "tags": [
+          { "name": "@SNAP-1" }
+        ],
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a clean system",
+            "result": { "status": "passed", "duration": 1000000 }
+          },
+          {
+            "keyword": "Then ",
+            "name": "the result is recorded",
+            "result": { "status": "passed", "duration": 2000000 }
+          }
+        ]
+      },
+      {
+        "type": "scenario",
+        "keyword": "Scenario",
+        "name": "Failing scenario",
+        "tags": [
+          { "name": "@SNAP-2" }
+        ],
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a valid precondition",
+            "result": { "status": "passed", "duration": 1000000 }
+          },
+          {
+            "keyword": "Then ",
+            "name": "the assertion fails",
+            "result": { "status": "failed", "duration": 3000000, "error_message": "expected true but was false" }
+          }
+        ]
+      },
+      {
+        "type": "scenario",
+        "keyword": "Scenario",
+        "name": "Skipped scenario",
+        "tags": [
+          { "name": "@SNAP-3" }
+        ],
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a step that is skipped",
+            "result": { "status": "skipped", "duration": 0 }
+          },
+          {
+            "keyword": "Then ",
+            "name": "another skipped step",
+            "result": { "status": "skipped", "duration": 0 }
+          }
+        ]
+      }
+    ]
+  }
+]

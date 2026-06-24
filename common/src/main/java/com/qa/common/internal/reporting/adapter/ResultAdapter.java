@@ -1,7 +1,7 @@
 package com.qa.common.internal.reporting.adapter;
 import com.qa.common.api.Internal;
 
-import com.qa.common.internal.reporting.model.TestExecutionResult;
+import com.qa.common.api.reporter.bridge.ExecutionData;
 
 /**
  * Interfaz para adaptadores de diferentes formatos de resultados.
@@ -9,16 +9,15 @@ import com.qa.common.internal.reporting.model.TestExecutionResult;
  * <p>Permite agregar soporte para nuevos frameworks sin modificar el core.
  */
 @Internal
-@SuppressWarnings("removal")
 public interface ResultAdapter {
 
     /**
-     * Convierte resultados en formato específico al modelo estándar.
+     * Convierte resultados en formato específico al modelo puente.
      *
      * @param rawResults resultados en formato nativo (JSON, XML, etc.)
-     * @return resultados en modelo estándar para enviar a Jira
+     * @return resultados proyectados al modelo puente {@link ExecutionData}
      */
-    TestExecutionResult convert(String rawResults);
+    ExecutionData convert(String rawResults);
 
     /**
      * Indica si este adaptador puede manejar el formato dado.

@@ -1,5 +1,8 @@
 package com.qa.databasecore.factory;
 
+import com.qa.common.api.config.ConfigLoaderHolder;
+import com.qa.databasecore.config.JdbcDriverAllowlist;
+import com.qa.databasecore.connector.DatabaseConnector;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -372,6 +375,80 @@ class DbConnectorFactoryTest {
                 assertThat(c).isNotNull();
             } catch (Exception e) {
                 assertThat(e).isNotInstanceOf(NullPointerException.class);
+            }
+        }
+    }
+
+    // =========================================================================
+    // Allowlist de driver JDBC (W2-M2-DB-DRIVER) — path db.* / createFromConfig()
+    // =========================================================================
+
+    @Nested
+    @DisplayName("Allowlist de driver JDBC (db.driver)")
+    @Order(6)
+    class DriverAllowlistTests {
+
+        // createFromConfig() resuelve el driver vía el TypedConfig DatabaseConfig, que el
+        // ConfigLoader cachea por clase. Estos tests fuerzan ConfigLoaderHolder.reset() antes
+        // (para que el loader nuevo lea las System Properties recién seteadas) y después (para
+        // descartar el DatabaseConfig que cachean y no contaminar otros tests del mismo JVM).
+
+        @Test
+        @DisplayName("createFromConfig rechaza un db.driver fuera de la allowlist con MSG_DRIVER_NOT_ALLOWED")
+        void createFromConfigDriverNoPermitidoEsRechazado() {
+            String originalUrl = System.getProperty("db.url");
+            String originalDriver = System.getProperty("db.driver");
+            String originalUser = System.getProperty("db.username");
+            String originalPass = System.getProperty("db.password");
+
+            try {
+                System.setProperty("db.url", "jdbc:h2:mem:allowlist_evil_" + System.nanoTime());
+                System.setProperty("db.driver", "com.acme.EvilDriver"); // input-driven, no permitido
+                System.setProperty("db.username", "sa");
+                System.setProperty("db.password", "");
+                ConfigLoaderHolder.reset();
+
+                assertThatThrownBy(DbConnectorFactory::createFromConfig)
+                    .isInstanceOf(SecurityException.class)
+                    .hasMessage(JdbcDriverAllowlist.MSG_DRIVER_NOT_ALLOWED);
+            } finally {
+                restoreProperty("db.url", originalUrl);
+                restoreProperty("db.driver", originalDriver);
+                restoreProperty("db.username", originalUser);
+                restoreProperty("db.password", originalPass);
+                ConfigLoaderHolder.reset();
+            }
+        }
+
+        @Test
+        @DisplayName("createFromConfig acepta un db.driver permitido (H2) y abre el pool")
+        void createFromConfigDriverPermitidoConecta() throws Exception {
+            String originalUrl = System.getProperty("db.url");
+            String originalDriver = System.getProperty("db.driver");
+            String originalUser = System.getProperty("db.username");
+            String originalPass = System.getProperty("db.password");
+
+            DatabaseConnector connector = null;
+            try {
+                System.setProperty("db.url",
+                    "jdbc:h2:mem:allowlist_ok_" + System.nanoTime() + ";DB_CLOSE_DELAY=-1");
+                System.setProperty("db.driver", "org.h2.Driver"); // permitido por defecto
+                System.setProperty("db.username", "sa");
+                System.setProperty("db.password", "");
+                ConfigLoaderHolder.reset();
+
+                connector = DbConnectorFactory.createFromConfig();
+                assertThat(connector).isNotNull();
+                assertThat(connector.getDataSource()).isNotNull();
+            } finally {
+                if (connector != null) {
+                    connector.close();
+                }
+                restoreProperty("db.url", originalUrl);
+                restoreProperty("db.driver", originalDriver);
+                restoreProperty("db.username", originalUser);
+                restoreProperty("db.password", originalPass);
+                ConfigLoaderHolder.reset();
             }
         }
     }

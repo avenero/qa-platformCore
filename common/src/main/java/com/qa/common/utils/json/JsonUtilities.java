@@ -3,15 +3,13 @@ package com.qa.common.utils.json;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.common.api.logging.TestLogger;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.skyscreamer.jsonassert.JSONCompare;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.JSONCompareResult;
@@ -489,16 +487,10 @@ public final class JsonUtilities {
         if (json == null || json.trim().isEmpty()) {
             return false;
         }
-        String trimmed = json.trim();
         try {
-            if (trimmed.startsWith("{")) {
-                new org.json.JSONObject(json);
-                return true;
-            } else if (trimmed.startsWith("[")) {
-                new org.json.JSONArray(json);
-                return true;
-            }
-        } catch (org.json.JSONException ignored) { /* invalid */ }
+            JsonNode node = OBJECT_MAPPER.readTree(json);
+            return node != null && (node.isObject() || node.isArray());
+        } catch (JsonProcessingException ignored) { /* invalid */ }
         return false;
     }
 
@@ -536,53 +528,38 @@ public final class JsonUtilities {
         if (jsonString == null || jsonString.trim().isEmpty()) {
             return null;
         }
-        String trimmed = jsonString.trim();
         try {
-            if (trimmed.startsWith("{")) {
-                return findInObject(new JSONObject(jsonString), key);
-            } else if (trimmed.startsWith("[")) {
-                return findInArray(new JSONArray(jsonString), key);
+            JsonNode root = OBJECT_MAPPER.readTree(jsonString);
+            if (root.isObject() || root.isArray()) {
+                return findInNode(root, key);
             }
-        } catch (JSONException e) {
+        } catch (JsonProcessingException e) {
             TestLogger.logDebug("JSON_UTILITIES",
                 "Error parseando JSON: " + e.getMessage(), null);
         }
         return null;
     }
 
-    private static Object findInObject(JSONObject jsonObj, String key) {
-        if (jsonObj.has(key)) {
-            return jsonObj.get(key);
+    private static Object findInNode(JsonNode node, String key) {
+        if (node == null || node.isNull()) {
+            return null;
         }
-        for (String k : jsonObj.keySet()) {
-            Object value = jsonObj.get(k);
-            if (value instanceof JSONObject) {
-                Object result = findInObject((JSONObject) value, key);
-                if (result != null) {
-                    return result;
-                }
-            } else if (value instanceof JSONArray) {
-                Object result = findInArray((JSONArray) value, key);
-                if (result != null) {
-                    return result;
+        if (node.isObject()) {
+            JsonNode candidate = node.get(key);
+            if (candidate != null) {
+                return OBJECT_MAPPER.convertValue(candidate, Object.class);
+            }
+            for (JsonNode child : node) {
+                Object nested = findInNode(child, key);
+                if (nested != null) {
+                    return nested;
                 }
             }
-        }
-        return null;
-    }
-
-    private static Object findInArray(JSONArray jsonArray, String key) {
-        for (int i = 0; i < jsonArray.length(); i++) {
-            Object item = jsonArray.get(i);
-            if (item instanceof JSONObject) {
-                Object result = findInObject((JSONObject) item, key);
-                if (result != null) {
-                    return result;
-                }
-            } else if (item instanceof JSONArray) {
-                Object result = findInArray((JSONArray) item, key);
-                if (result != null) {
-                    return result;
+        } else if (node.isArray()) {
+            for (JsonNode item : node) {
+                Object nested = findInNode(item, key);
+                if (nested != null) {
+                    return nested;
                 }
             }
         }

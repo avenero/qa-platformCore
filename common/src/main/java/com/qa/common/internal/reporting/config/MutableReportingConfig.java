@@ -26,13 +26,13 @@ import java.util.Properties;
  */
 @Internal
 
-public class ReportingConfig {
+public class MutableReportingConfig {
 
     private boolean enabled;
     private String environment;
     private ExtentConfig extent;
 
-    public ReportingConfig() {
+    public MutableReportingConfig() {
         this.extent = new ExtentConfig();
         this.enabled = true;
     }
@@ -43,7 +43,7 @@ public class ReportingConfig {
      * {@link ExtentReportConfig}, más {@link ExtentSystemInfoLoader} para el
      * scan dinámico {@code extent.systemInfo.*}.
      */
-    public static ReportingConfig load() {
+    public static MutableReportingConfig load() {
         ConfigLoader loader = ConfigLoaderHolder.get();
         com.qa.common.api.config.ReportingConfig api =
                 loader.load(com.qa.common.api.config.ReportingConfig.class);
@@ -51,7 +51,7 @@ public class ReportingConfig {
 
         TestLogger.logInfo("REPORTING_CONFIG", "📄 Cargando configuración de reporting...", null);
 
-        ReportingConfig config = new ReportingConfig();
+        MutableReportingConfig config = new MutableReportingConfig();
         config.setEnabled(api.enabled());
         config.setEnvironment(api.environment());
 
@@ -91,8 +91,8 @@ public class ReportingConfig {
      * @param props propiedades de configuración
      * @return configuración cargada
      */
-    public static ReportingConfig fromProperties(Properties props) {
-        ReportingConfig config = new ReportingConfig();
+    public static MutableReportingConfig fromProperties(Properties props) {
+        MutableReportingConfig config = new MutableReportingConfig();
         config.setEnabled(Boolean.parseBoolean(props.getProperty("reporting.enabled", "true")));
         config.setEnvironment(props.getProperty("reporting.environment", "local"));
         config.getExtent().setEnabled(Boolean.parseBoolean(props.getProperty("extent.enabled", "true")));
@@ -126,6 +126,6 @@ public class ReportingConfig {
 
     @Override
     public String toString() {
-        return "ReportingConfig{enabled=" + enabled + ", environment='" + environment + "', extent=" + extent + '}';
+        return "MutableReportingConfig{enabled=" + enabled + ", environment='" + environment + "', extent=" + extent + '}';
     }
 }

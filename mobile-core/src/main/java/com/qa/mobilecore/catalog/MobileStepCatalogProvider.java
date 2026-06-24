@@ -221,7 +221,49 @@ public class MobileStepCatalogProvider implements StepCatalogProvider {
         entry("mobile.when.deny-permission",
               "I deny the {string} permission",
               "WHEN", CAT_PERM, "step.mobile.when.deny-permission.description",
-              List.of(param("permission", "step.mobile.when.permission.param")))
+              List.of(param("permission", "step.mobile.when.permission.param"))),
+
+        // ── Aserciones (THEN) ─────────────────────────────────────────────────
+        entry("mobile.then.see-text",
+              "I should see {string} on the screen",
+              "THEN", CAT_VALID, "step.mobile.then.see-text.description",
+              List.of(param("text", "step.mobile.param.text"))),
+
+        entry("mobile.then.not-see-text",
+              "I should not see {string} on the screen",
+              "THEN", CAT_VALID, "step.mobile.then.not-see-text.description",
+              List.of(param("text", "step.mobile.param.text"))),
+
+        entry("mobile.then.field-contains",
+              "the {string} mobile field should contain {string}",
+              "THEN", CAT_VALID, "step.mobile.then.field-contains.description",
+              List.of(param("label", "step.mobile.param.label"),
+                      param("value", "step.mobile.param.value"))),
+
+        entry("mobile.then.button-enabled",
+              "the {string} mobile button should be enabled",
+              "THEN", CAT_VALID, "step.mobile.then.button-enabled.description",
+              List.of(param("label", "step.mobile.param.label"))),
+
+        entry("mobile.then.button-disabled",
+              "the {string} mobile button should be disabled",
+              "THEN", CAT_VALID, "step.mobile.then.button-disabled.description",
+              List.of(param("label", "step.mobile.param.label"))),
+
+        entry("mobile.then.screen-view",
+              "the screen should show the {string} view",
+              "THEN", CAT_VALID, "step.mobile.then.screen-view.description",
+              List.of(param("screen", "step.mobile.app.screen.param.screen"))),
+
+        entry("mobile.then.a11y-visible",
+              "the element with accessibility id {string} should be visible",
+              "THEN", CAT_VALID, "step.mobile.then.a11y-visible.description",
+              List.of(param("accessibilityId", "step.mobile.param.accessibilityId"))),
+
+        entry("mobile.then.a11y-not-visible",
+              "the element with accessibility id {string} should not be visible",
+              "THEN", CAT_VALID, "step.mobile.then.a11y-not-visible.description",
+              List.of(param("accessibilityId", "step.mobile.param.accessibilityId")))
     );
 
     @Override

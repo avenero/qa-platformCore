@@ -172,7 +172,7 @@ public class BaseDatabaseService implements DatabaseService {
     try (Connection conn = dataSource.getConnection();
         PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-      LOG.info("Ejecutando consulta para Map en {}: {}", databaseType, sanitizeSql(sql));
+      LOG.info("Ejecutando consulta para Map en {}: {}", databaseType, truncateSqlForLog(sql));
 
       // Establecer parámetros
       setParameters(stmt, parameters);
@@ -187,7 +187,7 @@ public class BaseDatabaseService implements DatabaseService {
       }
 
     } catch (SQLException e) {
-      LOG.error("Error ejecutando consulta para Map: {} - {}", sanitizeSql(sql), e.getMessage());
+      LOG.error("Error ejecutando consulta para Map: {} - {}", truncateSqlForLog(sql), e.getMessage());
       throw new RuntimeException(
           "Error ejecutando consulta en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -205,7 +205,7 @@ public class BaseDatabaseService implements DatabaseService {
     try (Connection conn = dataSource.getConnection();
         PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-      LOG.info("Ejecutando consulta para List en {}: {}", databaseType, sanitizeSql(sql));
+      LOG.info("Ejecutando consulta para List en {}: {}", databaseType, truncateSqlForLog(sql));
 
       setParameters(stmt, parameters);
 
@@ -219,7 +219,7 @@ public class BaseDatabaseService implements DatabaseService {
       }
 
     } catch (SQLException e) {
-      LOG.error("Error ejecutando consulta para List: {} - {}", sanitizeSql(sql), e.getMessage());
+      LOG.error("Error ejecutando consulta para List: {} - {}", truncateSqlForLog(sql), e.getMessage());
       throw new RuntimeException(
           "Error ejecutando consulta en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -271,7 +271,7 @@ public class BaseDatabaseService implements DatabaseService {
     try (Connection conn = dataSource.getConnection();
         PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-      LOG.info("Ejecutando update en {}: {}", databaseType, sanitizeSql(sql));
+      LOG.info("Ejecutando update en {}: {}", databaseType, truncateSqlForLog(sql));
 
       setParameters(stmt, parameters);
       int rowsAffected = stmt.executeUpdate();
@@ -280,7 +280,7 @@ public class BaseDatabaseService implements DatabaseService {
       return rowsAffected;
 
     } catch (SQLException e) {
-      LOG.error("Error ejecutando update: {} - {}", sanitizeSql(sql), e.getMessage());
+      LOG.error("Error ejecutando update: {} - {}", truncateSqlForLog(sql), e.getMessage());
       throw new RuntimeException(
           "Error ejecutando update en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -336,7 +336,7 @@ public class BaseDatabaseService implements DatabaseService {
           "Ejecutando batch parametrizado de {} statements en {}: {}",
           parametersList.size(),
           databaseType,
-          sanitizeSql(sql));
+          truncateSqlForLog(sql));
 
       conn.setAutoCommit(false);
 
@@ -362,7 +362,7 @@ public class BaseDatabaseService implements DatabaseService {
       }
 
     } catch (SQLException e) {
-      LOG.error("Error ejecutando batch parametrizado: {} - {}", sanitizeSql(sql), e.getMessage());
+      LOG.error("Error ejecutando batch parametrizado: {} - {}", truncateSqlForLog(sql), e.getMessage());
       throw new RuntimeException(
           "Error ejecutando batch parametrizado en " + databaseType + ": " + e.getMessage(), e);
     }
@@ -570,8 +570,8 @@ public class BaseDatabaseService implements DatabaseService {
     }
   }
 
-  /** Sanitiza SQL para logging (oculta datos sensibles). */
-  private String sanitizeSql(String sql) {
+  /** Truncates the SQL string for safe log emission (does NOT redact inline values - only length-bounds). */
+  private String truncateSqlForLog(String sql) {
     if (sql == null) {
       return "null";
     }

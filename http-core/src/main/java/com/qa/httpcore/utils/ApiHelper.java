@@ -1,11 +1,12 @@
 package com.qa.httpcore.utils;
 
-import com.qa.httpcore.implementations.ApacheHttpClientImpl;
+import com.qa.httpcore.factories.HttpClientFactory;
 import com.qa.httpcore.interfaces.HttpClient;
 import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.common.api.exception.FrameworkTechnicalException;
 import com.qa.httpcore.model.HttpResponse;
+import com.qa.httpcore.security.DeserializeAllowlist;
 import com.qa.common.api.logging.TestLogger;
 import com.qa.common.api.runtime.ExecutionContext;
 import com.qa.common.utils.json.JsonUtilities;
@@ -61,7 +62,10 @@ public class ApiHelper {
      * @since 2.0.0
      */
     public ApiHelper() {
-        this(new ApacheHttpClientImpl());
+        // W2-CW2: rutear vía factory para que el motor configurado (http.engine) se honre.
+        // getInstance() resuelve el motor desde el ExecutionContext activo y cae a Apache
+        // (legacy) cuando no hay contexto — preserva la tolerancia a contexto-ausente.
+        this(HttpClientFactory.getInstance());
     }
 
     /**
@@ -89,7 +93,9 @@ public class ApiHelper {
                             // aquí y registramos AMBOS servicios para que los steps posteriores
                             // (HeaderSteps, HttpExecutionSteps, etc.) encuentren el mismo HttpClient.
                             HttpClient httpClient = ctx.registry().get(HttpClient.class).orElseGet(() -> {
-                                        HttpClient newClient = new ApacheHttpClientImpl();
+                                        // W2-CW2: ctx presente → getInstance() resuelve create(ctx.config())
+                                        // y honra el motor configurado (antes hardcodeaba Apache).
+                                        HttpClient newClient = HttpClientFactory.getInstance();
                                         ctx.registry().registerInstance(HttpClient.class, newClient);
                                         return newClient;
                                     });
@@ -341,7 +347,10 @@ public class ApiHelper {
      */
     public void validateJsonField(String jsonPath, Object expectedValue) throws FrameworkBusinessException {
         HttpResponse lastResponse = httpClient.getLastResponse();
-        ValidationUtilities.validateJsonPath(lastResponse, jsonPath, expectedValue);
+        // BUG-007-FOLLOWUP: resuelve ${var} en valores String (paridad con validateJsonPathValue);
+        // los valores no-String se pasan tal cual.
+        Object resolvedValue = (expectedValue instanceof String s) ? resolve(s) : expectedValue;
+        ValidationUtilities.validateJsonPath(lastResponse, jsonPath, resolvedValue);
         TestLogger.logInfo("API_HELPER_VALIDATION",
             String.format("Campo JSON validado: %s = %s", jsonPath, expectedValue), null);
     }
@@ -385,7 +394,7 @@ public class ApiHelper {
      */
     public void validateHeaderValue(String headerName, String expectedValue) throws FrameworkBusinessException {
         HttpResponse lastResponse = httpClient.getLastResponse();
-        ValidationUtilities.validateHeaderValue(lastResponse, headerName, expectedValue);
+        ValidationUtilities.validateHeaderValue(lastResponse, headerName, resolve(expectedValue));
         TestLogger.logInfo("API_HELPER_VALIDATION",
             String.format("Header validado: %s = %s", headerName, expectedValue), null);
     }
@@ -563,38 +572,17 @@ public class ApiHelper {
     }
 
     /**
-     * Carga una clase de forma flexible.
-     * Primero intenta FQCN, luego busca en packages comunes.
+     * Carga la clase destino de deserialización, restringida a paquetes allow-listed
+     * (default-deny, hallazgo M-2). La resolución vive en {@link DeserializeAllowlist}.
      *
-     * @param className nombre de la clase a cargar
+     * @param className nombre de la clase a cargar (FQCN o nombre simple)
      * @return la clase cargada
-     * @throws ClassNotFoundException si la clase no se encuentra
+     * @throws ClassNotFoundException      si la clase está allow-listed pero no en el classpath
+     * @throws FrameworkTechnicalException si la clase está fuera del allowlist (denegada)
      */
-    public Class<?> loadClass(String className) throws ClassNotFoundException {
-        try {
-            return Class.forName(className);
-        } catch (ClassNotFoundException e) {
-            String[] commonPackages = {
-                "com.module.models.",
-                "com.module.dto.",
-                "com.module.responses.",
-                "com.test.models.",
-                "models.",
-                "dto."
-            };
-
-            for (String pkg : commonPackages) {
-                try {
-                    return Class.forName(pkg + className);
-                } catch (ClassNotFoundException ignored) {
-                    // Continuar buscando
-                }
-            }
-
-            throw new ClassNotFoundException(
-                String.format("Clase '%s' no encontrada. Usa FQCN: com.module.models.%s",
-                    className, className));
-        }
+    public Class<?> loadClass(String className)
+            throws ClassNotFoundException, FrameworkTechnicalException {
+        return DeserializeAllowlist.resolve(className);
     }
 
     /**
@@ -731,9 +719,11 @@ public class ApiHelper {
      * Almacena el objeto deserializado para uso posterior.
      *
      * @param className nombre de la clase destino (FQCN o nombre simple)
-     * @throws FrameworkBusinessException si falla la deserialización
+     * @throws FrameworkBusinessException  si falla la deserialización
+     * @throws FrameworkTechnicalException si la clase destino está fuera del allowlist (M-2)
      */
-    public void deserializeResponse(String className) throws FrameworkBusinessException {
+    public void deserializeResponse(String className)
+            throws FrameworkBusinessException, FrameworkTechnicalException {
         try {
             HttpResponse response = httpClient.getLastResponse();
 
@@ -753,6 +743,11 @@ public class ApiHelper {
         } catch (FrameworkBusinessException e) {
             TestLogger.logError("API_HELPER_SERIALIZATION",
                 "❌ Error deserializando respuesta: " + e.getMessage(), null);
+            throw e;
+        } catch (FrameworkTechnicalException e) {
+            // Denegación de seguridad (M-2 allowlist). El mensaje es class-name-free por diseño
+            // (§D.4: sin log de class-names), así que loggearlo no filtra el FQCN sondeado.
+            TestLogger.logError("API_HELPER_SERIALIZATION", e.getMessage(), null);
             throw e;
         } catch (ClassNotFoundException e) {
             String errorMsg = String.format("Clase no encontrada: %s", className);
@@ -1447,15 +1442,23 @@ public class ApiHelper {
      * Valida que la respuesta cumpla un JSON Schema cargado desde un archivo.
      *
      * <p>Lookup en orden: (1) classpath del thread context loader; (2) classpath
-     * del ApiHelper.class loader; (3) filesystem (relativo a working dir).
-     * Esto evita que features tengan que conocer la ruta absoluta del repo.
+     * del ApiHelper.class loader; (3) filesystem restringido a {@code http.schema.root}
+     * (default {@code ${user.dir}/schemas}). Esto evita que features tengan que
+     * conocer la ruta absoluta del repo.
+     *
+     * <p>El tier de filesystem aplica el mismo guard de path-traversal que
+     * {@link ValidationUtilities#resolveSchemaFilePath} (W2-M4 / hallazgo M-4): la
+     * ruta se resuelve contra la raíz y se normaliza; rutas absolutas o {@code ../}
+     * que escapen la raíz se rechazan con {@link SecurityException}. Los tiers de
+     * classpath (1) y (2) no se ven afectados.
      */
     public void validateResponseSchemaFromFile(String filePath) throws FrameworkBusinessException {
         String resolved = resolve(filePath);
         String schema = loadSchemaFromClasspath(resolved);
         if (schema == null) {
+            java.nio.file.Path candidate = schemaFileUnderRoot(resolved);
             try {
-                byte[] schemaBytes = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(resolved));
+                byte[] schemaBytes = java.nio.file.Files.readAllBytes(candidate);
                 schema = new String(schemaBytes, StandardCharsets.UTF_8);
             } catch (java.io.IOException e) {
                 throw new FrameworkBusinessException("validateResponseSchemaFromFile",
@@ -1464,6 +1467,30 @@ public class ApiHelper {
             }
         }
         validateResponseSchema(schema);
+    }
+
+    /**
+     * Resuelve un nombre de esquema contra {@code http.schema.root} y verifica que la
+     * ruta normalizada siga residiendo bajo la raíz (guard de path-traversal W2-M4,
+     * tier filesystem). Reusa la config-key y el mensaje del guard de
+     * {@link ValidationUtilities} (single source — Nota Q2: constante nombrada, sin
+     * i18n, sin literal inline).
+     *
+     * @param filename nombre (o subruta) de esquema, ya interpolado
+     * @return Path absoluto y normalizado bajo la raíz configurada
+     * @throws SecurityException si la ruta resuelta escapa de la raíz
+     */
+    private java.nio.file.Path schemaFileUnderRoot(String filename) {
+        java.nio.file.Path root = java.nio.file.Paths.get(
+                ConfigLoaderHolder.get().getRaw(
+                        ValidationUtilities.SCHEMA_ROOT_CONFIG_KEY,
+                        System.getProperty("user.dir") + "/schemas"))
+                .toAbsolutePath().normalize();
+        java.nio.file.Path candidate = root.resolve(filename).normalize();
+        if (!candidate.startsWith(root)) {
+            throw new SecurityException(ValidationUtilities.MSG_SCHEMA_PATH_ESCAPES_ROOT + filename);
+        }
+        return candidate;
     }
 
     private String loadSchemaFromClasspath(String path) {

@@ -6,13 +6,14 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
+import com.qa.common.api.config.ConfigLoaderHolder;
 import com.qa.common.api.exception.FrameworkBusinessException;
 import com.qa.httpcore.model.HttpResponse;
 import com.qa.common.api.logging.TestLogger;
 import com.qa.common.utils.json.JsonUtilities;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -88,6 +89,20 @@ public class ValidationUtilities {
   private static final TestLogger.LoggerWrapper LOG =
       TestLogger.getLogger(ValidationUtilities.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  /**
+   * Config key (W2-M4) que define el directorio raíz bajo el cual deben residir
+   * los esquemas JSON resueltos por nombre. Default: {@code ${user.dir}/schemas}.
+   */
+  static final String SCHEMA_ROOT_CONFIG_KEY = "http.schema.root";
+
+  /**
+   * Mensaje base del guard de path-traversal de esquemas (W2-M4 / hallazgo M-4).
+   * Nota Q2: constante {@code static final} nombrada (single source) — sin bundle
+   * i18n y sin literal inline en el throw-site. Se le concatena el filename ofensivo.
+   */
+  static final String MSG_SCHEMA_PATH_ESCAPES_ROOT =
+      "Schema path escapes the configured root (http.schema.root). Refused: ";
 
   // =================================================================================
   // PATRONES DE VALIDACIÓN COMUNES (CONSOLIDADOS)
@@ -410,75 +425,43 @@ public class ValidationUtilities {
       return trimmed;
     }
 
-    // Si no, intentar leer como archivo
-    // Buscar en múltiples ubicaciones posibles
+    // Si no, resolver como archivo bajo la raíz configurada (W2-M4): el guard
+    // garantiza un archivo regular dentro de http.schema.root o lanza
+    // SecurityException / FileNotFoundException.
     Path schemaPath = resolveSchemaFilePath(trimmed);
-
-    if (schemaPath == null || !Files.exists(schemaPath)) {
-      throw new IOException(
-          String.format(
-              "Schema file not found: '%s'. Tried locations: "
-                  + "current directory, src/test/resources/schemas/, test/resources/schemas/, resources/schemas/",
-              trimmed));
-    }
-
     LOG.debug("📁 Leyendo esquema desde archivo: {}", schemaPath.toAbsolutePath());
     return Files.readString(schemaPath);
   }
 
   /**
-   * Resuelve la ruta del archivo de esquema buscando en múltiples ubicaciones.
+   * Resuelve la ruta de un archivo de esquema, restringida al directorio raíz
+   * configurable {@code http.schema.root} (default {@code ${user.dir}/schemas}).
    *
-   * @param filename nombre del archivo de esquema
-   * @return Path al archivo encontrado, o null si no existe
+   * <p>W2-M4 (hallazgo de seguridad M-4): cierra el path-traversal. La ruta
+   * candidata se resuelve contra la raíz y se normaliza; sólo se acepta si sigue
+   * residiendo bajo la raíz. Rutas absolutas y secuencias {@code ../} que escapan
+   * la raíz se rechazan con {@link SecurityException}.
+   *
+   * @param filename nombre (o subruta relativa) del archivo de esquema
+   * @return Path absoluto y normalizado al archivo, garantizado bajo la raíz
+   * @throws SecurityException si la ruta resuelta escapa de la raíz configurada
+   * @throws FileNotFoundException si la ruta resuelta no es un archivo regular
    */
-  private static Path resolveSchemaFilePath(String filename) {
-    // 1. Intentar ruta directa (relativa o absoluta)
-    Path directPath = Paths.get(filename);
-    if (Files.exists(directPath)) {
-      return directPath;
+  static Path resolveSchemaFilePath(String filename) throws FileNotFoundException {
+    Path root =
+        Paths.get(
+                ConfigLoaderHolder.get()
+                    .getRaw(SCHEMA_ROOT_CONFIG_KEY, System.getProperty("user.dir") + "/schemas"))
+            .toAbsolutePath()
+            .normalize();
+    Path candidate = root.resolve(filename).normalize();
+    if (!candidate.startsWith(root)) {
+      throw new SecurityException(MSG_SCHEMA_PATH_ESCAPES_ROOT + filename);
     }
-
-    // 2. Intentar en src/test/resources/schemas/
-    Path testResourcesPath = Paths.get("src/test/resources/schemas", filename);
-    if (Files.exists(testResourcesPath)) {
-      return testResourcesPath;
+    if (!Files.isRegularFile(candidate)) {
+      throw new FileNotFoundException(candidate.toString());
     }
-
-    // 3. Intentar en test/resources/schemas/
-    Path testResourcesAltPath = Paths.get("test/resources/schemas", filename);
-    if (Files.exists(testResourcesAltPath)) {
-      return testResourcesAltPath;
-    }
-
-    // 4. Intentar en resources/schemas/
-    Path resourcesPath = Paths.get("resources/schemas", filename);
-    if (Files.exists(resourcesPath)) {
-      return resourcesPath;
-    }
-
-    // 5. Intentar en src/main/resources/schemas/
-    Path mainResourcesPath = Paths.get("src/main/resources/schemas", filename);
-    if (Files.exists(mainResourcesPath)) {
-      return mainResourcesPath;
-    }
-
-    // 6. Intentar como recurso del classpath
-    try {
-      InputStream resourceStream =
-          ValidationUtilities.class.getClassLoader().getResourceAsStream("schemas/" + filename);
-      if (resourceStream != null) {
-        // Crear archivo temporal para leer el recurso
-        Path tempFile = Files.createTempFile("schema-", ".json");
-        Files.copy(resourceStream, tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        tempFile.toFile().deleteOnExit();
-        return tempFile;
-      }
-    } catch (IOException e) {
-      LOG.debug("No se pudo leer recurso desde classpath: {}", filename);
-    }
-
-    return null;
+    return candidate;
   }
 
   // =================================================================================

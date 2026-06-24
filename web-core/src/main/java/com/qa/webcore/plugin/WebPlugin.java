@@ -25,6 +25,7 @@ import com.qa.webcore.components.bdd.ScrollComponent;
 import com.qa.webcore.components.bdd.SelectComponent;
 import com.qa.webcore.components.bdd.TableValidationComponent;
 import com.qa.webcore.components.bdd.WaitComponent;
+import com.qa.webcore.components.bdd.WebDragDropComponent;
 import com.qa.webcore.components.bdd.WebEnvironmentComponent;
 import com.qa.webcore.components.bdd.WindowComponent;
 import com.qa.webcore.driver.engine.BrowserEngine;
@@ -45,7 +46,7 @@ import java.util.Set;
  * Plugin de Web para el runtime de ejecución BDD.
  *
  * <p>Registra servicios Web y declara los
- * 16 componentes de steps Web organizados por responsabilidad.
+ * 17 componentes de steps Web organizados por responsabilidad.
  *
  * <h2>Ciclo de vida Playwright</h2>
  * <p>El ciclo de vida del navegador se centraliza en este plugin.
@@ -200,12 +201,13 @@ public class WebPlugin implements CorePlugin {
     // =========================================================================
 
     /**
-     * Declara los 16 componentes de steps Web.
+     * Declara los 17 componentes de steps Web.
      * Cada componente agrupa steps cohesivos por responsabilidad y fase BDD.
      *
      * <p><em>Nota de deprecación:</em> {@code DragDropComponent} (stepId {@code "web.dragdrop"})
-     * se incluye durante el ciclo de transición hacia {@code "web.drag.drop"} (v2.2.0).
-     * Remover en v2.3.0 una vez migrados todos los escenarios persistidos.
+     * permanece como alias deprecado marcador y ya no enruta clase de steps; el sucesor
+     * {@code WebDragDropComponent} (stepId {@code "web.drag.drop"}) expone los steps reales.
+     * Remover el alias en v2.3.0 una vez migrados todos los escenarios persistidos.
      */
     @SuppressWarnings("deprecation")
     @Override
@@ -224,6 +226,7 @@ public class WebPlugin implements CorePlugin {
                 new SelectComponent(),
                 new ScrollComponent(),
                 new DragDropComponent(),
+                new WebDragDropComponent(),
                 new AlertComponent(),
                 // WHEN — Esperas
                 new WaitComponent(),
